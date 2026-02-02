@@ -1,6 +1,7 @@
 u/docs/channel.md
 u/docs/overview.md
 u/docs/plan.md
+u/docs/link.md
 
 # CLAUDE.md
 
@@ -179,6 +180,11 @@ Server serves:
 
 ### Current Endpoints
 
+- `chat`: Channel and note management with real-time WebSocket updates
+  - Channels: create, update, delete, list, pin/unpin
+  - Notes: create, update, delete, list with pagination
+  - Link previews: automatic URL detection and metadata fetching (see `docs/link.md`)
+  - Real-time streaming: WebSocket events for live updates
 - `emailIdp`: Email authentication (login, registration, password reset)
 - `jwtRefresh`: Token refresh
 - `greeting`: Example endpoint with `hello` method

@@ -1,5 +1,6 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
+import 'link_preview_service.dart';
 
 /// Endpoint for managing channels and notes with real-time updates.
 class ChatEndpoint extends Endpoint {
@@ -158,6 +159,7 @@ class ChatEndpoint extends Endpoint {
 
   /// Creates a new note and broadcasts the event.
   /// Also updates the channel's updatedAt timestamp.
+  /// Asynchronously fetches link preview if URL is detected in content.
   Future<Note> createNote(
     Session session,
     int channelId,
@@ -194,7 +196,45 @@ class ChatEndpoint extends Endpoint {
       // Redis not available (e.g., in test mode), skip broadcasting
     }
 
+    // Fetch link preview asynchronously (don't await)
+    _fetchLinkPreviewAsync(session, saved);
+
     return saved;
+  }
+
+  /// Fetch link preview metadata asynchronously and broadcast update.
+  Future<void> _fetchLinkPreviewAsync(Session session, Note note) async {
+    try {
+      // Extract first URL from content
+      final url = LinkPreviewService.extractFirstUrl(note.content);
+      if (url == null) return;
+
+      // Fetch preview metadata
+      final preview = await LinkPreviewService.fetchPreview(url);
+      if (preview == null) return;
+
+      // Update note with preview
+      note.linkPreview = preview;
+      note.updatedAt = DateTime.now();
+      final updated = await Note.db.updateRow(session, note);
+
+      // Broadcast preview ready event
+      try {
+        await session.messages.postMessage(
+          'chat_events',
+          ChatEvent(
+            type: 'noteLinkPreviewReady',
+            note: updated,
+          ),
+          global: true,
+        );
+      } catch (_) {
+        // Redis not available, skip broadcasting
+      }
+    } catch (e) {
+      // Log error but don't fail
+      print('Failed to fetch link preview: $e');
+    }
   }
 
   /// Updates a note's content (last-write-wins strategy).

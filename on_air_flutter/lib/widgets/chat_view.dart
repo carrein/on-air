@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:on_air_client/on_air_client.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
+import 'link_preview_card.dart';
 
 /// Chat view displaying notes in an inverted list (newest at bottom).
 class ChatView extends ConsumerStatefulWidget {
@@ -87,12 +89,34 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   Widget _buildNoteItem(Note note, int channelId) {
     return ListTile(
-      title: MarkdownBody(
-        data: note.content,
-        selectable: true,
-        styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-          p: const TextStyle(fontSize: 16),
-        ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MarkdownBody(
+            data: note.content,
+            selectable: true,
+            onTapLink: (text, href, title) async {
+              if (href != null) {
+                final uri = Uri.tryParse(href);
+                if (uri != null && await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              }
+            },
+            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+              p: const TextStyle(fontSize: 16),
+              a: const TextStyle(
+                fontSize: 16,
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+
+          // Link preview card
+          if (note.linkPreview != null)
+            LinkPreviewCard(preview: note.linkPreview!),
+        ],
       ),
       subtitle: Text(
         _formatDateTime(note.createdAt),

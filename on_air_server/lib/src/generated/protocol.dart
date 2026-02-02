@@ -18,12 +18,14 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
 import 'chat/channel.dart' as _i5;
 import 'chat/chat_event.dart' as _i6;
-import 'chat/note.dart' as _i7;
-import 'greetings/greeting.dart' as _i8;
-import 'package:on_air_server/src/generated/chat/channel.dart' as _i9;
-import 'package:on_air_server/src/generated/chat/note.dart' as _i10;
+import 'chat/link_preview.dart' as _i7;
+import 'chat/note.dart' as _i8;
+import 'greetings/greeting.dart' as _i9;
+import 'package:on_air_server/src/generated/chat/channel.dart' as _i10;
+import 'package:on_air_server/src/generated/chat/note.dart' as _i11;
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
+export 'chat/link_preview.dart';
 export 'chat/note.dart';
 export 'greetings/greeting.dart';
 
@@ -127,6 +129,12 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'String',
         ),
         _i2.ColumnDefinition(
+          name: 'linkPreview',
+          columnType: _i2.ColumnType.json,
+          isNullable: true,
+          dartType: 'protocol:LinkPreview?',
+        ),
+        _i2.ColumnDefinition(
           name: 'createdAt',
           columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
@@ -225,11 +233,14 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i6.ChatEvent) {
       return _i6.ChatEvent.fromJson(data) as T;
     }
-    if (t == _i7.Note) {
-      return _i7.Note.fromJson(data) as T;
+    if (t == _i7.LinkPreview) {
+      return _i7.LinkPreview.fromJson(data) as T;
     }
-    if (t == _i8.Greeting) {
-      return _i8.Greeting.fromJson(data) as T;
+    if (t == _i8.Note) {
+      return _i8.Note.fromJson(data) as T;
+    }
+    if (t == _i9.Greeting) {
+      return _i9.Greeting.fromJson(data) as T;
     }
     if (t == _i1.getType<_i5.Channel?>()) {
       return (data != null ? _i5.Channel.fromJson(data) : null) as T;
@@ -237,18 +248,21 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i6.ChatEvent?>()) {
       return (data != null ? _i6.ChatEvent.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.Note?>()) {
-      return (data != null ? _i7.Note.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i7.LinkPreview?>()) {
+      return (data != null ? _i7.LinkPreview.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i8.Greeting?>()) {
-      return (data != null ? _i8.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i8.Note?>()) {
+      return (data != null ? _i8.Note.fromJson(data) : null) as T;
     }
-    if (t == List<_i9.Channel>) {
-      return (data as List).map((e) => deserialize<_i9.Channel>(e)).toList()
+    if (t == _i1.getType<_i9.Greeting?>()) {
+      return (data != null ? _i9.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i10.Channel>) {
+      return (data as List).map((e) => deserialize<_i10.Channel>(e)).toList()
           as T;
     }
-    if (t == List<_i10.Note>) {
-      return (data as List).map((e) => deserialize<_i10.Note>(e)).toList() as T;
+    if (t == List<_i11.Note>) {
+      return (data as List).map((e) => deserialize<_i11.Note>(e)).toList() as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -266,8 +280,9 @@ class Protocol extends _i1.SerializationManagerServer {
     return switch (type) {
       _i5.Channel => 'Channel',
       _i6.ChatEvent => 'ChatEvent',
-      _i7.Note => 'Note',
-      _i8.Greeting => 'Greeting',
+      _i7.LinkPreview => 'LinkPreview',
+      _i8.Note => 'Note',
+      _i9.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -286,9 +301,11 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'Channel';
       case _i6.ChatEvent():
         return 'ChatEvent';
-      case _i7.Note():
+      case _i7.LinkPreview():
+        return 'LinkPreview';
+      case _i8.Note():
         return 'Note';
-      case _i8.Greeting():
+      case _i9.Greeting():
         return 'Greeting';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -318,11 +335,14 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'ChatEvent') {
       return deserialize<_i6.ChatEvent>(data['data']);
     }
+    if (dataClassName == 'LinkPreview') {
+      return deserialize<_i7.LinkPreview>(data['data']);
+    }
     if (dataClassName == 'Note') {
-      return deserialize<_i7.Note>(data['data']);
+      return deserialize<_i8.Note>(data['data']);
     }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i8.Greeting>(data['data']);
+      return deserialize<_i9.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -362,8 +382,8 @@ class Protocol extends _i1.SerializationManagerServer {
     switch (t) {
       case _i5.Channel:
         return _i5.Channel.t;
-      case _i7.Note:
-        return _i7.Note.t;
+      case _i8.Note:
+        return _i8.Note.t;
     }
     return null;
   }

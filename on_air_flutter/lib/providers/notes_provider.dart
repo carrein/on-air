@@ -49,6 +49,7 @@ class Notes extends _$Notes {
         break;
 
       case 'noteUpdated':
+      case 'noteLinkPreviewReady':  // Handle preview ready same as update
         if (event.note?.channelId == channelId) {
           _notes = currentState
               .map((n) => n.id == event.note!.id ? event.note! : n)

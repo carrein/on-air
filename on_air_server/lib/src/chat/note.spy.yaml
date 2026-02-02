@@ -7,6 +7,8 @@ fields:
   channelId: int, relation(parent=channels, onDelete=Cascade)
   ### The content of the note.
   content: String
+  ### Link preview metadata (if URL detected in content).
+  linkPreview: LinkPreview?
   ### When the note was created.
   createdAt: DateTime, default=now
   ### When the note was last updated.

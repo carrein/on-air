@@ -2,7 +2,7 @@
 class: ChatEvent
 
 fields:
-  ### The type of event: noteCreated, noteUpdated, noteDeleted, channelCreated, channelDeleted.
+  ### The type of event: noteCreated, noteUpdated, noteDeleted, noteLinkPreviewReady, channelCreated, channelDeleted.
   type: String
   ### The note data for noteCreated and noteUpdated events.
   note: Note?

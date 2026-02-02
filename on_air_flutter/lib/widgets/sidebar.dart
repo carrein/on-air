@@ -373,11 +373,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
               onPressed: () async {
                 final name = nameController.text.trim();
                 if (name.isNotEmpty) {
-                  await ref.read(channelsProvider.notifier).createChannel(
+                  final channel = await ref.read(channelsProvider.notifier).createChannel(
                         name,
                         emoji: selectedEmoji,
                       );
-                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                    // Switch to the newly created channel
+                    ref.read(currentChannelProvider.notifier).switchChannel(channel.id!);
+                  }
                 }
               },
               child: const Text('Create'),

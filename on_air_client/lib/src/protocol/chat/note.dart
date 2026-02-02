@@ -11,6 +11,8 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
+import '../chat/link_preview.dart' as _i2;
+import 'package:on_air_client/src/protocol/protocol.dart' as _i3;
 
 /// A note within a channel.
 abstract class Note implements _i1.SerializableModel {
@@ -18,6 +20,7 @@ abstract class Note implements _i1.SerializableModel {
     this.id,
     required this.channelId,
     required this.content,
+    this.linkPreview,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -27,6 +30,7 @@ abstract class Note implements _i1.SerializableModel {
     int? id,
     required int channelId,
     required String content,
+    _i2.LinkPreview? linkPreview,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _NoteImpl;
@@ -36,6 +40,11 @@ abstract class Note implements _i1.SerializableModel {
       id: jsonSerialization['id'] as int?,
       channelId: jsonSerialization['channelId'] as int,
       content: jsonSerialization['content'] as String,
+      linkPreview: jsonSerialization['linkPreview'] == null
+          ? null
+          : _i3.Protocol().deserialize<_i2.LinkPreview>(
+              jsonSerialization['linkPreview'],
+            ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -56,6 +65,9 @@ abstract class Note implements _i1.SerializableModel {
   /// The content of the note.
   String content;
 
+  /// Link preview metadata (if URL detected in content).
+  _i2.LinkPreview? linkPreview;
+
   /// When the note was created.
   DateTime createdAt;
 
@@ -69,6 +81,7 @@ abstract class Note implements _i1.SerializableModel {
     int? id,
     int? channelId,
     String? content,
+    _i2.LinkPreview? linkPreview,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -79,6 +92,7 @@ abstract class Note implements _i1.SerializableModel {
       if (id != null) 'id': id,
       'channelId': channelId,
       'content': content,
+      if (linkPreview != null) 'linkPreview': linkPreview?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -97,12 +111,14 @@ class _NoteImpl extends Note {
     int? id,
     required int channelId,
     required String content,
+    _i2.LinkPreview? linkPreview,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
          id: id,
          channelId: channelId,
          content: content,
+         linkPreview: linkPreview,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -115,6 +131,7 @@ class _NoteImpl extends Note {
     Object? id = _Undefined,
     int? channelId,
     String? content,
+    Object? linkPreview = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -122,6 +139,9 @@ class _NoteImpl extends Note {
       id: id is int? ? id : this.id,
       channelId: channelId ?? this.channelId,
       content: content ?? this.content,
+      linkPreview: linkPreview is _i2.LinkPreview?
+          ? linkPreview
+          : this.linkPreview?.copyWith(),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

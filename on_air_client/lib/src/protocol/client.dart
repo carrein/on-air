@@ -309,6 +309,7 @@ class EndpointChat extends _i2.EndpointRef {
 
   /// Creates a new note and broadcasts the event.
   /// Also updates the channel's updatedAt timestamp.
+  /// Asynchronously fetches link preview if URL is detected in content.
   _i3.Future<_i6.Note> createNote(
     int channelId,
     String content,

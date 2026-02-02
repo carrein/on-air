@@ -49,7 +49,7 @@ abstract class ChatEvent implements _i1.SerializableModel {
     );
   }
 
-  /// The type of event: noteCreated, noteUpdated, noteDeleted, channelCreated, channelDeleted.
+  /// The type of event: noteCreated, noteUpdated, noteDeleted, noteLinkPreviewReady, channelCreated, channelDeleted.
   String type;
 
   /// The note data for noteCreated and noteUpdated events.

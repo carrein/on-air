@@ -1,0 +1,16 @@
+### Link preview metadata extracted from URLs.
+class: LinkPreview
+
+fields:
+  ### The fully qualified URL.
+  url: String
+  ### The page title (from OG or <title> tag).
+  title: String?
+  ### The description (from OG or meta description).
+  description: String?
+  ### The image URL (from OG image).
+  imageUrl: String?
+  ### The favicon URL.
+  faviconUrl: String?
+  ### When the preview was fetched.
+  fetchedAt: DateTime, default=now
