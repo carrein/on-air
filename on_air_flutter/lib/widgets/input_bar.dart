@@ -80,7 +80,7 @@ class _InputBarState extends ConsumerState<InputBar> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: Colors.grey[300]!)),
+            color: Colors.grey[100],
           ),
           child: Row(
             children: [
@@ -111,7 +111,9 @@ class _InputBarState extends ConsumerState<InputBar> {
                     textInputAction: TextInputAction.newline,
                     decoration: InputDecoration(
                       hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Type a note... (Shift+Enter for new line)',
-                      border: const OutlineInputBorder(),
+                      border: InputBorder.none,
+                      filled: true,
+                      fillColor: Colors.white,
                       contentPadding: const EdgeInsets.all(12),
                     ),
                     onChanged: _onTextChanged,

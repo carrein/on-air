@@ -46,9 +46,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
           width: _currentWidth,
           decoration: BoxDecoration(
             color: Colors.grey[200],
-            border: Border(
-              right: BorderSide(color: Colors.grey[400]!, width: 1),
-            ),
           ),
           child: Column(
             children: [
@@ -154,9 +151,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey[400]!, width: 1),
+                  color: Colors.grey[300],
                 ),
                 child: Center(
                   child: Text(
@@ -349,8 +344,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey),
                         ),
                         child: Center(
                           child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),
@@ -429,8 +422,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         height: 50,
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.grey),
                         ),
                         child: Center(
                           child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),

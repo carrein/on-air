@@ -285,12 +285,10 @@ class _CopyNotificationState extends State<_CopyNotification>
             opacity: _fadeAnimation,
             child: Material(
               elevation: 4,
-              borderRadius: BorderRadius.circular(4),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   widget.message,

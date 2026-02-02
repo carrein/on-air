@@ -17,9 +17,6 @@ class InputLinkPreview extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.grey[300]!),
-        ),
         color: Colors.blue[50],
       ),
       child: Row(

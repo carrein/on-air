@@ -13,6 +13,7 @@ class LinkPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(top: 8),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => _openLink(preview.url),
