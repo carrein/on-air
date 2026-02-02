@@ -9,8 +9,11 @@ Plan for supporting media uploads (images, future: videos, files) in the chat ap
 - Upload dialog with compression option
 - Display inline in chat messages
 - No captions required
+- 50MB file size limit
+- Public access (no authentication required)
 
 ### Future Phases
+- Resumable uploads (Phase 2)
 - Media gallery tab per channel
 - Search and filter by date/type
 - Video support
@@ -27,16 +30,16 @@ Plan for supporting media uploads (images, future: videos, files) in the chat ap
 /data/media/
 ├── channels/
 │   ├── {channel_id}/
-│   │   ├── {note_id}_{timestamp}_{hash}.jpg
-│   │   ├── {note_id}_{timestamp}_{hash}.webp
+│   │   ├── {uuid}.jpg           # UUID-based filename
+│   │   ├── {uuid}.webp
 │   │   └── thumbnails/
-│   │       └── {note_id}_{timestamp}_{hash}_thumb.webp
+│   │       └── {uuid}_thumb.webp
 ```
 
 **Key Decisions:**
-1. **Use channel ID (not name)** - Avoids brittleness from channel renames
-2. **Include note ID in filename** - Easy to associate files with notes
-3. **Add timestamp and hash** - Prevents collisions, enables sorting
+1. **Use UUID for filenames** - Prevents race conditions, no dependency on note ID
+2. **Use channel ID (not name)** - Avoids brittleness from channel renames
+3. **Store original filename in DB only** - Security: user input never used in paths
 4. **Separate thumbnails directory** - Organized, easy to regenerate
 5. **WebP for compressed** - Better compression than JPEG, wide support
 
@@ -59,17 +62,17 @@ fields:
   # Foreign key to note
   noteId: int, relation(parent=notes, onDelete=Cascade)
   
-  # Redundant channelId for easier querying
+  # Redundant channelId for efficient querying
   channelId: int, relation(parent=channels, onDelete=Cascade)
   
-  # Storage path (relative to media root)
-  filePath: String  # e.g., "channels/123/456_1234567890_abc123.jpg"
+  # Storage path (UUID-based, no user input)
+  filePath: String  # e.g., "channels/123/a1b2c3d4-e5f6-7890.jpg"
   
-  # Original filename from upload
+  # Original filename from user (display only, never used in paths)
   originalFilename: String
   
   # MIME type
-  mimeType: String  # e.g., "image/jpeg", "image/png"
+  mimeType: String  # e.g., "image/jpeg", "image/png", "image/gif"
   
   # File metadata
   fileSize: int  # bytes
@@ -81,6 +84,12 @@ fields:
   
   # Compression flag
   compressed: bool, default=false
+  
+  # Is this an animated GIF?
+  animated: bool, default=false
+  
+  # Content hash for cache busting
+  contentHash: String?
   
   # Upload timestamp
   uploadedAt: DateTime, default=now
@@ -102,15 +111,37 @@ fields:
 
 ### Database References
 
-**Benefits of this approach:**
-- Foreign keys ensure referential integrity
-- Cascading deletes: delete note → delete attachments + files
-- Efficient queries: `WHERE channelId = ? ORDER BY uploadedAt DESC`
-- Future gallery view: join on channelId with pagination
+**Query Optimization:**
+When fetching notes, use JOIN to avoid N+1 queries:
 
-**File Cleanup Strategy:**
-- Database triggers or scheduled job to delete orphaned files
-- When note is deleted, cascade deletes attachments, then cleanup files
+```sql
+SELECT notes.*, 
+       json_agg(
+         json_build_object(
+           'id', ma.id,
+           'filePath', ma."filePath",
+           'originalFilename', ma."originalFilename",
+           'mimeType', ma."mimeType",
+           'fileSize', ma."fileSize",
+           'width', ma.width,
+           'height', ma.height,
+           'thumbnailPath', ma."thumbnailPath",
+           'compressed', ma.compressed,
+           'animated', ma.animated,
+           'contentHash', ma."contentHash"
+         )
+       ) FILTER (WHERE ma.id IS NOT NULL) as attachments
+FROM notes 
+LEFT JOIN media_attachments ma ON ma."noteId" = notes.id
+WHERE notes."channelId" = ?
+GROUP BY notes.id
+ORDER BY notes."createdAt" DESC
+LIMIT 50;
+```
+
+**Cascading Deletes:**
+- Delete note → cascade deletes attachments → server cleanup deletes files
+- Delete channel → cascade deletes notes → cascade deletes attachments → cleanup files
 
 ---
 
@@ -130,9 +161,7 @@ onKeyEvent: (event) {
 }
 
 Future<void> _handlePaste() async {
-  final data = await Clipboard.getData(Clipboard.kTextPlain);
-  // Check for image data
-  final imageData = await Clipboard.getImage(); // hypothetical
+  final imageData = await Clipboard.getImage();
   if (imageData != null) {
     _showImageUploadDialog(imageData);
   }
@@ -140,9 +169,9 @@ Future<void> _handlePaste() async {
 ```
 
 **Upload Dialog:**
-- Preview image (actual size or scaled down)
+- Preview image (scaled to fit)
 - Checkbox: "Compress image" (checked by default)
-  - Full size: Original image
+  - Full size: Original image (max 50MB)
   - Compressed: Resize to max 1920px, quality 85%, WebP format
 - Buttons: "Cancel" | "Send"
 
@@ -150,18 +179,21 @@ Future<void> _handlePaste() async {
 ```dart
 1. Show dialog with image preview
 2. User selects compression option
-3. Compress image if selected (using image package)
-4. Call server endpoint: POST /api/chat/upload-media
+3. Validate file size <= 50MB
+4. Compress image if selected (using image package)
+5. Call server endpoint: POST /api/chat/upload-media
    - multipart/form-data
-   - fields: channelId, compress, file
-5. Server returns MediaAttachment metadata
-6. Create note with attachment reference
-7. Close dialog, display in chat
+   - Stream file data (not load into memory)
+   - fields: channelId, compress, file stream
+6. Server returns MediaAttachment metadata
+7. Create note with attachment reference
+8. Close dialog, display in chat with thumbnail
+9. Preview appears immediately (thumbnail generated on server)
 ```
 
 ### 2. Server-Side (Serverpod)
 
-**New Endpoint: MediaEndpoint**
+**Critical: Atomic Upload with Two-Phase Commit**
 
 ```dart
 class MediaEndpoint extends Endpoint {
@@ -169,72 +201,222 @@ class MediaEndpoint extends Endpoint {
     Session session,
     int channelId,
     bool compress,
-    ByteData fileData,
-    String filename,
+    Stream<List<int>> fileStream,  // Stream, NOT ByteData
+    String originalFilename,
     String mimeType,
   ) async {
-    // 1. Validate file type (image/jpeg, image/png, image/webp)
-    // 2. Generate unique filename
-    // 3. Create directory if not exists
-    // 4. Save file to disk
-    // 5. If compress: resize and convert to WebP
-    // 6. Generate thumbnail (300px wide)
-    // 7. Extract image dimensions
-    // 8. Create MediaAttachment record
-    // 9. Return metadata
+    // 1. Validate file type and size limit (50MB)
+    if (!_isValidMimeType(mimeType)) {
+      throw Exception('Invalid file type');
+    }
+    
+    // 2. Generate UUID for filename (no race conditions)
+    final uuid = Uuid().v4();
+    final ext = _getExtension(mimeType);
+    final tempFilename = '$uuid.tmp';
+    final finalFilename = '$uuid$ext';
+    
+    final channelDir = Directory('/app/media/channels/$channelId');
+    await channelDir.create(recursive: true);
+    
+    // 3. Stream to temporary file (memory-safe)
+    final tempFile = File('${channelDir.path}/$tempFilename');
+    int bytesWritten = 0;
+    final sink = tempFile.openWrite();
+    
+    try {
+      await for (final chunk in fileStream) {
+        bytesWritten += chunk.length;
+        if (bytesWritten > 50 * 1024 * 1024) {  // 50MB limit
+          throw Exception('File exceeds 50MB limit');
+        }
+        sink.add(chunk);
+      }
+      await sink.close();
+      
+      // 4. Process image (compression, thumbnail, EXIF)
+      final processedData = await _processImage(
+        tempFile.path,
+        compress,
+        mimeType,
+      );
+      
+      // 5. Create MediaAttachment record in database
+      final attachment = MediaAttachment(
+        noteId: processedData.noteId,  // Created in transaction
+        channelId: channelId,
+        filePath: 'channels/$channelId/$finalFilename',
+        originalFilename: originalFilename,
+        mimeType: processedData.finalMimeType,
+        fileSize: processedData.fileSize,
+        width: processedData.width,
+        height: processedData.height,
+        thumbnailPath: processedData.thumbnailPath,
+        compressed: compress,
+        animated: processedData.animated,
+        contentHash: processedData.hash,
+      );
+      
+      final saved = await MediaAttachment.db.insertRow(session, attachment);
+      
+      // 6. Atomic rename: temp → final (only after DB insert succeeds)
+      final finalFile = File('${channelDir.path}/$finalFilename');
+      await tempFile.rename(finalFile.path);
+      
+      return saved;
+      
+    } catch (e) {
+      // 7. Cleanup: delete temp file on any error
+      await sink.close();
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      rethrow;
+    }
+  }
+}
+```
+
+**Image Processing (in Isolate):**
+
+```dart
+class _ImageProcessResult {
+  final int fileSize;
+  final int width;
+  final int height;
+  final String? thumbnailPath;
+  final String finalMimeType;
+  final bool animated;
+  final String hash;
+}
+
+Future<_ImageProcessResult> _processImage(
+  String tempFilePath,
+  bool compress,
+  String mimeType,
+) async {
+  // Run in isolate to avoid blocking main thread
+  return await compute(_processImageIsolate, {
+    'path': tempFilePath,
+    'compress': compress,
+    'mimeType': mimeType,
+  });
+}
+
+Future<_ImageProcessResult> _processImageIsolate(Map<String, dynamic> params) async {
+  final file = File(params['path']);
+  final bytes = await file.readAsBytes();
+  
+  // Decode image
+  Image? image;
+  bool animated = false;
+  
+  if (params['mimeType'] == 'image/gif') {
+    final gif = decodeGif(bytes);
+    if (gif != null && gif.numFrames > 1) {
+      // Animated GIF: preserve original, generate static thumbnail
+      animated = true;
+      image = gif.frames.first;  // Use first frame for thumbnail
+    } else {
+      image = gif;
+    }
+  } else {
+    image = decodeImage(bytes);
   }
   
-  Future<void> deleteMedia(Session session, int attachmentId) async {
-    // 1. Fetch attachment
-    // 2. Delete files from disk
-    // 3. Delete database record
+  if (image == null) {
+    throw Exception('Failed to decode image');
   }
+  
+  // Apply EXIF orientation BEFORE stripping metadata
+  image = bakeOrientation(image);
+  
+  int width = image.width;
+  int height = image.height;
+  String finalMimeType = params['mimeType'];
+  
+  // Compress if requested and not animated GIF
+  if (params['compress'] && !animated) {
+    // Resize if too large
+    if (width > 1920 || height > 1920) {
+      image = copyResize(image, 
+        width: width > height ? 1920 : null,
+        height: height > width ? 1920 : null,
+      );
+      width = image.width;
+      height = image.height;
+    }
+    
+    // Convert to WebP
+    final webpBytes = encodeWebP(image, quality: 85);
+    await file.writeAsBytes(webpBytes);
+    finalMimeType = 'image/webp';
+  }
+  
+  // Generate thumbnail (300px wide) in isolate
+  final thumbnail = copyResize(image, width: 300);
+  final thumbnailBytes = encodeWebP(thumbnail, quality: 80);
+  
+  final thumbnailDir = Directory('${file.parent.path}/thumbnails');
+  await thumbnailDir.create();
+  
+  final uuid = path.basenameWithoutExtension(file.path);
+  final thumbnailPath = 'thumbnails/${uuid}_thumb.webp';
+  final thumbnailFile = File('${file.parent.path}/$thumbnailPath');
+  await thumbnailFile.writeAsBytes(thumbnailBytes);
+  
+  // Calculate content hash for cache busting
+  final hash = sha256.convert(await file.readAsBytes()).toString().substring(0, 8);
+  
+  final fileSize = await file.length();
+  
+  return _ImageProcessResult(
+    fileSize: fileSize,
+    width: width,
+    height: height,
+    thumbnailPath: thumbnailPath,
+    finalMimeType: finalMimeType,
+    animated: animated,
+    hash: hash,
+  );
 }
 ```
 
-**File Naming Convention:**
-```dart
-String generateFilename(int noteId, String originalFilename) {
-  final timestamp = DateTime.now().millisecondsSinceEpoch;
-  final hash = _generateHash(originalFilename + timestamp.toString());
-  final ext = path.extension(originalFilename);
-  return '${noteId}_${timestamp}_$hash$ext';
-}
-```
+**Serving Files (Static Route - Public Access):**
 
-**Image Processing:**
-- Use `image` package for Dart
-- Resize if > 1920px on longest side
-- Convert to WebP with quality 85
-- Generate thumbnail: 300px wide, WebP
-
-**Serving Files:**
-Two options:
-
-**Option A: Static Route (Recommended)**
 ```dart
 // In server.dart
+// NOTE: Public access - no authentication required
+// This is intentional for single-user/trusted environment
 pod.webServer.addRoute(
-  Route.get('/media/<channel>/<filename>'),
-  (request, channel, filename) async {
-    final filePath = '/app/media/channels/$channel/$filename';
+  Route.get('/media/channels/<channelId>/<filename>'),
+  (request, channelId, filename) async {
+    // Sanitize filename (whitelist chars)
+    final sanitized = _sanitizeFilename(filename);
+    
+    final filePath = '/app/media/channels/$channelId/$sanitized';
     final file = File(filePath);
-    if (!await file.exists()) return Response.notFound();
+    
+    if (!await file.exists()) {
+      return Response.notFound('File not found');
+    }
     
     final bytes = await file.readAsBytes();
-    final mimeType = lookupMimeType(filename);
+    final mimeType = lookupMimeType(sanitized) ?? 'application/octet-stream';
+    
     return Response.ok(
       bytes,
-      headers: {'Content-Type': mimeType},
+      headers: {
+        'Content-Type': mimeType,
+        'Cache-Control': 'public, max-age=31536000, immutable',  // 1 year cache
+      },
     );
   },
 );
-```
 
-**Option B: Endpoint**
-```dart
-Stream<List<int>> getMedia(Session session, String filePath) async* {
-  // Stream file bytes
+String _sanitizeFilename(String filename) {
+  // Whitelist: alphanumeric, dots, dashes, underscores
+  return filename.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
 }
 ```
 
@@ -255,7 +437,7 @@ Widget _buildNoteItem(Note note, int channelId) {
         if (note.content.isNotEmpty)
           MarkdownBody(...),
         
-        // Media attachments
+        // Media attachments (loaded via JOIN, no N+1 queries)
         if (note.attachments != null)
           ...note.attachments!.map((attachment) => 
             MediaAttachmentWidget(attachment: attachment)
@@ -278,20 +460,37 @@ class MediaAttachmentWidget extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
+    // Use content hash for cache busting
+    final imageUrl = '/media/${attachment.filePath}?v=${attachment.contentHash}';
+    
     return GestureDetector(
       onTap: () => _showFullScreen(context),
       child: Container(
         margin: EdgeInsets.only(top: 8),
-        child: ClipRRectangle(
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: CachedNetworkImage(
-            imageUrl: '/media/${attachment.filePath}',
+            imageUrl: imageUrl,
             width: double.infinity,
             fit: BoxFit.cover,
             placeholder: (context, url) => Container(
               height: 200,
               color: Colors.grey[200],
               child: Center(child: CircularProgressIndicator()),
+            ),
+            errorWidget: (context, url, error) => Container(
+              height: 200,
+              color: Colors.grey[100],
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.broken_image, size: 48, color: Colors.grey[400]),
+                    SizedBox(height: 8),
+                    Text('Failed to load image', style: TextStyle(color: Colors.grey[600])),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -309,9 +508,154 @@ class MediaAttachmentWidget extends StatelessWidget {
 
 ---
 
+## ✅ Confirmed Decisions
+
+### File Size & Storage
+- **File size limit:** 50MB per file
+- **No storage quotas:** Unlimited storage per channel
+- **Monitoring:** Optional disk usage alert at 85%
+- **Rationale:** Self-hosted server with sufficient storage capacity
+
+### Compression Settings
+- **Default:** Compression checkbox **checked** by default
+- **Compressed:** Max 1920px, WebP format, 85% quality
+- **Original:** Keep original if user unchecks compression
+- **Thumbnails:** 300px wide, WebP format, generated in isolate
+
+### Supported Formats (Phase 1)
+- **JPEG** - Convert to WebP if compressed
+- **PNG** - Convert to WebP if compressed (preserves transparency)
+- **WebP** - Native support
+- **GIF** - Preserve animated GIFs, generate static thumbnail
+- **HEIC** (iPhone) - Convert to WebP
+
+### Upload Behavior
+- **Single image per paste:** One at a time (multi-paste in Phase 2)
+- **Paste priority:** If clipboard has image, ignore text
+- **Progress indicator:** Show for uploads >2MB
+- **Error handling:** Toast message + retry button
+- **Streaming:** Upload via stream (memory-safe)
+
+### Display & Interaction
+- **Delete:** Delete entire note to remove images (no individual image delete yet)
+- **Full screen:** Click image to open full screen viewer
+- **Loading:** Show placeholder while loading
+- **Failed load:** Show broken image icon with retry option
+
+### Security & Privacy
+- **Public access:** No authentication required (single-user/trusted environment)
+- **Channel validation:** Verify channel exists but no user permissions
+- **EXIF stripping:** Remove GPS and personal metadata AFTER rotation
+- **EXIF orientation:** Apply rotation before stripping (iPhone compatibility)
+- **File validation:** Decode image on server to ensure valid file
+- **Path sanitization:** UUID filenames, whitelist chars, ignore user input
+
+### File Naming & Storage
+- **UUID-based filenames:** Prevents race conditions, no note ID dependency
+- **Content hash:** For cache busting (URL param: ?v={hash})
+- **Original filename:** Stored in DB only, never used in file paths
+- **Animated GIF detection:** Check frame count, preserve if animated
+
+### Performance
+- **Streaming uploads:** Stream to temp file, process from disk
+- **Isolate processing:** Thumbnail generation in compute() isolate
+- **Two-phase commit:** Write .tmp → DB insert → atomic rename
+- **Query optimization:** JOIN to load attachments with notes (no N+1)
+- **Thumbnail generation:** Blocking in isolate (consistent UX)
+
+### Real-time Updates
+- **WebSocket broadcast:** Yes - broadcast `noteCreated` with attachment
+- **Live preview:** Other users see images immediately after thumbnail generation
+- **Thumbnail generation:** Completed in isolate before broadcast
+
+---
+
+## Implementation Fixes (from Technical Review)
+
+### 1. Note ID Atomicity ✅
+**Problem:** Race condition - using note_id in filename before note exists  
+**Solution:** UUID-based filenames independent of note ID  
+**Implementation:** Generate UUID first, create note after file processed
+
+### 2. Memory Streaming ✅
+**Problem:** Loading entire file into ByteData crashes on large files  
+**Solution:** Stream<List<int>> with chunked writes to temp file  
+**Implementation:** Validate 50MB limit while streaming, early abort on overflow
+
+### 3. Atomic File+DB Writes ✅
+**Problem:** Crash during upload can orphan files or DB records  
+**Solution:** Two-phase commit pattern  
+**Implementation:**
+```
+1. Write to {uuid}.tmp
+2. Process image from temp file
+3. Insert DB record (transaction)
+4. Atomic rename to {uuid}.ext
+5. On any error: delete .tmp file
+```
+
+### 4. Async Thumbnail Generation ✅
+**Problem:** Thumbnail encoding blocks HTTP response (bad UX)  
+**Solution:** Generate thumbnail in compute() isolate  
+**Implementation:** Parallel image processing in background thread  
+**Decision:** Blocking upload (user wants preview to appear immediately)
+
+### 5. Path Sanitization ✅
+**Problem:** User-provided filenames can cause path traversal attacks  
+**Solution:** UUID storage names, whitelist chars, ignore original filename  
+**Implementation:**
+```dart
+// Storage filename: UUID only (no user input)
+final storageFilename = '${uuid}.jpg';
+
+// Original filename: DB only, display purposes
+final displayName = 'vacation-photo.jpg';  // Stored in media_attachments table
+```
+
+### 6. Query Optimization ✅
+**Problem:** N+1 queries loading notes then attachments separately  
+**Solution:** Single JOIN query with json_agg  
+**Implementation:** LEFT JOIN media_attachments, aggregate as JSON array
+
+### 7. Cache Busting ✅
+**Problem:** Browser caches old image on re-upload  
+**Solution:** Append content hash to URL  
+**Implementation:** `/media/path/file.jpg?v={sha256_prefix}`
+
+### 8. GIF Preservation ✅
+**Problem:** Converting animated GIFs to static WebP kills animation  
+**Solution:** Detect frame count, preserve original, generate static thumbnail  
+**Implementation:**
+```dart
+final gif = decodeGif(bytes);
+if (gif.numFrames > 1) {
+  animated = true;
+  // Save original GIF file as-is
+  // Generate thumbnail from first frame only
+}
+```
+
+### 9. EXIF Orientation ✅
+**Problem:** iPhone photos appear sideways after EXIF stripped  
+**Solution:** Apply bakeOrientation() BEFORE stripping EXIF  
+**Implementation:**
+```dart
+1. Decode image
+2. image = bakeOrientation(image);  // Rotate based on EXIF
+3. Strip all EXIF metadata
+4. Encode to WebP
+```
+
+### 10. Resumable Uploads ⏸️
+**Status:** Deferred to Phase 2  
+**Rationale:** Adds significant complexity, 50MB limit makes it less critical  
+**Future:** Implement chunked upload protocol if users need it
+
+---
+
 ## Future Extensibility
 
-### Media Gallery Tab
+### Media Gallery Tab (Phase 2)
 
 **UI Design:**
 - Tab in channel view (beside chat)
@@ -322,39 +666,57 @@ class MediaAttachmentWidget extends StatelessWidget {
 
 **Backend:**
 ```dart
-class MediaEndpoint extends Endpoint {
-  Future<List<MediaAttachment>> getChannelMedia(
-    Session session,
-    int channelId, {
-    int offset = 0,
-    int limit = 50,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    return await MediaAttachment.db.find(
-      session,
-      where: (t) => t.channelId.equals(channelId),
-      orderBy: (t) => t.uploadedAt,
-      orderDescending: true,
-      limit: limit,
-      offset: offset,
-    );
-  }
-  
-  Future<int> getMediaCount(Session session, int channelId) async {
-    return await MediaAttachment.db.count(
-      session,
-      where: (t) => t.channelId.equals(channelId),
-    );
-  }
+Future<List<MediaAttachment>> getChannelMedia(
+  Session session,
+  int channelId, {
+  int offset = 0,
+  int limit = 50,
+  DateTime? startDate,
+  DateTime? endDate,
+}) async {
+  return await MediaAttachment.db.find(
+    session,
+    where: (t) => t.channelId.equals(channelId),
+    orderBy: (t) => t.uploadedAt,
+    orderDescending: true,
+    limit: limit,
+    offset: offset,
+  );
 }
 ```
 
-### Search and Filter
+### Resumable Uploads (Phase 2)
+
+**Chunked Upload Protocol:**
+```
+POST /api/media/upload-chunk
+Headers:
+  X-Upload-ID: {uuid}
+  X-Chunk-Index: {0-based index}
+  X-Total-Chunks: {total}
+  X-File-Hash: {sha256}
+Body: chunk binary data (5MB)
+
+Server:
+1. Store chunk: /tmp/uploads/{upload_id}/chunk_{index}
+2. When all chunks received: assemble, validate hash, process
+3. On connection drop: client resumes from last successful chunk
+```
+
+**Benefits:**
+- Resume on connection drop
+- Progress persistence
+- Better for unstable networks
+
+**Complexity:**
+- Chunk assembly logic
+- Cleanup of abandoned uploads
+- State management
+
+### Search and Filter (Phase 3)
 
 **Backend Indexing:**
 ```yaml
-# In media_attachment.spy.yaml
 indexes:
   channel_date_idx:
     fields: channelId, uploadedAt
@@ -362,43 +724,24 @@ indexes:
     fields: channelId, mimeType, uploadedAt
 ```
 
-**Search Endpoint:**
+### Storage Monitoring (Optional)
+
+**Health Check Endpoint:**
 ```dart
-Future<List<MediaAttachment>> searchMedia(
-  Session session,
-  int channelId,
-  String? mimeTypePrefix,  // e.g., "image/", "video/"
-  DateTime? startDate,
-  DateTime? endDate,
-) async {
-  // Efficient query using indexes
-}
-```
-
-### Storage Quota and Limits
-
-**Per-Channel Quotas:**
-```yaml
-# In channel.spy.yaml
-fields:
-  mediaStorageUsed: int, default=0  # bytes
-  mediaStorageLimit: int, default=10737418240  # 10GB
-```
-
-**Enforce on Upload:**
-```dart
-Future<MediaAttachment> uploadMedia(...) async {
-  final channel = await Channel.db.findById(session, channelId);
+Future<StorageHealth> getStorageHealth(Session session) async {
+  final mediaDir = Directory('/app/media');
+  final stat = await statvfs(mediaDir.path);
   
-  if (channel.mediaStorageUsed + fileSize > channel.mediaStorageLimit) {
-    throw Exception('Storage quota exceeded');
-  }
+  final totalBytes = stat.blockSize * stat.blocks;
+  final usedBytes = totalBytes - (stat.blockSize * stat.availableBlocks);
+  final usedPercent = (usedBytes / totalBytes * 100).round();
   
-  // Upload...
-  
-  // Update quota
-  channel.mediaStorageUsed += fileSize;
-  await Channel.db.updateRow(session, channel);
+  return StorageHealth(
+    totalBytes: totalBytes,
+    usedBytes: usedBytes,
+    usedPercent: usedPercent,
+    warning: usedPercent >= 85,  // Optional alert threshold
+  );
 }
 ```
 
@@ -406,23 +749,46 @@ Future<MediaAttachment> uploadMedia(...) async {
 
 ## Security Considerations
 
-### File Upload Validation
-- Validate file type (whitelist MIME types)
-- Limit file size (e.g., 25MB per image)
-- Sanitize filenames
-- Validate image dimensions
+### Public Access (No Auth)
+**Decision:** Media URLs are publicly accessible without authentication  
+**Rationale:**
+- Single-user/trusted environment
+- No user authentication system implemented
+- Simplifies architecture (CDN-friendly, direct links work)
+- Security by obscurity (UUID filenames)
 
-### Access Control
-- Check user has access to channel before upload
-- Check user has access to channel before serving media
-- Use session authentication for all media endpoints
+**Documented Risk:**
+Anyone with a media URL can view the file. This is acceptable because:
+1. App is single-user (you only)
+2. UUIDs are unguessable (128-bit random)
+3. No directory listing exposed
+4. Trusted network environment
+
+**Future (if multi-user):**
+Add authentication middleware:
+```dart
+// Check session + channel access before serving
+if (!await _hasChannelAccess(session, channelId)) {
+  return Response.forbidden();
+}
+```
+
+### File Upload Validation
+- ✅ Validate MIME type (whitelist)
+- ✅ Enforce 50MB size limit while streaming
+- ✅ Decode image to validate format
+- ✅ Sanitize all file paths
+- ✅ UUID prevents directory traversal
+- ✅ Strip EXIF metadata (privacy)
 
 ### Path Traversal Prevention
 ```dart
-// Validate filename doesn't contain path traversal
-if (filename.contains('..') || filename.contains('/')) {
-  throw Exception('Invalid filename');
-}
+// All filenames are UUIDs - no user input in paths
+final uuid = Uuid().v4();  // e.g., "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+final filename = '$uuid.jpg';  // Safe - no user input
+
+// Original filename stored in DB only (never used in file system)
+final originalFilename = userInput;  // "../../etc/passwd" - stored but ignored
 ```
 
 ---
@@ -433,18 +799,20 @@ if (filename.contains('..') || filename.contains('/')) {
 ```yaml
 dependencies:
   serverpod: 3.2.3
-  image: ^4.0.0  # Image processing
-  mime: ^1.0.0   # MIME type detection
-  path: ^1.8.0   # Path utilities
+  image: ^4.0.0       # Image processing
+  mime: ^1.0.0        # MIME type detection
+  path: ^1.8.0        # Path utilities
+  uuid: ^4.0.0        # UUID generation
+  crypto: ^3.0.0      # SHA-256 hashing
 ```
 
 ### Flutter
 ```yaml
 dependencies:
-  image_picker: ^1.0.0  # For paste support
-  cached_network_image: ^3.4.1  # Already added
-  photo_view: ^0.14.0  # Full screen image viewer
-  flutter_image_compress: ^2.1.0  # Client-side compression
+  image_picker: ^1.0.0              # For paste support
+  cached_network_image: ^3.4.1      # Image caching
+  photo_view: ^0.14.0               # Full screen viewer
+  flutter_image_compress: ^2.1.0    # Client compression
 ```
 
 ---
@@ -465,6 +833,8 @@ CREATE TABLE media_attachments (
   height INTEGER,
   "thumbnailPath" TEXT,
   compressed BOOLEAN DEFAULT false,
+  animated BOOLEAN DEFAULT false,
+  "contentHash" TEXT,
   "uploadedAt" TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -482,113 +852,142 @@ chown serverpod:serverpod /data/media
 
 ---
 
+## Testing Strategy
+
+### Unit Tests
+```dart
+test('UUID filename generation', () {
+  final uuid = Uuid().v4();
+  expect(uuid.length, 36);
+  expect(uuid, matches(RegExp(r'^[a-f0-9-]{36}$')));
+});
+
+test('Path sanitization', () {
+  expect(_sanitizeFilename('image.jpg'), 'image.jpg');
+  expect(_sanitizeFilename('../../../etc/passwd'), '_.._.._.._etc_passwd');
+  expect(_sanitizeFilename('file<script>.jpg'), 'file_script_.jpg');
+});
+
+test('EXIF orientation applied before stripping', () async {
+  final image = await decodeImage(iphonePhotoBytes);
+  final oriented = bakeOrientation(image);
+  // Verify rotation applied
+  expect(oriented.width, image.height);  // Rotated 90°
+});
+```
+
+### Integration Tests
+```dart
+withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
+  test('when uploading >50MB then should reject', () async {
+    final largeStream = _generate60MBStream();
+    expect(
+      () => endpoints.media.uploadMedia(
+        sessionBuilder,
+        channelId: 1,
+        fileStream: largeStream,
+        ...
+      ),
+      throwsA(contains('exceeds 50MB')),
+    );
+  });
+  
+  test('when upload fails then should cleanup temp file', () async {
+    final tempDir = Directory('/app/media/channels/1');
+    final beforeFiles = await tempDir.list().length;
+    
+    try {
+      await endpoints.media.uploadMedia(
+        sessionBuilder,
+        channelId: 1,
+        fileStream: _corruptedStream(),
+        ...
+      );
+    } catch (_) {}
+    
+    final afterFiles = await tempDir.list().length;
+    expect(afterFiles, beforeFiles);  // No orphaned files
+  });
+});
+```
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Basic Image Upload (MVP)
-1. Create MediaAttachment model
-2. Update Note model with attachments field
-3. Create media directory structure
-4. Implement upload endpoint
-5. Add paste detection in Flutter
-6. Create upload dialog UI
-7. Implement image compression
-8. Display images in chat
-9. Serve images via static route
+1. ✅ Create MediaAttachment model with UUID filenames
+2. ✅ Update Note model with attachments field
+3. ✅ Create media directory structure
+4. ✅ Implement streaming upload endpoint with two-phase commit
+5. ✅ Add paste detection in Flutter
+6. ✅ Create upload dialog UI
+7. ✅ Implement image compression with EXIF handling
+8. ✅ Generate thumbnails in isolate
+9. ✅ Display images in chat with cache busting
+10. ✅ Serve images via public static route
+11. ✅ Implement JOIN query for efficient loading
 
-### Phase 2: Enhanced Display
-1. Full screen image viewer
-2. Image loading indicators
-3. Error handling for failed loads
-4. Retry mechanism
+### Phase 2: Enhanced Features
+1. Resumable uploads (chunked protocol)
+2. Multiple images per upload
+3. Full screen viewer with swipe
+4. Image editing (crop, rotate)
+5. Drag and drop support
 
 ### Phase 3: Media Gallery
-1. Create gallery tab UI
-2. Implement grid layout
-3. Add pagination
-4. Implement filtering
+1. Gallery tab UI with grid layout
+2. Pagination and infinite scroll
+3. Date range filtering
+4. Media type filtering
 
-### Phase 4: Additional Features
-1. Multiple image upload
-2. Drag and drop support
-3. Image editing (crop, rotate)
-4. Video support
-5. File attachments
+### Phase 4: Advanced Features
+1. Video support
+2. File attachments (PDFs, documents)
+3. Storage analytics dashboard
+4. Content-based image search
 
 ---
 
 ## Performance Considerations
 
 ### Thumbnail Strategy
-- Generate on upload (blocking)
-- Or generate on first access (lazy, cache)
-- Store in separate directory for easy management
+- Generate on upload in isolate (blocking but consistent)
+- User sees preview immediately after send
+- Pre-generated = faster gallery loading
 
 ### Caching
-- Client: CachedNetworkImage handles HTTP caching
-- Server: Set cache headers on static routes
-  ```dart
-  headers: {
-    'Cache-Control': 'public, max-age=31536000',  // 1 year
-  }
-  ```
+- Client: CachedNetworkImage with disk cache
+- Server: `Cache-Control: public, max-age=31536000, immutable`
+- Cache busting via content hash in URL param
 
 ### Image Optimization
 - WebP format (30% smaller than JPEG)
-- Progressive loading (thumbnail → full)
-- Lazy loading in gallery view
-- CDN for future scaling (optional)
+- Thumbnail generation (300px vs full size)
+- Lazy loading in gallery view (future)
+- Animated GIF detection (preserve vs static)
+
+### Query Performance
+- Single JOIN query (no N+1)
+- Indexes on channelId + uploadedAt
+- LIMIT queries for pagination
+- json_agg for efficient aggregation
 
 ---
 
-## Testing Strategy
+## Deferred Features (Phase 2+)
 
-### Unit Tests
-- File upload validation
-- Filename generation
-- Image compression
-- Path sanitization
-
-### Integration Tests
-```dart
-withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
-  test('when uploading valid image then should save and return metadata', () async {
-    final imageBytes = await File('test/fixtures/test.jpg').readAsBytes();
-    final attachment = await endpoints.media.uploadMedia(
-      sessionBuilder,
-      channelId: 1,
-      compress: true,
-      fileData: ByteData.view(imageBytes.buffer),
-      filename: 'test.jpg',
-      mimeType: 'image/jpeg',
-    );
-    
-    expect(attachment.filePath, isNotEmpty);
-    expect(File('/app/media/${attachment.filePath}').existsSync(), true);
-  });
-});
-```
-
-### Manual Testing Checklist
-- [ ] Paste image (Ctrl+V)
-- [ ] Upload with compression
-- [ ] Upload without compression
-- [ ] Display in chat
-- [ ] Click to view full screen
-- [ ] Delete note with attachment (files cleaned up)
-- [ ] Large image (>10MB)
-- [ ] Invalid file type
-- [ ] Network error during upload
-
----
-
-## Open Questions
-
-1. **Max file size limit?** Suggestion: 25MB for images
-2. **Storage quota per channel?** Suggestion: 10GB default
-3. **Auto-delete old media?** Optional retention policy
-4. **Support GIFs?** Yes, treat as images
-5. **Support multiple images per note?** Yes, list of attachments
-6. **Allow editing uploaded images?** Phase 2 feature
+### Not in Initial Implementation
+- ❌ Resumable uploads (Phase 2 - chunked protocol)
+- ❌ Multiple images per paste (Phase 2)
+- ❌ Individual image deletion (delete note to delete images)
+- ❌ Drag and drop upload (Phase 2)
+- ❌ Mobile camera integration (Phase 2)
+- ❌ Image editing before send (Phase 2)
+- ❌ Multiple image sizes/responsive images (Phase 3)
+- ❌ Video support (Phase 3)
+- ❌ File attachments (Phase 3)
+- ❌ Storage analytics dashboard (Phase 3)
 
 ---
 
@@ -610,110 +1009,3 @@ withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
 ### Infrastructure
 - `on_air_server/docker-compose.yaml` (add volume)
 - `migrations/` (new migration for media_attachments table)
-
----
-
-## ✅ Confirmed Decisions
-
-### File Size & Storage
-- **No max file size limit** - Allow any size uploads
-- **No storage quotas** - Unlimited storage per channel
-- **Rationale:** Self-hosted server with sufficient storage capacity
-
-### Compression Settings
-- **Default:** Compression checkbox **checked** by default
-- **Compressed:** Max 1920px, WebP format, 85% quality
-- **Original:** Keep original if user unchecks compression
-- **Thumbnails:** 300px wide, WebP format
-
-### Supported Formats (Phase 1)
-- **JPEG** - Convert to WebP if compressed
-- **PNG** - Convert to WebP if compressed (preserves transparency)
-- **WebP** - Native support
-- **GIF** - Convert to static WebP (first frame for thumbnail)
-- **HEIC** (iPhone) - Convert to WebP
-
-### Upload Behavior
-- **Single image per paste** - One at a time (multi-paste in future phase)
-- **Paste priority:** If clipboard has image, ignore text
-- **Progress indicator:** Show for uploads >2MB
-- **Error handling:** Toast message + retry button
-
-### Display & Interaction
-- **Delete:** Delete entire note to remove images (no individual image delete yet)
-- **Full screen:** Click image to open full screen viewer
-- **Loading:** Show placeholder while loading
-- **Failed load:** Show broken image icon with retry option
-
-### Security & Privacy
-- **Auth required:** Yes - check session before upload/download
-- **Channel access:** Verify user can post to channel
-- **EXIF stripping:** Remove GPS and personal metadata on upload
-- **File validation:** Decode image on server to ensure valid file
-
-### Real-time Updates
-- **WebSocket broadcast:** Yes - broadcast `noteCreated` with attachment
-- **Live preview:** Other users see images immediately
-- **Thumbnail generation:** Generate before broadcasting (blocking)
-
----
-
-## 🔧 Additional Technical Decisions
-
-### Image Processing
-- **Max dimensions:** No server-side limit (client validates reasonableness)
-- **Aspect ratio:** No restrictions
-- **Orientation:** Auto-rotate based on EXIF before stripping
-- **Transparency:** Preserve PNG/WebP alpha channel, display on white background
-
-### File Naming
-- **Hash algorithm:** SHA256 (more secure than MD5)
-- **Collision handling:** Regenerate with new timestamp (astronomically unlikely)
-- **Format:** `{note_id}_{timestamp}_{hash}.{ext}`
-
-### Error Handling
-- **Upload timeout:** 60 seconds (generous for large files)
-- **Retry strategy:** Manual retry button (no auto-retry)
-- **Network errors:** Show clear error message with details
-- **Server errors:** Display server error message
-
-### Rate Limiting (Optional - Add if Needed)
-- **Not implemented initially** - Add if spam becomes an issue
-- **Future:** 20 uploads per minute per user
-
-### Cleanup Strategy
-- **Orphaned files:** Database cascade delete handles most cases
-- **Backup cleanup:** Daily cron job at 3am to find/remove orphaned files
-- **Manual command:** `serverpod cleanup-media` for manual cleanup
-
----
-
-## 📐 Deferred Features (Phase 2+)
-
-### Not in Initial Implementation
-- ❌ Multiple images per paste (one at a time for now)
-- ❌ Individual image deletion (delete note to delete images)
-- ❌ Drag and drop upload
-- ❌ Mobile camera integration
-- ❌ Image editing (crop, rotate, filters)
-- ❌ Animated GIF support (convert to static)
-- ❌ Multiple image sizes (original + thumbnail only)
-- ❌ Video support
-- ❌ File attachments (PDFs, documents)
-- ❌ Image search by content
-- ❌ Storage analytics dashboard
-
-### Phase 2 Candidates
-- Multiple images per note (upload queue)
-- Animated GIF preservation
-- Image editing before send
-- Download original button
-- Gallery view with filters
-
-### Phase 3+ Ideas
-- Video attachments
-- File attachments
-- Voice messages
-- Screen recording
-- OCR for text in images
-- Image-based search
