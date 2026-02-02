@@ -155,22 +155,23 @@ class _InputBarState extends ConsumerState<InputBar> {
       ref.read(notesProvider(channelId).notifier).createNote(content);
     }
 
-    _controller.clear();
-    _focusNode.requestFocus();
-
-    // Reset preview state
+    // Reset preview state and clear text field
     setState(() {
+      _controller.clear();
       _previewUrl = null;
       _showPreview = true;
     });
+
+    // Refocus after clearing
+    _focusNode.requestFocus();
   }
 
   void _cancelEditing() {
     ref.read(editingNoteProvider.notifier).cancelEditing();
-    _controller.clear();
 
-    // Reset preview state
+    // Reset preview state and clear text field
     setState(() {
+      _controller.clear();
       _previewUrl = null;
       _showPreview = true;
     });
