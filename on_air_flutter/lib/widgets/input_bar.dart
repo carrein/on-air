@@ -1,0 +1,124 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/notes_provider.dart';
+import '../providers/current_channel_provider.dart';
+import '../providers/editing_note_provider.dart';
+
+/// Input bar for creating and editing notes.
+class InputBar extends ConsumerStatefulWidget {
+  const InputBar({super.key});
+
+  @override
+  ConsumerState<InputBar> createState() => _InputBarState();
+}
+
+class _InputBarState extends ConsumerState<InputBar> {
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  void _populateEditingNote(int noteId) {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    final notes = ref.read(notesProvider(channelId)).value;
+    if (notes == null) return;
+
+    final note = notes.firstWhere(
+      (n) => n.id == noteId,
+      orElse: () => notes.first,
+    );
+
+    _controller.text = note.content;
+    _focusNode.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final editingNoteId = ref.watch(editingNoteProvider);
+    final isEditMode = editingNoteId != null;
+
+    // Listen for editing state changes to populate the field
+    ref.listen(editingNoteProvider, (prev, next) {
+      if (next != null && prev != next) {
+        _populateEditingNote(next);
+      }
+    });
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.grey[300]!)),
+      ),
+      child: Row(
+        children: [
+          if (isEditMode)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: _cancelEditing,
+              tooltip: 'Cancel',
+            ),
+          Expanded(
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.send,
+              decoration: InputDecoration(
+                hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Type a note... (Shift+Enter for new line)',
+                border: const OutlineInputBorder(),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+              onSubmitted: (_) => _submit(),
+              onChanged: (_) => setState(() {}), // Rebuild for button state
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: Icon(isEditMode ? Icons.save : Icons.send),
+            onPressed: _controller.text.trim().isEmpty ? null : _submit,
+            tooltip: isEditMode ? 'Save' : 'Send',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _submit() {
+    final content = _controller.text.trim();
+    if (content.isEmpty) return;
+
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    final editingNoteId = ref.read(editingNoteProvider);
+
+    if (editingNoteId != null) {
+      // Update existing note
+      ref.read(notesProvider(channelId).notifier).updateNote(
+            editingNoteId,
+            content,
+          );
+      ref.read(editingNoteProvider.notifier).cancelEditing();
+    } else {
+      // Create new note
+      ref.read(notesProvider(channelId).notifier).createNote(content);
+    }
+
+    _controller.clear();
+    _focusNode.requestFocus();
+  }
+
+  void _cancelEditing() {
+    ref.read(editingNoteProvider.notifier).cancelEditing();
+    _controller.clear();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+}

@@ -2773,7 +2773,7 @@
     {
       "__className__": "serverpod.DatabaseMigrationVersion",
       "module": "on_air",
-      "version": "20260127134852455"
+      "version": "20260129070156075"
     },
     {
       "__className__": "serverpod.DatabaseMigrationVersion",

@@ -3,22 +3,45 @@ BEGIN;
 --
 -- ACTION CREATE TABLE
 --
-CREATE TABLE "recipes" (
+CREATE TABLE "channels" (
     "id" bigserial PRIMARY KEY,
-    "author" text NOT NULL,
-    "text" text NOT NULL,
-    "date" timestamp without time zone NOT NULL,
-    "ingredients" text NOT NULL
+    "name" text NOT NULL,
+    "createdAt" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+--
+-- ACTION CREATE TABLE
+--
+CREATE TABLE "notes" (
+    "id" bigserial PRIMARY KEY,
+    "channelId" bigint NOT NULL,
+    "content" text NOT NULL,
+    "createdAt" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX "channel_created_idx" ON "notes" USING btree ("channelId", "createdAt");
+
+--
+-- ACTION CREATE FOREIGN KEY
+--
+ALTER TABLE ONLY "notes"
+    ADD CONSTRAINT "notes_fk_0"
+    FOREIGN KEY("channelId")
+    REFERENCES "channels"("id")
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION;
 
 
 --
 -- MIGRATION VERSION FOR on_air
 --
 INSERT INTO "serverpod_migrations" ("module", "version", "timestamp")
-    VALUES ('on_air', '20260127135801834', now())
+    VALUES ('on_air', '20260131173419188', now())
     ON CONFLICT ("module")
-    DO UPDATE SET "version" = '20260127135801834', "timestamp" = now();
+    DO UPDATE SET "version" = '20260131173419188', "timestamp" = now();
 
 --
 -- MIGRATION VERSION FOR serverpod

@@ -1,0 +1,14 @@
+### An event broadcasted over WebSocket for real-time updates.
+class: ChatEvent
+
+fields:
+  ### The type of event: noteCreated, noteUpdated, noteDeleted, channelCreated, channelDeleted.
+  type: String
+  ### The note data for noteCreated and noteUpdated events.
+  note: Note?
+  ### The note ID for noteDeleted events.
+  noteId: int?
+  ### The channel ID for noteDeleted and channelDeleted events.
+  channelId: int?
+  ### The channel data for channelCreated events.
+  channel: Channel?

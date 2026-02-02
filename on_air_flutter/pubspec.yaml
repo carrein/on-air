@@ -27,15 +27,23 @@ dependencies:
   cupertino_icons: ^1.0.5
   flutter:
     sdk: flutter
+  emoji_picker_flutter: ^3.1.0
+  flutter_riverpod: ^2.6.1
+  google_fonts: ^6.2.1
   on_air_client:
     path: ../on_air_client
+  riverpod_annotation: ^2.6.1
   serverpod_auth_idp_flutter: 3.2.3
   serverpod_flutter: 3.2.3
+  shared_preferences: ^2.3.4
+  uuid: ^4.5.1
 
 dev_dependencies:
+  build_runner: ^2.4.13
   flutter_lints: '>=3.0.0 <7.0.0'
   flutter_test:
     sdk: flutter
+  riverpod_generator: ^2.6.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

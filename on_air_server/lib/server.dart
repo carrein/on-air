@@ -75,6 +75,25 @@ void run(List<String> args) async {
 
   // Start the server.
   await pod.start();
+
+  // Ensure default "General" channel exists
+  await _ensureDefaultChannel(pod);
+}
+
+Future<void> _ensureDefaultChannel(Serverpod pod) async {
+  final session = await pod.createSession();
+  try {
+    final count = await Channel.db.count(session);
+    if (count == 0) {
+      await Channel.db.insertRow(
+        session,
+        Channel(name: 'General', emoji: '💬'),
+      );
+      session.log('Created default "General" channel');
+    }
+  } finally {
+    await session.close();
+  }
 }
 
 void _sendRegistrationCode(

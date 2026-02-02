@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:on_air_client/on_air_client.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
+import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
+
+import 'screens/chat_screen.dart';
 
 /// Sets up a global client object that can be used to talk to the server from
 /// anywhere in our app. The client is generated from your server code
@@ -13,21 +18,27 @@ late final Client client;
 
 late String serverUrl;
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   // When you are running the app on a physical device, you need to set the
   // server URL to the IP address of your computer. You can find the IP
   // address by running `ipconfig` on Windows or `ifconfig` on Mac/Linux.
+  //
   // You can set the variable when running or building your app like this:
-  // E.g. `flutter run --dart-define=SERVER_URL=https://api.example.com/`
-  const serverUrlFromEnv = String.fromEnvironment('SERVER_URL');
-  final serverUrl = serverUrlFromEnv.isEmpty
-      ? 'http://$localhost:8080/'
-      : serverUrlFromEnv;
+  // E.g. `flutter run --dart-define=SERVER_URL=https://api.example.com/`.
+  //
+  // Otherwise, the server URL is fetched from the assets/config.json file or
+  // defaults to http://$localhost:8080/ if not found.
+  final serverUrl = await getServerUrl();
 
   client = Client(serverUrl)
-    ..connectivityMonitor = FlutterConnectivityMonitor();
+    ..connectivityMonitor = FlutterConnectivityMonitor()
+    ..authSessionManager = FlutterAuthSessionManager();
 
-  runApp(const MyApp());
+  client.auth.initialize();
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -36,188 +47,39 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Serverpod Demo',
+      title: 'On Air',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        useMaterial3: true,
+        textTheme: GoogleFonts.chakraPetchTextTheme(),
       ),
-      home: const MyHomePage(title: 'Serverpod Example'),
+      home: const ChatScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
+class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key, required this.title});
 
   final String title;
 
   @override
-  MyHomePageState createState() => MyHomePageState();
-}
-
-class MyHomePageState extends State<MyHomePage> {
-  /// Holds the last result or null if no result exists yet.
-  Recipe? _recipe;
-
-  List<Recipe> _recipeHistory = [];
-
-  /// Holds the last error message that we've received from the server or null
-  /// if no error exists yet.
-  String? _errorMessage;
-
-  final _textEditingController = TextEditingController();
-
-  bool _loading = false;
-
-  void _callGenerateRecipe() async {
-    try {
-      setState(() {
-        _errorMessage = null;
-        _recipe = null;
-        _loading = true;
-      });
-      final result = await client.recipe.generateRecipe(
-        _textEditingController.text,
-      );
-      setState(() {
-        _errorMessage = null;
-        _recipe = result;
-        _loading = false;
-        _recipeHistory.insert(0, result);
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = '$e';
-        _recipe = null;
-        _loading = false;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // Get the favourite recipes from the database
-    client.recipe.getRecipes().then((favouriteRecipes) {
-      setState(() {
-        _recipeHistory = favouriteRecipes;
-      });
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Row(
-        children: [
-          Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: Colors.grey[300]),
-              child: ListView.builder(
-                itemCount: _recipeHistory.length,
-                itemBuilder: (context, index) {
-                  final recipe = _recipeHistory[index];
-                  return ListTile(
-                    title: Text(
-                      recipe.text.substring(0, recipe.text.indexOf('\n')),
-                    ),
-                    subtitle: Text('${recipe.author} - ${recipe.date}'),
-                    onTap: () {
-                      // Show the recipe in the text field
-                      _textEditingController.text = recipe.ingredients;
-                      setState(() {
-                        _recipe = recipe;
-                      });
-                    },
-                  );
-                },
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: TextField(
-                      controller: _textEditingController,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter your ingredients',
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: ElevatedButton(
-                      onPressed: _loading ? null : _callGenerateRecipe,
-                      child: _loading
-                          ? const Text('Loading...')
-                          : const Text('Send to Server'),
-                    ),
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child:
-                          // Change the ResultDisplay to use the Recipe object
-                          ResultDisplay(
-                            resultMessage: _recipe != null
-                                ? '${_recipe?.author} on ${_recipe?.date}:\n'
-                                      '${_recipe?.text}'
-                                : null,
-                            errorMessage: _errorMessage,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ResultDisplays shows the result of the call. Either the returned result from
-/// the `example.greeting` endpoint method or an error message.
-class ResultDisplay extends StatelessWidget {
-  final String? resultMessage;
-  final String? errorMessage;
-
-  const ResultDisplay({
-    super.key,
-    this.resultMessage,
-    this.errorMessage,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    String text;
-    Color backgroundColor;
-    if (errorMessage != null) {
-      backgroundColor = Colors.red[300]!;
-      text = errorMessage!;
-    } else if (resultMessage != null) {
-      backgroundColor = Colors.green[300]!;
-      text = resultMessage!;
-    } else {
-      backgroundColor = Colors.grey[300]!;
-      text = 'No server response yet.';
-    }
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 50),
-      child: Container(
-        color: backgroundColor,
-        child: Center(
-          child: Text(text),
-        ),
-      ),
+      appBar: AppBar(title: Text(title)),
+      body: const ChatScreen(),
+      // To test authentication in this example app, uncomment the line below
+      // and comment out the line above. This wraps the GreetingsScreen with a
+      // SignInScreen, which automatically shows a sign-in UI when the user is
+      // not authenticated and displays the GreetingsScreen once they sign in.
+      //
+      // body: SignInScreen(
+      //   child: GreetingsScreen(
+      //     onSignOut: () async {
+      //       await client.auth.signOutDevice();
+      //     },
+      //   ),
+      // ),
     );
   }
 }

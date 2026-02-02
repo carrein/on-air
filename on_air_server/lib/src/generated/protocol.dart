@@ -16,11 +16,16 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'greetings/greeting.dart' as _i5;
-import 'receipe.dart' as _i6;
-import 'package:on_air_server/src/generated/receipe.dart' as _i7;
+import 'chat/channel.dart' as _i5;
+import 'chat/chat_event.dart' as _i6;
+import 'chat/note.dart' as _i7;
+import 'greetings/greeting.dart' as _i8;
+import 'package:on_air_server/src/generated/chat/channel.dart' as _i9;
+import 'package:on_air_server/src/generated/chat/note.dart' as _i10;
+export 'chat/channel.dart';
+export 'chat/chat_event.dart';
+export 'chat/note.dart';
 export 'greetings/greeting.dart';
-export 'receipe.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
   Protocol._();
@@ -31,8 +36,8 @@ class Protocol extends _i1.SerializationManagerServer {
 
   static final List<_i2.TableDefinition> targetTableDefinitions = [
     _i2.TableDefinition(
-      name: 'recipes',
-      dartName: 'Recipe',
+      name: 'channels',
+      dartName: 'Channel',
       schema: 'public',
       module: 'on_air',
       columns: [
@@ -41,37 +46,47 @@ class Protocol extends _i1.SerializationManagerServer {
           columnType: _i2.ColumnType.bigint,
           isNullable: false,
           dartType: 'int?',
-          columnDefault: 'nextval(\'recipes_id_seq\'::regclass)',
+          columnDefault: 'nextval(\'channels_id_seq\'::regclass)',
         ),
         _i2.ColumnDefinition(
-          name: 'author',
+          name: 'name',
           columnType: _i2.ColumnType.text,
           isNullable: false,
           dartType: 'String',
         ),
         _i2.ColumnDefinition(
-          name: 'text',
+          name: 'emoji',
           columnType: _i2.ColumnType.text,
           isNullable: false,
           dartType: 'String',
+          columnDefault: '\'💬\'::text',
         ),
         _i2.ColumnDefinition(
-          name: 'date',
+          name: 'pinned',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
           columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
           dartType: 'DateTime',
+          columnDefault: 'CURRENT_TIMESTAMP',
         ),
         _i2.ColumnDefinition(
-          name: 'ingredients',
-          columnType: _i2.ColumnType.text,
+          name: 'updatedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
-          dartType: 'String',
+          dartType: 'DateTime',
+          columnDefault: 'CURRENT_TIMESTAMP',
         ),
       ],
       foreignKeys: [],
       indexes: [
         _i2.IndexDefinition(
-          indexName: 'recipes_pkey',
+          indexName: 'channels_pkey',
           tableSpace: null,
           elements: [
             _i2.IndexElementDefinition(
@@ -82,6 +97,92 @@ class Protocol extends _i1.SerializationManagerServer {
           type: 'btree',
           isUnique: true,
           isPrimary: true,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'notes',
+      dartName: 'Note',
+      schema: 'public',
+      module: 'on_air',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'notes_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'channelId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'content',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'CURRENT_TIMESTAMP',
+        ),
+        _i2.ColumnDefinition(
+          name: 'updatedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'CURRENT_TIMESTAMP',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'notes_fk_0',
+          columns: ['channelId'],
+          referenceTable: 'channels',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'notes_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'channel_created_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'channelId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'createdAt',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
         ),
       ],
       managed: true,
@@ -118,21 +219,36 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
 
-    if (t == _i5.Greeting) {
-      return _i5.Greeting.fromJson(data) as T;
+    if (t == _i5.Channel) {
+      return _i5.Channel.fromJson(data) as T;
     }
-    if (t == _i6.Recipe) {
-      return _i6.Recipe.fromJson(data) as T;
+    if (t == _i6.ChatEvent) {
+      return _i6.ChatEvent.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i5.Greeting?>()) {
-      return (data != null ? _i5.Greeting.fromJson(data) : null) as T;
+    if (t == _i7.Note) {
+      return _i7.Note.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i6.Recipe?>()) {
-      return (data != null ? _i6.Recipe.fromJson(data) : null) as T;
+    if (t == _i8.Greeting) {
+      return _i8.Greeting.fromJson(data) as T;
     }
-    if (t == List<_i7.Recipe>) {
-      return (data as List).map((e) => deserialize<_i7.Recipe>(e)).toList()
+    if (t == _i1.getType<_i5.Channel?>()) {
+      return (data != null ? _i5.Channel.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i6.ChatEvent?>()) {
+      return (data != null ? _i6.ChatEvent.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i7.Note?>()) {
+      return (data != null ? _i7.Note.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i8.Greeting?>()) {
+      return (data != null ? _i8.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == List<_i9.Channel>) {
+      return (data as List).map((e) => deserialize<_i9.Channel>(e)).toList()
           as T;
+    }
+    if (t == List<_i10.Note>) {
+      return (data as List).map((e) => deserialize<_i10.Note>(e)).toList() as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -148,8 +264,10 @@ class Protocol extends _i1.SerializationManagerServer {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i5.Greeting => 'Greeting',
-      _i6.Recipe => 'Recipe',
+      _i5.Channel => 'Channel',
+      _i6.ChatEvent => 'ChatEvent',
+      _i7.Note => 'Note',
+      _i8.Greeting => 'Greeting',
       _ => null,
     };
   }
@@ -164,10 +282,14 @@ class Protocol extends _i1.SerializationManagerServer {
     }
 
     switch (data) {
-      case _i5.Greeting():
+      case _i5.Channel():
+        return 'Channel';
+      case _i6.ChatEvent():
+        return 'ChatEvent';
+      case _i7.Note():
+        return 'Note';
+      case _i8.Greeting():
         return 'Greeting';
-      case _i6.Recipe():
-        return 'Recipe';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -190,11 +312,17 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
-    if (dataClassName == 'Greeting') {
-      return deserialize<_i5.Greeting>(data['data']);
+    if (dataClassName == 'Channel') {
+      return deserialize<_i5.Channel>(data['data']);
     }
-    if (dataClassName == 'Recipe') {
-      return deserialize<_i6.Recipe>(data['data']);
+    if (dataClassName == 'ChatEvent') {
+      return deserialize<_i6.ChatEvent>(data['data']);
+    }
+    if (dataClassName == 'Note') {
+      return deserialize<_i7.Note>(data['data']);
+    }
+    if (dataClassName == 'Greeting') {
+      return deserialize<_i8.Greeting>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -232,8 +360,10 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
     switch (t) {
-      case _i6.Recipe:
-        return _i6.Recipe.t;
+      case _i5.Channel:
+        return _i5.Channel.t;
+      case _i7.Note:
+        return _i7.Note.t;
     }
     return null;
   }

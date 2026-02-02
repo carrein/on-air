@@ -1,6 +1,3 @@
-recipe:
-  - generateRecipe:
-  - getRecipes:
 emailIdp:
   - login:
   - startRegistration:
@@ -11,5 +8,15 @@ emailIdp:
   - finishPasswordReset:
 jwtRefresh:
   - refreshAccessToken:
+chat:
+  - getChannels:
+  - getNotes:
+  - createChannel:
+  - updateChannel:
+  - deleteChannel:
+  - createNote:
+  - updateNote:
+  - deleteNote:
+  - chat:
 greeting:
   - hello:

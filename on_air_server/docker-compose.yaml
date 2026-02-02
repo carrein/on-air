@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: on_air
-      POSTGRES_PASSWORD: "oL1yU5xLo31d9Crxo1T5AZbVXhifX27u"
+      POSTGRES_PASSWORD: "aNymIlgOp8PULY6tYM-0pakfxz7qtAMH"
     volumes:
       - on_air_data:/var/lib/postgresql/data
 
@@ -15,7 +15,7 @@ services:
     image: redis:6.2.6
     ports:
       - "8091:6379"
-    command: redis-server --requirepass "Pht-2syw21tYeSHJTWkVpdq9AMLSYeZL"
+    command: redis-server --requirepass "BFfi2vex-rfkxR76RKlG83-nXwDw_e1W"
     environment:
       - REDIS_REPLICATION_MODE=master
 
@@ -27,7 +27,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: on_air_test
-      POSTGRES_PASSWORD: "zif4MK6ZjKCWxPpceg1zJRl4_4xRiq4R"
+      POSTGRES_PASSWORD: "HEDBcpu2NNA1cMwC3EmK83YS-78JRpwB"
     volumes:
       - on_air_test_data:/var/lib/postgresql/data
 
@@ -35,7 +35,7 @@ services:
     image: redis:6.2.6
     ports:
       - "9091:6379"
-    command: redis-server --requirepass "1Fj3hE6OT1ehCVkLfx0wpc_kjFj3bRGU"
+    command: redis-server --requirepass "VrcHvH3Qje8yrXsGIDWig3dxx-oNR-PX"
     environment:
       - REDIS_REPLICATION_MODE=master
 

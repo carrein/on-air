@@ -1,0 +1,15 @@
+### A channel that contains notes.
+class: Channel
+table: channels
+
+fields:
+  ### The name of the channel.
+  name: String
+  ### Emoji display picture for the channel.
+  emoji: String, default='💬'
+  ### Whether the channel is pinned.
+  pinned: bool, default=false
+  ### When the channel was created.
+  createdAt: DateTime, default=now
+  ### When the channel was last updated (e.g., when a note is posted).
+  updatedAt: DateTime, default=now

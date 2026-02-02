@@ -30,17 +30,6 @@ language plpgsql
 volatile;
 
 --
--- Class Recipe as table recipes
---
-CREATE TABLE "recipes" (
-    "id" bigserial PRIMARY KEY,
-    "author" text NOT NULL,
-    "text" text NOT NULL,
-    "date" timestamp without time zone NOT NULL,
-    "ingredients" text NOT NULL
-);
-
---
 -- Class CloudStorageEntry as table serverpod_cloud_storage
 --
 CREATE TABLE "serverpod_cloud_storage" (
@@ -627,9 +616,9 @@ ALTER TABLE ONLY "serverpod_auth_core_session"
 -- MIGRATION VERSION FOR on_air
 --
 INSERT INTO "serverpod_migrations" ("module", "version", "timestamp")
-    VALUES ('on_air', '20260127135801834', now())
+    VALUES ('on_air', '20260129070156075', now())
     ON CONFLICT ("module")
-    DO UPDATE SET "version" = '20260127135801834', "timestamp" = now();
+    DO UPDATE SET "version" = '20260129070156075', "timestamp" = now();
 
 --
 -- MIGRATION VERSION FOR serverpod
