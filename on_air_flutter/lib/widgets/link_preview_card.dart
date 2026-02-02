@@ -31,20 +31,17 @@ class LinkPreviewCard extends StatelessWidget {
                   color: Colors.grey[200],
                   child: const Center(child: CircularProgressIndicator()),
                 ),
-                errorWidget: (context, url, error) {
-                  print('Failed to load image: $url, error: $error');
-                  return Container(
-                    height: 160,
-                    color: Colors.grey[100],
-                    child: Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
+                errorWidget: (context, url, error) => Container(
+                  height: 160,
+                  color: Colors.grey[100],
+                  child: Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      size: 48,
+                      color: Colors.grey[400],
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
 
             // Content

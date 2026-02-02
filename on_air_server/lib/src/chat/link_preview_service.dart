@@ -40,15 +40,18 @@ class LinkPreviewService {
       final rawImageUrl = _extractMeta(document, ['og:image', 'twitter:image']);
       final imageUrl = rawImageUrl != null ? _makeAbsoluteUrl(rawImageUrl, url) : null;
 
+      // Validate image URL
+      final validImageUrl = imageUrl != null && _isValidUrl(imageUrl) ? imageUrl : null;
+
       final faviconUrl = _extractFavicon(document, url);
 
-      print('Link preview for $url: title=$title, imageUrl=$imageUrl');
+      print('Link preview for $url: title=$title, imageUrl=$validImageUrl');
 
       return LinkPreview(
         url: url,
         title: title,
         description: description,
-        imageUrl: imageUrl,
+        imageUrl: validImageUrl,
         faviconUrl: faviconUrl,
       );
     } catch (e) {
@@ -62,7 +65,11 @@ class LinkPreviewService {
     for (final prop in properties) {
       final element = document.querySelector('meta[property="$prop"]') ??
           document.querySelector('meta[name="$prop"]');
-      final content = element?.attributes['content']?.trim();
+      final content = element?.attributes['content']
+          ?.trim()
+          .replaceAll(RegExp(r'\s+'), ' ')  // Replace all whitespace with single space
+          .replaceAll('\n', '')  // Remove newlines
+          .replaceAll('\r', ''); // Remove carriage returns
       if (content != null && content.isNotEmpty) return content;
     }
     return null;
@@ -100,5 +107,20 @@ class LinkPreviewService {
         ? uri.path
         : uri.path.substring(0, uri.path.lastIndexOf('/') + 1);
     return '${uri.scheme}://${uri.host}$basePath$urlString';
+  }
+
+  /// Validate that a URL is well-formed and accessible.
+  static bool _isValidUrl(String urlString) {
+    try {
+      final uri = Uri.parse(urlString);
+      return uri.hasScheme &&
+          (uri.scheme == 'http' || uri.scheme == 'https') &&
+          uri.hasAuthority &&
+          !urlString.contains('\n') &&
+          !urlString.contains('\r') &&
+          !urlString.contains(' ');
+    } catch (_) {
+      return false;
+    }
   }
 }
