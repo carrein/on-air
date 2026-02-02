@@ -182,7 +182,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       ),
                       if (latestNote != null)
                         Text(
-                          latestNote.content,
+                          latestNote.content.replaceAll(RegExp(r'\s+'), ' '),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(

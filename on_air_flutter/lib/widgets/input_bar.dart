@@ -59,19 +59,31 @@ class _InputBarState extends ConsumerState<InputBar> {
               tooltip: 'Cancel',
             ),
           Expanded(
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              maxLines: null,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.send,
-              decoration: InputDecoration(
-                hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Type a note... (Shift+Enter for new line)',
-                border: const OutlineInputBorder(),
-                contentPadding: const EdgeInsets.all(12),
+            child: KeyboardListener(
+              focusNode: FocusNode(),
+              onKeyEvent: (event) {
+                if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
+                  // Check if Shift is NOT pressed
+                  if (!HardwareKeyboard.instance.isShiftPressed) {
+                    _submit();
+                  }
+                  // If Shift IS pressed, do nothing and let TextField handle it
+                }
+              },
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                minLines: 1,
+                maxLines: 8,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Type a note... (Shift+Enter for new line)',
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                onChanged: (_) => setState(() {}), // Rebuild for button state
               ),
-              onSubmitted: (_) => _submit(),
-              onChanged: (_) => setState(() {}), // Rebuild for button state
             ),
           ),
           const SizedBox(width: 8),
@@ -86,8 +98,11 @@ class _InputBarState extends ConsumerState<InputBar> {
   }
 
   void _submit() {
-    final content = _controller.text.trim();
-    if (content.isEmpty) return;
+    final rawContent = _controller.text.trim();
+    if (rawContent.isEmpty) return;
+
+    // Convert newlines to markdown line breaks (two spaces + newline)
+    final content = rawContent.replaceAll('\n', '  \n');
 
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
