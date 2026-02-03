@@ -3,6 +3,7 @@ u/docs/link.md
 u/docs/media.md
 u/docs/overview.md
 u/docs/plan.md
+u/docs/security.md
 u/docs/ux.md
 
 # CLAUDE.md

@@ -7,6 +7,8 @@
 > - Riverpod for Flutter state management (not currently installed)
 > - Cursor-based pagination for notes
 > - Auto-create "General" channel on server startup
+>
+> **Security**: See [docs/security.md](./security.md) for security considerations and incident history
 
 ---
 

@@ -36,6 +36,20 @@ pids
 .env.local
 .env.*.local
 
+# Serverpod secrets (CRITICAL - contains passwords, JWT keys, etc.)
+**/config/passwords.yaml
+
+# Other secret files
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+*.keystore
+credentials.json
+service-account.json
+gcloud-*.json
+
 # Temporary files
 *.tmp
 *.temp
