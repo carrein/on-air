@@ -12,12 +12,17 @@ Plan for supporting media uploads (images, future: videos, files) in the chat ap
 - 50MB file size limit
 - Public access (no authentication required)
 
+### Phase 2: Document Upload (Completed Server-Side)
+- PDF, Text, Word, Excel, Zip file support
+- Conditional processing (images get full processing, documents get simple storage)
+- 50MB file size limit applies to all file types
+- File picker UI for document selection
+
 ### Future Phases
-- Resumable uploads (Phase 2)
+- Resumable uploads (Phase 3)
 - Media gallery tab per channel
 - Search and filter by date/type
 - Video support
-- File attachments (PDFs, documents)
 
 ---
 
@@ -522,12 +527,21 @@ class MediaAttachmentWidget extends StatelessWidget {
 - **Original:** Keep original if user unchecks compression
 - **Thumbnails:** 300px wide, WebP format, generated in isolate
 
-### Supported Formats (Phase 1)
+### Supported Formats
+
+**Images (Phase 1):**
 - **JPEG** - Convert to WebP if compressed
 - **PNG** - Convert to WebP if compressed (preserves transparency)
 - **WebP** - Native support
 - **GIF** - Preserve animated GIFs, generate static thumbnail
 - **HEIC** (iPhone) - Convert to WebP
+
+**Documents (Phase 2 - Server Ready):**
+- **PDF**: `application/pdf`
+- **Text**: `text/plain`, `text/markdown`
+- **Word**: `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+- **Excel**: `application/vnd.ms-excel`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+- **Zip**: `application/zip`
 
 ### Upload Behavior
 - **Single image per paste:** One at a time (multi-paste in Phase 2)
@@ -991,21 +1005,71 @@ withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
 
 ---
 
+## Document Upload Implementation Status
+
+### Server-Side (Completed)
+**File**: `on_air_server/lib/src/media/media_endpoint.dart`
+
+Implemented features:
+- Document MIME type support (PDF, TXT, MD, DOC, DOCX, XLS, XLSX, ZIP)
+- Conditional processing logic:
+  - Images: Full processing (compression, thumbnails, EXIF stripping)
+  - Documents: Simple file storage with hash calculation
+- `_isImage()` helper method to detect file type
+- Extended `_getExtensionFromMimeType()` for all document types
+- `ImageProcessor.calculateHash()` public method for document hash calculation
+
+### Flutter-Side (Remaining Work)
+
+**Required Changes:**
+
+1. **Update Input Bar** (`lib/widgets/input_bar.dart`):
+   - Replace `_pickImage()` with `_pickFile()` using `file_picker` package
+   - Support all file extensions: jpg, png, pdf, txt, md, doc, docx, xls, xlsx, zip
+   - Change button icon from `Icons.image` to `Icons.attach_file`
+   - Update tooltip from "Upload image" to "Upload file"
+
+2. **Create Generic Upload Dialog** (`lib/widgets/file_upload_dialog.dart`):
+   - Detect file type (image vs document)
+   - For images: Show preview + compression option
+   - For documents: Show file info (name, size, type) + icon
+
+3. **Update Media Attachment Widget** (`lib/widgets/media_attachment_widget.dart`):
+   - Detect attachment MIME type
+   - If image: Show existing image widget
+   - If document: Show document card with file icon, filename, size, download button
+
+4. **Create Document Attachment Widget** (`lib/widgets/document_attachment_widget.dart`):
+   - Display document icon based on extension (PDF, TXT, DOC, etc.)
+   - Show filename and formatted file size
+   - Download button functionality
+
+5. **Update Chat View** (`lib/widgets/chat_view.dart`):
+   - Update `_handleWebDrop()` to accept all file types
+   - Route to appropriate dialog based on detected file type
+
+**Dependencies:**
+- Add `file_picker: ^8.1.4` to `on_air_flutter/pubspec.yaml` (already added)
+
 ## Related Files
 
 ### Server
-- `lib/src/media/media_attachment.spy.yaml` (new)
-- `lib/src/media/media_endpoint.dart` (new)
-- `lib/src/chat/note.spy.yaml` (update)
-- `lib/server.dart` (add static route)
+- `lib/src/media/media_attachment.spy.yaml`
+- `lib/src/media/media_endpoint.dart`
+- `lib/src/media/image_processor.dart`
+- `lib/src/chat/note.spy.yaml`
+- `lib/server.dart`
 
 ### Flutter
-- `lib/widgets/media_attachment_widget.dart` (new)
-- `lib/widgets/image_upload_dialog.dart` (new)
-- `lib/widgets/full_screen_image_view.dart` (new)
-- `lib/widgets/chat_view.dart` (update)
-- `lib/providers/media_provider.dart` (new)
+- `lib/widgets/media_attachment_widget.dart`
+- `lib/widgets/image_upload_dialog.dart`
+- `lib/widgets/file_upload_dialog.dart` (to create)
+- `lib/widgets/document_attachment_widget.dart` (to create)
+- `lib/widgets/full_screen_image_view.dart`
+- `lib/widgets/chat_view.dart`
+- `lib/widgets/input_bar.dart`
+- `lib/providers/media_provider.dart`
 
 ### Infrastructure
-- `on_air_server/docker-compose.yaml` (add volume)
-- `migrations/` (new migration for media_attachments table)
+- `on_air_server/docker-compose.yaml`
+- `migrations/`

@@ -45,7 +45,7 @@ redis:
   #user: # defaults to empty
   #requireSsl: true # defaults to false
 
-maxRequestSize: 57671680 # 55MB - allows 50MB files with overhead
+maxRequestSize: 115343360 # 110MB - allows 100MB files with overhead
 
 # Enable CORS for development (allows Flutter Web to load images)
 cors:

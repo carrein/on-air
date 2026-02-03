@@ -33,6 +33,7 @@ class MediaService {
   static String getMimeTypeFromExtension(String fileName) {
     final ext = path.extension(fileName).toLowerCase();
     switch (ext) {
+      // Images
       case '.jpg':
       case '.jpeg':
         return 'image/jpeg';
@@ -44,14 +45,31 @@ class MediaService {
         return 'image/webp';
       case '.heic':
         return 'image/heic';
+      // Documents
+      case '.pdf':
+        return 'application/pdf';
+      case '.txt':
+        return 'text/plain';
+      case '.md':
+        return 'text/markdown';
+      case '.doc':
+        return 'application/msword';
+      case '.docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case '.xls':
+        return 'application/vnd.ms-excel';
+      case '.xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case '.zip':
+        return 'application/zip';
       default:
-        return 'image/jpeg';
+        return 'application/octet-stream';
     }
   }
 
-  /// Validate image file size (max 50MB).
+  /// Validate file size (max 100MB).
   static bool validateFileSize(int bytes) {
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 100 * 1024 * 1024; // 100MB
     return bytes <= maxSize;
   }
 }

@@ -558,6 +558,229 @@ EMAIL_SECRET_PEPPER="..."
 
 ---
 
+## Security Setup Instructions
+
+### 1. Rotate Secrets (CRITICAL)
+
+Generate new secrets using strong random generators:
+
+```bash
+# Generate random 32-character password
+openssl rand -base64 32
+
+# Or use UUID for service secrets
+uuidgen
+```
+
+**Update passwords.yaml:**
+1. Copy template: `cd on_air_server/config && cp passwords.yaml.template passwords.yaml`
+2. Replace ALL placeholders with strong random values (database passwords, Redis passwords, JWT keys, service secrets, hash peppers)
+3. Verify file is in `.gitignore`: `git check-ignore passwords.yaml`
+
+### 2. Pre-Commit Hooks
+
+**Install:**
+```bash
+pip3 install pre-commit
+cd /path/to/on_air
+pre-commit install
+```
+
+**Test:**
+```bash
+pre-commit run --all-files
+```
+
+**What gets checked:**
+- Secret scanning (gitleaks)
+- Large file detection
+- Private key detection
+- passwords.yaml exclusion
+- .env file exclusion
+- Trailing whitespace
+- YAML syntax
+
+### 3. Database User Setup
+
+Create dedicated database user (not postgres superuser):
+
+```bash
+# Connect to PostgreSQL
+docker compose exec postgres psql -U postgres -d on_air -h localhost -p 8090
+
+# Run security script
+\i config/create_db_user.sql
+```
+
+Update `config/development.yaml`:
+```yaml
+database:
+  user: on_air_app  # Changed from postgres
+```
+
+Update `config/passwords.yaml` with new user password and restart server.
+
+### 4. Input Validation Limits
+
+Current enforced limits:
+
+| Field | Max Length | Rationale |
+|-------|-----------|-----------|
+| Channel name | 100 chars | UI display constraints |
+| Channel emoji | 10 chars | Multi-byte emoji support |
+| Note content | 50,000 chars | ~10-20 pages, prevents abuse |
+| Filename | 255 chars | Filesystem limit |
+| File size | 50 MB | Balance usability vs resources |
+
+Customize in respective endpoint files:
+- Channel limits: `on_air_server/lib/src/chat/chat_endpoint.dart`
+- Note limits: `on_air_server/lib/src/chat/chat_endpoint.dart`
+- File limits: `on_air_server/lib/src/media/media_endpoint.dart`
+
+After changes, run `serverpod generate` from `on_air_server/`.
+
+### 5. Production Environment Variables
+
+Use environment variables for all secrets:
+
+```bash
+# Required for production
+export DATABASE_HOST="your-db-host"
+export DATABASE_PASSWORD="..."
+export REDIS_HOST="your-redis-host"
+export REDIS_PASSWORD="..."
+export JWT_SECRET="..."
+export JWT_REFRESH_SECRET="..."
+export SERVICE_SECRET="..."
+export EMAIL_SECRET_PEPPER="..."
+```
+
+Recommended: Use secret management service (AWS Secrets Manager, Google Cloud Secret Manager, HashiCorp Vault, Doppler, 1Password Secrets Automation).
+
+### 6. Production Deployment Checklist
+
+**Before deployment:**
+- [ ] Rotate ALL secrets from leaked `passwords.yaml`
+- [ ] Remove `passwords.yaml` from git history
+- [ ] Add `passwords.yaml` to `.gitignore`
+- [ ] Use environment variables for secrets
+- [ ] Change CORS from `*` to specific domain
+- [ ] Enable HTTPS/TLS
+- [ ] Set up firewall rules (PostgreSQL/Redis restricted to localhost, only web ports 80/443 exposed)
+- [ ] Create dedicated database user (not postgres)
+- [ ] Enable database SSL (`requireSsl: true`)
+- [ ] Enable Redis SSL (`requireSsl: true`)
+- [ ] Configure rate limiting
+- [ ] Set up monitoring/logging
+- [ ] Configure automated backups
+- [ ] Review all exposed ports
+
+**Configuration updates:**
+- Create `config/production.yaml` from template
+- Set environment variables in deployment platform
+- Update CORS to production domain(s)
+- Configure security headers
+
+### 7. Security Testing
+
+**Test input validation:**
+```dart
+// Test 50,001 character note (should fail)
+final tooLongContent = 'a' * 50001;
+try {
+  await client.chat.createNote(channelId, tooLongContent);
+  print('ERROR: Should have rejected long content');
+} catch (e) {
+  print('✓ Correctly rejected: $e');
+}
+```
+
+**Test file upload limits:**
+```dart
+// Test 51MB file (should fail)
+final tooLargeFile = Uint8List(51 * 1024 * 1024);
+try {
+  await client.media.uploadMediaAndCreateNote(...);
+  print('ERROR: Should have rejected large file');
+} catch (e) {
+  print('✓ Correctly rejected: $e');
+}
+```
+
+**Test secret scanning:**
+```bash
+# Try to commit a fake secret
+echo "password=secret123" > test.txt
+git add test.txt
+git commit -m "test"
+# Pre-commit hook should detect and block
+```
+
+### 8. Monitoring & Maintenance
+
+**Monthly tasks:**
+- [ ] Rotate secrets
+- [ ] Review access logs for anomalies
+- [ ] Check dependency vulnerabilities: `dart pub outdated` and `flutter pub outdated`
+- [ ] Review GitHub security alerts
+- [ ] Test backup restoration
+- [ ] Review uploaded content (if applicable)
+
+**Monitor these metrics:**
+- Failed authentication attempts
+- Upload failures
+- Database connection errors
+- Disk space usage (`data/media/`)
+- Memory usage during image processing
+- API error rates
+- Response time percentiles
+
+### 9. Incident Response
+
+If security breach suspected:
+
+1. **Immediately:**
+   - Rotate ALL credentials
+   - Review access logs
+   - Check for unauthorized uploads/changes
+
+2. **Document:**
+   - Add incident to this file
+   - Note what happened, why, and how to prevent
+
+3. **Fix:**
+   - Patch vulnerability
+   - Add test to prevent regression
+   - Update documentation
+
+4. **Notify:**
+   - If user data affected, follow disclosure laws
+   - Consider GitHub security advisory if open source
+
+---
+
+## Security Implementation Status
+
+### ✅ Completed Fixes
+
+1. **Environment Variable Support** - Server reads from environment variables, `passwords.yaml.template` created
+2. **Rate Limiting** - Middleware configured with per-endpoint limits and IP-based throttling
+3. **Input Validation** - Max content lengths enforced (notes, channels, filenames)
+4. **Pre-commit Hooks** - `.pre-commit-config.yaml` configured with gitleaks secret scanning
+5. **Production Config Template** - `production.yaml.template` created with secure defaults
+6. **Database Security Scripts** - SQL script for dedicated user with minimal privileges
+7. **CORS Improvements** - Conditional CORS based on environment, strict production settings
+
+### ⏸️ Deferred (Requires Infrastructure)
+
+- HTTPS/TLS setup (requires certificates)
+- Firewall rules (requires deployment platform)
+- Secret rotation (requires new credentials)
+- Virus scanning (requires external service)
+- Database SSL (requires production database)
+
+---
+
 ## Additional Resources
 
 - [Serverpod Security Best Practices](https://docs.serverpod.dev/)
@@ -565,18 +788,15 @@ EMAIL_SECRET_PEPPER="..."
 - [CWE Top 25 Most Dangerous Software Weaknesses](https://cwe.mitre.org/top25/)
 - [Flutter Security Best Practices](https://docs.flutter.dev/security)
 
+**Tools:**
+- Secret scanning: gitleaks, git-secrets, trufflehog
+- Dependency scanning: dart pub outdated, dependabot
+- SAST: SonarQube, CodeQL
+- Penetration testing: OWASP ZAP, Burp Suite
+
 ---
 
-## Emergency Contacts
-
-**Security Incident Response:**
-1. Immediately revoke/rotate compromised credentials
-2. Check access logs for unauthorized access
-3. Document incident in this file
-4. Update `.gitignore` to prevent recurrence
-5. Consider using tools like `git-filter-repo` to clean history
-
-**Useful Commands:**
+## Emergency Response Commands
 
 ```bash
 # Check what's being committed

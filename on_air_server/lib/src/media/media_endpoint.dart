@@ -8,8 +8,8 @@ import 'image_processor.dart';
 
 /// Endpoint for media upload and management.
 class MediaEndpoint extends Endpoint {
-  /// Maximum file size (50MB).
-  static const int maxFileSize = 50 * 1024 * 1024;
+  /// Maximum file size (100MB).
+  static const int maxFileSize = 100 * 1024 * 1024;
 
   /// Allowed MIME types for images.
   static const List<String> allowedImageTypes = [

@@ -36,3 +36,16 @@ Channels are topical containers for notes. Each channel contains multiple notes 
   - Mobile: Long-press to open menu
   - Menu options: Edit, Pin/Unpin, Delete
 - **Creation**: "New Channel" button at bottom of channel list
+
+## Implementation Details
+
+### Smart Channel Selection
+**File**: `on_air_flutter/lib/providers/current_channel_provider.dart`
+
+Channel selection logic on app startup:
+1. Attempts to load last opened channel from SharedPreferences
+2. Validates that saved channel still exists in current channel list
+3. Falls back to first available channel if saved channel doesn't exist
+4. Throws error if no channels available (prompts user to create one)
+
+This ensures users return to their last active channel across app restarts while gracefully handling deleted channels.

@@ -1,10 +1,10 @@
-u/docs/channel.md
-u/docs/link.md
-u/docs/media.md
-u/docs/overview.md
-u/docs/plan.md
-u/docs/security.md
-u/docs/ux.md
+u/docs/Channel.md
+u/docs/Link.md
+u/docs/Media.md
+u/docs/Overview.md
+u/docs/Plan.md
+u/docs/Security.md
+u/docs/UX.md
 
 # CLAUDE.md
 
@@ -12,11 +12,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a full-stack application built with Serverpod (v3.2.3), consisting of three main packages:
+On Air is a real-time chat-style notes application for organizing thoughts in topical channels. Built with Serverpod (v3.2.3), consisting of three main packages:
 
 - **on_air_server**: Serverpod backend server (Dart)
 - **on_air_client**: Generated client library (Dart)
 - **on_air_flutter**: Flutter mobile/web application
+
+Key features:
+- Real-time WebSocket updates via MessageCentral
+- Channel-based note organization with emoji identifiers
+- Link preview generation for URLs in notes
+- Image and document upload support
+- Cursor-based pagination for note history
 
 Serverpod is a backend framework for Dart/Flutter that handles database connections, endpoints, authentication, and code generation.
 
@@ -186,11 +193,27 @@ Server serves:
 - `chat`: Channel and note management with real-time WebSocket updates
   - Channels: create, update, delete, list, pin/unpin
   - Notes: create, update, delete, list with pagination
-  - Link previews: automatic URL detection and metadata fetching (see `docs/link.md`)
+  - Link previews: automatic URL detection and metadata fetching (see `docs/Link.md`)
   - Real-time streaming: WebSocket events for live updates
 - `emailIdp`: Email authentication (login, registration, password reset)
 - `jwtRefresh`: Token refresh
 - `greeting`: Example endpoint with `hello` method
+
+## Git Workflow Policy
+
+**CRITICAL: Git commit and push behavior**
+
+- **NEVER commit or push changes unless explicitly requested** in the current instruction
+- If a user instruction includes "commit" or "push", only perform git operations for that specific instruction
+- **Permission does NOT carry over** to subsequent instructions - each new instruction requires explicit permission
+- Always make changes and let the user review before committing
+- When git operations are requested, follow the standard commit message format with Co-Authored-By tag
+
+Examples:
+- ✅ "Fix the bug and commit the changes" → Commit and push allowed for this instruction only
+- ✅ "Update the config" → Make changes but DO NOT commit/push
+- ✅ "Add feature X" (next instruction after previous commit request) → Make changes but DO NOT commit/push
+- ❌ Never assume commit permission from previous instructions
 
 ## Important Conventions
 

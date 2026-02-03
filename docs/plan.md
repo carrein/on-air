@@ -4,11 +4,93 @@
 >
 > **Key Architecture Decisions**:
 > - WebSocket streaming via Serverpod's built-in streaming methods + MessageCentral for broadcasting
-> - Riverpod for Flutter state management (not currently installed)
+> - Riverpod for Flutter state management
 > - Cursor-based pagination for notes
 > - Auto-create "General" channel on server startup
 >
-> **Security**: See [docs/security.md](./security.md) for security considerations and incident history
+> **Security**: See [docs/Security.md](./Security.md) for security considerations and incident history
+
+---
+
+## Implementation Status
+
+### ✅ Completed Features
+
+**Core Application (Phases 1-7)**
+- ✅ Server data models and migrations (Channel, Note, ChatEvent)
+- ✅ Chat endpoint with CRUD operations
+- ✅ Real-time WebSocket streaming via MessageCentral
+- ✅ Default "General" channel auto-creation
+- ✅ Backend integration tests
+- ✅ Riverpod state management setup
+- ✅ Flutter providers (channels, notes, chat stream, connection, editing, device UUID)
+- ✅ UI components (ChatScreen, Sidebar, ChatView, InputBar, OfflineBanner)
+- ✅ Channel management (create, update, delete, pin/unpin, emoji display)
+- ✅ Note management (create, update, delete, pagination)
+- ✅ Real-time updates across connected clients
+
+**Link Preview Feature**
+- ✅ Server-side URL detection and metadata fetching
+- ✅ OpenGraph and Twitter Card support
+- ✅ Async preview generation with WebSocket broadcast
+- ✅ Client-side preview card display
+- ✅ Input bar link detection banner
+
+**Media Upload Feature**
+- ✅ Image upload (JPEG, PNG, WebP, GIF, HEIC)
+- ✅ Clipboard paste support (Ctrl+V)
+- ✅ Compression with WebP conversion
+- ✅ Thumbnail generation in isolates
+- ✅ EXIF metadata stripping (after orientation correction)
+- ✅ Animated GIF preservation
+- ✅ UUID-based filenames for security
+- ✅ Two-phase commit (temp file → DB → atomic rename)
+- ✅ Public media serving via static routes
+- ✅ Drag-and-drop upload support
+
+**Document Upload Feature (Server-Side)**
+- ✅ Document MIME type support (PDF, TXT, MD, DOC, DOCX, XLS, XLSX, ZIP)
+- ✅ Conditional processing (images vs documents)
+- ✅ File hash calculation for documents
+- ✅ Extension mapping for all document types
+
+**Channel Features**
+- ✅ Smart channel selection (persists last opened channel via SharedPreferences)
+- ✅ Channel validation on startup
+- ✅ Fallback to first available channel
+
+### 🚧 In Progress Features
+
+**Document Upload (Flutter-Side)**
+Remaining tasks:
+- Update input bar to use `file_picker` package for all file types
+- Create generic file upload dialog (handles both images and documents)
+- Update media attachment widget to detect and render document types
+- Create document attachment widget with download functionality
+- Update chat view drag-drop to support documents
+
+**Dependencies:**
+- `file_picker: ^8.1.4` already added to pubspec.yaml
+- Need to run `flutter pub get` and regenerate Riverpod code
+
+### 📋 Future Phases
+
+**Phase 2: Enhanced Media**
+- Resumable uploads (chunked protocol)
+- Multiple files per upload
+- Full screen image viewer with swipe
+- Image editing (crop, rotate)
+
+**Phase 3: Media Gallery**
+- Gallery tab per channel
+- Grid layout with thumbnails
+- Date range filtering
+- Media type filtering
+
+**Phase 4: Advanced Features**
+- Video support
+- Storage analytics dashboard
+- Content-based search
 
 ---
 
