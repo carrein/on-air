@@ -42,7 +42,7 @@ redis:
   user: ${REDIS_USER:-default}
   requireSsl: true  # Require SSL in production
 
-maxRequestSize: 524288  # 512KB - adjust based on needs
+maxRequestSize: 57671680  # 55MB - allows 50MB file uploads with overhead
 
 # CORS - CRITICAL: Replace with your actual domain!
 cors:
