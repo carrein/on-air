@@ -60,3 +60,6 @@ gcloud-*.json
 # OS generated files
 Thumbs.db
 Desktop.ini
+
+# Uploaded media files (development/test data)
+on_air_server/data/media/
