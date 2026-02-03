@@ -15,19 +15,17 @@ import 'chat/channel.dart' as _i2;
 import 'chat/chat_event.dart' as _i3;
 import 'chat/link_preview.dart' as _i4;
 import 'chat/note.dart' as _i5;
-import 'greetings/greeting.dart' as _i6;
-import 'media/media_attachment.dart' as _i7;
-import 'package:on_air_client/src/protocol/chat/channel.dart' as _i8;
-import 'package:on_air_client/src/protocol/chat/note.dart' as _i9;
+import 'media/media_attachment.dart' as _i6;
+import 'package:on_air_client/src/protocol/chat/channel.dart' as _i7;
+import 'package:on_air_client/src/protocol/chat/note.dart' as _i8;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i10;
+    as _i9;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i11;
+    as _i10;
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
 export 'chat/link_preview.dart';
 export 'chat/note.dart';
-export 'greetings/greeting.dart';
 export 'media/media_attachment.dart';
 export 'client.dart';
 
@@ -77,11 +75,8 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i5.Note) {
       return _i5.Note.fromJson(data) as T;
     }
-    if (t == _i6.Greeting) {
-      return _i6.Greeting.fromJson(data) as T;
-    }
-    if (t == _i7.MediaAttachment) {
-      return _i7.MediaAttachment.fromJson(data) as T;
+    if (t == _i6.MediaAttachment) {
+      return _i6.MediaAttachment.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.Channel?>()) {
       return (data != null ? _i2.Channel.fromJson(data) : null) as T;
@@ -95,41 +90,38 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i5.Note?>()) {
       return (data != null ? _i5.Note.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i6.Greeting?>()) {
-      return (data != null ? _i6.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i6.MediaAttachment?>()) {
+      return (data != null ? _i6.MediaAttachment.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.MediaAttachment?>()) {
-      return (data != null ? _i7.MediaAttachment.fromJson(data) : null) as T;
-    }
-    if (t == List<_i7.MediaAttachment>) {
+    if (t == List<_i6.MediaAttachment>) {
       return (data as List)
-              .map((e) => deserialize<_i7.MediaAttachment>(e))
+              .map((e) => deserialize<_i6.MediaAttachment>(e))
               .toList()
           as T;
     }
-    if (t == _i1.getType<List<_i7.MediaAttachment>?>()) {
+    if (t == _i1.getType<List<_i6.MediaAttachment>?>()) {
       return (data != null
               ? (data as List)
-                    .map((e) => deserialize<_i7.MediaAttachment>(e))
+                    .map((e) => deserialize<_i6.MediaAttachment>(e))
                     .toList()
               : null)
           as T;
     }
-    if (t == List<_i8.Channel>) {
-      return (data as List).map((e) => deserialize<_i8.Channel>(e)).toList()
+    if (t == List<_i7.Channel>) {
+      return (data as List).map((e) => deserialize<_i7.Channel>(e)).toList()
           as T;
     }
-    if (t == List<_i9.Note>) {
-      return (data as List).map((e) => deserialize<_i9.Note>(e)).toList() as T;
+    if (t == List<_i8.Note>) {
+      return (data as List).map((e) => deserialize<_i8.Note>(e)).toList() as T;
     }
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
     try {
-      return _i10.Protocol().deserialize<T>(data, t);
+      return _i9.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i11.Protocol().deserialize<T>(data, t);
+      return _i10.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
@@ -140,8 +132,7 @@ class Protocol extends _i1.SerializationManager {
       _i3.ChatEvent => 'ChatEvent',
       _i4.LinkPreview => 'LinkPreview',
       _i5.Note => 'Note',
-      _i6.Greeting => 'Greeting',
-      _i7.MediaAttachment => 'MediaAttachment',
+      _i6.MediaAttachment => 'MediaAttachment',
       _ => null,
     };
   }
@@ -164,16 +155,14 @@ class Protocol extends _i1.SerializationManager {
         return 'LinkPreview';
       case _i5.Note():
         return 'Note';
-      case _i6.Greeting():
-        return 'Greeting';
-      case _i7.MediaAttachment():
+      case _i6.MediaAttachment():
         return 'MediaAttachment';
     }
-    className = _i10.Protocol().getClassNameForObject(data);
+    className = _i9.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_idp.$className';
     }
-    className = _i11.Protocol().getClassNameForObject(data);
+    className = _i10.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_core.$className';
     }
@@ -201,19 +190,16 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'Note') {
       return deserialize<_i5.Note>(data['data']);
     }
-    if (dataClassName == 'Greeting') {
-      return deserialize<_i6.Greeting>(data['data']);
-    }
     if (dataClassName == 'MediaAttachment') {
-      return deserialize<_i7.MediaAttachment>(data['data']);
+      return deserialize<_i6.MediaAttachment>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
-      return _i10.Protocol().deserializeByClassName(data);
+      return _i9.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
-      return _i11.Protocol().deserializeByClassName(data);
+      return _i10.Protocol().deserializeByClassName(data);
     }
     if (dataClassName == 'List<int>') {
       return deserialize<List<int>>(data['data']);
@@ -231,10 +217,10 @@ class Protocol extends _i1.SerializationManager {
       return null;
     }
     try {
-      return _i10.Protocol().mapRecordToJson(record);
+      return _i9.Protocol().mapRecordToJson(record);
     } catch (_) {}
     try {
-      return _i11.Protocol().mapRecordToJson(record);
+      return _i10.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

@@ -19,9 +19,8 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
 import 'package:on_air_client/src/protocol/chat/channel.dart' as _i5;
 import 'package:on_air_client/src/protocol/chat/note.dart' as _i6;
 import 'package:on_air_client/src/protocol/chat/chat_event.dart' as _i7;
-import 'package:on_air_client/src/protocol/greetings/greeting.dart' as _i8;
-import 'package:on_air_client/src/protocol/media/media_attachment.dart' as _i9;
-import 'protocol.dart' as _i10;
+import 'package:on_air_client/src/protocol/media/media_attachment.dart' as _i8;
+import 'protocol.dart' as _i9;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -355,24 +354,6 @@ class EndpointChat extends _i2.EndpointRef {
       );
 }
 
-/// This is an example endpoint that returns a greeting message through
-/// its [hello] method.
-/// {@category Endpoint}
-class EndpointGreeting extends _i2.EndpointRef {
-  EndpointGreeting(_i2.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'greeting';
-
-  /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i8.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i8.Greeting>(
-        'greeting',
-        'hello',
-        {'name': name},
-      );
-}
-
 /// Endpoint for media upload and management.
 /// {@category Endpoint}
 class EndpointMedia extends _i2.EndpointRef {
@@ -417,7 +398,7 @@ class EndpointMedia extends _i2.EndpointRef {
   /// 3. Insert database record
   /// 4. Rename to final filename
   /// 5. On error: cleanup temp file
-  _i3.Future<_i9.MediaAttachment> uploadMedia(
+  _i3.Future<_i8.MediaAttachment> uploadMedia(
     int channelId,
     String originalFilename,
     String mimeType,
@@ -425,8 +406,8 @@ class EndpointMedia extends _i2.EndpointRef {
     _i3.Stream<List<int>> fileStream,
   ) =>
       caller.callStreamingServerEndpoint<
-        _i3.Future<_i9.MediaAttachment>,
-        _i9.MediaAttachment
+        _i3.Future<_i8.MediaAttachment>,
+        _i8.MediaAttachment
       >(
         'media',
         'uploadMedia',
@@ -479,7 +460,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i10.Protocol(),
+         _i9.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -491,7 +472,6 @@ class Client extends _i2.ServerpodClientShared {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
     chat = EndpointChat(this);
-    greeting = EndpointGreeting(this);
     media = EndpointMedia(this);
     modules = Modules(this);
   }
@@ -502,8 +482,6 @@ class Client extends _i2.ServerpodClientShared {
 
   late final EndpointChat chat;
 
-  late final EndpointGreeting greeting;
-
   late final EndpointMedia media;
 
   late final Modules modules;
@@ -513,7 +491,6 @@ class Client extends _i2.ServerpodClientShared {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
     'chat': chat,
-    'greeting': greeting,
     'media': media,
   };
 

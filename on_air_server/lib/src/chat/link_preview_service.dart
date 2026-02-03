@@ -45,8 +45,6 @@ class LinkPreviewService {
 
       final faviconUrl = _extractFavicon(document, url);
 
-      print('Link preview for $url: title=$title, imageUrl=$validImageUrl');
-
       return LinkPreview(
         url: url,
         title: title,

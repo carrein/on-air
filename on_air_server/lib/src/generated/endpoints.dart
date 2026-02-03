@@ -14,12 +14,11 @@ import 'package:serverpod/serverpod.dart' as _i1;
 import '../auth/email_idp_endpoint.dart' as _i2;
 import '../auth/jwt_refresh_endpoint.dart' as _i3;
 import '../chat/chat_endpoint.dart' as _i4;
-import '../greetings/greeting_endpoint.dart' as _i5;
-import '../media/media_endpoint.dart' as _i6;
+import '../media/media_endpoint.dart' as _i5;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i7;
+    as _i6;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i8;
+    as _i7;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -43,13 +42,7 @@ class Endpoints extends _i1.EndpointDispatch {
           'chat',
           null,
         ),
-      'greeting': _i5.GreetingEndpoint()
-        ..initialize(
-          server,
-          'greeting',
-          null,
-        ),
-      'media': _i6.MediaEndpoint()
+      'media': _i5.MediaEndpoint()
         ..initialize(
           server,
           'media',
@@ -452,30 +445,6 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    connectors['greeting'] = _i1.EndpointConnector(
-      name: 'greeting',
-      endpoint: endpoints['greeting']!,
-      methodConnectors: {
-        'hello': _i1.MethodConnector(
-          name: 'hello',
-          params: {
-            'name': _i1.ParameterDescription(
-              name: 'name',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i5.GreetingEndpoint).hello(
-                session,
-                params['name'],
-              ),
-        ),
-      },
-    );
     connectors['media'] = _i1.EndpointConnector(
       name: 'media',
       endpoint: endpoints['media']!,
@@ -518,7 +487,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['media'] as _i6.MediaEndpoint)
+              ) async => (endpoints['media'] as _i5.MediaEndpoint)
                   .uploadMediaAndCreateNote(
                     session,
                     params['channelId'],
@@ -543,7 +512,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['media'] as _i6.MediaEndpoint).deleteAttachment(
+                  (endpoints['media'] as _i5.MediaEndpoint).deleteAttachment(
                     session,
                     params['attachmentId'],
                   ),
@@ -584,7 +553,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
                 Map<String, Stream> streamParams,
-              ) => (endpoints['media'] as _i6.MediaEndpoint).uploadMedia(
+              ) => (endpoints['media'] as _i5.MediaEndpoint).uploadMedia(
                 session,
                 params['channelId'],
                 params['originalFilename'],
@@ -595,9 +564,9 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i7.Endpoints()
+    modules['serverpod_auth_idp'] = _i6.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i8.Endpoints()
+    modules['serverpod_auth_core'] = _i7.Endpoints()
       ..initializeEndpoints(server);
   }
 }

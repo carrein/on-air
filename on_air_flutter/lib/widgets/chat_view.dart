@@ -168,17 +168,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
   }
 
   Widget _buildNoteItem(Note note, int channelId) {
-    print('=== Building Note ===');
-    print('Note ID: ${note.id}');
-    print('Has attachments: ${note.attachments != null}');
-    print('Attachment count: ${note.attachments?.length ?? 0}');
-    if (note.attachments != null) {
-      for (var att in note.attachments!) {
-        print('  - Attachment ${att.id}: ${att.filePath}');
-      }
-    }
-    print('===================');
-
     return ListTile(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

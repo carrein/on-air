@@ -287,7 +287,6 @@ class ChatEndpoint extends Endpoint {
       }
     } catch (e) {
       // Log error but don't fail
-      print('Failed to fetch link preview: $e');
     }
   }
 

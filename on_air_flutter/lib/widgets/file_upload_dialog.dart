@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
+import '../utils/file_utils.dart';
+
 /// Dialog for uploading files (images or documents).
 /// Shows appropriate preview based on file type.
 class FileUploadDialog extends StatefulWidget {
@@ -30,33 +32,9 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].contains(ext);
   }
 
-  IconData get _fileIcon {
-    final ext = widget.fileExtension.toLowerCase();
-    switch (ext) {
-      case 'pdf':
-        return Icons.picture_as_pdf;
-      case 'txt':
-      case 'md':
-        return Icons.description;
-      case 'doc':
-      case 'docx':
-        return Icons.article;
-      case 'xls':
-      case 'xlsx':
-        return Icons.table_chart;
-      case 'zip':
-        return Icons.folder_zip;
-      default:
-        return Icons.insert_drive_file;
-    }
-  }
+  IconData get _fileIcon => FileUtils.getFileIcon(widget.fileExtension);
 
-  String get _fileSizeFormatted {
-    final bytes = widget.fileBytes.length;
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
+  String get _fileSizeFormatted => FileUtils.formatFileSize(widget.fileBytes.length);
 
   @override
   Widget build(BuildContext context) {

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:on_air_client/on_air_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/file_utils.dart';
+
 /// Widget to display document attachments (PDF, TXT, DOC, etc.)
 class DocumentAttachmentWidget extends StatelessWidget {
   final MediaAttachment attachment;
@@ -13,65 +15,16 @@ class DocumentAttachmentWidget extends StatelessWidget {
     required this.serverUrl,
   });
 
-  IconData get _fileIcon {
-    final ext = _getExtension(attachment.originalFilename).toLowerCase();
-    switch (ext) {
-      case 'pdf':
-        return Icons.picture_as_pdf;
-      case 'txt':
-      case 'md':
-        return Icons.description;
-      case 'doc':
-      case 'docx':
-        return Icons.article;
-      case 'xls':
-      case 'xlsx':
-        return Icons.table_chart;
-      case 'zip':
-        return Icons.folder_zip;
-      default:
-        return Icons.insert_drive_file;
-    }
-  }
+  String get _extension => FileUtils.getExtension(attachment.originalFilename);
 
-  Color get _fileColor {
-    final ext = _getExtension(attachment.originalFilename).toLowerCase();
-    switch (ext) {
-      case 'pdf':
-        return Colors.red;
-      case 'txt':
-      case 'md':
-        return Colors.blue;
-      case 'doc':
-      case 'docx':
-        return Colors.indigo;
-      case 'xls':
-      case 'xlsx':
-        return Colors.green;
-      case 'zip':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
+  IconData get _fileIcon => FileUtils.getFileIcon(_extension);
 
-  String _getExtension(String filename) {
-    final parts = filename.split('.');
-    return parts.length > 1 ? parts.last : '';
-  }
+  Color get _fileColor => FileUtils.getFileColor(_extension);
 
-  String get _fileSizeFormatted {
-    final bytes = attachment.fileSize;
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
+  String get _fileSizeFormatted => FileUtils.formatFileSize(attachment.fileSize);
 
-  String _buildDocumentUrl() {
-    final mediaServerUrl = serverUrl.replaceAll(':8080', ':8082');
-    final cacheBuster = attachment.contentHash ?? '';
-    return '$mediaServerUrl/media/${attachment.filePath}?v=$cacheBuster';
-  }
+  String _buildDocumentUrl() =>
+      FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
 
   @override
   Widget build(BuildContext context) {

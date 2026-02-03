@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:on_air_client/on_air_client.dart';
-import 'full_screen_image_view.dart';
+
+import '../utils/file_utils.dart';
 import 'document_attachment_widget.dart';
+import 'full_screen_image_view.dart';
 
 /// Widget for displaying a media attachment inline in chat.
 /// Routes to either image or document widget based on MIME type.
@@ -83,11 +85,6 @@ class _ImageAttachmentWidget extends StatelessWidget {
               ),
             ),
             errorWidget: (context, url, error) {
-              print('=== Image Load Error ===');
-              print('URL: $url');
-              print('Error: $error');
-              print('Error type: ${error.runtimeType}');
-              print('=======================');
               return Container(
                 color: Colors.grey[800],
                 child: Center(
@@ -120,36 +117,16 @@ class _ImageAttachmentWidget extends StatelessWidget {
   String _buildImageUrl({required bool useThumbnail}) {
     String path = attachment.filePath;
 
-    print('=== MediaAttachment Debug ===');
-    print('Attachment ID: ${attachment.id}');
-    print('Original filePath: ${attachment.filePath}');
-    print('thumbnailPath: ${attachment.thumbnailPath}');
-    print('useThumbnail: $useThumbnail');
-
     // Use thumbnail if available and requested
     if (useThumbnail && attachment.thumbnailPath != null) {
       // Thumbnail path is relative to channel directory
       final parts = attachment.filePath.split('/');
-      print('filePath parts: $parts');
       if (parts.length >= 2) {
         final channelPath = parts.take(parts.length - 1).join('/');
         path = '$channelPath/${attachment.thumbnailPath}';
-        print('Constructed thumbnail path: $path');
       }
     }
 
-    // Media is served from web server (port 8082 in dev)
-    // Replace the API server port with web server port
-    final mediaServerUrl = serverUrl.replaceAll(':8080', ':8082');
-    print('Server URL: $serverUrl');
-    print('Media Server URL: $mediaServerUrl');
-
-    // Add cache busting parameter
-    final cacheBuster = attachment.contentHash ?? '';
-    final finalUrl = '$mediaServerUrl/media/$path?v=$cacheBuster';
-    print('Final URL: $finalUrl');
-    print('============================');
-
-    return finalUrl;
+    return FileUtils.buildMediaUrl(serverUrl, path, attachment.contentHash);
   }
 }
