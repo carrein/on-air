@@ -1,0 +1,37 @@
+### A media attachment (image) associated with a note.
+class: MediaAttachment
+table: media_attachments
+
+fields:
+  ### The ID of the note this attachment belongs to.
+  noteId: int, relation(parent=notes, onDelete=Cascade)
+  ### The ID of the channel this attachment belongs to (for efficient querying).
+  channelId: int, relation(parent=channels, onDelete=Cascade)
+  ### The file path (UUID-based filename with extension).
+  filePath: String
+  ### The original filename provided by the user.
+  originalFilename: String
+  ### The MIME type of the file.
+  mimeType: String
+  ### The file size in bytes.
+  fileSize: int
+  ### The width of the image in pixels.
+  width: int?
+  ### The height of the image in pixels.
+  height: int?
+  ### The path to the thumbnail image.
+  thumbnailPath: String?
+  ### Whether the image was compressed.
+  compressed: bool, default=false
+  ### Whether the image is animated (GIF).
+  animated: bool, default=false
+  ### Content hash (first 8 chars of SHA-256) for cache busting.
+  contentHash: String?
+  ### When the attachment was uploaded.
+  uploadedAt: DateTime, default=now
+
+indexes:
+  note_idx:
+    fields: noteId
+  channel_idx:
+    fields: channelId, uploadedAt

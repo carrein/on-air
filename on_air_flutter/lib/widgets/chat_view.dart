@@ -1,13 +1,23 @@
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:on_air_client/on_air_client.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../main.dart' show serverUrl;
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/media_provider.dart';
 import 'link_preview_card.dart';
+import 'media_attachment_widget.dart';
+import 'image_upload_dialog.dart';
+
+// Web-only imports
+import 'dart:html' as html show window, document, ClipboardEvent, File, FileReader, MouseEvent;
+import 'dart:ui' as ui;
 
 /// Chat view displaying notes in an inverted list (newest at bottom).
 class ChatView extends ConsumerStatefulWidget {
@@ -32,11 +42,47 @@ class _ChatViewState extends ConsumerState<ChatView> {
   final ScrollController _scrollController = ScrollController();
   bool _userScrolling = false;
   final List<_NotificationData> _activeNotifications = [];
+  bool _isDragOver = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    if (kIsWeb) {
+      _setupWebEventListeners();
+    }
+  }
+
+  void _setupWebEventListeners() {
+    // Paste event listener
+    html.window.addEventListener('paste', (event) {
+      final pasteEvent = event as html.ClipboardEvent;
+      _handleWebPaste(pasteEvent);
+    });
+
+    // Drag and drop event listeners
+    html.document.addEventListener('dragover', (event) {
+      event.preventDefault();
+      // Check if dragging files
+      try {
+        final dataTransfer = (event as dynamic).dataTransfer;
+        if (dataTransfer?.types?.contains('Files') ?? false) {
+          setState(() => _isDragOver = true);
+        }
+      } catch (e) {
+        // Ignore
+      }
+    });
+
+    html.document.addEventListener('dragleave', (event) {
+      setState(() => _isDragOver = false);
+    });
+
+    html.document.addEventListener('drop', (event) {
+      event.preventDefault();
+      setState(() => _isDragOver = false);
+      _handleWebDrop(event);
+    });
   }
 
   void _onScroll() {
@@ -56,7 +102,16 @@ class _ChatViewState extends ConsumerState<ChatView> {
   Widget build(BuildContext context) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
 
-    return currentChannelAsync.when(
+    return Stack(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/background.jpg'),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: currentChannelAsync.when(
       data: (channelId) {
         final notesAsync = ref.watch(notesProvider(channelId));
 
@@ -84,34 +139,90 @@ class _ChatViewState extends ConsumerState<ChatView> {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Error: $err')),
+          ),
+        ),
+        // Drag-over indicator
+        if (_isDragOver)
+          Container(
+            color: Colors.blue.withOpacity(0.2),
+            child: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.upload_file, size: 64, color: Colors.blue),
+                  SizedBox(height: 16),
+                  Text(
+                    'Drop image here to upload',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildNoteItem(Note note, int channelId) {
+    print('=== Building Note ===');
+    print('Note ID: ${note.id}');
+    print('Has attachments: ${note.attachments != null}');
+    print('Attachment count: ${note.attachments?.length ?? 0}');
+    if (note.attachments != null) {
+      for (var att in note.attachments!) {
+        print('  - Attachment ${att.id}: ${att.filePath}');
+      }
+    }
+    print('===================');
+
     return ListTile(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          MarkdownBody(
-            data: note.content,
-            selectable: true,
-            onTapLink: (text, href, title) async {
-              if (href != null) {
-                final uri = Uri.tryParse(href);
-                if (uri != null && await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+          // Show content only if not empty
+          if (note.content.isNotEmpty)
+            MarkdownBody(
+              data: note.content,
+              selectable: true,
+              onTapLink: (text, href, title) async {
+                if (href != null) {
+                  final uri = Uri.tryParse(href);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
                 }
-              }
-            },
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: const TextStyle(fontSize: 16),
-              a: const TextStyle(
-                fontSize: 16,
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
+              },
+              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                p: const TextStyle(fontSize: 16),
+                a: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
-          ),
+
+          // Media attachments
+          if (note.attachments != null && note.attachments!.isNotEmpty)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 8),
+                ...note.attachments!.map(
+                  (attachment) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: MediaAttachmentWidget(
+                      attachment: attachment,
+                      serverUrl: serverUrl,
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
           // Link preview card
           if (note.linkPreview != null)
@@ -207,6 +318,137 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   void _deleteNote(Note note, int channelId) {
     ref.read(notesProvider(channelId).notifier).deleteNote(note.id!);
+  }
+
+  Future<void> _handleWebPaste(html.ClipboardEvent event) async {
+    if (!mounted) return;
+
+    try {
+      event.preventDefault();
+      final clipboardData = event.clipboardData;
+      if (clipboardData == null) return;
+
+      final items = clipboardData.items;
+      if (items == null) return;
+
+      final length = items.length;
+      if (length == null) return;
+
+      // Look for image files in clipboard
+      for (var i = 0; i < length; i++) {
+        final item = items[i];
+        final itemType = item.type;
+        if (itemType != null && itemType.startsWith('image/')) {
+          final file = item.getAsFile();
+          if (file == null) continue;
+
+          // Read file as bytes
+          final reader = html.FileReader();
+          reader.readAsArrayBuffer(file);
+          await reader.onLoadEnd.first;
+
+          if (reader.result != null) {
+            // FileReader result can be either ByteBuffer or Uint8List depending on browser
+            final result = reader.result!;
+            final Uint8List uint8List;
+            if (result is ByteBuffer) {
+              uint8List = result.asUint8List();
+            } else {
+              uint8List = result as Uint8List;
+            }
+
+            // Generate filename
+            final extension = itemType.split('/').last;
+            final fileName = 'pasted_image_${DateTime.now().millisecondsSinceEpoch}.$extension';
+
+            // Show upload dialog
+            await _showImageUploadDialog(uint8List, fileName);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      // Silently ignore paste errors
+    }
+  }
+
+  Future<void> _handleWebDrop(dynamic event) async {
+    if (!mounted) return;
+
+    try {
+      final dataTransfer = event.dataTransfer;
+      if (dataTransfer == null) return;
+
+      final files = dataTransfer.files;
+      if (files == null || files.isEmpty) return;
+
+      // Process the first image file
+      for (var i = 0; i < files.length; i++) {
+        final file = files[i];
+        if (file.type.startsWith('image/')) {
+          // Read file as bytes
+          final reader = html.FileReader();
+          reader.readAsArrayBuffer(file);
+          await reader.onLoadEnd.first;
+
+          if (reader.result != null) {
+            // FileReader result can be either ByteBuffer or Uint8List depending on browser
+            final result = reader.result!;
+            final Uint8List uint8List;
+            if (result is ByteBuffer) {
+              uint8List = result.asUint8List();
+            } else {
+              uint8List = result as Uint8List;
+            }
+
+            // Show upload dialog
+            await _showImageUploadDialog(uint8List, file.name);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      // Silently ignore drop errors
+    }
+  }
+
+  Future<void> _showImageUploadDialog(Uint8List imageBytes, String fileName) async {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => ImageUploadDialog(
+        imageSource: imageBytes,
+        fileName: fileName,
+        onSend: (compress) async {
+          try {
+            // Upload image and create note with empty content
+            await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
+              channelId: channelId,
+              noteContent: '',
+              imageBytes: imageBytes,
+              fileName: fileName,
+              compress: compress,
+            );
+
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Image uploaded successfully')),
+              );
+            }
+          } catch (e) {
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Upload failed: $e')),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   @override

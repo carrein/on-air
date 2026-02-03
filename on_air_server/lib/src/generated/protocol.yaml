@@ -20,3 +20,7 @@ chat:
   - chat:
 greeting:
   - hello:
+media:
+  - uploadMediaAndCreateNote:
+  - uploadMedia:
+  - deleteAttachment:

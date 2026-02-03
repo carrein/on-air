@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import 'link_preview_service.dart';
@@ -25,32 +26,66 @@ class ChatEndpoint extends Endpoint {
 
   /// Returns notes for a channel with cursor-based pagination.
   /// Uses [beforeId] for loading older messages (scroll up behavior).
+  /// Efficiently loads attachments with LEFT JOIN to prevent N+1 queries.
   Future<List<Note>> getNotes(
     Session session,
     int channelId, {
     int? beforeId,
     int limit = 50,
   }) async {
-    // If beforeId is provided, filter for notes with id < beforeId
-    if (beforeId != null) {
-      final notes = await Note.db.find(
-        session,
-        where: (t) => t.channelId.equals(channelId),
-        orderBy: (t) => t.id,
-        orderDescending: true,
-      );
-      // Filter in memory for id < beforeId
-      return notes.where((n) => n.id! < beforeId).take(limit).toList();
+    // Build SQL query with LEFT JOIN to load attachments
+    final beforeClause = beforeId != null ? 'AND n.id < $beforeId' : '';
+
+    final result = await session.db.unsafeQuery('''
+      SELECT
+        n.*,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', ma.id,
+              'noteId', ma."noteId",
+              'channelId', ma."channelId",
+              'filePath', ma."filePath",
+              'originalFilename', ma."originalFilename",
+              'mimeType', ma."mimeType",
+              'fileSize', ma."fileSize",
+              'width', ma.width,
+              'height', ma.height,
+              'thumbnailPath', ma."thumbnailPath",
+              'compressed', ma.compressed,
+              'animated', ma.animated,
+              'contentHash', ma."contentHash",
+              'uploadedAt', ma."uploadedAt"
+            ) ORDER BY ma.id
+          ) FILTER (WHERE ma.id IS NOT NULL),
+          '[]'::json
+        ) as attachments_json
+      FROM notes n
+      LEFT JOIN media_attachments ma ON ma."noteId" = n.id
+      WHERE n."channelId" = $channelId $beforeClause
+      GROUP BY n.id
+      ORDER BY n."createdAt" DESC
+      LIMIT $limit
+    ''');
+
+    // Parse results into Note objects
+    final notes = <Note>[];
+    for (final row in result) {
+      final note = Note.fromJson(row.toColumnMap());
+
+      // Parse attachments from JSON
+      final attachmentsJson = row.toColumnMap()['attachments_json'];
+      if (attachmentsJson != null && attachmentsJson != '[]') {
+        final attachmentsList = attachmentsJson as List;
+        note.attachments = attachmentsList
+            .map((json) => MediaAttachment.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+
+      notes.add(note);
     }
 
-    // No cursor, return latest notes
-    return await Note.db.find(
-      session,
-      where: (t) => t.channelId.equals(channelId),
-      orderBy: (t) => t.createdAt,
-      orderDescending: true,
-      limit: limit,
-    );
+    return notes;
   }
 
   /// Creates a new channel and broadcasts the event.
@@ -131,7 +166,7 @@ class ChatEndpoint extends Endpoint {
     return updated;
   }
 
-  /// Deletes a channel and cascades to delete its notes.
+  /// Deletes a channel and cascades to delete its notes and media files.
   /// Rejects if it's the last remaining channel.
   Future<void> deleteChannel(Session session, int id) async {
     final count = await Channel.db.count(session);
@@ -140,6 +175,14 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Cannot delete the last remaining channel');
     }
 
+    // Delete media files for this channel
+    final mediaDir = Directory('data/media/channels/$id');
+    if (await mediaDir.exists()) {
+      await mediaDir.delete(recursive: true);
+      session.log('Deleted media directory for channel $id');
+    }
+
+    // Delete from database (cascade will handle notes and attachments)
     await Channel.db.deleteWhere(session, where: (t) => t.id.equals(id));
 
     // Broadcast deletion event (only if Redis is available)
@@ -270,13 +313,45 @@ class ChatEndpoint extends Endpoint {
     return updated;
   }
 
-  /// Deletes a note and broadcasts the event.
+  /// Deletes a note, its media attachments, and broadcasts the event.
   Future<void> deleteNote(Session session, int id) async {
     final note = await Note.db.findById(session, id);
     if (note == null) {
       throw Exception('Note not found');
     }
 
+    // Get all media attachments for this note
+    final attachments = await MediaAttachment.db.find(
+      session,
+      where: (t) => t.noteId.equals(id),
+    );
+
+    // Delete media files from disk
+    for (final attachment in attachments) {
+      try {
+        // Delete main file
+        final mainFile = File('data/media/${attachment.filePath}');
+        if (await mainFile.exists()) {
+          await mainFile.delete();
+          session.log('Deleted media file: ${attachment.filePath}');
+        }
+
+        // Delete thumbnail if exists
+        if (attachment.thumbnailPath != null) {
+          final thumbnailFile = File(
+            'data/media/channels/${attachment.channelId}/${attachment.thumbnailPath}',
+          );
+          if (await thumbnailFile.exists()) {
+            await thumbnailFile.delete();
+            session.log('Deleted thumbnail: ${attachment.thumbnailPath}');
+          }
+        }
+      } catch (e) {
+        session.log('Failed to delete media files for attachment ${attachment.id}: $e', level: LogLevel.error);
+      }
+    }
+
+    // Delete from database (cascade will delete attachment records)
     await Note.db.deleteWhere(session, where: (t) => t.id.equals(id));
 
     // Broadcast deletion event (only if Redis is available)

@@ -47,6 +47,19 @@ redis:
 
 maxRequestSize: 524288 # The maximum size of requests allowed in bytes
 
+# Enable CORS for development (allows Flutter Web to load images)
+cors:
+  allowOrigins:
+    - "*"
+  allowMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowHeaders:
+    - "*"
+
 sessionLogs:
   persistentEnabled: true
   consoleEnabled: true

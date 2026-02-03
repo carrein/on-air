@@ -1,10 +1,14 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/media_provider.dart';
 import 'input_link_preview.dart';
+import 'image_upload_dialog.dart';
 
 /// Input bar for creating and editing notes.
 class InputBar extends ConsumerStatefulWidget {
@@ -94,12 +98,15 @@ class _InputBarState extends ConsumerState<InputBar> {
                 child: KeyboardListener(
                   focusNode: FocusNode(),
                   onKeyEvent: (event) {
-                    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
-                      // Check if Shift is NOT pressed
-                      if (!HardwareKeyboard.instance.isShiftPressed) {
-                        _submit();
+                    if (event is KeyDownEvent) {
+                      // Handle Enter key
+                      if (event.logicalKey == LogicalKeyboardKey.enter) {
+                        // Check if Shift is NOT pressed
+                        if (!HardwareKeyboard.instance.isShiftPressed) {
+                          _submit();
+                        }
+                        // If Shift IS pressed, do nothing and let TextField handle it
                       }
-                      // If Shift IS pressed, do nothing and let TextField handle it
                     }
                   },
                   child: TextField(
@@ -121,6 +128,12 @@ class _InputBarState extends ConsumerState<InputBar> {
                 ),
               ),
               const SizedBox(width: 8),
+              if (!isEditMode)
+                IconButton(
+                  icon: const Icon(Icons.image),
+                  onPressed: _pickImage,
+                  tooltip: 'Upload image',
+                ),
               IconButton(
                 icon: Icon(isEditMode ? Icons.save : Icons.send),
                 onPressed: _controller.text.trim().isEmpty ? null : _submit,
@@ -177,6 +190,79 @@ class _InputBarState extends ConsumerState<InputBar> {
       _previewUrl = null;
       _showPreview = true;
     });
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
+
+      if (image == null) return;
+
+      // Read image bytes
+      final bytes = await image.readAsBytes();
+      final fileName = image.name;
+
+      // Show upload dialog
+      await _showImageUploadDialog(bytes, fileName);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showImageUploadDialog(Uint8List imageBytes, String fileName) async {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => ImageUploadDialog(
+        imageSource: imageBytes,
+        fileName: fileName,
+        onSend: (compress) async {
+          try {
+            // Get current text content
+            final noteContent = _controller.text.trim().isEmpty
+                ? ''
+                : _controller.text.trim();
+
+            // Upload image and create note
+            await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
+              channelId: channelId,
+              noteContent: noteContent,
+              imageBytes: imageBytes,
+              fileName: fileName,
+              compress: compress,
+            );
+
+            // Clear text field
+            _controller.clear();
+            setState(() {
+              _previewUrl = null;
+              _showPreview = true;
+            });
+
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Image uploaded successfully')),
+              );
+            }
+          } catch (e) {
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Upload failed: $e')),
+              );
+            }
+          }
+        },
+      ),
+    );
   }
 
   @override

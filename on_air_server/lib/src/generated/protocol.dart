@@ -21,13 +21,15 @@ import 'chat/chat_event.dart' as _i6;
 import 'chat/link_preview.dart' as _i7;
 import 'chat/note.dart' as _i8;
 import 'greetings/greeting.dart' as _i9;
-import 'package:on_air_server/src/generated/chat/channel.dart' as _i10;
-import 'package:on_air_server/src/generated/chat/note.dart' as _i11;
+import 'media/media_attachment.dart' as _i10;
+import 'package:on_air_server/src/generated/chat/channel.dart' as _i11;
+import 'package:on_air_server/src/generated/chat/note.dart' as _i12;
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
 export 'chat/link_preview.dart';
 export 'chat/note.dart';
 export 'greetings/greeting.dart';
+export 'media/media_attachment.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
   Protocol._();
@@ -104,6 +106,170 @@ class Protocol extends _i1.SerializationManagerServer {
       managed: true,
     ),
     _i2.TableDefinition(
+      name: 'media_attachments',
+      dartName: 'MediaAttachment',
+      schema: 'public',
+      module: 'on_air',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'media_attachments_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'noteId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'channelId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'filePath',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'originalFilename',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'mimeType',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'fileSize',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
+          name: 'width',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'height',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'thumbnailPath',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'compressed',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
+          name: 'animated',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
+          name: 'contentHash',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'uploadedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'CURRENT_TIMESTAMP',
+        ),
+      ],
+      foreignKeys: [
+        _i2.ForeignKeyDefinition(
+          constraintName: 'media_attachments_fk_0',
+          columns: ['noteId'],
+          referenceTable: 'notes',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+        _i2.ForeignKeyDefinition(
+          constraintName: 'media_attachments_fk_1',
+          columns: ['channelId'],
+          referenceTable: 'channels',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _i2.ForeignKeyAction.noAction,
+          onDelete: _i2.ForeignKeyAction.cascade,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'media_attachments_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'note_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'noteId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'channel_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'channelId',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'uploadedAt',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
       name: 'notes',
       dartName: 'Note',
       schema: 'public',
@@ -133,6 +299,12 @@ class Protocol extends _i1.SerializationManagerServer {
           columnType: _i2.ColumnType.json,
           isNullable: true,
           dartType: 'protocol:LinkPreview?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'attachments',
+          columnType: _i2.ColumnType.json,
+          isNullable: true,
+          dartType: 'List<protocol:MediaAttachment>?',
         ),
         _i2.ColumnDefinition(
           name: 'createdAt',
@@ -242,6 +414,9 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i9.Greeting) {
       return _i9.Greeting.fromJson(data) as T;
     }
+    if (t == _i10.MediaAttachment) {
+      return _i10.MediaAttachment.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i5.Channel?>()) {
       return (data != null ? _i5.Channel.fromJson(data) : null) as T;
     }
@@ -257,12 +432,32 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i9.Greeting?>()) {
       return (data != null ? _i9.Greeting.fromJson(data) : null) as T;
     }
-    if (t == List<_i10.Channel>) {
-      return (data as List).map((e) => deserialize<_i10.Channel>(e)).toList()
+    if (t == _i1.getType<_i10.MediaAttachment?>()) {
+      return (data != null ? _i10.MediaAttachment.fromJson(data) : null) as T;
+    }
+    if (t == List<_i10.MediaAttachment>) {
+      return (data as List)
+              .map((e) => deserialize<_i10.MediaAttachment>(e))
+              .toList()
           as T;
     }
-    if (t == List<_i11.Note>) {
-      return (data as List).map((e) => deserialize<_i11.Note>(e)).toList() as T;
+    if (t == _i1.getType<List<_i10.MediaAttachment>?>()) {
+      return (data != null
+              ? (data as List)
+                    .map((e) => deserialize<_i10.MediaAttachment>(e))
+                    .toList()
+              : null)
+          as T;
+    }
+    if (t == List<_i11.Channel>) {
+      return (data as List).map((e) => deserialize<_i11.Channel>(e)).toList()
+          as T;
+    }
+    if (t == List<_i12.Note>) {
+      return (data as List).map((e) => deserialize<_i12.Note>(e)).toList() as T;
+    }
+    if (t == List<int>) {
+      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -283,6 +478,7 @@ class Protocol extends _i1.SerializationManagerServer {
       _i7.LinkPreview => 'LinkPreview',
       _i8.Note => 'Note',
       _i9.Greeting => 'Greeting',
+      _i10.MediaAttachment => 'MediaAttachment',
       _ => null,
     };
   }
@@ -307,6 +503,8 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'Note';
       case _i9.Greeting():
         return 'Greeting';
+      case _i10.MediaAttachment():
+        return 'MediaAttachment';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -319,6 +517,9 @@ class Protocol extends _i1.SerializationManagerServer {
     className = _i4.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_core.$className';
+    }
+    if (data is List<int>) {
+      return 'List<int>';
     }
     return null;
   }
@@ -344,6 +545,9 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'Greeting') {
       return deserialize<_i9.Greeting>(data['data']);
     }
+    if (dataClassName == 'MediaAttachment') {
+      return deserialize<_i10.MediaAttachment>(data['data']);
+    }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
       return _i2.Protocol().deserializeByClassName(data);
@@ -355,6 +559,9 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
       return _i4.Protocol().deserializeByClassName(data);
+    }
+    if (dataClassName == 'List<int>') {
+      return deserialize<List<int>>(data['data']);
     }
     return super.deserializeByClassName(data);
   }
@@ -384,6 +591,8 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i5.Channel.t;
       case _i8.Note:
         return _i8.Note.t;
+      case _i10.MediaAttachment:
+        return _i10.MediaAttachment.t;
     }
     return null;
   }

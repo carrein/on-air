@@ -30,7 +30,7 @@ void main() async {
   //
   // Otherwise, the server URL is fetched from the assets/config.json file or
   // defaults to http://$localhost:8080/ if not found.
-  final serverUrl = await getServerUrl();
+  serverUrl = await getServerUrl();
 
   client = Client(serverUrl)
     ..connectivityMonitor = FlutterConnectivityMonitor()

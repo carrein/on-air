@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
+import 'package:path/path.dart' as path;
 
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
@@ -47,6 +48,17 @@ void run(List<String> args) async {
   pod.webServer.addRoute(
     AppConfigRoute(apiConfig: pod.config.apiServer),
     '/app/assets/assets/config.json',
+  );
+
+  // Serve media files
+  // Use local data/media directory in development, /app/media in production
+  final mediaDir = Directory('data/media');
+  if (!await mediaDir.exists()) {
+    await mediaDir.create(recursive: true);
+  }
+  pod.webServer.addRoute(
+    StaticRoute.directory(mediaDir),
+    '/media',
   );
 
   // Checks if the flutter web app has been built and serves it if it has.

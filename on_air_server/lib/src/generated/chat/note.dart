@@ -12,7 +12,8 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/link_preview.dart' as _i2;
-import 'package:on_air_server/src/generated/protocol.dart' as _i3;
+import '../media/media_attachment.dart' as _i3;
+import 'package:on_air_server/src/generated/protocol.dart' as _i4;
 
 /// A note within a channel.
 abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
@@ -21,6 +22,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required this.channelId,
     required this.content,
     this.linkPreview,
+    this.attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -31,6 +33,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required int channelId,
     required String content,
     _i2.LinkPreview? linkPreview,
+    List<_i3.MediaAttachment>? attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _NoteImpl;
@@ -42,8 +45,13 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       content: jsonSerialization['content'] as String,
       linkPreview: jsonSerialization['linkPreview'] == null
           ? null
-          : _i3.Protocol().deserialize<_i2.LinkPreview>(
+          : _i4.Protocol().deserialize<_i2.LinkPreview>(
               jsonSerialization['linkPreview'],
+            ),
+      attachments: jsonSerialization['attachments'] == null
+          ? null
+          : _i4.Protocol().deserialize<List<_i3.MediaAttachment>>(
+              jsonSerialization['attachments'],
             ),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
@@ -70,6 +78,9 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   /// Link preview metadata (if URL detected in content).
   _i2.LinkPreview? linkPreview;
 
+  /// Media attachments associated with this note.
+  List<_i3.MediaAttachment>? attachments;
+
   /// When the note was created.
   DateTime createdAt;
 
@@ -87,6 +98,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     int? channelId,
     String? content,
     _i2.LinkPreview? linkPreview,
+    List<_i3.MediaAttachment>? attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -98,6 +110,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'channelId': channelId,
       'content': content,
       if (linkPreview != null) 'linkPreview': linkPreview?.toJson(),
+      if (attachments != null)
+        'attachments': attachments?.toJson(valueToJson: (v) => v.toJson()),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -111,6 +125,10 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'channelId': channelId,
       'content': content,
       if (linkPreview != null) 'linkPreview': linkPreview?.toJsonForProtocol(),
+      if (attachments != null)
+        'attachments': attachments?.toJson(
+          valueToJson: (v) => v.toJsonForProtocol(),
+        ),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -154,6 +172,7 @@ class _NoteImpl extends Note {
     required int channelId,
     required String content,
     _i2.LinkPreview? linkPreview,
+    List<_i3.MediaAttachment>? attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -161,6 +180,7 @@ class _NoteImpl extends Note {
          channelId: channelId,
          content: content,
          linkPreview: linkPreview,
+         attachments: attachments,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -174,6 +194,7 @@ class _NoteImpl extends Note {
     int? channelId,
     String? content,
     Object? linkPreview = _Undefined,
+    Object? attachments = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -184,6 +205,9 @@ class _NoteImpl extends Note {
       linkPreview: linkPreview is _i2.LinkPreview?
           ? linkPreview
           : this.linkPreview?.copyWith(),
+      attachments: attachments is List<_i3.MediaAttachment>?
+          ? attachments
+          : this.attachments?.map((e0) => e0.copyWith()).toList(),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -207,6 +231,12 @@ class NoteUpdateTable extends _i1.UpdateTable<NoteTable> {
     _i2.LinkPreview? value,
   ) => _i1.ColumnValue(
     table.linkPreview,
+    value,
+  );
+
+  _i1.ColumnValue<List<_i3.MediaAttachment>, List<_i3.MediaAttachment>>
+  attachments(List<_i3.MediaAttachment>? value) => _i1.ColumnValue(
+    table.attachments,
     value,
   );
 
@@ -238,6 +268,10 @@ class NoteTable extends _i1.Table<int?> {
       'linkPreview',
       this,
     );
+    attachments = _i1.ColumnSerializable<List<_i3.MediaAttachment>>(
+      'attachments',
+      this,
+    );
     createdAt = _i1.ColumnDateTime(
       'createdAt',
       this,
@@ -261,6 +295,9 @@ class NoteTable extends _i1.Table<int?> {
   /// Link preview metadata (if URL detected in content).
   late final _i1.ColumnSerializable<_i2.LinkPreview> linkPreview;
 
+  /// Media attachments associated with this note.
+  late final _i1.ColumnSerializable<List<_i3.MediaAttachment>> attachments;
+
   /// When the note was created.
   late final _i1.ColumnDateTime createdAt;
 
@@ -273,6 +310,7 @@ class NoteTable extends _i1.Table<int?> {
     channelId,
     content,
     linkPreview,
+    attachments,
     createdAt,
     updatedAt,
   ];

@@ -1,0 +1,343 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:serverpod/serverpod.dart';
+import 'package:uuid/uuid.dart';
+import '../generated/protocol.dart';
+import 'image_processor.dart';
+
+/// Endpoint for media upload and management.
+class MediaEndpoint extends Endpoint {
+  /// Maximum file size (50MB).
+  static const int maxFileSize = 50 * 1024 * 1024;
+
+  /// Allowed MIME types.
+  static const List<String> allowedMimeTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/heic',
+  ];
+
+  /// Upload a media file as bytes and create a note with it.
+  ///
+  /// Uses two-phase commit:
+  /// 1. Write bytes to temporary file
+  /// 2. Process image
+  /// 3. Insert database records (note + attachment) in transaction
+  /// 4. Rename to final filename
+  /// 5. On error: cleanup temp file
+  Future<Note> uploadMediaAndCreateNote(
+    Session session,
+    int channelId,
+    String noteContent,
+    List<int> fileBytes,
+    String originalFilename,
+    String mimeType,
+    bool compress,
+  ) async {
+    // Validate file size
+    if (fileBytes.length > maxFileSize) {
+      throw Exception(
+        'File size exceeds maximum allowed size of ${maxFileSize ~/ (1024 * 1024)}MB',
+      );
+    }
+
+    // Validate MIME type
+    if (!allowedMimeTypes.contains(mimeType.toLowerCase())) {
+      throw Exception(
+        'Unsupported file type: $mimeType. Allowed types: ${allowedMimeTypes.join(", ")}',
+      );
+    }
+
+    // Verify channel exists
+    final channel = await Channel.db.findById(session, channelId);
+    if (channel == null) {
+      throw Exception('Channel not found: $channelId');
+    }
+
+    // Generate UUID-based filename
+    final uuid = Uuid().v4();
+    final extension = _getExtensionFromMimeType(mimeType);
+    final filename = '$uuid$extension';
+    final tempFilename = '$uuid.tmp';
+
+    // Create channel-specific directory
+    // Use local data directory in development, /app/media in production
+    final mediaBaseDir = Directory('data/media');
+    if (!await mediaBaseDir.exists()) {
+      await mediaBaseDir.create(recursive: true);
+    }
+
+    final channelDir = Directory(path.join(mediaBaseDir.path, 'channels', channelId.toString()));
+    if (!await channelDir.exists()) {
+      await channelDir.create(recursive: true);
+    }
+
+    final tempFilePath = path.join(channelDir.path, tempFilename);
+    final finalFilePath = path.join(channelDir.path, filename);
+
+    // Phase 1: Write to temporary file
+    final tempFile = File(tempFilePath);
+
+    try {
+      await tempFile.writeAsBytes(fileBytes);
+
+      // Phase 2: Process image in isolate
+      final result = await ImageProcessor.processImage(
+        tempFilePath: tempFilePath,
+        finalFilePath: finalFilePath,
+        channelDir: channelDir.path,
+        compress: compress,
+      );
+
+      // Phase 3: Create note and attachment in transaction
+      final note = await session.db.transaction((transaction) async {
+        // Create note
+        final newNote = Note(
+          channelId: channelId,
+          content: noteContent,
+        );
+        final savedNote = await Note.db.insertRow(session, newNote, transaction: transaction);
+
+        // Create attachment linked to note
+        final relativePath = path.relative(
+          result.filePath,
+          from: mediaBaseDir.path,
+        );
+
+        final attachment = MediaAttachment(
+          noteId: savedNote.id!,
+          channelId: channelId,
+          filePath: relativePath,
+          originalFilename: originalFilename,
+          mimeType: mimeType,
+          fileSize: fileBytes.length,
+          width: result.width,
+          height: result.height,
+          thumbnailPath: result.thumbnailPath,
+          compressed: result.compressed,
+          animated: result.animated,
+          contentHash: result.contentHash,
+        );
+
+        await MediaAttachment.db.insertRow(session, attachment, transaction: transaction);
+
+        // Attach to note
+        savedNote.attachments = [attachment];
+
+        // Update channel timestamp
+        channel.updatedAt = DateTime.now();
+        await Channel.db.updateRow(session, channel, transaction: transaction);
+
+        return savedNote;
+      });
+
+      // Broadcast note creation event
+      try {
+        await session.messages.postMessage(
+          'chat_events',
+          ChatEvent(
+            type: 'noteCreated',
+            note: note,
+          ),
+          global: true,
+        );
+      } catch (_) {
+        // Redis not available, skip broadcasting
+      }
+
+      return note;
+    } catch (e) {
+      // Cleanup on error
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      final finalFile = File(finalFilePath);
+      if (await finalFile.exists()) {
+        await finalFile.delete();
+      }
+
+      session.log('Media upload failed: $e', level: LogLevel.error);
+      rethrow;
+    }
+  }
+
+  /// Upload a media file with streaming (for future use).
+  ///
+  /// Uses two-phase commit:
+  /// 1. Stream to temporary file
+  /// 2. Process image
+  /// 3. Insert database record
+  /// 4. Rename to final filename
+  /// 5. On error: cleanup temp file
+  Future<MediaAttachment> uploadMedia(
+    Session session,
+    int channelId,
+    String originalFilename,
+    String mimeType,
+    bool compress,
+    Stream<List<int>> fileStream,
+  ) async {
+    // Validate MIME type
+    if (!allowedMimeTypes.contains(mimeType.toLowerCase())) {
+      throw Exception(
+        'Unsupported file type: $mimeType. Allowed types: ${allowedMimeTypes.join(", ")}',
+      );
+    }
+
+    // Verify channel exists
+    final channel = await Channel.db.findById(session, channelId);
+    if (channel == null) {
+      throw Exception('Channel not found: $channelId');
+    }
+
+    // Generate UUID-based filename
+    final uuid = Uuid().v4();
+    final extension = _getExtensionFromMimeType(mimeType);
+    final filename = '$uuid$extension';
+    final tempFilename = '$uuid.tmp';
+
+    // Create channel-specific directory
+    // Use local data directory in development, /app/media in production
+    final mediaBaseDir = Directory('data/media');
+    if (!await mediaBaseDir.exists()) {
+      await mediaBaseDir.create(recursive: true);
+    }
+
+    final channelDir = Directory(path.join(mediaBaseDir.path, 'channels', channelId.toString()));
+    if (!await channelDir.exists()) {
+      await channelDir.create(recursive: true);
+    }
+
+    final tempFilePath = path.join(channelDir.path, tempFilename);
+    final finalFilePath = path.join(channelDir.path, filename);
+
+    // Phase 1: Stream to temporary file
+    final tempFile = File(tempFilePath);
+    var totalBytes = 0;
+
+    try {
+      final sink = tempFile.openWrite();
+
+      await for (final chunk in fileStream) {
+        totalBytes += chunk.length;
+
+        // Enforce size limit
+        if (totalBytes > maxFileSize) {
+          await sink.close();
+          if (await tempFile.exists()) {
+            await tempFile.delete();
+          }
+          throw Exception(
+            'File size exceeds maximum allowed size of ${maxFileSize ~/ (1024 * 1024)}MB',
+          );
+        }
+
+        sink.add(chunk);
+      }
+
+      await sink.flush();
+      await sink.close();
+
+      // Phase 2: Process image in isolate
+      final result = await ImageProcessor.processImage(
+        tempFilePath: tempFilePath,
+        finalFilePath: finalFilePath,
+        channelDir: channelDir.path,
+        compress: compress,
+      );
+
+      // Phase 3: Insert database record
+      final relativePath = path.relative(
+        result.filePath,
+        from: mediaBaseDir.path,
+      );
+
+      final attachment = MediaAttachment(
+        noteId: 0, // Will be set when creating note
+        channelId: channelId,
+        filePath: relativePath,
+        originalFilename: originalFilename,
+        mimeType: mimeType,
+        fileSize: totalBytes,
+        width: result.width,
+        height: result.height,
+        thumbnailPath: result.thumbnailPath,
+        compressed: result.compressed,
+        animated: result.animated,
+        contentHash: result.contentHash,
+      );
+
+      // Insert to database
+      await MediaAttachment.db.insertRow(session, attachment);
+
+      return attachment;
+    } catch (e) {
+      // Cleanup on error
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      final finalFile = File(finalFilePath);
+      if (await finalFile.exists()) {
+        await finalFile.delete();
+      }
+
+      session.log('Media upload failed: $e', level: LogLevel.error);
+      rethrow;
+    }
+  }
+
+  /// Get file extension from MIME type.
+  String _getExtensionFromMimeType(String mimeType) {
+    switch (mimeType.toLowerCase()) {
+      case 'image/jpeg':
+        return '.jpg';
+      case 'image/png':
+        return '.png';
+      case 'image/webp':
+        return '.webp';
+      case 'image/gif':
+        return '.gif';
+      case 'image/heic':
+        return '.heic';
+      default:
+        return '.jpg';
+    }
+  }
+
+  /// Delete a media attachment and its files.
+  Future<void> deleteAttachment(Session session, int attachmentId) async {
+    final attachment = await MediaAttachment.db.findById(session, attachmentId);
+    if (attachment == null) {
+      throw Exception('Attachment not found: $attachmentId');
+    }
+
+    // Delete files
+    // Use local data directory in development, /app/media in production
+    final mediaBaseDir = Directory('data/media');
+    final filePath = path.join(mediaBaseDir.path, attachment.filePath);
+    final file = File(filePath);
+    if (await file.exists()) {
+      await file.delete();
+    }
+
+    // Delete thumbnail
+    if (attachment.thumbnailPath != null) {
+      final thumbnailPath = path.join(
+        mediaBaseDir.path,
+        'channels',
+        attachment.channelId.toString(),
+        attachment.thumbnailPath!,
+      );
+      final thumbnailFile = File(thumbnailPath);
+      if (await thumbnailFile.exists()) {
+        await thumbnailFile.delete();
+      }
+    }
+
+    // Delete database record
+    await MediaAttachment.db.deleteRow(session, attachment);
+  }
+}

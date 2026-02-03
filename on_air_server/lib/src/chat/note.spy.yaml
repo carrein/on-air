@@ -9,6 +9,8 @@ fields:
   content: String
   ### Link preview metadata (if URL detected in content).
   linkPreview: LinkPreview?
+  ### Media attachments associated with this note.
+  attachments: List<MediaAttachment>?
   ### When the note was created.
   createdAt: DateTime, default=now
   ### When the note was last updated.

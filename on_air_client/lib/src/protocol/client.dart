@@ -20,7 +20,8 @@ import 'package:on_air_client/src/protocol/chat/channel.dart' as _i5;
 import 'package:on_air_client/src/protocol/chat/note.dart' as _i6;
 import 'package:on_air_client/src/protocol/chat/chat_event.dart' as _i7;
 import 'package:on_air_client/src/protocol/greetings/greeting.dart' as _i8;
-import 'protocol.dart' as _i9;
+import 'package:on_air_client/src/protocol/media/media_attachment.dart' as _i9;
+import 'protocol.dart' as _i10;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -255,6 +256,7 @@ class EndpointChat extends _i2.EndpointRef {
 
   /// Returns notes for a channel with cursor-based pagination.
   /// Uses [beforeId] for loading older messages (scroll up behavior).
+  /// Efficiently loads attachments with LEFT JOIN to prevent N+1 queries.
   _i3.Future<List<_i6.Note>> getNotes(
     int channelId, {
     int? beforeId,
@@ -299,7 +301,7 @@ class EndpointChat extends _i2.EndpointRef {
     },
   );
 
-  /// Deletes a channel and cascades to delete its notes.
+  /// Deletes a channel and cascades to delete its notes and media files.
   /// Rejects if it's the last remaining channel.
   _i3.Future<void> deleteChannel(int id) => caller.callServerEndpoint<void>(
     'chat',
@@ -335,7 +337,7 @@ class EndpointChat extends _i2.EndpointRef {
     },
   );
 
-  /// Deletes a note and broadcasts the event.
+  /// Deletes a note, its media attachments, and broadcasts the event.
   _i3.Future<void> deleteNote(int id) => caller.callServerEndpoint<void>(
     'chat',
     'deleteNote',
@@ -371,6 +373,81 @@ class EndpointGreeting extends _i2.EndpointRef {
       );
 }
 
+/// Endpoint for media upload and management.
+/// {@category Endpoint}
+class EndpointMedia extends _i2.EndpointRef {
+  EndpointMedia(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'media';
+
+  /// Upload a media file as bytes and create a note with it.
+  ///
+  /// Uses two-phase commit:
+  /// 1. Write bytes to temporary file
+  /// 2. Process image
+  /// 3. Insert database records (note + attachment) in transaction
+  /// 4. Rename to final filename
+  /// 5. On error: cleanup temp file
+  _i3.Future<_i6.Note> uploadMediaAndCreateNote(
+    int channelId,
+    String noteContent,
+    List<int> fileBytes,
+    String originalFilename,
+    String mimeType,
+    bool compress,
+  ) => caller.callServerEndpoint<_i6.Note>(
+    'media',
+    'uploadMediaAndCreateNote',
+    {
+      'channelId': channelId,
+      'noteContent': noteContent,
+      'fileBytes': fileBytes,
+      'originalFilename': originalFilename,
+      'mimeType': mimeType,
+      'compress': compress,
+    },
+  );
+
+  /// Upload a media file with streaming (for future use).
+  ///
+  /// Uses two-phase commit:
+  /// 1. Stream to temporary file
+  /// 2. Process image
+  /// 3. Insert database record
+  /// 4. Rename to final filename
+  /// 5. On error: cleanup temp file
+  _i3.Future<_i9.MediaAttachment> uploadMedia(
+    int channelId,
+    String originalFilename,
+    String mimeType,
+    bool compress,
+    _i3.Stream<List<int>> fileStream,
+  ) =>
+      caller.callStreamingServerEndpoint<
+        _i3.Future<_i9.MediaAttachment>,
+        _i9.MediaAttachment
+      >(
+        'media',
+        'uploadMedia',
+        {
+          'channelId': channelId,
+          'originalFilename': originalFilename,
+          'mimeType': mimeType,
+          'compress': compress,
+        },
+        {'fileStream': fileStream},
+      );
+
+  /// Delete a media attachment and its files.
+  _i3.Future<void> deleteAttachment(int attachmentId) =>
+      caller.callServerEndpoint<void>(
+        'media',
+        'deleteAttachment',
+        {'attachmentId': attachmentId},
+      );
+}
+
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _i1.Caller(client);
@@ -402,7 +479,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i9.Protocol(),
+         _i10.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -415,6 +492,7 @@ class Client extends _i2.ServerpodClientShared {
     jwtRefresh = EndpointJwtRefresh(this);
     chat = EndpointChat(this);
     greeting = EndpointGreeting(this);
+    media = EndpointMedia(this);
     modules = Modules(this);
   }
 
@@ -426,6 +504,8 @@ class Client extends _i2.ServerpodClientShared {
 
   late final EndpointGreeting greeting;
 
+  late final EndpointMedia media;
+
   late final Modules modules;
 
   @override
@@ -434,6 +514,7 @@ class Client extends _i2.ServerpodClientShared {
     'jwtRefresh': jwtRefresh,
     'chat': chat,
     'greeting': greeting,
+    'media': media,
   };
 
   @override

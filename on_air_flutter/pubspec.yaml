@@ -32,8 +32,12 @@ dependencies:
   flutter_markdown: ^0.7.4+1
   flutter_riverpod: ^2.6.1
   google_fonts: ^6.2.1
+  image_picker: ^1.0.0
   on_air_client:
     path: ../on_air_client
+  path: ^1.8.0
+  photo_view: ^0.14.0
+  flutter_image_compress: ^2.1.0
   riverpod_annotation: ^2.6.1
   serverpod_auth_idp_flutter: 3.2.3
   serverpod_flutter: 3.2.3
@@ -71,6 +75,7 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    - assets/images/background.jpg
 dependency_overrides:
   flutter_secure_storage: ^10.0.0
 
