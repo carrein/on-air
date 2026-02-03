@@ -2,14 +2,48 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:on_air_client/on_air_client.dart';
 import 'full_screen_image_view.dart';
+import 'document_attachment_widget.dart';
 
 /// Widget for displaying a media attachment inline in chat.
+/// Routes to either image or document widget based on MIME type.
 class MediaAttachmentWidget extends StatelessWidget {
   final MediaAttachment attachment;
   final String serverUrl;
 
   const MediaAttachmentWidget({
     super.key,
+    required this.attachment,
+    required this.serverUrl,
+  });
+
+  bool get _isImage {
+    final mime = attachment.mimeType.toLowerCase();
+    return mime.startsWith('image/');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Route to appropriate widget based on type
+    if (_isImage) {
+      return _ImageAttachmentWidget(
+        attachment: attachment,
+        serverUrl: serverUrl,
+      );
+    } else {
+      return DocumentAttachmentWidget(
+        attachment: attachment,
+        serverUrl: serverUrl,
+      );
+    }
+  }
+}
+
+/// Internal widget for displaying image attachments.
+class _ImageAttachmentWidget extends StatelessWidget {
+  final MediaAttachment attachment;
+  final String serverUrl;
+
+  const _ImageAttachmentWidget({
     required this.attachment,
     required this.serverUrl,
   });

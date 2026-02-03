@@ -13,7 +13,7 @@ import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
 import 'link_preview_card.dart';
 import 'media_attachment_widget.dart';
-import 'image_upload_dialog.dart';
+import 'file_upload_dialog.dart';
 
 // Web-only imports
 import 'dart:html' as html show window, document, ClipboardEvent, File, FileReader, MouseEvent;
@@ -152,7 +152,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   Icon(Icons.upload_file, size: 64, color: Colors.blue),
                   SizedBox(height: 16),
                   Text(
-                    'Drop image here to upload',
+                    'Drop file here to upload',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -359,10 +359,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
             // Generate filename
             final extension = itemType.split('/').last;
-            final fileName = 'pasted_image_${DateTime.now().millisecondsSinceEpoch}.$extension';
+            final fileName = 'pasted_file_${DateTime.now().millisecondsSinceEpoch}.$extension';
 
             // Show upload dialog
-            await _showImageUploadDialog(uint8List, fileName);
+            await _showFileUploadDialog(uint8List, fileName, extension);
             return;
           }
         }
@@ -382,10 +382,21 @@ class _ChatViewState extends ConsumerState<ChatView> {
       final files = dataTransfer.files;
       if (files == null || files.isEmpty) return;
 
-      // Process the first image file
+      // Allowed MIME types (images and documents)
+      const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic',
+        'application/pdf', 'text/plain', 'text/markdown',
+        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/zip', 'application/x-zip-compressed',
+      ];
+
+      // Process the first file
       for (var i = 0; i < files.length; i++) {
         final file = files[i];
-        if (file.type.startsWith('image/')) {
+        final fileType = file.type.toLowerCase();
+
+        if (allowedTypes.contains(fileType) || fileType.startsWith('image/')) {
           // Read file as bytes
           final reader = html.FileReader();
           reader.readAsArrayBuffer(file);
@@ -401,8 +412,12 @@ class _ChatViewState extends ConsumerState<ChatView> {
               uint8List = result as Uint8List;
             }
 
+            // Extract extension from filename
+            final parts = file.name.split('.');
+            final extension = parts.length > 1 ? parts.last : '';
+
             // Show upload dialog
-            await _showImageUploadDialog(uint8List, file.name);
+            await _showFileUploadDialog(uint8List, file.name, extension);
             return;
           }
         }
@@ -412,22 +427,23 @@ class _ChatViewState extends ConsumerState<ChatView> {
     }
   }
 
-  Future<void> _showImageUploadDialog(Uint8List imageBytes, String fileName) async {
+  Future<void> _showFileUploadDialog(Uint8List fileBytes, String fileName, String extension) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
 
     await showDialog(
       context: context,
-      builder: (context) => ImageUploadDialog(
-        imageSource: imageBytes,
+      builder: (context) => FileUploadDialog(
+        fileBytes: fileBytes,
         fileName: fileName,
+        fileExtension: extension,
         onSend: (compress) async {
           try {
-            // Upload image and create note with empty content
+            // Upload file and create note with empty content
             await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
               channelId: channelId,
               noteContent: '',
-              imageBytes: imageBytes,
+              imageBytes: fileBytes,
               fileName: fileName,
               compress: compress,
             );
@@ -435,7 +451,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
             // Show success message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Image uploaded successfully')),
+                const SnackBar(content: Text('File uploaded successfully')),
               );
             }
           } catch (e) {

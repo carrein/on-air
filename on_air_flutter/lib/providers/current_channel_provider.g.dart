@@ -6,7 +6,7 @@ part of 'current_channel_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$currentChannelHash() => r'f2d1b3de0c09b35dbbcdf3aed720b4dedcfd7dd2';
+String _$currentChannelHash() => r'065b1d624ce1d243f3cc4671c05228edbc3ae2a4';
 
 /// Manages the currently active channel ID.
 /// Persists to shared preferences for restoration on app restart.

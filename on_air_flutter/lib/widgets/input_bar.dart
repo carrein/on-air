@@ -2,13 +2,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
 import 'input_link_preview.dart';
-import 'image_upload_dialog.dart';
+import 'file_upload_dialog.dart';
 
 /// Input bar for creating and editing notes.
 class InputBar extends ConsumerStatefulWidget {
@@ -130,9 +130,9 @@ class _InputBarState extends ConsumerState<InputBar> {
               const SizedBox(width: 8),
               if (!isEditMode)
                 IconButton(
-                  icon: const Icon(Icons.image),
-                  onPressed: _pickImage,
-                  tooltip: 'Upload image',
+                  icon: const Icon(Icons.attach_file),
+                  onPressed: _pickFile,
+                  tooltip: 'Upload file',
                 ),
               IconButton(
                 icon: Icon(isEditMode ? Icons.save : Icons.send),
@@ -192,37 +192,54 @@ class _InputBarState extends ConsumerState<InputBar> {
     });
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickFile() async {
     try {
-      final picker = ImagePicker();
-      final image = await picker.pickImage(source: ImageSource.gallery);
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', // Images
+          'pdf', 'txt', 'md', // Documents
+          'doc', 'docx', 'xls', 'xlsx', // Office
+          'zip', // Archives
+        ],
+        withData: true, // Get bytes for web
+      );
 
-      if (image == null) return;
+      if (result == null || result.files.isEmpty) return;
 
-      // Read image bytes
-      final bytes = await image.readAsBytes();
-      final fileName = image.name;
+      final file = result.files.first;
+      final bytes = file.bytes;
+
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to read file')),
+          );
+        }
+        return;
+      }
 
       // Show upload dialog
-      await _showImageUploadDialog(bytes, fileName);
+      await _showFileUploadDialog(bytes, file.name, file.extension ?? '');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
+          SnackBar(content: Text('Failed to pick file: $e')),
         );
       }
     }
   }
 
-  Future<void> _showImageUploadDialog(Uint8List imageBytes, String fileName) async {
+  Future<void> _showFileUploadDialog(Uint8List fileBytes, String fileName, String extension) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
 
     await showDialog(
       context: context,
-      builder: (context) => ImageUploadDialog(
-        imageSource: imageBytes,
+      builder: (context) => FileUploadDialog(
+        fileBytes: fileBytes,
         fileName: fileName,
+        fileExtension: extension,
         onSend: (compress) async {
           try {
             // Get current text content
@@ -230,11 +247,11 @@ class _InputBarState extends ConsumerState<InputBar> {
                 ? ''
                 : _controller.text.trim();
 
-            // Upload image and create note
+            // Upload file and create note
             await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
               channelId: channelId,
               noteContent: noteContent,
-              imageBytes: imageBytes,
+              imageBytes: fileBytes,
               fileName: fileName,
               compress: compress,
             );
@@ -249,7 +266,7 @@ class _InputBarState extends ConsumerState<InputBar> {
             // Show success message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Image uploaded successfully')),
+                const SnackBar(content: Text('File uploaded successfully')),
               );
             }
           } catch (e) {
