@@ -60,6 +60,13 @@ class ImageProcessor {
   static const int compressionQuality = 85;
   static const int thumbnailQuality = 80;
 
+  /// Calculate SHA-256 hash of file bytes (first 8 characters).
+  /// Used for cache busting.
+  static Future<String> calculateHash(List<int> bytes) async {
+    final hash = sha256.convert(bytes);
+    return hash.toString().substring(0, 8);
+  }
+
   /// Process an image file with optional compression.
   ///
   /// Runs in an isolate to avoid blocking the main thread.

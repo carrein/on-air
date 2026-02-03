@@ -11,13 +11,32 @@ class MediaEndpoint extends Endpoint {
   /// Maximum file size (50MB).
   static const int maxFileSize = 50 * 1024 * 1024;
 
-  /// Allowed MIME types.
-  static const List<String> allowedMimeTypes = [
+  /// Allowed MIME types for images.
+  static const List<String> allowedImageTypes = [
     'image/jpeg',
     'image/png',
     'image/webp',
     'image/gif',
     'image/heic',
+  ];
+
+  /// Allowed MIME types for documents.
+  static const List<String> allowedDocumentTypes = [
+    'application/pdf',
+    'text/plain',
+    'text/markdown',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+    'application/zip',
+    'application/x-zip-compressed',
+  ];
+
+  /// All allowed MIME types.
+  static List<String> get allowedMimeTypes => [
+    ...allowedImageTypes,
+    ...allowedDocumentTypes,
   ];
 
   /// Upload a media file as bytes and create a note with it.
@@ -94,13 +113,43 @@ class MediaEndpoint extends Endpoint {
     try {
       await tempFile.writeAsBytes(fileBytes);
 
-      // Phase 2: Process image in isolate
-      final result = await ImageProcessor.processImage(
-        tempFilePath: tempFilePath,
-        finalFilePath: finalFilePath,
-        channelDir: channelDir.path,
-        compress: compress,
-      );
+      // Phase 2: Process file based on type
+      final bool isImage = _isImage(mimeType);
+      late final String resultFilePath;
+      int? width;
+      int? height;
+      String? thumbnailPath;
+      bool compressed = false;
+      bool animated = false;
+      String? contentHash;
+
+      if (isImage) {
+        // Process image (compression, thumbnails, EXIF handling)
+        final result = await ImageProcessor.processImage(
+          tempFilePath: tempFilePath,
+          finalFilePath: finalFilePath,
+          channelDir: channelDir.path,
+          compress: compress,
+        );
+
+        resultFilePath = result.filePath;
+        width = result.width;
+        height = result.height;
+        thumbnailPath = result.thumbnailPath;
+        compressed = result.compressed;
+        animated = result.animated;
+        contentHash = result.contentHash;
+      } else {
+        // For documents, just rename temp file to final path
+        await tempFile.rename(finalFilePath);
+        resultFilePath = finalFilePath;
+
+        // Calculate content hash for cache busting
+        final file = File(finalFilePath);
+        final fileBytes = await file.readAsBytes();
+        final digest = await ImageProcessor.calculateHash(fileBytes);
+        contentHash = digest.substring(0, 8);
+      }
 
       // Phase 3: Create note and attachment in transaction
       final note = await session.db.transaction((transaction) async {
@@ -113,7 +162,7 @@ class MediaEndpoint extends Endpoint {
 
         // Create attachment linked to note
         final relativePath = path.relative(
-          result.filePath,
+          resultFilePath,
           from: mediaBaseDir.path,
         );
 
@@ -124,12 +173,12 @@ class MediaEndpoint extends Endpoint {
           originalFilename: originalFilename,
           mimeType: mimeType,
           fileSize: fileBytes.length,
-          width: result.width,
-          height: result.height,
-          thumbnailPath: result.thumbnailPath,
-          compressed: result.compressed,
-          animated: result.animated,
-          contentHash: result.contentHash,
+          width: width,
+          height: height,
+          thumbnailPath: thumbnailPath,
+          compressed: compressed,
+          animated: animated,
+          contentHash: contentHash,
         );
 
         await MediaAttachment.db.insertRow(session, attachment, transaction: transaction);
@@ -302,6 +351,7 @@ class MediaEndpoint extends Endpoint {
   /// Get file extension from MIME type.
   String _getExtensionFromMimeType(String mimeType) {
     switch (mimeType.toLowerCase()) {
+      // Images
       case 'image/jpeg':
         return '.jpg';
       case 'image/png':
@@ -312,9 +362,35 @@ class MediaEndpoint extends Endpoint {
         return '.gif';
       case 'image/heic':
         return '.heic';
+
+      // Documents
+      case 'application/pdf':
+        return '.pdf';
+      case 'text/plain':
+        return '.txt';
+      case 'text/markdown':
+        return '.md';
+      case 'application/msword':
+        return '.doc';
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return '.docx';
+      case 'application/vnd.ms-excel':
+        return '.xls';
+      case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+        return '.xlsx';
+      case 'application/zip':
+      case 'application/x-zip-compressed':
+        return '.zip';
+
       default:
-        return '.jpg';
+        // Try to extract from original filename or fallback
+        return '.bin';
     }
+  }
+
+  /// Check if MIME type is an image.
+  bool _isImage(String mimeType) {
+    return allowedImageTypes.contains(mimeType.toLowerCase());
   }
 
   /// Delete a media attachment and its files.
