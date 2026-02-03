@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../utils/file_utils.dart';
@@ -32,16 +33,28 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].contains(ext);
   }
 
+  bool get _isVideo {
+    final ext = widget.fileExtension.toLowerCase();
+    return ['mp4', 'mov', 'webm', 'avi', 'mkv'].contains(ext);
+  }
+
   IconData get _fileIcon => FileUtils.getFileIcon(widget.fileExtension);
 
   String get _fileSizeFormatted => FileUtils.formatFileSize(widget.fileBytes.length);
 
   @override
   Widget build(BuildContext context) {
+    final String title = _isImage
+        ? 'Upload Image'
+        : _isVideo
+            ? 'Upload Video'
+            : 'Upload File';
+    final double dialogWidth = (_isImage || _isVideo) ? 400 : 300;
+
     return AlertDialog(
-      title: Text(_isImage ? 'Upload Image' : 'Upload File'),
+      title: Text(title),
       content: SizedBox(
-        width: _isImage ? 400 : 300,
+        width: dialogWidth,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,6 +68,25 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
                     widget.fileBytes,
                     fit: BoxFit.contain,
                   ),
+                ),
+              )
+            else if (_isVideo)
+              Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.video_library, size: 64, color: Colors.grey[600]),
+                    const SizedBox(height: 16),
+                    Text(
+                      widget.fileName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _fileSizeFormatted,
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
               )
             else
@@ -79,11 +111,15 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
 
             const SizedBox(height: 16),
 
-            // Compression option (images only)
-            if (_isImage)
+            // Compression option (images and videos)
+            if (_isImage || _isVideo)
               CheckboxListTile(
-                title: const Text('Compress image'),
-                subtitle: const Text('Reduces file size, maintains quality'),
+                title: Text(_isVideo ? 'Compress video' : 'Compress image'),
+                subtitle: Text(_isVideo
+                    ? kIsWeb
+                        ? 'Server-side compression to 720p (recommended)'
+                        : 'Reduces file size to 720p, maintains quality'
+                    : 'Reduces file size, maintains quality'),
                 value: _compress,
                 onChanged: _uploading
                     ? null
@@ -118,7 +154,8 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
 
     try {
       // For documents, compression is N/A, pass false
-      await widget.onSend(_isImage ? _compress : false);
+      final shouldCompress = (_isImage || _isVideo) ? _compress : false;
+      await widget.onSend(shouldCompress);
       if (mounted) {
         Navigator.of(context).pop();
       }

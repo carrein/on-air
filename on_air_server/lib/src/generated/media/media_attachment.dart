@@ -25,6 +25,7 @@ abstract class MediaAttachment
     required this.fileSize,
     this.width,
     this.height,
+    this.duration,
     this.thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -44,6 +45,7 @@ abstract class MediaAttachment
     required int fileSize,
     int? width,
     int? height,
+    double? duration,
     String? thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -62,6 +64,7 @@ abstract class MediaAttachment
       fileSize: jsonSerialization['fileSize'] as int,
       width: jsonSerialization['width'] as int?,
       height: jsonSerialization['height'] as int?,
+      duration: (jsonSerialization['duration'] as num?)?.toDouble(),
       thumbnailPath: jsonSerialization['thumbnailPath'] as String?,
       compressed: jsonSerialization['compressed'] as bool?,
       animated: jsonSerialization['animated'] as bool?,
@@ -103,6 +106,9 @@ abstract class MediaAttachment
   /// The height of the image in pixels.
   int? height;
 
+  /// The duration of the video in seconds.
+  double? duration;
+
   /// The path to the thumbnail image.
   String? thumbnailPath;
 
@@ -134,6 +140,7 @@ abstract class MediaAttachment
     int? fileSize,
     int? width,
     int? height,
+    double? duration,
     String? thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -153,6 +160,7 @@ abstract class MediaAttachment
       'fileSize': fileSize,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
+      if (duration != null) 'duration': duration,
       if (thumbnailPath != null) 'thumbnailPath': thumbnailPath,
       'compressed': compressed,
       'animated': animated,
@@ -174,6 +182,7 @@ abstract class MediaAttachment
       'fileSize': fileSize,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
+      if (duration != null) 'duration': duration,
       if (thumbnailPath != null) 'thumbnailPath': thumbnailPath,
       'compressed': compressed,
       'animated': animated,
@@ -225,6 +234,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
     required int fileSize,
     int? width,
     int? height,
+    double? duration,
     String? thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -240,6 +250,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
          fileSize: fileSize,
          width: width,
          height: height,
+         duration: duration,
          thumbnailPath: thumbnailPath,
          compressed: compressed,
          animated: animated,
@@ -261,6 +272,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
     int? fileSize,
     Object? width = _Undefined,
     Object? height = _Undefined,
+    Object? duration = _Undefined,
     Object? thumbnailPath = _Undefined,
     bool? compressed,
     bool? animated,
@@ -277,6 +289,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
       fileSize: fileSize ?? this.fileSize,
       width: width is int? ? width : this.width,
       height: height is int? ? height : this.height,
+      duration: duration is double? ? duration : this.duration,
       thumbnailPath: thumbnailPath is String?
           ? thumbnailPath
           : this.thumbnailPath,
@@ -329,6 +342,11 @@ class MediaAttachmentUpdateTable extends _i1.UpdateTable<MediaAttachmentTable> {
 
   _i1.ColumnValue<int, int> height(int? value) => _i1.ColumnValue(
     table.height,
+    value,
+  );
+
+  _i1.ColumnValue<double, double> duration(double? value) => _i1.ColumnValue(
+    table.duration,
     value,
   );
 
@@ -396,6 +414,10 @@ class MediaAttachmentTable extends _i1.Table<int?> {
       'height',
       this,
     );
+    duration = _i1.ColumnDouble(
+      'duration',
+      this,
+    );
     thumbnailPath = _i1.ColumnString(
       'thumbnailPath',
       this,
@@ -447,6 +469,9 @@ class MediaAttachmentTable extends _i1.Table<int?> {
   /// The height of the image in pixels.
   late final _i1.ColumnInt height;
 
+  /// The duration of the video in seconds.
+  late final _i1.ColumnDouble duration;
+
   /// The path to the thumbnail image.
   late final _i1.ColumnString thumbnailPath;
 
@@ -473,6 +498,7 @@ class MediaAttachmentTable extends _i1.Table<int?> {
     fileSize,
     width,
     height,
+    duration,
     thumbnailPath,
     compressed,
     animated,

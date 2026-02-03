@@ -42,7 +42,15 @@ class Channels extends _$Channels {
   }
 
   Future<void> deleteChannel(int id) async {
-    await client.chat.deleteChannel(id);
-    // WebSocket broadcast will trigger refetch via listener above
+    try {
+      await client.chat.deleteChannel(id);
+      // WebSocket broadcast will trigger refetch via listener above
+    } catch (e) {
+      // Provide user-friendly error messages
+      if (e.toString().contains('last remaining channel')) {
+        throw Exception('Cannot delete the last channel. Create another channel first.');
+      }
+      rethrow;
+    }
   }
 }

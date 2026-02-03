@@ -5,6 +5,7 @@ import 'package:on_air_client/on_air_client.dart';
 import '../utils/file_utils.dart';
 import 'document_attachment_widget.dart';
 import 'full_screen_image_view.dart';
+import 'video_attachment_widget.dart';
 
 /// Widget for displaying a media attachment inline in chat.
 /// Routes to either image or document widget based on MIME type.
@@ -23,11 +24,21 @@ class MediaAttachmentWidget extends StatelessWidget {
     return mime.startsWith('image/');
   }
 
+  bool get _isVideo {
+    final mime = attachment.mimeType.toLowerCase();
+    return mime.startsWith('video/');
+  }
+
   @override
   Widget build(BuildContext context) {
     // Route to appropriate widget based on type
     if (_isImage) {
       return _ImageAttachmentWidget(
+        attachment: attachment,
+        serverUrl: serverUrl,
+      );
+    } else if (_isVideo) {
+      return VideoAttachmentWidget(
         attachment: attachment,
         serverUrl: serverUrl,
       );

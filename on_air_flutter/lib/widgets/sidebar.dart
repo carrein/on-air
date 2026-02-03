@@ -7,6 +7,7 @@ import '../providers/channels_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/notes_provider.dart';
+import '../utils/toast_utils.dart';
 
 /// Sidebar displaying channels list and add channel button.
 /// Draggable on web with two positions: emoji-only (60px) or full (250px).
@@ -36,7 +37,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
   @override
   Widget build(BuildContext context) {
     final isCollapsed = _currentWidth < 150;
-    final isMobile = !kIsWeb;
     final channelsAsync = ref.watch(channelsProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
 
@@ -117,7 +117,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
               },
               child: Container(
                 width: 8,
-                color: _isDragging ? Colors.blue.withOpacity(0.3) : Colors.transparent,
+                color: _isDragging ? Colors.blue.withValues(alpha: 0.3) : Colors.transparent,
               ),
             ),
           ),
@@ -175,9 +175,9 @@ class _SidebarState extends ConsumerState<Sidebar> {
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
-                      if (latestNote != null)
+                      if (latestNote != null && _shouldShowPreview(latestNote))
                         Text(
-                          latestNote.content.replaceAll(RegExp(r'\s+'), ' '),
+                          _getPreviewText(latestNote),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
@@ -232,6 +232,34 @@ class _SidebarState extends ConsumerState<Sidebar> {
         ),
       ),
     );
+  }
+
+  bool _shouldShowPreview(Note note) {
+    if (note.content.isNotEmpty) return true;
+    if (note.attachments != null && note.attachments!.isNotEmpty) return true;
+    if (note.linkPreview != null) return true;
+    return false;
+  }
+
+  String _getPreviewText(Note note) {
+    if (note.content.isNotEmpty) {
+      return note.content.replaceAll(RegExp(r'\s+'), ' ');
+    }
+    if (note.attachments != null && note.attachments!.isNotEmpty) {
+      final count = note.attachments!.length;
+      if (count == 1) {
+        final attachment = note.attachments!.first;
+        final type = attachment.mimeType.startsWith('image/')
+            ? 'Image'
+            : (attachment.mimeType.startsWith('video/') ? 'Video' : 'File');
+        return '$type: ${attachment.originalFilename}';
+      }
+      return '$count files';
+    }
+    if (note.linkPreview != null && note.linkPreview!.title != null) {
+      return 'Link: ${note.linkPreview!.title}';
+    }
+    return '';
   }
 
   void _showContextMenu(BuildContext context, Channel channel, Offset? globalPosition) {
@@ -297,9 +325,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
       await ref.read(channelsProvider.notifier).deleteChannel(channelId);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cannot delete channel: $e')),
-        );
+        ToastUtils.show(context, 'Cannot delete channel: $e', type: ToastType.error);
       }
     }
   }

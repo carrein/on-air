@@ -4,6 +4,8 @@ import '../widgets/sidebar.dart';
 import '../widgets/chat_view.dart';
 import '../widgets/input_bar.dart';
 import '../widgets/offline_banner.dart';
+import '../widgets/media_sidebar.dart';
+import '../utils/responsive_utils.dart';
 
 /// Main chat screen with sidebar, chat view, and input bar.
 class ChatScreen extends ConsumerWidget {
@@ -11,6 +13,8 @@ class ChatScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final showMediaSidebar = ResponsiveUtils.shouldShowMediaSidebar(context);
+
     return Scaffold(
       body: Column(
         children: [
@@ -18,7 +22,7 @@ class ChatScreen extends ConsumerWidget {
           Expanded(
             child: Row(
               children: [
-                // Sidebar with draggable width
+                // Left sidebar with channels
                 const Sidebar(),
                 // Chat area
                 Expanded(
@@ -29,6 +33,8 @@ class ChatScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                // Right sidebar with media (desktop only)
+                if (showMediaSidebar) const MediaSidebar(),
               ],
             ),
           ),

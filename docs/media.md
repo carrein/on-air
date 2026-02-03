@@ -4,19 +4,25 @@ Plan for supporting media uploads (images, future: videos, files) in the chat ap
 
 ## Overview
 
-### Phase 1 (Current): Image Upload
+### Phase 1 (Completed): Single File Upload
 - Paste images from clipboard (Ctrl+V)
+- Drag-drop single file support
 - Upload dialog with compression option
 - Display inline in chat messages
 - No captions required
-- 50MB file size limit
+- 100MB file size limit (increased from 50MB)
 - Public access (no authentication required)
 
-### Phase 2: Document Upload (Completed Server-Side)
-- PDF, Text, Word, Excel, Zip file support
-- Conditional processing (images get full processing, documents get simple storage)
-- 50MB file size limit applies to all file types
-- File picker UI for document selection
+### Phase 2 (Current): Multi-File Upload
+- **Multiple file selection** via file picker (`allowMultiple: true`)
+- **Drag-drop multiple files** at once
+- **Paste multiple files** from clipboard
+- **Upload dialog**: `MultiFileUploadDialog` with progress tracking
+- **Per-file compression**: Individual toggle for each image/video
+- **Sequential upload**: Files uploaded one-by-one to avoid overwhelming server
+- **Progress indicator**: Shows "Uploading X of Y..." with progress bar
+- **Document support**: PDF, Text, Word, Excel, Zip file support
+- **File picker UI**: `FilePicker` with custom file type extensions
 
 ### Future Phases
 - Resumable uploads (Phase 3)
@@ -544,11 +550,16 @@ class MediaAttachmentWidget extends StatelessWidget {
 - **Zip**: `application/zip`
 
 ### Upload Behavior
-- **Single image per paste:** One at a time (multi-paste in Phase 2)
-- **Paste priority:** If clipboard has image, ignore text
-- **Progress indicator:** Show for uploads >2MB
-- **Error handling:** Toast message + retry button
+- **Multi-file support:** Select, drag, or paste multiple files at once
+- **Paste priority:** If clipboard has files, ignore text (unless textfield focused)
+- **Textfield paste fix:** Paste events check active element to allow text paste in input field
+- **Progress indicator:** Shows upload count and progress for multi-file uploads
+- **Error handling:** Toast notifications (success/error) with human-readable messages
 - **Streaming:** Upload via stream (memory-safe)
+- **Sequential processing:** Files uploaded one-by-one to avoid server overload
+- **Dialog routing**:
+  - Single file → `FileUploadDialog` (simple preview + compression)
+  - Multiple files → `MultiFileUploadDialog` (list view + per-file compression)
 
 ### Display & Interaction
 - **Delete:** Delete entire note to remove images (no individual image delete yet)

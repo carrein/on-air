@@ -1,0 +1,213 @@
+import 'package:flutter/material.dart';
+import '../models/channel_media.dart';
+import '../main.dart' show serverUrl;
+import '../utils/file_utils.dart';
+import 'media_grid.dart';
+
+/// Individual grid item displaying a media thumbnail or document card.
+class MediaGridItem extends StatelessWidget {
+  final MediaItem item;
+  final MediaType type;
+
+  const MediaGridItem({
+    super.key,
+    required this.item,
+    required this.type,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _handleTap(context),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: _buildContent(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    switch (type) {
+      case MediaType.image:
+        return _buildImageContent();
+      case MediaType.video:
+        return _buildVideoContent();
+      case MediaType.document:
+        return _buildDocumentContent();
+    }
+  }
+
+  Widget _buildImageContent() {
+    final thumbnailUrl = item.getThumbnailUrl(serverUrl) ?? item.getMediaUrl(serverUrl);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.network(
+          thumbnailUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildErrorPlaceholder(Icons.broken_image, 'Failed to load');
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return _buildLoadingPlaceholder();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVideoContent() {
+    final thumbnailUrl = item.getThumbnailUrl(serverUrl);
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (thumbnailUrl != null)
+          Image.network(
+            thumbnailUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildErrorPlaceholder(Icons.videocam, 'No preview');
+            },
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return _buildLoadingPlaceholder();
+            },
+          )
+        else
+          _buildErrorPlaceholder(Icons.videocam, 'No preview'),
+
+        // Play icon overlay
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.6),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.play_arrow,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+        ),
+
+        // Duration overlay (if available)
+        if (item.attachment.duration != null)
+          Positioned(
+            bottom: 4,
+            right: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                _formatDuration(item.attachment.duration!),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDocumentContent() {
+    final extension = item.attachment.filePath.split('.').last;
+    final icon = FileUtils.getFileIcon(extension);
+    final sizeFormatted = FileUtils.formatFileSize(item.attachment.fileSize);
+
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, size: 40, color: Colors.grey[700]),
+          const SizedBox(height: 8),
+          Flexible(
+            child: Text(
+              item.attachment.originalFilename,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            sizeFormatted,
+            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingPlaceholder() {
+    return Container(
+      color: Colors.grey[200],
+      child: const Center(
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    );
+  }
+
+  Widget _buildErrorPlaceholder(IconData icon, String message) {
+    return Container(
+      color: Colors.grey[100],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 32, color: Colors.grey[400]),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDuration(double seconds) {
+    final duration = Duration(seconds: seconds.toInt());
+    final minutes = duration.inMinutes;
+    final secs = duration.inSeconds % 60;
+    return '${minutes}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  void _handleTap(BuildContext context) {
+    switch (type) {
+      case MediaType.image:
+      case MediaType.video:
+        // TODO: Open in lightbox viewer
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Opening ${item.attachment.originalFilename}')),
+        );
+        break;
+      case MediaType.document:
+        // TODO: Download file
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Downloading ${item.attachment.originalFilename}')),
+        );
+        break;
+    }
+  }
+}

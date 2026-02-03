@@ -19,6 +19,8 @@ fields:
   width: int?
   ### The height of the image in pixels.
   height: int?
+  ### The duration of the video in seconds.
+  duration: double?
   ### The path to the thumbnail image.
   thumbnailPath: String?
   ### Whether the image was compressed.

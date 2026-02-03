@@ -24,6 +24,7 @@ abstract class MediaAttachment implements _i1.SerializableModel {
     required this.fileSize,
     this.width,
     this.height,
+    this.duration,
     this.thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -43,6 +44,7 @@ abstract class MediaAttachment implements _i1.SerializableModel {
     required int fileSize,
     int? width,
     int? height,
+    double? duration,
     String? thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -61,6 +63,7 @@ abstract class MediaAttachment implements _i1.SerializableModel {
       fileSize: jsonSerialization['fileSize'] as int,
       width: jsonSerialization['width'] as int?,
       height: jsonSerialization['height'] as int?,
+      duration: (jsonSerialization['duration'] as num?)?.toDouble(),
       thumbnailPath: jsonSerialization['thumbnailPath'] as String?,
       compressed: jsonSerialization['compressed'] as bool?,
       animated: jsonSerialization['animated'] as bool?,
@@ -100,6 +103,9 @@ abstract class MediaAttachment implements _i1.SerializableModel {
   /// The height of the image in pixels.
   int? height;
 
+  /// The duration of the video in seconds.
+  double? duration;
+
   /// The path to the thumbnail image.
   String? thumbnailPath;
 
@@ -128,6 +134,7 @@ abstract class MediaAttachment implements _i1.SerializableModel {
     int? fileSize,
     int? width,
     int? height,
+    double? duration,
     String? thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -147,6 +154,7 @@ abstract class MediaAttachment implements _i1.SerializableModel {
       'fileSize': fileSize,
       if (width != null) 'width': width,
       if (height != null) 'height': height,
+      if (duration != null) 'duration': duration,
       if (thumbnailPath != null) 'thumbnailPath': thumbnailPath,
       'compressed': compressed,
       'animated': animated,
@@ -174,6 +182,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
     required int fileSize,
     int? width,
     int? height,
+    double? duration,
     String? thumbnailPath,
     bool? compressed,
     bool? animated,
@@ -189,6 +198,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
          fileSize: fileSize,
          width: width,
          height: height,
+         duration: duration,
          thumbnailPath: thumbnailPath,
          compressed: compressed,
          animated: animated,
@@ -210,6 +220,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
     int? fileSize,
     Object? width = _Undefined,
     Object? height = _Undefined,
+    Object? duration = _Undefined,
     Object? thumbnailPath = _Undefined,
     bool? compressed,
     bool? animated,
@@ -226,6 +237,7 @@ class _MediaAttachmentImpl extends MediaAttachment {
       fileSize: fileSize ?? this.fileSize,
       width: width is int? ? width : this.width,
       height: height is int? ? height : this.height,
+      duration: duration is double? ? duration : this.duration,
       thumbnailPath: thumbnailPath is String?
           ? thumbnailPath
           : this.thumbnailPath,

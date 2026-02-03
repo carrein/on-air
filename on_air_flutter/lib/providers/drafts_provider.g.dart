@@ -1,28 +1,28 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'media_provider.dart';
+part of 'drafts_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mediaUploadHash() => r'd55dcdd6977fb697921cc7b4257c23fea0a8e047';
+String _$draftsHash() => r'6633b9e4753a8033cebc60a7f7503d7a9b719369';
 
-/// Provider for media upload operations.
+/// Manages per-channel draft content (memory-only, not persisted).
 ///
-/// Copied from [MediaUpload].
-@ProviderFor(MediaUpload)
-final mediaUploadProvider =
-    AutoDisposeAsyncNotifierProvider<MediaUpload, void>.internal(
-      MediaUpload.new,
-      name: r'mediaUploadProvider',
+/// Copied from [Drafts].
+@ProviderFor(Drafts)
+final draftsProvider =
+    AutoDisposeNotifierProvider<Drafts, Map<int, String>>.internal(
+      Drafts.new,
+      name: r'draftsProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$mediaUploadHash,
+          : _$draftsHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$MediaUpload = AutoDisposeAsyncNotifier<void>;
+typedef _$Drafts = AutoDisposeNotifier<Map<int, String>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

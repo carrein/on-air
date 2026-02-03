@@ -63,6 +63,11 @@ The sidebar supports two width states (web only):
 - **Lines**: Single line with ellipsis
 - **Content**: Shows newest note in the channel
 - **Updates**: Real-time via WebSocket
+- **Smart Display**:
+  - If note has text content: Show text with whitespace collapsed
+  - If media-only (no text): Show "Image: filename.jpg" or "3 files"
+  - If link-only: Show "Link: Page Title"
+  - If completely empty: Hide preview line (no empty space)
 
 ### "New Channel" Button
 - **Styling**: Matches channel items exactly
@@ -95,10 +100,30 @@ The sidebar supports two width states (web only):
 - **Auto-scroll**: New messages appear at bottom
 - **Pagination**: Loads older messages when scrolling near top
 
-### Message Display
-- Standard list items
-- Timestamp shown below each message
-- Edit/delete options on long-press
+### Message Display - Chat Bubbles
+- **Container Style**:
+  - White background (`Colors.white`)
+  - 12px padding on all sides
+  - 12px border radius (rounded corners)
+  - Subtle shadow: `BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: Offset(0, 2))`
+  - 8px horizontal margin, 4px vertical margin between messages
+- **Content**:
+  - Markdown-formatted text with link support
+  - Media attachments (images, videos, documents)
+  - Link preview cards
+- **Timestamp**: Below content, 11px font, grey color
+- **Actions**: Available via right-click context menu (see below)
+
+### Note Context Menu
+- **Interaction Patterns**:
+  - **Desktop**: Right-click on note
+  - **Mobile**: Long-press on note
+  - **Menu Position**: Appears at cursor position
+- **Menu Options**:
+  1. Copy - Copies note content to clipboard, shows toast notification
+  2. Edit - Enters edit mode (populates input bar with note content)
+  3. Delete - Removes note with confirmation
+- **Removed Elements**: No visible copy/delete icons (moved to context menu for cleaner UI)
 
 ## Input Behavior
 
@@ -106,11 +131,21 @@ The sidebar supports two width states (web only):
 - **Enter**: Submit message
 - **Shift+Enter**: Insert new line (multiline support)
 - **Hint text**: Reminds users about Shift+Enter
+- **Ctrl+V / Cmd+V**: Paste text in textfield (file paste detected when not focused)
 
 ### Visual Feedback
 - Send button enabled only when text is non-empty
 - Edit mode shows cancel (X) button
 - Save icon replaces send icon during edit
+
+### Channel Drafts
+- **Per-Channel State**: Each channel maintains its own input draft
+- **Auto-Save**: Text is automatically saved when switching channels
+- **Auto-Load**: Switching back to a channel restores the draft
+- **Clear on Send**: Draft is cleared after successfully sending a message
+- **Edit Mode Preservation**: Draft is saved when entering edit mode, restored on cancel
+- **Storage**: In-memory only (not persisted on app restart, good for privacy)
+- **Implementation**: `DraftsProvider` with `Map<int, String>` keyed by channel ID
 
 ## Real-time Updates
 
@@ -124,6 +159,33 @@ The sidebar supports two width states (web only):
 - All changes broadcast to connected clients
 - No page refresh needed
 - Optimistic updates for better UX
+
+## Toast Notifications
+
+### Design System
+- **Position**: Top-right corner of viewport
+- **Stacking**: Up to 3 toasts visible simultaneously
+- **Auto-Dismiss**: 2500ms duration, then fade out (800ms animation)
+- **Overflow Behavior**: When 4th toast appears, oldest is removed
+- **Animation**: Fade in (300ms), repositioning when dismissed
+
+### Toast Types
+1. **Error** (Red background):
+   - Upload failures
+   - Delete constraints (e.g., "Cannot delete last channel")
+   - Network errors
+2. **Success** (Green background):
+   - File upload completed
+   - Actions completed successfully
+3. **Info** (Grey background, default):
+   - Copy confirmation: "Copied: [preview]"
+   - General notifications
+
+### Implementation
+- **Utility**: `ToastUtils.show(context, message, {type, duration})`
+- **Technology**: `OverlayEntry` with `AnimatedPositioned` and `FadeTransition`
+- **State Management**: `List<_NotificationData>` tracks active toasts with `ValueNotifier<double>` for positioning
+- **Replaced**: All `SnackBar` usage converted to toast system for consistency
 
 ## Design Principles
 

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:path/path.dart' as path;
 
 /// Service for handling media operations.
@@ -29,6 +30,53 @@ class MediaService {
     return result;
   }
 
+  /// Compress a video file.
+  /// Returns compressed video bytes or null on failure.
+  static Future<Uint8List?> compressVideo(File file) async {
+    try {
+      final info = await VideoCompress.compressVideo(
+        file.path,
+        quality: VideoQuality.MediumQuality,
+        deleteOrigin: false,
+      );
+
+      if (info == null || info.file == null) {
+        return null;
+      }
+
+      final compressedBytes = await info.file!.readAsBytes();
+
+      // Clean up compressed file
+      await info.file!.delete();
+
+      return compressedBytes;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Compress video bytes by writing to temp file first.
+  static Future<Uint8List?> compressVideoBytes(Uint8List bytes, String fileName) async {
+    try {
+      // Write bytes to a temporary file
+      final tempDir = Directory.systemTemp;
+      final tempFile = File('${tempDir.path}/$fileName');
+      await tempFile.writeAsBytes(bytes);
+
+      // Compress the temp file
+      final compressedBytes = await compressVideo(tempFile);
+
+      // Clean up temp file
+      if (await tempFile.exists()) {
+        await tempFile.delete();
+      }
+
+      return compressedBytes;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Get MIME type from bytes using file extension.
   static String getMimeTypeFromExtension(String fileName) {
     final ext = path.extension(fileName).toLowerCase();
@@ -45,6 +93,17 @@ class MediaService {
         return 'image/webp';
       case '.heic':
         return 'image/heic';
+      // Videos
+      case '.mp4':
+        return 'video/mp4';
+      case '.mov':
+        return 'video/quicktime';
+      case '.webm':
+        return 'video/webm';
+      case '.avi':
+        return 'video/x-msvideo';
+      case '.mkv':
+        return 'video/x-matroska';
       // Documents
       case '.pdf':
         return 'application/pdf';

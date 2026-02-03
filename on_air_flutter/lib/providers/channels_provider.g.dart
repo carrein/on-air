@@ -6,7 +6,7 @@ part of 'channels_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$channelsHash() => r'e69c63f05aed7f5746f3c6e83f412c3f2eaa99fd';
+String _$channelsHash() => r'c820ede5879a33e28641ac89f9b38d7b69476484';
 
 /// Manages the list of channels with real-time updates from WebSocket.
 ///

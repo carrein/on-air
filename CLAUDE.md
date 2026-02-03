@@ -1,6 +1,7 @@
 u/docs/Channel.md
 u/docs/Link.md
 u/docs/Media.md
+u/docs/media_sidebar.md
 u/docs/Overview.md
 u/docs/Plan.md
 u/docs/Security.md
@@ -222,3 +223,40 @@ Examples:
 - All server-side code generation is triggered by `serverpod generate`
 - Docker services MUST be running before starting the server
 - Test environment uses separate database/redis instances to avoid conflicts
+
+## Recent Work: UI/UX Improvements (✅ COMPLETED)
+
+7 features completed:
+1. **Toast System** - Unified toast notifications with color-coded types (success/error/info)
+2. **Chat Bubbles** - White containers with padding, border radius, and subtle shadow
+3. **Multi-File Upload** - Batch upload via paste/drag-drop with progress dialog
+4. **Right-Click Menus** - Context menu with Copy/Edit/Delete on right-click or long-press
+5. **Channel Drafts** - Per-channel input text preservation across channel switches
+6. **Preview Fix** - Hide empty preview for media-only notes in sidebar
+7. **Paste Fix** - Allow copy/paste in textfield by checking active element
+
+**Fixes Applied**:
+- Draft text now persists properly when switching channels
+- Right-click context menu works everywhere on notes (including on text)
+
+## Current Work: Media Sidebar
+
+**Documentation**: See `/Users/carrein/Desktop/on_air/docs/media_sidebar.md` for detailed plan
+
+**Feature**: Right sidebar displaying all media and links from current channel
+
+**Key Components**:
+- 4 tabs: IMAGES | VIDEOS | DOCUMENTS | LINKS
+- Grid layout for media (3 columns), list for links
+- Responsive: Always visible on desktop (≥1200px), hidden on mobile/tablet with menu access
+- Resizable sidebar (250-400px range)
+- Real-time updates via WebSocket
+- Lightbox viewer for images/videos
+
+**Implementation Phases**:
+1. Data Layer - Models and providers for channel media
+2. Core UI - Sidebar, tabs, grid, list widgets
+3. Integration - Layout updates, responsive behavior, mobile menu
+4. Polish - Loading states, error handling, performance optimization
+
+**Status**: Planning and documentation complete, ready for implementation

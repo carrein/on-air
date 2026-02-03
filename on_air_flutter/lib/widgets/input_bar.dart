@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,8 +6,12 @@ import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
+import '../providers/drafts_provider.dart';
+import '../utils/toast_utils.dart';
+import '../models/upload_file_data.dart';
 import 'input_link_preview.dart';
 import 'file_upload_dialog.dart';
+import 'multi_file_upload_dialog.dart';
 
 /// Input bar for creating and editing notes.
 class InputBar extends ConsumerStatefulWidget {
@@ -69,6 +72,28 @@ class _InputBarState extends ConsumerState<InputBar> {
       if (next != null && prev != next) {
         _populateEditingNote(next);
       }
+    });
+
+    // Listen for channel changes to save/load drafts
+    ref.listen(currentChannelProvider, (prev, next) {
+      if (isEditMode) return; // Don't save/load drafts while editing
+
+      next.whenData((nextChannelId) {
+        // Get previous channel ID
+        final prevChannelId = prev?.valueOrNull;
+
+        // Save draft for previous channel if switching
+        if (prevChannelId != null && prevChannelId != nextChannelId) {
+          final currentText = _controller.text;
+          ref.read(draftsProvider.notifier).saveDraft(prevChannelId, currentText);
+        }
+
+        // Load draft for new channel
+        if (nextChannelId != prevChannelId) {
+          final draft = ref.read(draftsProvider.notifier).getDraft(nextChannelId);
+          _controller.text = draft;
+        }
+      });
     });
 
     return Column(
@@ -168,6 +193,8 @@ class _InputBarState extends ConsumerState<InputBar> {
     } else {
       // Create new note
       ref.read(notesProvider(channelId).notifier).createNote(content);
+      // Clear draft after sending
+      ref.read(draftsProvider.notifier).clearDraft(channelId);
     }
 
     // Reset preview state and clear text field
@@ -198,34 +225,49 @@ class _InputBarState extends ConsumerState<InputBar> {
         type: FileType.custom,
         allowedExtensions: [
           'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', // Images
+          'mp4', 'mov', 'webm', 'avi', 'mkv', // Videos
           'pdf', 'txt', 'md', // Documents
           'doc', 'docx', 'xls', 'xlsx', // Office
           'zip', // Archives
         ],
         withData: true, // Get bytes for web
+        allowMultiple: true, // Allow multiple file selection
       );
 
       if (result == null || result.files.isEmpty) return;
 
-      final file = result.files.first;
-      final bytes = file.bytes;
+      // Collect all valid files
+      final List<UploadFileData> uploadFiles = [];
+      for (final file in result.files) {
+        if (file.bytes != null) {
+          uploadFiles.add(UploadFileData(
+            bytes: file.bytes!,
+            fileName: file.name,
+            extension: file.extension ?? '',
+          ));
+        }
+      }
 
-      if (bytes == null) {
+      if (uploadFiles.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to read file')),
-          );
+          ToastUtils.show(context, 'Failed to read files', type: ToastType.error);
         }
         return;
       }
 
-      // Show upload dialog
-      await _showFileUploadDialog(bytes, file.name, file.extension ?? '');
+      // Show appropriate dialog based on number of files
+      if (uploadFiles.length == 1) {
+        await _showFileUploadDialog(
+          uploadFiles.first.bytes,
+          uploadFiles.first.fileName,
+          uploadFiles.first.extension,
+        );
+      } else {
+        await _showMultiFileUploadDialog(uploadFiles);
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick file: $e')),
-        );
+        ToastUtils.show(context, 'Failed to pick file: $e', type: ToastType.error);
       }
     }
   }
@@ -265,21 +307,51 @@ class _InputBarState extends ConsumerState<InputBar> {
 
             // Show success message
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('File uploaded successfully')),
-              );
+              ToastUtils.show(context, 'File uploaded successfully', type: ToastType.success);
             }
           } catch (e) {
             // Show error message
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Upload failed: $e')),
-              );
+              ToastUtils.show(context, 'Upload failed: $e', type: ToastType.error);
             }
           }
         },
       ),
     );
+  }
+
+  Future<void> _showMultiFileUploadDialog(List<UploadFileData> uploadFiles) async {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    await showDialog(
+      context: context,
+      builder: (context) => MultiFileUploadDialog(
+        files: uploadFiles,
+        onSend: (files) async {
+          for (final file in files) {
+            try {
+              await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
+                channelId: channelId,
+                noteContent: '',
+                imageBytes: file.bytes,
+                fileName: file.fileName,
+                compress: file.compress,
+              );
+            } catch (e) {
+              if (mounted) {
+                ToastUtils.show(context, 'Upload failed for ${file.fileName}: $e', type: ToastType.error);
+              }
+            }
+          }
+        },
+      ),
+    );
+
+    _controller.clear();
+    if (mounted) {
+      ToastUtils.show(context, '${uploadFiles.length} files uploaded', type: ToastType.success);
+    }
   }
 
   @override

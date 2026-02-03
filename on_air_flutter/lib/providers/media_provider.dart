@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:on_air_client/on_air_client.dart';
 import '../main.dart';
@@ -12,7 +13,7 @@ class MediaUpload extends _$MediaUpload {
   @override
   FutureOr<void> build() {}
 
-  /// Upload an image and create a note with it.
+  /// Upload media (image or video) and create a note with it.
   Future<Note> uploadImageAndCreateNote({
     required int channelId,
     required String noteContent,
@@ -28,15 +29,31 @@ class MediaUpload extends _$MediaUpload {
     // Get MIME type
     final mimeType = MediaService.getMimeTypeFromExtension(fileName);
 
+    // Check if it's a video or image
+    final isVideo = mimeType.startsWith('video/');
+    final isImage = mimeType.startsWith('image/');
+
     // Optionally compress
     Uint8List finalBytes = imageBytes;
     if (compress) {
-      final compressed = await MediaService.compressImageBytes(
-        imageBytes,
-        format: fileName.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
-      );
-      if (compressed != null) {
-        finalBytes = compressed;
+      if (isImage) {
+        final compressed = await MediaService.compressImageBytes(
+          imageBytes,
+          format: fileName.toLowerCase().endsWith('.png') ? 'png' : 'jpg',
+        );
+        if (compressed != null) {
+          finalBytes = compressed;
+        }
+      } else if (isVideo && !kIsWeb) {
+        // Skip client-side video compression on web (video_compress doesn't work on web)
+        // Server-side compression will handle it
+        final compressed = await MediaService.compressVideoBytes(
+          imageBytes,
+          fileName,
+        );
+        if (compressed != null) {
+          finalBytes = compressed;
+        }
       }
     }
 

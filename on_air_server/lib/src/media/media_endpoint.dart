@@ -5,6 +5,7 @@ import 'package:serverpod/serverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../generated/protocol.dart';
 import 'image_processor.dart';
+import 'video_processor.dart';
 
 /// Endpoint for media upload and management.
 class MediaEndpoint extends Endpoint {
@@ -18,6 +19,15 @@ class MediaEndpoint extends Endpoint {
     'image/webp',
     'image/gif',
     'image/heic',
+  ];
+
+  /// Allowed MIME types for videos.
+  static const List<String> allowedVideoTypes = [
+    'video/mp4',
+    'video/quicktime', // .mov
+    'video/webm',
+    'video/x-msvideo', // .avi
+    'video/x-matroska', // .mkv
   ];
 
   /// Allowed MIME types for documents.
@@ -36,6 +46,7 @@ class MediaEndpoint extends Endpoint {
   /// All allowed MIME types.
   static List<String> get allowedMimeTypes => [
     ...allowedImageTypes,
+    ...allowedVideoTypes,
     ...allowedDocumentTypes,
   ];
 
@@ -115,9 +126,11 @@ class MediaEndpoint extends Endpoint {
 
       // Phase 2: Process file based on type
       final bool isImage = _isImage(mimeType);
+      final bool isVideo = _isVideo(mimeType);
       late final String resultFilePath;
       int? width;
       int? height;
+      double? duration;
       String? thumbnailPath;
       bool compressed = false;
       bool animated = false;
@@ -138,6 +151,22 @@ class MediaEndpoint extends Endpoint {
         thumbnailPath = result.thumbnailPath;
         compressed = result.compressed;
         animated = result.animated;
+        contentHash = result.contentHash;
+      } else if (isVideo) {
+        // Process video (compression, thumbnails, metadata extraction)
+        final result = await VideoProcessor.processVideo(
+          tempFilePath: tempFilePath,
+          finalFilePath: finalFilePath,
+          channelDir: channelDir.path,
+          compress: compress,
+        );
+
+        resultFilePath = result.filePath;
+        width = result.width;
+        height = result.height;
+        duration = result.duration;
+        thumbnailPath = result.thumbnailPath;
+        compressed = result.compressed;
         contentHash = result.contentHash;
       } else {
         // For documents, just rename temp file to final path
@@ -175,6 +204,7 @@ class MediaEndpoint extends Endpoint {
           fileSize: fileBytes.length,
           width: width,
           height: height,
+          duration: duration,
           thumbnailPath: thumbnailPath,
           compressed: compressed,
           animated: animated,
@@ -323,6 +353,7 @@ class MediaEndpoint extends Endpoint {
         fileSize: totalBytes,
         width: result.width,
         height: result.height,
+        duration: null, // Only set for videos
         thumbnailPath: result.thumbnailPath,
         compressed: result.compressed,
         animated: result.animated,
@@ -363,6 +394,18 @@ class MediaEndpoint extends Endpoint {
       case 'image/heic':
         return '.heic';
 
+      // Videos
+      case 'video/mp4':
+        return '.mp4';
+      case 'video/quicktime':
+        return '.mov';
+      case 'video/webm':
+        return '.webm';
+      case 'video/x-msvideo':
+        return '.avi';
+      case 'video/x-matroska':
+        return '.mkv';
+
       // Documents
       case 'application/pdf':
         return '.pdf';
@@ -391,6 +434,11 @@ class MediaEndpoint extends Endpoint {
   /// Check if MIME type is an image.
   bool _isImage(String mimeType) {
     return allowedImageTypes.contains(mimeType.toLowerCase());
+  }
+
+  /// Check if MIME type is a video.
+  bool _isVideo(String mimeType) {
+    return allowedVideoTypes.contains(mimeType.toLowerCase());
   }
 
   /// Delete a media attachment and its files.
