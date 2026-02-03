@@ -1,0 +1,47 @@
+# Pre-commit hooks for security and code quality
+# Install: pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Prevent committing secrets
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.1
+    hooks:
+      - id: gitleaks
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags
+      - id: check-added-large-files
+        args: ['--maxkb=1000']  # Prevent files >1MB
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+
+  # Check for common patterns that might be secrets
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: detect-aws-credentials
+        args: ['--allow-missing-credentials']
+
+# Custom checks
+  - repo: local
+    hooks:
+      - id: check-passwords-yaml
+        name: Check passwords.yaml is not committed
+        entry: bash -c '! git diff --cached --name-only | grep -q "passwords.yaml"'
+        language: system
+        pass_filenames: false
+
+      - id: check-env-files
+        name: Check .env files are not committed
+        entry: bash -c '! git diff --cached --name-only | grep -E "\.env(\.|$)"'
+        language: system
+        pass_filenames: false

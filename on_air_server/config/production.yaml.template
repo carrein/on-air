@@ -1,0 +1,83 @@
+# Production configuration template
+# Copy this to production.yaml and customize for your deployment
+# Use environment variables for all secrets!
+
+# Configuration for the main API server.
+apiServer:
+  port: 8080
+  publicHost: your-domain.com  # REPLACE with your actual domain
+  publicPort: 443  # Use 443 for HTTPS
+  publicScheme: https  # Always use HTTPS in production
+
+# Configuration for the Insights server.
+insightsServer:
+  port: 8081
+  publicHost: insights.your-domain.com  # REPLACE with your actual domain
+  publicPort: 443
+  publicScheme: https
+
+# Configuration for the web server.
+webServer:
+  port: 8082
+  publicHost: your-domain.com  # REPLACE with your actual domain
+  publicPort: 443
+  publicScheme: https
+
+# Database configuration
+# IMPORTANT: Set these via environment variables!
+database:
+  host: ${DATABASE_HOST:-localhost}
+  port: ${DATABASE_PORT:-5432}
+  name: ${DATABASE_NAME:-on_air}
+  user: ${DATABASE_USER:-on_air_app}  # Use dedicated user, not postgres!
+  requireSsl: true  # Require SSL in production
+  #isUnixSocket: false
+  maxConnectionCount: 10
+
+# Redis configuration
+redis:
+  enabled: true
+  host: ${REDIS_HOST:-localhost}
+  port: ${REDIS_PORT:-6379}
+  user: ${REDIS_USER:-default}
+  requireSsl: true  # Require SSL in production
+
+maxRequestSize: 524288  # 512KB - adjust based on needs
+
+# CORS - CRITICAL: Replace with your actual domain!
+cors:
+  allowOrigins:
+    - "https://your-domain.com"  # REPLACE with actual domain
+    - "https://www.your-domain.com"  # REPLACE with actual domain
+  allowMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowHeaders:
+    - "Content-Type"
+    - "Authorization"
+  allowCredentials: true
+
+sessionLogs:
+  persistentEnabled: true
+  consoleEnabled: false  # Disable console logs in production
+  consoleLogFormat: json  # Use JSON for log aggregation
+
+futureCallExecutionEnabled: true
+
+# Rate limiting configuration
+rateLimiting:
+  enabled: true
+  maxRequestsPerMinute: 60
+  maxRequestsPerHour: 1000
+  burstSize: 10
+
+# Security headers
+securityHeaders:
+  enabled: true
+  hsts: true
+  contentSecurityPolicy: "default-src 'self'"
+  xFrameOptions: "DENY"
+  xContentTypeOptions: "nosniff"

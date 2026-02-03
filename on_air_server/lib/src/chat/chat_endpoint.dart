@@ -94,11 +94,18 @@ class ChatEndpoint extends Endpoint {
     String name, {
     String emoji = '💬',
   }) async {
+    // Input validation
     if (name.trim().isEmpty) {
       throw Exception('Channel name cannot be empty');
     }
+    if (name.length > 100) {
+      throw Exception('Channel name too long (max 100 characters)');
+    }
+    if (emoji.length > 10) {
+      throw Exception('Emoji too long (max 10 characters)');
+    }
 
-    final channel = Channel(name: name, emoji: emoji);
+    final channel = Channel(name: name.trim(), emoji: emoji);
     final saved = await Channel.db.insertRow(session, channel);
 
     // Broadcast creation event (only if Redis is available)
@@ -208,13 +215,17 @@ class ChatEndpoint extends Endpoint {
     int channelId,
     String content,
   ) async {
+    // Input validation
     if (content.trim().isEmpty) {
       throw Exception('Note content cannot be empty');
+    }
+    if (content.length > 50000) {
+      throw Exception('Note content too long (max 50,000 characters)');
     }
 
     final note = Note(
       channelId: channelId,
-      content: content,
+      content: content.trim(),
     );
     final saved = await Note.db.insertRow(session, note);
 
@@ -282,8 +293,12 @@ class ChatEndpoint extends Endpoint {
 
   /// Updates a note's content (last-write-wins strategy).
   Future<Note> updateNote(Session session, int id, String content) async {
+    // Input validation
     if (content.trim().isEmpty) {
       throw Exception('Note content cannot be empty');
+    }
+    if (content.length > 50000) {
+      throw Exception('Note content too long (max 50,000 characters)');
     }
 
     final note = await Note.db.findById(session, id);
@@ -291,7 +306,7 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Note not found');
     }
 
-    note.content = content;
+    note.content = content.trim();
     note.updatedAt = DateTime.now();
 
     final updated = await Note.db.updateRow(session, note);

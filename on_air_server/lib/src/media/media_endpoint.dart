@@ -51,6 +51,16 @@ class MediaEndpoint extends Endpoint {
       );
     }
 
+    // Validate filename length
+    if (originalFilename.length > 255) {
+      throw Exception('Filename too long (max 255 characters)');
+    }
+
+    // Validate note content length
+    if (noteContent.length > 50000) {
+      throw Exception('Note content too long (max 50,000 characters)');
+    }
+
     // Verify channel exists
     final channel = await Channel.db.findById(session, channelId);
     if (channel == null) {
