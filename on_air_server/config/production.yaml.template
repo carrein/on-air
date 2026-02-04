@@ -5,6 +5,7 @@
 # Configuration for the main API server.
 apiServer:
   port: 8080
+  host: 0.0.0.0  # Bind to all interfaces in Docker
   publicHost: localhost  # Override with SERVERPOD_apiServer_publicHost
   publicPort: 443
   publicScheme: https
@@ -12,6 +13,7 @@ apiServer:
 # Configuration for the Insights server (optional).
 insightsServer:
   port: 8081
+  host: 0.0.0.0  # Bind to all interfaces in Docker
   publicHost: localhost
   publicPort: 443
   publicScheme: https
@@ -19,6 +21,7 @@ insightsServer:
 # Configuration for the web server (optional).
 webServer:
   port: 8082
+  host: 0.0.0.0  # Bind to all interfaces in Docker
   publicHost: localhost
   publicPort: 443
   publicScheme: https
@@ -37,7 +40,7 @@ database:
 # Redis configuration
 # Default values for Docker deployment
 redis:
-  enabled: true
+  enabled: false  # Disabled for initial deployment
   host: redis  # Docker service name
   port: 6379
   requireSsl: false  # Internal Docker network

@@ -69,8 +69,8 @@ RUN mkdir -p /app/data/media && chmod 755 /app/data/media
 # Ensure server binary is executable
 RUN chmod +x /app/server
 
-# Expose port
-EXPOSE 8080
+# Expose webServer port (8082 is the default in production.yaml)
+EXPOSE 8082
 
 # Run server with production config and migrations
 CMD ["/app/server", "--mode", "production", "--apply-migrations"]

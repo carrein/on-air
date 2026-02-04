@@ -198,7 +198,7 @@ services:
     image: ghcr.io/carrein/on_air:latest  # Adjust to your repo name
     restart: unless-stopped
     ports:
-      - "8080:8080"  # Adjust if using reverse proxy
+      - "8080:8082"  # Map host 8080 to container 8082 (webServer port)
     environment:
       # Passwords (SERVERPOD_PASSWORD_* prefix required)
       SERVERPOD_PASSWORD_database: ${ON_AIR_DB_PASSWORD}
@@ -210,10 +210,8 @@ services:
     depends_on:
       postgresql:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8082/"]
       interval: 30s
       timeout: 10s
       retries: 3
