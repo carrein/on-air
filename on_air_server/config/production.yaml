@@ -7,8 +7,8 @@
 apiServer:
   port: 8080
   host: 0.0.0.0  # Bind to all interfaces in Docker
-  publicHost: catallenya.kamori-mulley.ts.net  # Your Tailscale domain
-  publicPort: 12000  # Your actual port
+  publicHost: localhost  # Override with SERVERPOD_apiServer_publicHost
+  publicPort: 443  # Override with SERVERPOD_apiServer_publicPort
   publicScheme: https
 
 # Configuration for the Insights server (optional).
@@ -24,8 +24,8 @@ insightsServer:
 webServer:
   port: 8082
   host: 0.0.0.0  # Bind to all interfaces in Docker
-  publicHost: catallenya.kamori-mulley.ts.net  # Your Tailscale domain
-  publicPort: 12000  # Your actual port
+  publicHost: localhost  # Override with SERVERPOD_webServer_publicHost
+  publicPort: 443  # Override with SERVERPOD_webServer_publicPort
   publicScheme: https
 
 # Database configuration
