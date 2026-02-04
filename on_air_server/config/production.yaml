@@ -3,27 +3,29 @@
 # Example: SERVERPOD_database_host=myhost
 
 # Configuration for the main API server.
+# API endpoints are served at /serverpod/* and proxied through the same domain/port as webServer
 apiServer:
   port: 8080
   host: 0.0.0.0  # Bind to all interfaces in Docker
-  publicHost: localhost  # Override with SERVERPOD_apiServer_publicHost
-  publicPort: 443
+  publicHost: catallenya.kamori-mulley.ts.net  # Your Tailscale domain
+  publicPort: 443  # Standard HTTPS port (override with SERVERPOD_apiServer_publicPort if using custom port)
   publicScheme: https
 
 # Configuration for the Insights server (optional).
 insightsServer:
   port: 8081
   host: 0.0.0.0  # Bind to all interfaces in Docker
-  publicHost: localhost
+  publicHost: catallenya.kamori-mulley.ts.net
   publicPort: 443
   publicScheme: https
 
 # Configuration for the web server (optional).
+# Serves Flutter web app at /app/ through the same domain/port as apiServer
 webServer:
   port: 8082
   host: 0.0.0.0  # Bind to all interfaces in Docker
-  publicHost: localhost
-  publicPort: 443
+  publicHost: catallenya.kamori-mulley.ts.net  # Your Tailscale domain
+  publicPort: 443  # Standard HTTPS port (override with SERVERPOD_webServer_publicPort if using custom port)
   publicScheme: https
 
 # Database configuration
@@ -45,6 +47,19 @@ redis:
   requireSsl: false  # Internal Docker network
 
 maxRequestSize: 157286400 # 150MB - allows 100MB files with base64 encoding + overhead
+
+# Enable CORS for web client
+cors:
+  allowOrigins:
+    - "*"
+  allowMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowHeaders:
+    - "*"
 
 sessionLogs:
   consoleEnabled: false
