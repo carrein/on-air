@@ -1,5 +1,6 @@
 import 'package:on_air_client/on_air_client.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
@@ -17,6 +18,21 @@ import 'screens/chat_screen.dart';
 late final Client client;
 
 late String serverUrl;
+
+/// Get the server URL based on the platform.
+/// For web builds, use the same origin (since frontend and backend are served together).
+/// For mobile/desktop, use localhost or a configured URL.
+Future<String> getServerUrl() async {
+  if (kIsWeb) {
+    // On web, use the same origin where the app is served
+    // This works because Serverpod serves the Flutter web app at /app
+    // and the API is available at the root
+    return '/';  // Relative URL - browser will use same origin
+  }
+
+  // For mobile/desktop development
+  return 'http://localhost:8080/';
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
