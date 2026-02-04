@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:serverpod/serverpod.dart';
-import 'package:uuid/uuid.dart';
 import '../generated/protocol.dart';
 import 'image_processor.dart';
 import 'video_processor.dart';
@@ -110,7 +109,9 @@ class MediaEndpoint extends Endpoint {
       await mediaBaseDir.create(recursive: true);
     }
 
-    final channelDir = Directory(path.join(mediaBaseDir.path, 'channels', channelId.toString()));
+    final channelDir = Directory(
+      path.join(mediaBaseDir.path, 'channels', channelId.toString()),
+    );
     if (!await channelDir.exists()) {
       await channelDir.create(recursive: true);
     }
@@ -187,7 +188,11 @@ class MediaEndpoint extends Endpoint {
           channelId: channelId,
           content: noteContent,
         );
-        final savedNote = await Note.db.insertRow(session, newNote, transaction: transaction);
+        final savedNote = await Note.db.insertRow(
+          session,
+          newNote,
+          transaction: transaction,
+        );
 
         // Create attachment linked to note
         final relativePath = path.relative(
@@ -211,7 +216,11 @@ class MediaEndpoint extends Endpoint {
           contentHash: contentHash,
         );
 
-        await MediaAttachment.db.insertRow(session, attachment, transaction: transaction);
+        await MediaAttachment.db.insertRow(
+          session,
+          attachment,
+          transaction: transaction,
+        );
 
         // Attach to note
         savedNote.attachments = [attachment];
@@ -295,7 +304,9 @@ class MediaEndpoint extends Endpoint {
       await mediaBaseDir.create(recursive: true);
     }
 
-    final channelDir = Directory(path.join(mediaBaseDir.path, 'channels', channelId.toString()));
+    final channelDir = Directory(
+      path.join(mediaBaseDir.path, 'channels', channelId.toString()),
+    );
     if (!await channelDir.exists()) {
       await channelDir.create(recursive: true);
     }

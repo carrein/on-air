@@ -19,17 +19,20 @@ class LinkPreviewService {
   /// Returns null if the URL cannot be fetched or parsed.
   static Future<LinkPreview?> fetchPreview(String url) async {
     try {
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {'User-Agent': 'Mozilla/5.0 (compatible; OnAirBot/1.0)'},
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {'User-Agent': 'Mozilla/5.0 (compatible; OnAirBot/1.0)'},
+          )
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) return null;
 
       final document = html_parser.parse(response.body);
 
       // Extract OpenGraph or fallback to HTML meta tags
-      final title = _extractMeta(document, ['og:title', 'twitter:title']) ??
+      final title =
+          _extractMeta(document, ['og:title', 'twitter:title']) ??
           document.querySelector('title')?.text.trim();
 
       final description = _extractMeta(
@@ -38,10 +41,14 @@ class LinkPreviewService {
       );
 
       final rawImageUrl = _extractMeta(document, ['og:image', 'twitter:image']);
-      final imageUrl = rawImageUrl != null ? _makeAbsoluteUrl(rawImageUrl, url) : null;
+      final imageUrl = rawImageUrl != null
+          ? _makeAbsoluteUrl(rawImageUrl, url)
+          : null;
 
       // Validate image URL
-      final validImageUrl = imageUrl != null && _isValidUrl(imageUrl) ? imageUrl : null;
+      final validImageUrl = imageUrl != null && _isValidUrl(imageUrl)
+          ? imageUrl
+          : null;
 
       final faviconUrl = _extractFavicon(document, url);
 
@@ -61,12 +68,16 @@ class LinkPreviewService {
   /// Extract meta tag content by property or name.
   static String? _extractMeta(Document document, List<String> properties) {
     for (final prop in properties) {
-      final element = document.querySelector('meta[property="$prop"]') ??
+      final element =
+          document.querySelector('meta[property="$prop"]') ??
           document.querySelector('meta[name="$prop"]');
       final content = element?.attributes['content']
           ?.trim()
-          .replaceAll(RegExp(r'\s+'), ' ')  // Replace all whitespace with single space
-          .replaceAll('\n', '')  // Remove newlines
+          .replaceAll(
+            RegExp(r'\s+'),
+            ' ',
+          ) // Replace all whitespace with single space
+          .replaceAll('\n', '') // Remove newlines
           .replaceAll('\r', ''); // Remove carriage returns
       if (content != null && content.isNotEmpty) return content;
     }

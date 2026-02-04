@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
@@ -78,7 +79,9 @@ class ChatEndpoint extends Endpoint {
       if (attachmentsJson != null && attachmentsJson != '[]') {
         final attachmentsList = attachmentsJson as List;
         note.attachments = attachmentsList
-            .map((json) => MediaAttachment.fromJson(json as Map<String, dynamic>))
+            .map(
+              (json) => MediaAttachment.fromJson(json as Map<String, dynamic>),
+            )
             .toList();
       }
 
@@ -251,7 +254,7 @@ class ChatEndpoint extends Endpoint {
     }
 
     // Fetch link preview asynchronously (don't await)
-    _fetchLinkPreviewAsync(session, saved);
+    unawaited(_fetchLinkPreviewAsync(session, saved));
 
     return saved;
   }
@@ -361,7 +364,10 @@ class ChatEndpoint extends Endpoint {
           }
         }
       } catch (e) {
-        session.log('Failed to delete media files for attachment ${attachment.id}: $e', level: LogLevel.error);
+        session.log(
+          'Failed to delete media files for attachment ${attachment.id}: $e',
+          level: LogLevel.error,
+        );
       }
     }
 

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import 'package:serverpod_auth_idp_server/core.dart';
 import 'package:serverpod_auth_idp_server/providers/email.dart';
-import 'package:path/path.dart' as path;
 
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';

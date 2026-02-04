@@ -4,18 +4,29 @@ import 'test_tools/serverpod_test_tools.dart';
 void main() {
   withServerpod('Given Chat endpoint', (sessionBuilder, endpoints) {
     group('Channel operations', () {
-      test('getChannels returns channels sorted by updatedAt (newest first)', () async {
-        // Create test channels
-        await endpoints.chat.createChannel(sessionBuilder, 'First', emoji: '💬');
-        await endpoints.chat.createChannel(sessionBuilder, 'Second', emoji: '📝');
+      test(
+        'getChannels returns channels sorted by updatedAt (newest first)',
+        () async {
+          // Create test channels
+          await endpoints.chat.createChannel(
+            sessionBuilder,
+            'First',
+            emoji: '💬',
+          );
+          await endpoints.chat.createChannel(
+            sessionBuilder,
+            'Second',
+            emoji: '📝',
+          );
 
-        final channels = await endpoints.chat.getChannels(sessionBuilder);
+          final channels = await endpoints.chat.getChannels(sessionBuilder);
 
-        expect(channels, isNotEmpty);
-        expect(channels.length, greaterThanOrEqualTo(2));
-        // Second was created later, so it should come first
-        expect(channels.first.name, 'Second');
-      });
+          expect(channels, isNotEmpty);
+          expect(channels.length, greaterThanOrEqualTo(2));
+          // Second was created later, so it should come first
+          expect(channels.first.name, 'Second');
+        },
+      );
 
       test('createChannel adds new channel and returns it', () async {
         final channel = await endpoints.chat.createChannel(
@@ -109,7 +120,11 @@ void main() {
         await endpoints.chat.createNote(sessionBuilder, channel.id!, 'Note 1');
         await endpoints.chat.createNote(sessionBuilder, channel.id!, 'Note 2');
 
-        final notes = await endpoints.chat.getNotes(sessionBuilder, channel.id!, limit: 50);
+        final notes = await endpoints.chat.getNotes(
+          sessionBuilder,
+          channel.id!,
+          limit: 50,
+        );
 
         expect(notes.length, greaterThanOrEqualTo(2));
         expect(notes.every((n) => n.channelId == channel.id), isTrue);
@@ -125,7 +140,11 @@ void main() {
         // Create multiple notes
         await endpoints.chat.createNote(sessionBuilder, channel.id!, 'Note 1');
         await endpoints.chat.createNote(sessionBuilder, channel.id!, 'Note 2');
-        final note3 = await endpoints.chat.createNote(sessionBuilder, channel.id!, 'Note 3');
+        final note3 = await endpoints.chat.createNote(
+          sessionBuilder,
+          channel.id!,
+          'Note 3',
+        );
 
         // Get notes before note3
         final notes = await endpoints.chat.getNotes(
@@ -198,7 +217,11 @@ void main() {
 
         await endpoints.chat.deleteNote(sessionBuilder, note.id!);
 
-        final notes = await endpoints.chat.getNotes(sessionBuilder, channel.id!, limit: 50);
+        final notes = await endpoints.chat.getNotes(
+          sessionBuilder,
+          channel.id!,
+          limit: 50,
+        );
         expect(notes.any((n) => n.id == note.id), isFalse);
       });
     });
