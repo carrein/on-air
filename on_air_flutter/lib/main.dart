@@ -24,13 +24,11 @@ late String serverUrl;
 /// For mobile/desktop, use localhost or a configured URL.
 Future<String> getServerUrl() async {
   if (kIsWeb) {
-    // On web, use relative URL to apiServer
-    // Serverpod apiServer is on port 8080, needs to be exposed in docker-compose
-    // The client will call endpoints like /serverpod/chat/getChannels
-    final host = Uri.base.host;
-    final scheme = Uri.base.scheme;
-    // Note: Port 8080 must be exposed for apiServer, not just webServer port 8082
-    return '$scheme://$host:8080/';
+    // On web, use same origin (host + port) as the web app
+    // With path-based routing in Caddy, API and web server are on the same port
+    // API endpoints are routed via /serverpod/* by the reverse proxy
+    final uri = Uri.base;
+    return '${uri.scheme}://${uri.host}:${uri.port}/';
   }
 
   // For mobile/desktop development
