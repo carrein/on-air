@@ -69,8 +69,10 @@ RUN mkdir -p /app/data/media && chmod 755 /app/data/media
 # Ensure server binary is executable
 RUN chmod +x /app/server
 
-# Expose webServer port (8082 is the default in production.yaml)
-EXPOSE 8082
+# Expose both Serverpod ports
+EXPOSE 8080 8082
+# 8080: apiServer - API endpoints
+# 8082: webServer - Static files and Flutter app
 
 # Run server with production config and migrations
 CMD ["/app/server", "--mode", "production", "--apply-migrations"]

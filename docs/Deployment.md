@@ -198,7 +198,8 @@ services:
     image: ghcr.io/carrein/on_air:latest  # Adjust to your repo name
     restart: unless-stopped
     ports:
-      - "8080:8082"  # Map host 8080 to container 8082 (webServer port)
+      - "8080:8080"  # apiServer - API endpoints (required for Flutter client)
+      - "8082:8082"  # webServer - Static files and Flutter app
     environment:
       # Passwords (SERVERPOD_PASSWORD_* prefix required)
       SERVERPOD_PASSWORD_database: ${ON_AIR_DB_PASSWORD}
@@ -294,6 +295,11 @@ echo "ON_AIR_JWT_REFRESH_PEPPER=$(openssl rand -base64 32)"
 - Configuration: `production.yaml` uses Docker service names (`postgresql:5432`, `redis:6379`)
 - Passwords: Use `SERVERPOD_PASSWORD_*` environment variables for all secrets
 - Service names: Database and Redis services MUST be named `postgresql` and `redis` in docker-compose
+- **Port mapping:** BOTH ports 8080 (apiServer) and 8082 (webServer) must be exposed:
+  - Port 8080: API endpoints (e.g., `/serverpod/chat/getChannels`)
+  - Port 8082: Flutter web app (at `/app/`) and static files
+  - Access the app at: `http://your-host:8082/app/`
+  - The Flutter client will connect to `http://your-host:8080/` for API calls
 - Healthchecks ensure PostgreSQL and Redis are ready before Serverpod starts, preventing crash loops
 - `condition: service_healthy` waits for database readiness, not just container start
 - On Air service healthcheck enables reverse proxy integration and monitoring
@@ -302,27 +308,42 @@ echo "ON_AIR_JWT_REFRESH_PEPPER=$(openssl rand -base64 32)"
 
 ## Reverse Proxy Configuration
 
-If using a reverse proxy (recommended for HTTPS), you can:
+If using a reverse proxy (recommended for HTTPS), you need to handle both Serverpod ports:
 
-**Option A: Expose port and proxy to it**
+**Option A: Simple - Expose both ports to localhost and proxy both**
 ```yaml
 ports:
-  - "127.0.0.1:8080:8080"  # Only accessible from localhost
+  - "127.0.0.1:8080:8080"  # apiServer - only accessible from localhost
+  - "127.0.0.1:8082:8082"  # webServer - only accessible from localhost
 ```
 
-**Option B: Use proxy network (Traefik example)**
+Then configure your reverse proxy (Nginx/Traefik/Caddy) to:
+- Route `/app/` and static files to port 8082
+- Route `/serverpod/` API endpoints to port 8080
+- Or simply proxy both ports on different subdomains/paths
+
+**Option B: Traefik with multiple services**
 ```yaml
-# Remove ports, add Traefik labels
+# Remove ports, use Traefik network
 labels:
+  # Web server (Flutter app)
   - traefik.enable=true
-  - traefik.http.routers.on_air.rule=Host(`onair.example.com`)
-  - traefik.http.routers.on_air.entrypoints=websecure
-  - traefik.http.routers.on_air.tls.certresolver=letsencrypt
-  - traefik.http.services.on_air.loadbalancer.server.port=8080
+  - traefik.http.routers.on_air_web.rule=Host(`onair.example.com`)
+  - traefik.http.routers.on_air_web.entrypoints=websecure
+  - traefik.http.routers.on_air_web.tls.certresolver=letsencrypt
+  - traefik.http.services.on_air_web.loadbalancer.server.port=8082
+
+  # API server (Serverpod endpoints)
+  - traefik.http.routers.on_air_api.rule=Host(`onair.example.com`) && PathPrefix(`/serverpod`)
+  - traefik.http.routers.on_air_api.entrypoints=websecure
+  - traefik.http.routers.on_air_api.tls.certresolver=letsencrypt
+  - traefik.http.services.on_air_api.loadbalancer.server.port=8080
 networks:
   - traefik_proxy
   - on_air_network
 ```
+
+**Note:** The Flutter client needs to know the apiServer URL. Update `on_air_flutter/lib/main.dart` if using custom routing.
 
 ## Deployment Steps
 

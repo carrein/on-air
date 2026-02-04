@@ -38,6 +38,7 @@ docker build -t on_air:test .
 # Run with test environment
 docker run --rm \
   -p 8080:8080 \
+  -p 8082:8082 \
   -e DATABASE_HOST=host.docker.internal \
   -e DATABASE_PORT=5432 \
   -e DATABASE_NAME=on_air \
@@ -53,8 +54,9 @@ docker run --rm \
   -e JWT_REFRESH_PEPPER=$(openssl rand -base64 32) \
   on_air:test
 
-# Test healthcheck
-curl http://localhost:8080/
+# Test healthcheck and access points
+curl http://localhost:8082/           # webServer (Flutter app)
+curl http://localhost:8080/serverpod/ # apiServer (API endpoints)
 ```
 
 ## Release Process
@@ -82,6 +84,9 @@ services:
   on_air:
     image: ghcr.io/carrein/on_air:latest
     restart: unless-stopped
+    ports:
+      - "8080:8080"  # apiServer - API endpoints
+      - "8082:8082"  # webServer - Flutter app and static files
     environment:
       # Passwords use SERVERPOD_PASSWORD_* prefix
       SERVERPOD_PASSWORD_database: ${ON_AIR_DB_PASSWORD}
@@ -96,13 +101,14 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8082/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
   # Note: Services MUST be named 'postgresql' and 'redis' to match production.yaml
+  # Access the app at: http://your-host:8082/app/
 ```
 
 ## Troubleshooting
@@ -130,8 +136,9 @@ docker exec -i on_air_postgresql psql -U on_air_user -d on_air < backup.sql
 
 **Healthcheck failing:**
 ```bash
-# Test endpoint manually
-docker exec on_air curl -v http://localhost:8080/
+# Test endpoints manually
+docker exec on_air curl -v http://localhost:8082/           # webServer
+docker exec on_air curl -v http://localhost:8080/serverpod/ # apiServer
 
 # Check if server is running
 docker exec on_air ps aux

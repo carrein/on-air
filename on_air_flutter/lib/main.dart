@@ -24,10 +24,13 @@ late String serverUrl;
 /// For mobile/desktop, use localhost or a configured URL.
 Future<String> getServerUrl() async {
   if (kIsWeb) {
-    // On web, use the same origin where the app is served
-    // This works because Serverpod serves the Flutter web app at /app
-    // and the API is available at the root
-    return '/';  // Relative URL - browser will use same origin
+    // On web, use relative URL to apiServer
+    // Serverpod apiServer is on port 8080, needs to be exposed in docker-compose
+    // The client will call endpoints like /serverpod/chat/getChannels
+    final host = Uri.base.host;
+    final scheme = Uri.base.scheme;
+    // Note: Port 8080 must be exposed for apiServer, not just webServer port 8082
+    return '$scheme://$host:8080/';
   }
 
   // For mobile/desktop development
