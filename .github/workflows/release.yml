@@ -19,7 +19,6 @@ jobs:
       # Set up Flutter (includes Dart, needed for serverpod generate)
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 'stable'
           channel: 'stable'
 
       # Generate Serverpod code (required for on_air_client)
