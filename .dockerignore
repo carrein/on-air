@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dart/Flutter build artifacts
+**/.dart_tool/
+**/build/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+
+# Server specific
+on_air_server/docker-compose.yaml
+on_air_server/.dockerignore
+
+# Development databases
+on_air_server/data/
+
+# Config templates (we copy actual configs)
+on_air_server/config/*.template
+
+# Test files
+**/test/
+**/*_test.dart
+
+# Logs
+*.log

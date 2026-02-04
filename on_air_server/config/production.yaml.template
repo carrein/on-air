@@ -1,48 +1,48 @@
 # Production configuration template
-# Copy this to production.yaml and customize for your deployment
-# Use environment variables for all secrets!
+# Copy this to production.yaml for Docker deployment
+# Override values using SERVERPOD_* environment variables if needed
 
 # Configuration for the main API server.
 apiServer:
   port: 8080
-  publicHost: your-domain.com  # REPLACE with your actual domain
-  publicPort: 443  # Use 443 for HTTPS
-  publicScheme: https  # Always use HTTPS in production
-
-# Configuration for the Insights server.
-insightsServer:
-  port: 8081
-  publicHost: insights.your-domain.com  # REPLACE with your actual domain
+  publicHost: localhost  # Override with SERVERPOD_apiServer_publicHost
   publicPort: 443
   publicScheme: https
 
-# Configuration for the web server.
+# Configuration for the Insights server (optional).
+insightsServer:
+  port: 8081
+  publicHost: localhost
+  publicPort: 443
+  publicScheme: https
+
+# Configuration for the web server (optional).
 webServer:
   port: 8082
-  publicHost: your-domain.com  # REPLACE with your actual domain
+  publicHost: localhost
   publicPort: 443
   publicScheme: https
 
 # Database configuration
-# IMPORTANT: Set these via environment variables!
+# Default values for Docker deployment
+# Service name 'postgresql' resolves in docker-compose network
 database:
-  host: ${DATABASE_HOST:-localhost}
-  port: ${DATABASE_PORT:-5432}
-  name: ${DATABASE_NAME:-on_air}
-  user: ${DATABASE_USER:-on_air_app}  # Use dedicated user, not postgres!
-  requireSsl: true  # Require SSL in production
-  #isUnixSocket: false
+  host: postgresql  # Docker service name
+  port: 5432
+  name: on_air
+  user: on_air_user
+  requireSsl: false  # Internal Docker network
   maxConnectionCount: 10
 
 # Redis configuration
+# Default values for Docker deployment
 redis:
   enabled: true
-  host: ${REDIS_HOST:-localhost}
-  port: ${REDIS_PORT:-6379}
-  user: ${REDIS_USER:-default}
-  requireSsl: true  # Require SSL in production
+  host: redis  # Docker service name
+  port: 6379
+  requireSsl: false  # Internal Docker network
 
-maxRequestSize: 57671680  # 55MB - allows 50MB file uploads with overhead
+maxRequestSize: 157286400  # 150MB - allows 100MB files with base64 encoding + overhead
 
 # CORS - CRITICAL: Replace with your actual domain!
 cors:
