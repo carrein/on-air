@@ -22,7 +22,7 @@ class LinkPreviewService {
       final response = await http
           .get(
             Uri.parse(url),
-            headers: {'User-Agent': 'Mozilla/5.0 (compatible; OnAirBot/1.0)'},
+            headers: {'User-Agent': 'Mozilla/5.0 (compatible; MemokaBot/1.0)'},
           )
           .timeout(const Duration(seconds: 10));
 

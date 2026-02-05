@@ -90,7 +90,7 @@ Set these in your production docker-compose.yaml:
 ```yaml
 services:
   memoka:
-    image: ghcr.io/carrein/on-air:latest
+    image: ghcr.io/carrein/memoka:latest
     environment:
       # Passwords
       SERVERPOD_PASSWORD_database: ${MEMOKA_DB_PASSWORD}

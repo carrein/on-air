@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for On Air
+# Multi-stage Dockerfile for Memoka
 # Stage 1: Build Flutter web app
 # Stage 2: Build Serverpod server
 # Stage 3: Runtime

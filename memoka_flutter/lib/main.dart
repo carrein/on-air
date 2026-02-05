@@ -24,10 +24,16 @@ late String serverUrl;
 /// For mobile/desktop, use localhost or a configured URL.
 Future<String> getServerUrl() async {
   if (kIsWeb) {
-    // On web, use same origin (host + port) as the web app
-    // With path-based routing in Caddy, API and web server are on the same port
-    // API endpoints are routed via /serverpod/* by the reverse proxy
     final uri = Uri.base;
+
+    // In development (localhost), always connect to API server on port 8080
+    // even if the web app is served from port 8082
+    if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
+      return 'http://localhost:8080/';
+    }
+
+    // In production with reverse proxy, use same origin (host + port)
+    // API endpoints are routed via path-based routing by the reverse proxy
     return '${uri.scheme}://${uri.host}:${uri.port}/';
   }
 
@@ -64,7 +70,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'On Air',
+      title: 'Memoka',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,

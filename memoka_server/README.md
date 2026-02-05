@@ -1,4 +1,4 @@
-# on_air_server
+# memoka_server
 
 This is the starting point for your Serverpod server.
 

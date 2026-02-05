@@ -328,13 +328,13 @@ Then configure your reverse proxy (Nginx/Traefik/Caddy) to:
 labels:
   # Web server (Flutter app)
   - traefik.enable=true
-  - traefik.http.routers.memoka_web.rule=Host(`onair.example.com`)
+  - traefik.http.routers.memoka_web.rule=Host(`memoka.example.com`)
   - traefik.http.routers.memoka_web.entrypoints=websecure
   - traefik.http.routers.memoka_web.tls.certresolver=letsencrypt
   - traefik.http.services.memoka_web.loadbalancer.server.port=8082
 
   # API server (Serverpod endpoints)
-  - traefik.http.routers.memoka_api.rule=Host(`onair.example.com`) && PathPrefix(`/serverpod`)
+  - traefik.http.routers.memoka_api.rule=Host(`memoka.example.com`) && PathPrefix(`/serverpod`)
   - traefik.http.routers.memoka_api.entrypoints=websecure
   - traefik.http.routers.memoka_api.tls.certresolver=letsencrypt
   - traefik.http.services.memoka_api.loadbalancer.server.port=8080

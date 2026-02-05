@@ -32,8 +32,8 @@ webServer:
 database:
   host: postgresql  # Docker service name
   port: 5432
-  name: on_air
-  user: on_air_user
+  name: memoka
+  user: memoka_user
   requireSsl: false  # Internal Docker network
   maxConnectionCount: 10
 
