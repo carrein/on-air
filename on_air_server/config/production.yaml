@@ -41,7 +41,7 @@ database:
 # Redis configuration
 # Override with SERVERPOD_redis_* environment variables
 redis:
-  enabled: false  # Disabled for initial deployment
+  enabled: true  # Required for real-time MessageCentral broadcasts
   host: redis  # Docker service name
   port: 6379
   requireSsl: false  # Internal Docker network
