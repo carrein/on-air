@@ -13,11 +13,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-On Air is a real-time chat-style notes application for organizing thoughts in topical channels. Built with Serverpod (v3.2.3), consisting of three main packages:
+Memoka is a real-time chat-style notes application for organizing thoughts in topical channels. Built with Serverpod (v3.2.3), consisting of three main packages:
 
-- **on_air_server**: Serverpod backend server (Dart)
-- **on_air_client**: Generated client library (Dart)
-- **on_air_flutter**: Flutter mobile/web application
+- **memoka_server**: Serverpod backend server (Dart)
+- **memoka_client**: Generated client library (Dart)
+- **memoka_flutter**: Flutter mobile/web application
 
 Key features:
 - Real-time WebSocket updates via MessageCentral
@@ -32,19 +32,19 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 
 ### Three-Tier Structure
 
-1. **Server Layer** (`on_air_server/`)
+1. **Server Layer** (`memoka_server/`)
    - Endpoints define the server API in `lib/src/*_endpoint.dart`
    - Protocol models are defined in `.spy.yaml` files (e.g., `lib/src/greetings/greeting.spy.yaml`)
    - Generated code lives in `lib/src/generated/` and should NEVER be manually edited
    - Server entry point: `lib/server.dart` initializes Serverpod, auth services, and web routes
 
-2. **Client Layer** (`on_air_client/`)
+2. **Client Layer** (`memoka_client/`)
    - Auto-generated from server code via `serverpod generate`
    - Provides type-safe API to call server endpoints
    - Code in this package is mostly generated; manual edits are rare
 
-3. **Flutter App** (`on_air_flutter/`)
-   - Uses `on_air_client` to communicate with the server
+3. **Flutter App** (`memoka_flutter/`)
+   - Uses `memoka_client` to communicate with the server
    - Client instance initialized in `lib/main.dart` with server URL from `assets/config.json`
    - Authentication support via `serverpod_auth_idp_flutter`
 
@@ -56,11 +56,11 @@ Serverpod uses code generation extensively. When you modify:
 - Protocol models in `*.spy.yaml`
 - Database table definitions
 
-You MUST run `serverpod generate` from the `on_air_server/` directory to regenerate:
+You MUST run `serverpod generate` from the `memoka_server/` directory to regenerate:
 
 - Protocol classes (`lib/src/generated/protocol.dart`)
 - Endpoint dispatchers (`lib/src/generated/endpoints.dart`)
-- Client code in `on_air_client/`
+- Client code in `memoka_client/`
 - Test helpers
 
 **Never manually edit files in `lib/src/generated/` directories.**
@@ -76,15 +76,15 @@ You MUST run `serverpod generate` from the `on_air_server/` directory to regener
 
 - PostgreSQL (with pgvector extension) on port 8090 (dev) / 9090 (test)
 - Redis on port 8091 (dev) / 9091 (test)
-- Managed via Docker Compose (`on_air_server/docker-compose.yaml`)
+- Managed via Docker Compose (`memoka_server/docker-compose.yaml`)
 - Separate containers for development and testing
-- Migrations stored in `on_air_server/migrations/` with registry in `migration_registry.txt`
+- Migrations stored in `memoka_server/migrations/` with registry in `migration_registry.txt`
 
 ## Common Commands
 
 ### Server Development
 
-From `on_air_server/`:
+From `memoka_server/`:
 
 ```bash
 # Start database services (REQUIRED before running server)
@@ -117,7 +117,7 @@ docker compose down -v
 
 ### Flutter Development
 
-From `on_air_flutter/`:
+From `memoka_flutter/`:
 
 ```bash
 # Install dependencies
@@ -127,9 +127,9 @@ flutter pub get
 flutter run
 
 # Build web app and copy to server's web directory
-# (Run from on_air_server directory)
-cd ../on_air_flutter
-flutter build web --base-href /app/ --wasm --output ../on_air_server/web/app
+# (Run from memoka_server directory)
+cd ../memoka_flutter
+flutter build web --base-href /app/ --wasm --output ../memoka_server/web/app
 ```
 
 ### Testing
@@ -155,7 +155,7 @@ withServerpod('Given Example endpoint', (sessionBuilder, endpoints) {
 ## Development Workflow
 
 1. **Adding a new endpoint**:
-   - Create `*_endpoint.dart` file in `on_air_server/lib/src/`
+   - Create `*_endpoint.dart` file in `memoka_server/lib/src/`
    - Define class extending `Endpoint` with methods
    - Run `serverpod generate` to update generated code
    - Access via `client.<endpointName>.<method>()` in Flutter
@@ -241,7 +241,7 @@ Examples:
 
 ## Current Work: Media Sidebar
 
-**Documentation**: See `/Users/carrein/Desktop/on_air/docs/media_sidebar.md` for detailed plan
+**Documentation**: See `/Users/carrein/Desktop/memoka/docs/media_sidebar.md` for detailed plan
 
 **Feature**: Right sidebar displaying all media and links from current channel
 

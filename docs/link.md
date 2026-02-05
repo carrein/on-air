@@ -13,7 +13,7 @@ The link preview feature automatically detects URLs in messages and generates ri
 ## Data Models
 
 ### LinkPreview
-Defined in `on_air_server/lib/src/chat/link_preview.spy.yaml`:
+Defined in `memoka_server/lib/src/chat/link_preview.spy.yaml`:
 
 ```yaml
 class: LinkPreview
@@ -32,7 +32,7 @@ The `Note` model includes an optional `linkPreview` field.
 ## Server-Side Implementation
 
 ### LinkPreviewService
-Location: `on_air_server/lib/src/chat/link_preview_service.dart`
+Location: `memoka_server/lib/src/chat/link_preview_service.dart`
 
 **Key methods:**
 - `extractFirstUrl(String content)` - Extracts the first fully qualified URL using regex
@@ -47,7 +47,7 @@ Location: `on_air_server/lib/src/chat/link_preview_service.dart`
 3. Standard HTML meta tags and `<title>`
 
 ### ChatEndpoint Integration
-Location: `on_air_server/lib/src/chat/chat_endpoint.dart`
+Location: `memoka_server/lib/src/chat/chat_endpoint.dart`
 
 **Flow:**
 1. User sends note with URL
@@ -59,12 +59,12 @@ Location: `on_air_server/lib/src/chat/chat_endpoint.dart`
 ## Client-Side Implementation
 
 ### Link Preview Card
-Location: `on_air_flutter/lib/widgets/link_preview_card.dart`
+Location: `memoka_flutter/lib/widgets/link_preview_card.dart`
 
 Displays preview as a Material card with image, title, description, and domain.
 
 ### Input Bar Preview
-Location: `on_air_flutter/lib/widgets/input_link_preview.dart`
+Location: `memoka_flutter/lib/widgets/input_link_preview.dart`
 
 Shows a simple "Link detected" banner above the input bar.
 

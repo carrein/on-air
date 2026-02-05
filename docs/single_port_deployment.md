@@ -11,8 +11,8 @@ Browser → https://your-domain.com:12000/
          ↓
     Caddy (path-based routing)
          ↓
-    /app/* → on_air:8082 (Web Server - Flutter app)
-    /chat, /auth, etc. → on_air:8080 (API Server - Serverpod endpoints)
+    /app/* → memoka:8082 (Web Server - Flutter app)
+    /chat, /auth, etc. → memoka:8080 (API Server - Serverpod endpoints)
 ```
 
 ## Key Changes Made
@@ -64,19 +64,19 @@ webServer:
 **Critical**: Order matters! Match `/app/*` first, then route everything else to API.
 
 ```caddyfile
-{$TAILNET_DOMAIN}.{$TAILNET_DNS_NAME}:{$ON_AIR_REVERSE_PROXY_PORT} {
+{$TAILNET_DOMAIN}.{$TAILNET_DNS_NAME}:{$MEMOKA_REVERSE_PROXY_PORT} {
   # Redirect root to /app/
   redir / /app/ 308
 
   # Web app and static files (MUST come first)
   handle /app/* {
-    reverse_proxy on_air:8082
+    reverse_proxy memoka:8082
     header Cross-Origin-Resource-Policy cross-origin
   }
 
   # Everything else goes to API server (/chat, /auth, etc.)
   handle {
-    reverse_proxy on_air:8080
+    reverse_proxy memoka:8080
   }
 }
 ```
@@ -89,16 +89,16 @@ Set these in your production docker-compose.yaml:
 
 ```yaml
 services:
-  on_air:
+  memoka:
     image: ghcr.io/carrein/on-air:latest
     environment:
       # Passwords
-      SERVERPOD_PASSWORD_database: ${ON_AIR_DB_PASSWORD}
+      SERVERPOD_PASSWORD_database: ${MEMOKA_DB_PASSWORD}
       SERVERPOD_PASSWORD_redis: ""
-      SERVERPOD_PASSWORD_serviceSecret: ${ON_AIR_SERVICE_SECRET}
-      SERVERPOD_PASSWORD_emailSecretHashPepper: ${ON_AIR_EMAIL_PEPPER}
-      SERVERPOD_PASSWORD_jwtHmacSha512PrivateKey: ${ON_AIR_JWT_KEY}
-      SERVERPOD_PASSWORD_jwtRefreshTokenHashPepper: ${ON_AIR_JWT_REFRESH_PEPPER}
+      SERVERPOD_PASSWORD_serviceSecret: ${MEMOKA_SERVICE_SECRET}
+      SERVERPOD_PASSWORD_emailSecretHashPepper: ${MEMOKA_EMAIL_PEPPER}
+      SERVERPOD_PASSWORD_jwtHmacSha512PrivateKey: ${MEMOKA_JWT_KEY}
+      SERVERPOD_PASSWORD_jwtRefreshTokenHashPepper: ${MEMOKA_JWT_REFRESH_PEPPER}
 
       # Public URL configuration (set to your actual domain/port)
       SERVERPOD_apiServer_publicHost: "your-domain.ts.net"
@@ -160,18 +160,18 @@ header Cross-Origin-Resource-Policy cross-origin
 
 **Fix**:
 ```bash
-docker compose pull on_air
-docker compose up -d on_air
+docker compose pull memoka
+docker compose up -d memoka
 ```
 
 ## How It Works
 
 1. **User accesses**: `https://your-domain.ts.net:12000/app/`
-2. **Caddy serves**: Flutter web app from `on_air:8082`
+2. **Caddy serves**: Flutter web app from `memoka:8082`
 3. **Browser loads**: Flutter JavaScript
 4. **Flutter calls**: `getServerUrl()` which returns `https://your-domain.ts.net:12000/`
 5. **API request**: `https://your-domain.ts.net:12000/chat` (POST)
-6. **Caddy routes**: `/chat` → `on_air:8080` (API server)
+6. **Caddy routes**: `/chat` → `memoka:8080` (API server)
 7. **Response**: Success! ✨
 
 ## Benefits
@@ -185,8 +185,8 @@ docker compose up -d on_air
 
 ## Files Changed
 
-1. `on_air_flutter/lib/main.dart` - Dynamic port detection
-2. `on_air_server/config/production.yaml` - Environment variable support
+1. `memoka_flutter/lib/main.dart` - Dynamic port detection
+2. `memoka_server/config/production.yaml` - Environment variable support
 3. Server Caddyfile - Path-based routing
 4. Server docker-compose.yaml - Environment variables
 
@@ -197,8 +197,8 @@ docker compose up -d on_air
 - [ ] Set environment variables in docker-compose.yaml
 - [ ] Update Caddyfile with path-based routing
 - [ ] Reload Caddy: `docker exec caddy caddy reload --config /etc/caddy/Caddyfile`
-- [ ] Pull new image: `docker compose pull on_air`
-- [ ] Restart container: `docker compose up -d on_air`
+- [ ] Pull new image: `docker compose pull memoka`
+- [ ] Restart container: `docker compose up -d memoka`
 - [ ] Hard refresh browser (Ctrl+Shift+R)
 - [ ] Test: Login and verify API calls work
 

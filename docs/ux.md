@@ -1,7 +1,7 @@
 # UX Design Guidelines
 
 ## Overview
-This document captures the user experience design decisions for the On Air application, focusing on interaction patterns, visual styling, and behavior.
+This document captures the user experience design decisions for the Memoka application, focusing on interaction patterns, visual styling, and behavior.
 
 ## Sidebar Design
 

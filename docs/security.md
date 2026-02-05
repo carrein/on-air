@@ -1,6 +1,6 @@
 # Security Documentation
 
-This document outlines security considerations, best practices, and incident notes for the On Air application.
+This document outlines security considerations, best practices, and incident notes for the Memoka application.
 
 ## Table of Contents
 
@@ -22,7 +22,7 @@ This document outlines security considerations, best practices, and incident not
 
 **What Happened:**
 - GitGuardian detected Redis CLI password exposed in GitHub repository
-- File: `on_air_server/config/passwords.yaml`
+- File: `memoka_server/config/passwords.yaml`
 - The file contained development, test, staging, and production secrets
 - File was committed to version control despite inline warning: "Note that this file should not be under version control"
 
@@ -64,7 +64,7 @@ This document outlines security considerations, best practices, and incident not
 
 1. **Exposed Secrets in Git History**
    - Status: ACTIVE LEAK
-   - Files: `on_air_server/config/passwords.yaml`
+   - Files: `memoka_server/config/passwords.yaml`
    - Action Required: Rotate all secrets, update `.gitignore`, clean git history
 
 2. **No Authentication on Media Uploads**
@@ -123,7 +123,7 @@ Secrets include:
 ```yaml
 # ✅ GOOD: Use .gitignore
 # .gitignore
-on_air_server/config/passwords.yaml
+memoka_server/config/passwords.yaml
 *.env
 *.env.*
 .env.local
@@ -158,7 +158,7 @@ export JWT_SECRET="..."
 
 ```gitignore
 # Serverpod
-on_air_server/config/passwords.yaml
+memoka_server/config/passwords.yaml
 
 # Environment variables
 .env
@@ -400,7 +400,7 @@ cors:
 database:
   host: localhost
   port: 8090  # Non-standard port (good)
-  name: on_air
+  name: memoka
   user: postgres
   # Password in passwords.yaml (rotate after leak)
 ```
@@ -428,16 +428,16 @@ database:
 
 ```sql
 -- Create dedicated user
-CREATE USER on_air_app WITH PASSWORD 'strong_password_here';
+CREATE USER memoka_app WITH PASSWORD 'strong_password_here';
 
 -- Grant minimal permissions
-GRANT CONNECT ON DATABASE on_air TO on_air_app;
-GRANT USAGE ON SCHEMA public TO on_air_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO on_air_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO on_air_app;
+GRANT CONNECT ON DATABASE memoka TO memoka_app;
+GRANT USAGE ON SCHEMA public TO memoka_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO memoka_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO memoka_app;
 
 -- Revoke superuser access
-ALTER USER on_air_app WITH NOSUPERUSER;
+ALTER USER memoka_app WITH NOSUPERUSER;
 ```
 
 ### Redis
@@ -573,7 +573,7 @@ uuidgen
 ```
 
 **Update passwords.yaml:**
-1. Copy template: `cd on_air_server/config && cp passwords.yaml.template passwords.yaml`
+1. Copy template: `cd memoka_server/config && cp passwords.yaml.template passwords.yaml`
 2. Replace ALL placeholders with strong random values (database passwords, Redis passwords, JWT keys, service secrets, hash peppers)
 3. Verify file is in `.gitignore`: `git check-ignore passwords.yaml`
 
@@ -582,7 +582,7 @@ uuidgen
 **Install:**
 ```bash
 pip3 install pre-commit
-cd /path/to/on_air
+cd /path/to/memoka
 pre-commit install
 ```
 
@@ -606,7 +606,7 @@ Create dedicated database user (not postgres superuser):
 
 ```bash
 # Connect to PostgreSQL
-docker compose exec postgres psql -U postgres -d on_air -h localhost -p 8090
+docker compose exec postgres psql -U postgres -d memoka -h localhost -p 8090
 
 # Run security script
 \i config/create_db_user.sql
@@ -615,7 +615,7 @@ docker compose exec postgres psql -U postgres -d on_air -h localhost -p 8090
 Update `config/development.yaml`:
 ```yaml
 database:
-  user: on_air_app  # Changed from postgres
+  user: memoka_app  # Changed from postgres
 ```
 
 Update `config/passwords.yaml` with new user password and restart server.
@@ -633,11 +633,11 @@ Current enforced limits:
 | File size | 50 MB | Balance usability vs resources |
 
 Customize in respective endpoint files:
-- Channel limits: `on_air_server/lib/src/chat/chat_endpoint.dart`
-- Note limits: `on_air_server/lib/src/chat/chat_endpoint.dart`
-- File limits: `on_air_server/lib/src/media/media_endpoint.dart`
+- Channel limits: `memoka_server/lib/src/chat/chat_endpoint.dart`
+- Note limits: `memoka_server/lib/src/chat/chat_endpoint.dart`
+- File limits: `memoka_server/lib/src/media/media_endpoint.dart`
 
-After changes, run `serverpod generate` from `on_air_server/`.
+After changes, run `serverpod generate` from `memoka_server/`.
 
 ### 5. Production Environment Variables
 

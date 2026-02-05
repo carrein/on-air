@@ -1,6 +1,6 @@
-# On Air - Quick Deployment Guide
+# Memoka - Quick Deployment Guide
 
-This is a quick reference for deploying On Air. See [docs/Deployment.md](docs/Deployment.md) for the full deployment plan.
+This is a quick reference for deploying Memoka. See [docs/Deployment.md](docs/Deployment.md) for the full deployment plan.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ This is a quick reference for deploying On Air. See [docs/Deployment.md](docs/De
 Before building Docker image, verify the compiled binary works:
 
 ```bash
-cd on_air_server
+cd memoka_server
 dart compile exe bin/main.dart -o server
 ./server --mode production
 ```
@@ -26,14 +26,14 @@ Verify it finds `config/production.yaml` and starts correctly.
 
 ```bash
 # Generate Serverpod code first
-cd on_air_server
+cd memoka_server
 dart pub get
 dart pub global activate serverpod_cli 3.2.3
 serverpod generate
 cd ..
 
 # Build Docker image
-docker build -t on_air:test .
+docker build -t memoka:test .
 
 # Run with test environment
 docker run --rm \
@@ -41,8 +41,8 @@ docker run --rm \
   -p 8082:8082 \
   -e DATABASE_HOST=host.docker.internal \
   -e DATABASE_PORT=5432 \
-  -e DATABASE_NAME=on_air \
-  -e DATABASE_USER=on_air_user \
+  -e DATABASE_NAME=memoka \
+  -e DATABASE_USER=memoka_user \
   -e DATABASE_PASSWORD=test_password \
   -e REDIS_HOST=host.docker.internal \
   -e REDIS_PORT=6379 \
@@ -52,7 +52,7 @@ docker run --rm \
   -e EMAIL_SECRET_PEPPER=$(openssl rand -base64 32) \
   -e JWT_PRIVATE_KEY=$(openssl rand -base64 64) \
   -e JWT_REFRESH_PEPPER=$(openssl rand -base64 32) \
-  on_air:test
+  memoka:test
 
 # Test healthcheck and access points
 curl http://localhost:8082/           # webServer (Flutter app)
@@ -81,20 +81,20 @@ Quick reference:
 
 ```yaml
 services:
-  on_air:
-    image: ghcr.io/carrein/on_air:latest
+  memoka:
+    image: ghcr.io/carrein/memoka:latest
     restart: unless-stopped
     ports:
       - "8080:8080"  # apiServer - API endpoints
       - "8082:8082"  # webServer - Flutter app and static files
     environment:
       # Passwords use SERVERPOD_PASSWORD_* prefix
-      SERVERPOD_PASSWORD_database: ${ON_AIR_DB_PASSWORD}
+      SERVERPOD_PASSWORD_database: ${MEMOKA_DB_PASSWORD}
       SERVERPOD_PASSWORD_redis: ""
-      SERVERPOD_PASSWORD_serviceSecret: ${ON_AIR_SERVICE_SECRET}
-      SERVERPOD_PASSWORD_emailSecretHashPepper: ${ON_AIR_EMAIL_PEPPER}
-      SERVERPOD_PASSWORD_jwtHmacSha512PrivateKey: ${ON_AIR_JWT_KEY}
-      SERVERPOD_PASSWORD_jwtRefreshTokenHashPepper: ${ON_AIR_JWT_REFRESH_PEPPER}
+      SERVERPOD_PASSWORD_serviceSecret: ${MEMOKA_SERVICE_SECRET}
+      SERVERPOD_PASSWORD_emailSecretHashPepper: ${MEMOKA_EMAIL_PEPPER}
+      SERVERPOD_PASSWORD_jwtHmacSha512PrivateKey: ${MEMOKA_JWT_KEY}
+      SERVERPOD_PASSWORD_jwtRefreshTokenHashPepper: ${MEMOKA_JWT_REFRESH_PEPPER}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -116,32 +116,32 @@ services:
 **Container crashes on startup:**
 ```bash
 # Check logs
-docker logs on_air
+docker logs memoka
 
 # Check migrations
-docker exec on_air ls -la /app/migrations
+docker exec memoka ls -la /app/migrations
 
 # Connect to database manually
-docker exec -it on_air_postgresql psql -U on_air_user -d on_air
+docker exec -it memoka_postgresql psql -U memoka_user -d memoka
 ```
 
 **Migration failures:**
 ```bash
 # Create manual backup before risky migrations
-docker exec on_air_postgresql pg_dump -U on_air_user -d on_air > backup.sql
+docker exec memoka_postgresql pg_dump -U memoka_user -d memoka > backup.sql
 
 # Restore if needed
-docker exec -i on_air_postgresql psql -U on_air_user -d on_air < backup.sql
+docker exec -i memoka_postgresql psql -U memoka_user -d memoka < backup.sql
 ```
 
 **Healthcheck failing:**
 ```bash
 # Test endpoints manually
-docker exec on_air curl -v http://localhost:8082/           # webServer
-docker exec on_air curl -v http://localhost:8080/serverpod/ # apiServer
+docker exec memoka curl -v http://localhost:8082/           # webServer
+docker exec memoka curl -v http://localhost:8080/serverpod/ # apiServer
 
 # Check if server is running
-docker exec on_air ps aux
+docker exec memoka ps aux
 ```
 
 ## Files

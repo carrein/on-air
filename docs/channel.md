@@ -40,7 +40,7 @@ Channels are topical containers for notes. Each channel contains multiple notes 
 ## Implementation Details
 
 ### Smart Channel Selection
-**File**: `on_air_flutter/lib/providers/current_channel_provider.dart`
+**File**: `memoka_flutter/lib/providers/current_channel_provider.dart`
 
 Channel selection logic on app startup:
 1. Attempts to load last opened channel from SharedPreferences

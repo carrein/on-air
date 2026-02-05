@@ -1,0 +1,73 @@
+# Production configuration for Memoka
+# Override these values using SERVERPOD_* environment variables
+# Example: SERVERPOD_database_host=myhost
+
+# Configuration for the main API server.
+# API endpoints are served at /serverpod/* and proxied through the same domain/port as webServer
+apiServer:
+  port: 8080
+  host: 0.0.0.0  # Bind to all interfaces in Docker
+  publicHost: localhost  # Override with SERVERPOD_apiServer_publicHost
+  publicPort: 443  # Override with SERVERPOD_apiServer_publicPort
+  publicScheme: https
+
+# Configuration for the Insights server (optional).
+insightsServer:
+  port: 8081
+  host: 0.0.0.0  # Bind to all interfaces in Docker
+  publicHost: catallenya.kamori-mulley.ts.net
+  publicPort: 443
+  publicScheme: https
+
+# Configuration for the web server (optional).
+# Serves Flutter web app at /app/ through the same domain/port as apiServer
+webServer:
+  port: 8082
+  host: 0.0.0.0  # Bind to all interfaces in Docker
+  publicHost: localhost  # Override with SERVERPOD_webServer_publicHost
+  publicPort: 443  # Override with SERVERPOD_webServer_publicPort
+  publicScheme: https
+
+# Database configuration
+# Override with SERVERPOD_database_* environment variables
+database:
+  host: postgresql  # Docker service name
+  port: 5432
+  name: memoka
+  user: memoka_user
+  requireSsl: false  # Internal Docker network
+  maxConnectionCount: 10
+
+# Redis configuration
+# Override with SERVERPOD_redis_* environment variables
+redis:
+  enabled: true  # Required for real-time MessageCentral broadcasts
+  host: redis  # Docker service name
+  port: 6379
+  requireSsl: false  # Internal Docker network
+
+maxRequestSize: 157286400 # 150MB - allows 100MB files with base64 encoding + overhead
+
+# Enable CORS for web client
+cors:
+  allowOrigins:
+    - "*"
+  allowMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowHeaders:
+    - "*"
+
+sessionLogs:
+  consoleEnabled: false
+# persistentEnabled: true
+# consoleLogFormat: json # Defaults to "json", options are "text" or "json"
+
+# futureCallExecutionEnabled: true # Defaults to true
+
+#futureCall:
+#  concurrencyLimit: 1 # Defaults to 1, a negative or null value removes the limit
+#  scanInterval: 5000 # Unit in milliseconds, defaults to 5000

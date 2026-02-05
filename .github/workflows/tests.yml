@@ -22,26 +22,26 @@ jobs:
           flutter-version: '3.32.8'
 
       - name: Start containers
-        working-directory: on_air_server
+        working-directory: memoka_server
         run: docker compose up --build -d
 
       - name: Install dependencies
-        working-directory: on_air_server
+        working-directory: memoka_server
         run: dart pub get
 
       - name: Install Serverpod CLI
-        working-directory: on_air_server
+        working-directory: memoka_server
         run: dart pub global activate serverpod_cli $VERSION
 
       - name: Run Serverpod generator
-        working-directory: on_air_server
+        working-directory: memoka_server
         run: serverpod generate
 
       - name: Run tests
-        working-directory: on_air_server
+        working-directory: memoka_server
         run: dart test
 
       - name: Stop containers
         if: always()
-        working-directory: on_air_server
+        working-directory: memoka_server
         run: docker compose down -v

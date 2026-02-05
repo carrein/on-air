@@ -26,14 +26,14 @@ Thumbs.db
 **/.flutter-plugins-dependencies
 
 # Server specific
-on_air_server/docker-compose.yaml
-on_air_server/.dockerignore
+memoka_server/docker-compose.yaml
+memoka_server/.dockerignore
 
 # Development databases
-on_air_server/data/
+memoka_server/data/
 
 # Config templates (we copy actual configs)
-on_air_server/config/*.template
+memoka_server/config/*.template
 
 # Test files
 **/test/

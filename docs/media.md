@@ -57,7 +57,7 @@ Plan for supporting media uploads (images, future: videos, files) in the chat ap
 **Docker Volume Binding:**
 ```yaml
 services:
-  on_air_server:
+  memoka_server:
     volumes:
       - ./data/media:/app/media
 ```
@@ -1019,7 +1019,7 @@ withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
 ## Document Upload Implementation Status
 
 ### Server-Side (Completed)
-**File**: `on_air_server/lib/src/media/media_endpoint.dart`
+**File**: `memoka_server/lib/src/media/media_endpoint.dart`
 
 Implemented features:
 - Document MIME type support (PDF, TXT, MD, DOC, DOCX, XLS, XLSX, ZIP)
@@ -1060,7 +1060,7 @@ Implemented features:
    - Route to appropriate dialog based on detected file type
 
 **Dependencies:**
-- Add `file_picker: ^8.1.4` to `on_air_flutter/pubspec.yaml` (already added)
+- Add `file_picker: ^8.1.4` to `memoka_flutter/pubspec.yaml` (already added)
 
 ## Related Files
 
@@ -1082,5 +1082,5 @@ Implemented features:
 - `lib/providers/media_provider.dart`
 
 ### Infrastructure
-- `on_air_server/docker-compose.yaml`
+- `memoka_server/docker-compose.yaml`
 - `migrations/`

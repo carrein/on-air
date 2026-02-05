@@ -1,6 +1,6 @@
 # Deployment Plan
 
-This document outlines the deployment strategy for On Air as a self-hosted service.
+This document outlines the deployment strategy for Memoka as a self-hosted service.
 
 ## Architecture Decision
 
@@ -11,11 +11,11 @@ The server and frontend should be combined into a single Docker container becaus
 1. The Serverpod server already serves the Flutter web app from `/app` route
 2. Simpler deployment and CI/CD pipeline
 3. No CORS or routing complexity between separate services
-4. Matches the existing development workflow where Flutter web is built into `on_air_server/web/app/`
+4. Matches the existing development workflow where Flutter web is built into `memoka_server/web/app/`
 5. Appropriate for the application scale and self-hosting use case
 
 **Total Services:**
-- `on_air` - Combined Serverpod backend + Flutter web frontend (we build)
+- `memoka` - Combined Serverpod backend + Flutter web frontend (we build)
 - `postgresql` - Database (you provide in hosting docker-compose)
 - `redis` - Cache (you provide in hosting docker-compose)
 
@@ -25,7 +25,7 @@ Create a multi-stage Dockerfile at repository root:
 
 **Stage 1: Flutter Web Build**
 - Use `ghcr.io/cirruslabs/flutter:stable` base image
-- Copy `on_air_flutter/` and `on_air_client/` directories (client needed for pubspec dependency)
+- Copy `memoka_flutter/` and `memoka_client/` directories (client needed for pubspec dependency)
 - Run `flutter pub get`
 - Build web app with `flutter build web --release --base-href /app/`
 - Output: `build/web/` directory
@@ -33,11 +33,11 @@ Create a multi-stage Dockerfile at repository root:
 
 **Stage 2: Serverpod Server Build**
 - Use `dart:stable` base image
-- Copy `on_air_server/` directory
-- Copy generated client library `on_air_client/` (needed for server dependencies)
+- Copy `memoka_server/` directory
+- Copy generated client library `memoka_client/` (needed for server dependencies)
   - **Note:** Ensure `serverpod generate` has been run before Docker build, or add generation step here
 - Run `dart pub get` in both directories
-- Copy Flutter web build from Stage 1 into `on_air_server/web/app/`
+- Copy Flutter web build from Stage 1 into `memoka_server/web/app/`
 - Compile server with `dart compile exe bin/main.dart -o server`
 
 **Stage 3: Runtime**
@@ -75,7 +75,7 @@ Create a multi-stage Dockerfile at repository root:
 - Healthcheck requires `curl` to be available in the runtime image
 - **Critical:** Test compiled binary locally before deploying to verify path resolution:
   ```bash
-  cd on_air_server
+  cd memoka_server
   dart compile exe bin/main.dart -o server
   ./server --mode production --apply-migrations
   ```
@@ -131,10 +131,10 @@ jobs:
         with:
           sdk: stable
 
-      # Generate Serverpod code (required for on_air_client)
+      # Generate Serverpod code (required for memoka_client)
       - name: Generate Serverpod code
         run: |
-          cd on_air_server
+          cd memoka_server
           dart pub get
           dart pub global activate serverpod_cli 3.2.3
           serverpod generate
@@ -193,21 +193,21 @@ This is an example configuration for your hosting server's `docker-compose.yml`:
 version: '3.8'
 
 services:
-  on_air:
-    container_name: on_air
-    image: ghcr.io/carrein/on_air:latest  # Adjust to your repo name
+  memoka:
+    container_name: memoka
+    image: ghcr.io/carrein/memoka:latest  # Adjust to your repo name
     restart: unless-stopped
     ports:
       - "8080:8080"  # apiServer - API endpoints (required for Flutter client)
       - "8082:8082"  # webServer - Static files and Flutter app
     environment:
       # Passwords (SERVERPOD_PASSWORD_* prefix required)
-      SERVERPOD_PASSWORD_database: ${ON_AIR_DB_PASSWORD}
+      SERVERPOD_PASSWORD_database: ${MEMOKA_DB_PASSWORD}
       SERVERPOD_PASSWORD_redis: ""  # Empty for no password
-      SERVERPOD_PASSWORD_serviceSecret: ${ON_AIR_SERVICE_SECRET}
-      SERVERPOD_PASSWORD_emailSecretHashPepper: ${ON_AIR_EMAIL_PEPPER}
-      SERVERPOD_PASSWORD_jwtHmacSha512PrivateKey: ${ON_AIR_JWT_KEY}
-      SERVERPOD_PASSWORD_jwtRefreshTokenHashPepper: ${ON_AIR_JWT_REFRESH_PEPPER}
+      SERVERPOD_PASSWORD_serviceSecret: ${MEMOKA_SERVICE_SECRET}
+      SERVERPOD_PASSWORD_emailSecretHashPepper: ${MEMOKA_EMAIL_PEPPER}
+      SERVERPOD_PASSWORD_jwtHmacSha512PrivateKey: ${MEMOKA_JWT_KEY}
+      SERVERPOD_PASSWORD_jwtRefreshTokenHashPepper: ${MEMOKA_JWT_REFRESH_PEPPER}
     depends_on:
       postgresql:
         condition: service_healthy
@@ -218,79 +218,79 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - on_air_network
+      - memoka_network
     labels:
       - flame.type=application
-      - flame.name=On Air
-      - flame.url=https://${ON_AIR_PUBLIC_HOST}
+      - flame.name=Memoka
+      - flame.url=https://${MEMOKA_PUBLIC_HOST}
       - flame.icon=custom
       - com.centurylinklabs.watchtower.enable=true
 
   postgresql:
-    container_name: on_air_postgresql
+    container_name: memoka_postgresql
     image: pgvector/pgvector:pg17  # Includes pgvector extension
     restart: unless-stopped
     environment:
-      POSTGRES_USER: on_air_user
-      POSTGRES_PASSWORD: ${ON_AIR_DB_PASSWORD}
-      POSTGRES_DB: on_air
+      POSTGRES_USER: memoka_user
+      POSTGRES_PASSWORD: ${MEMOKA_DB_PASSWORD}
+      POSTGRES_DB: memoka
     volumes:
-      - on_air_postgres_data:/var/lib/postgresql/data
+      - memoka_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U on_air_user -d on_air"]
+      test: ["CMD-SHELL", "pg_isready -U memoka_user -d memoka"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - on_air_network
+      - memoka_network
 
   redis:
-    container_name: on_air_redis
+    container_name: memoka_redis
     image: redis:7-alpine
     restart: unless-stopped
     # No password for VPN-protected environment
     # Add --requirepass ${REDIS_PASSWORD} if you want password auth
     volumes:
-      - on_air_redis_data:/data
+      - memoka_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - on_air_network
+      - memoka_network
 
 networks:
-  on_air_network:
+  memoka_network:
     driver: bridge
 
 volumes:
-  on_air_postgres_data:
-  on_air_redis_data:
+  memoka_postgres_data:
+  memoka_redis_data:
 ```
 
 **Environment Variables (.env file):**
 ```env
 # Database password
-ON_AIR_DB_PASSWORD=your_secure_database_password
+MEMOKA_DB_PASSWORD=your_secure_database_password
 
 # Authentication secrets (generate with commands below)
-ON_AIR_SERVICE_SECRET=your_service_secret_here
-ON_AIR_EMAIL_PEPPER=your_email_pepper_here
-ON_AIR_JWT_KEY=your_jwt_private_key_here
-ON_AIR_JWT_REFRESH_PEPPER=your_jwt_refresh_pepper_here
+MEMOKA_SERVICE_SECRET=your_service_secret_here
+MEMOKA_EMAIL_PEPPER=your_email_pepper_here
+MEMOKA_JWT_KEY=your_jwt_private_key_here
+MEMOKA_JWT_REFRESH_PEPPER=your_jwt_refresh_pepper_here
 ```
 
 **Generate secrets:**
 ```bash
-echo "ON_AIR_SERVICE_SECRET=$(openssl rand -base64 32)"
-echo "ON_AIR_EMAIL_PEPPER=$(openssl rand -base64 32)"
-echo "ON_AIR_JWT_KEY=$(openssl rand -base64 64)"
-echo "ON_AIR_JWT_REFRESH_PEPPER=$(openssl rand -base64 32)"
+echo "MEMOKA_SERVICE_SECRET=$(openssl rand -base64 32)"
+echo "MEMOKA_EMAIL_PEPPER=$(openssl rand -base64 32)"
+echo "MEMOKA_JWT_KEY=$(openssl rand -base64 64)"
+echo "MEMOKA_JWT_REFRESH_PEPPER=$(openssl rand -base64 32)"
 ```
 
 **Notes:**
-- Using `pgvector/pgvector:pg17` for PostgreSQL because On Air uses pgvector extension
+- Using `pgvector/pgvector:pg17` for PostgreSQL because Memoka uses pgvector extension
 - Redis runs without password in VPN environment (empty string for `SERVERPOD_PASSWORD_redis`)
 - Configuration: `production.yaml` uses Docker service names (`postgresql:5432`, `redis:6379`)
 - Passwords: Use `SERVERPOD_PASSWORD_*` environment variables for all secrets
@@ -302,7 +302,7 @@ echo "ON_AIR_JWT_REFRESH_PEPPER=$(openssl rand -base64 32)"
   - The Flutter client will connect to `http://your-host:8080/` for API calls
 - Healthchecks ensure PostgreSQL and Redis are ready before Serverpod starts, preventing crash loops
 - `condition: service_healthy` waits for database readiness, not just container start
-- On Air service healthcheck enables reverse proxy integration and monitoring
+- Memoka service healthcheck enables reverse proxy integration and monitoring
 - Watchtower will auto-update when new `latest` tag is pushed
 - If using reverse proxy (Traefik/Nginx), adjust port mapping and add proxy labels
 
@@ -328,22 +328,22 @@ Then configure your reverse proxy (Nginx/Traefik/Caddy) to:
 labels:
   # Web server (Flutter app)
   - traefik.enable=true
-  - traefik.http.routers.on_air_web.rule=Host(`onair.example.com`)
-  - traefik.http.routers.on_air_web.entrypoints=websecure
-  - traefik.http.routers.on_air_web.tls.certresolver=letsencrypt
-  - traefik.http.services.on_air_web.loadbalancer.server.port=8082
+  - traefik.http.routers.memoka_web.rule=Host(`onair.example.com`)
+  - traefik.http.routers.memoka_web.entrypoints=websecure
+  - traefik.http.routers.memoka_web.tls.certresolver=letsencrypt
+  - traefik.http.services.memoka_web.loadbalancer.server.port=8082
 
   # API server (Serverpod endpoints)
-  - traefik.http.routers.on_air_api.rule=Host(`onair.example.com`) && PathPrefix(`/serverpod`)
-  - traefik.http.routers.on_air_api.entrypoints=websecure
-  - traefik.http.routers.on_air_api.tls.certresolver=letsencrypt
-  - traefik.http.services.on_air_api.loadbalancer.server.port=8080
+  - traefik.http.routers.memoka_api.rule=Host(`onair.example.com`) && PathPrefix(`/serverpod`)
+  - traefik.http.routers.memoka_api.entrypoints=websecure
+  - traefik.http.routers.memoka_api.tls.certresolver=letsencrypt
+  - traefik.http.services.memoka_api.loadbalancer.server.port=8080
 networks:
   - traefik_proxy
-  - on_air_network
+  - memoka_network
 ```
 
-**Note:** The Flutter client needs to know the apiServer URL. Update `on_air_flutter/lib/main.dart` if using custom routing.
+**Note:** The Flutter client needs to know the apiServer URL. Update `memoka_flutter/lib/main.dart` if using custom routing.
 
 ## Deployment Steps
 
@@ -360,7 +360,7 @@ networks:
 
 1. Test changes locally:
    ```bash
-   cd on_air_server
+   cd memoka_server
    docker compose up  # Test with local dev environment
    ```
 
@@ -379,15 +379,15 @@ networks:
 4. Monitor deployment:
    - Check Action logs on GitHub
    - Check Watchtower logs on server
-   - Verify application is running: `docker logs on_air`
+   - Verify application is running: `docker logs memoka`
 
 **Manual Deployment (if needed):**
 
 ```bash
 # On hosting server
-docker pull ghcr.io/carrein/on_air:latest
-docker compose up -d on_air
-docker logs -f on_air  # Check for errors
+docker pull ghcr.io/carrein/memoka:latest
+docker compose up -d memoka
+docker logs -f memoka  # Check for errors
 ```
 
 ## Database Migrations
@@ -406,45 +406,45 @@ If migrations fail and the container is in a crash loop, you have these options:
 1. **Manual backup before risky migrations:**
    ```bash
    # Create backup
-   docker exec on_air_postgresql pg_dump -U on_air_user -d on_air > backup.sql
+   docker exec memoka_postgresql pg_dump -U memoka_user -d memoka > backup.sql
 
    # Restore if needed
-   docker exec -i on_air_postgresql psql -U on_air_user -d on_air < backup.sql
+   docker exec -i memoka_postgresql psql -U memoka_user -d memoka < backup.sql
    ```
 
 2. **Connect to database and fix manually:**
    ```bash
-   docker exec -it on_air_postgresql psql -U on_air_user -d on_air
+   docker exec -it memoka_postgresql psql -U memoka_user -d memoka
    ```
 
 3. **Roll back to previous container version:**
    ```bash
-   docker pull ghcr.io/carrein/on_air:v1.0.0  # Previous working version
-   docker compose up -d on_air
+   docker pull ghcr.io/carrein/memoka:v1.0.0  # Previous working version
+   docker compose up -d memoka
    ```
 
 ## Monitoring and Troubleshooting
 
 **Check logs:**
 ```bash
-docker logs on_air
-docker logs on_air_postgresql
-docker logs on_air_redis
+docker logs memoka
+docker logs memoka_postgresql
+docker logs memoka_redis
 ```
 
 **Check migrations:**
 ```bash
-docker exec on_air ls -la /migrations
+docker exec memoka ls -la /migrations
 ```
 
 **Database connection test:**
 ```bash
-docker exec on_air_postgresql psql -U on_air_user -d on_air -c "SELECT version();"
+docker exec memoka_postgresql psql -U memoka_user -d memoka -c "SELECT version();"
 ```
 
 **Redis connection test:**
 ```bash
-docker exec on_air_redis redis-cli -a ${ON_AIR_REDIS_PASSWORD} ping
+docker exec memoka_redis redis-cli -a ${MEMOKA_REDIS_PASSWORD} ping
 ```
 
 ## Security Considerations
@@ -481,8 +481,8 @@ If you decide to use separate containers despite the recommendation:
 - Reverse proxy routing complexity
 
 **Architecture:**
-- `on_air_server` - Serverpod backend (port 8080)
-- `on_air_frontend` - Nginx serving Flutter web (port 80)
+- `memoka_server` - Serverpod backend (port 8080)
+- `memoka_frontend` - Nginx serving Flutter web (port 80)
 - PostgreSQL (port 5432)
 - Redis (port 6379)
 
@@ -500,7 +500,7 @@ Before implementing the Dockerfile, verify these assumptions:
 
 **2. Code Generation in CI** ✅ Addressed in GitHub Action
 - [x] GitHub Action now includes `serverpod generate` step before Docker build
-- [x] Generated `on_air_client/` code will be available for copying into image
+- [x] Generated `memoka_client/` code will be available for copying into image
 - [ ] **Verify:** Test GitHub Action locally or in CI to confirm generation works
 
 **3. Compiled Binary Path Resolution**

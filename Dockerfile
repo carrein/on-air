@@ -9,11 +9,11 @@ FROM ghcr.io/cirruslabs/flutter:stable AS flutter_builder
 WORKDIR /build
 
 # Copy Flutter app and client library (needed for pubspec dependency)
-COPY on_air_flutter/ ./on_air_flutter/
-COPY on_air_client/ ./on_air_client/
+COPY memoka_flutter/ ./memoka_flutter/
+COPY memoka_client/ ./memoka_client/
 
 # Build Flutter web app
-WORKDIR /build/on_air_flutter
+WORKDIR /build/memoka_flutter
 RUN flutter pub get
 RUN flutter build web --release --base-href /app/
 
@@ -23,19 +23,19 @@ FROM dart:stable AS server_builder
 WORKDIR /build
 
 # Copy server and client packages
-COPY on_air_server/ ./on_air_server/
-COPY on_air_client/ ./on_air_client/
+COPY memoka_server/ ./memoka_server/
+COPY memoka_client/ ./memoka_client/
 
 # Get dependencies
-WORKDIR /build/on_air_server
+WORKDIR /build/memoka_server
 RUN dart pub get
 
-WORKDIR /build/on_air_client
+WORKDIR /build/memoka_client
 RUN dart pub get
 
 # Copy Flutter web build from Stage 1
-WORKDIR /build/on_air_server
-COPY --from=flutter_builder /build/on_air_flutter/build/web ./web/app
+WORKDIR /build/memoka_server
+COPY --from=flutter_builder /build/memoka_flutter/build/web ./web/app
 
 # Compile server to native executable
 RUN dart compile exe bin/main.dart -o server
@@ -52,16 +52,16 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy compiled server binary
-COPY --from=server_builder /build/on_air_server/server ./server
+COPY --from=server_builder /build/memoka_server/server ./server
 
 # Copy configuration files
-COPY --from=server_builder /build/on_air_server/config ./config
+COPY --from=server_builder /build/memoka_server/config ./config
 
 # Copy migrations
-COPY --from=server_builder /build/on_air_server/migrations ./migrations
+COPY --from=server_builder /build/memoka_server/migrations ./migrations
 
 # Copy web files (static + Flutter app)
-COPY --from=server_builder /build/on_air_server/web ./web
+COPY --from=server_builder /build/memoka_server/web ./web
 
 # Create media upload directory with proper permissions
 RUN mkdir -p /app/data/media && chmod 755 /app/data/media

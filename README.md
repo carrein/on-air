@@ -1,4 +1,4 @@
-# On Air
+# Memoka
 
 Real-time chat-style notes application with Serverpod backend and Flutter frontend.
 
@@ -35,24 +35,24 @@ Real-time chat-style notes application with Serverpod backend and Flutter fronte
 
 1. **Start database services**:
    ```bash
-   cd on_air_server
+   cd memoka_server
    docker compose up --build --detach
    ```
 
 2. **Install dependencies**:
    ```bash
    # Server
-   cd on_air_server
+   cd memoka_server
    dart pub get
 
    # Flutter
-   cd ../on_air_flutter
+   cd ../memoka_flutter
    flutter pub get
    ```
 
 3. **Set up secrets** (IMPORTANT!):
    ```bash
-   cd on_air_server/config
+   cd memoka_server/config
    cp passwords.yaml.template passwords.yaml
    # Edit passwords.yaml with strong random values
    # NEVER commit passwords.yaml!
@@ -60,7 +60,7 @@ Real-time chat-style notes application with Serverpod backend and Flutter fronte
 
 4. **Run database migrations**:
    ```bash
-   cd on_air_server
+   cd memoka_server
    dart bin/main.dart --apply-migrations
    ```
 
@@ -71,7 +71,7 @@ Real-time chat-style notes application with Serverpod backend and Flutter fronte
 
 6. **Run Flutter app** (in a new terminal):
    ```bash
-   cd on_air_flutter
+   cd memoka_flutter
    flutter run -d chrome
    ```
 
@@ -95,9 +95,9 @@ Real-time chat-style notes application with Serverpod backend and Flutter fronte
 
 Built with [Serverpod](https://serverpod.dev) v3.2.3:
 
-- **on_air_server**: Backend with real-time streaming, media uploads, link previews
-- **on_air_client**: Auto-generated type-safe API client
-- **on_air_flutter**: Cross-platform Flutter app (Web/Mobile)
+- **memoka_server**: Backend with real-time streaming, media uploads, link previews
+- **memoka_client**: Auto-generated type-safe API client
+- **memoka_flutter**: Cross-platform Flutter app (Web/Mobile)
 
 Key technologies:
 - PostgreSQL with pgvector

@@ -1,4 +1,4 @@
-# On Air Implementation Plan
+# Memoka Implementation Plan
 
 > **Project**: Real-time chat-style notes application with Serverpod backend and Flutter frontend
 >
@@ -100,9 +100,9 @@ Remaining tasks:
 
 Create feature directory and `.spy.yaml` model definitions following existing pattern (`lib/src/greetings/greeting.spy.yaml`).
 
-- [ ] Create directory: `on_air_server/lib/src/chat/`
+- [ ] Create directory: `memoka_server/lib/src/chat/`
 
-- [ ] Create `on_air_server/lib/src/chat/channel.spy.yaml`:
+- [ ] Create `memoka_server/lib/src/chat/channel.spy.yaml`:
 ```yaml
 class: Channel
 table: channels
@@ -112,7 +112,7 @@ fields:
   updatedAt: DateTime, defaultValue=now
 ```
 
-- [ ] Create `on_air_server/lib/src/chat/note.spy.yaml`:
+- [ ] Create `memoka_server/lib/src/chat/note.spy.yaml`:
 ```yaml
 class: Note
 table: notes
@@ -126,7 +126,7 @@ indexes:
     fields: channelId, createdAt
 ```
 
-- [ ] Create `on_air_server/lib/src/chat/chat_event.spy.yaml`:
+- [ ] Create `memoka_server/lib/src/chat/chat_event.spy.yaml`:
 ```yaml
 class: ChatEvent
 fields:
@@ -141,9 +141,9 @@ fields:
 
 **Commands from project root:**
 
-- [ ] `cd on_air_server && serverpod generate`
+- [ ] `cd memoka_server && serverpod generate`
   - Generates protocol classes in `lib/src/generated/`
-  - Updates client code in `on_air_client/`
+  - Updates client code in `memoka_client/`
 
 - [ ] `serverpod create-migration`
   - Creates timestamped migration in `migrations/`
@@ -158,7 +158,7 @@ fields:
 
 - [ ] `docker compose up --build --detach` (start database services)
 - [ ] `dart bin/main.dart --apply-migrations` (apply migration)
-- [ ] Verify: `docker exec -it on_air_server-postgres-1 psql -U postgres -d on_air -c "\dt"`
+- [ ] Verify: `docker exec -it memoka_server-postgres-1 psql -U postgres -d memoka -c "\dt"`
 
 ---
 
@@ -166,7 +166,7 @@ fields:
 
 ### 2.1 Create Chat Endpoint
 
-**File**: `on_air_server/lib/src/chat/chat_endpoint.dart`
+**File**: `memoka_server/lib/src/chat/chat_endpoint.dart`
 
 - [ ] Implement `ChatEndpoint` class extending `Endpoint` with methods:
   - `Future<List<Channel>> getChannels(Session session)`
@@ -227,7 +227,7 @@ Stream<ChatEvent> chat(Session session) async* {
 
 ### 2.3 Auto-Create Default Channel
 
-**File**: `on_air_server/lib/server.dart`
+**File**: `memoka_server/lib/server.dart`
 
 - [ ] Add after `await pod.start();` (line 77):
 ```dart
@@ -256,7 +256,7 @@ Future<void> _ensureDefaultChannel(Serverpod pod) async {
 
 ### 3.1 Integration Tests
 
-**File**: `on_air_server/test/integration/chat_endpoint_test.dart`
+**File**: `memoka_server/test/integration/chat_endpoint_test.dart`
 
 - [ ] Create test file following pattern from `greeting_endpoint_test.dart`
 - [ ] Test scenarios:
@@ -268,7 +268,7 @@ Future<void> _ensureDefaultChannel(Serverpod pod) async {
   - `updateNote()` updates content
   - `deleteNote()` removes note
 
-- [ ] Run: `cd on_air_server && dart test`
+- [ ] Run: `cd memoka_server && dart test`
 
 ### 3.2 Manual API Testing
 
@@ -288,7 +288,7 @@ curl http://localhost:8080/api/chat/getNotes?channelId=1
 
 ### 4.1 Add Dependencies
 
-**File**: `on_air_flutter/pubspec.yaml`
+**File**: `memoka_flutter/pubspec.yaml`
 
 - [ ] Add to `dependencies:`:
 ```yaml
@@ -304,11 +304,11 @@ riverpod_generator: ^2.6.2
 build_runner: ^2.4.13
 ```
 
-- [ ] Run: `cd on_air_flutter && flutter pub get`
+- [ ] Run: `cd memoka_flutter && flutter pub get`
 
 ### 4.2 Wrap App with ProviderScope
 
-**File**: `on_air_flutter/lib/main.dart`
+**File**: `memoka_flutter/lib/main.dart`
 
 - [ ] Add import: `import 'package:flutter_riverpod/flutter_riverpod.dart';`
 - [ ] Modify line 39: `runApp(const ProviderScope(child: MyApp()));`
@@ -317,7 +317,7 @@ build_runner: ^2.4.13
 
 ## Phase 5: Flutter Providers (State Management)
 
-**Directory**: `on_air_flutter/lib/providers/`
+**Directory**: `memoka_flutter/lib/providers/`
 
 ### 5.1 Create Provider Files
 
@@ -376,7 +376,7 @@ void _handleChatEvent(ChatEvent event, int channelId) {
 
 ## Phase 6: Flutter UI Components
 
-**Directory**: `on_air_flutter/lib/`
+**Directory**: `memoka_flutter/lib/`
 
 ### 6.1 Main Screen
 
@@ -439,14 +439,14 @@ void _handleChatEvent(ChatEvent event, int channelId) {
 
 ### 7.1 Backend Verification
 
-- [ ] Start server with migration: `cd on_air_server && dart bin/main.dart --apply-migrations`
+- [ ] Start server with migration: `cd memoka_server && dart bin/main.dart --apply-migrations`
 - [ ] Verify "General" channel auto-created (check logs)
 - [ ] Test REST endpoints with curl (see Phase 3.2)
 - [ ] Run integration tests: `dart test`
 
 ### 7.2 Flutter Verification
 
-- [ ] Generate providers: `cd on_air_flutter && dart run build_runner build`
+- [ ] Generate providers: `cd memoka_flutter && dart run build_runner build`
 - [ ] Run app: `flutter run` (or `flutter run -d chrome` for web)
 - [ ] Test channel creation/deletion
 - [ ] Test note creation/editing/deletion
@@ -457,7 +457,7 @@ void _handleChatEvent(ChatEvent event, int channelId) {
 
 ### 7.3 Database State Verification
 
-- [ ] Connect: `docker exec -it on_air_server-postgres-1 psql -U postgres -d on_air`
+- [ ] Connect: `docker exec -it memoka_server-postgres-1 psql -U postgres -d memoka`
 - [ ] `SELECT * FROM channels;` - Verify channels exist
 - [ ] `SELECT * FROM notes;` - Verify notes exist
 - [ ] Test cascade delete: Delete channel via UI, verify notes removed from DB
@@ -468,19 +468,19 @@ void _handleChatEvent(ChatEvent event, int channelId) {
 ## Critical Files Summary
 
 **Server** (new files):
-- `on_air_server/lib/src/chat/channel.spy.yaml`
-- `on_air_server/lib/src/chat/note.spy.yaml`
-- `on_air_server/lib/src/chat/chat_event.spy.yaml`
-- `on_air_server/lib/src/chat/chat_endpoint.dart` (core business logic)
-- `on_air_server/lib/server.dart` (modify - add default channel)
-- `on_air_server/test/integration/chat_endpoint_test.dart`
+- `memoka_server/lib/src/chat/channel.spy.yaml`
+- `memoka_server/lib/src/chat/note.spy.yaml`
+- `memoka_server/lib/src/chat/chat_event.spy.yaml`
+- `memoka_server/lib/src/chat/chat_endpoint.dart` (core business logic)
+- `memoka_server/lib/server.dart` (modify - add default channel)
+- `memoka_server/test/integration/chat_endpoint_test.dart`
 
 **Flutter** (new files):
-- `on_air_flutter/lib/providers/` (7 provider files)
-- `on_air_flutter/lib/screens/chat_screen.dart`
-- `on_air_flutter/lib/widgets/` (4 widget files)
-- `on_air_flutter/lib/main.dart` (modify)
-- `on_air_flutter/pubspec.yaml` (modify)
+- `memoka_flutter/lib/providers/` (7 provider files)
+- `memoka_flutter/lib/screens/chat_screen.dart`
+- `memoka_flutter/lib/widgets/` (4 widget files)
+- `memoka_flutter/lib/main.dart` (modify)
+- `memoka_flutter/pubspec.yaml` (modify)
 
 ---
 

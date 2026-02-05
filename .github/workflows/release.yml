@@ -21,10 +21,10 @@ jobs:
         with:
           channel: 'stable'
 
-      # Generate Serverpod code (required for on_air_client)
+      # Generate Serverpod code (required for memoka_client)
       - name: Generate Serverpod code
         run: |
-          cd on_air_server
+          cd memoka_server
           dart pub get
           dart pub global activate serverpod_cli 3.2.3
           serverpod generate
