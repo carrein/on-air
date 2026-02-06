@@ -97,8 +97,10 @@ void main(List<String> args) async {
       'Code block:\n```dart\nvoid main() {\n  print("Hello!");\n}\n```',
     ];
 
-    // Seed notes across channels
+    // Seed notes across channels with varying dates
     var totalNotes = 0;
+    final now = DateTime.now();
+
     for (var i = 0; i < createdChannels.length; i++) {
       final channel = createdChannels[i];
       // Load Test channel gets 500 notes, others get 10-50
@@ -110,10 +112,21 @@ void main(List<String> args) async {
             ? 'Welcome to ${channel.emoji} ${channel.name}!'
             : '$template (#${j + 1})';
 
-        await Note.db.insertRow(
-          session,
-          Note(channelId: channel.id!, content: content),
-        );
+        // Spread notes across last 10 years (oldest first)
+        // Using logarithmic distribution for more recent density
+        final maxDays = 3650; // ~10 years
+        final progress = j / noteCount; // 0.0 to 1.0
+
+        // Logarithmic distribution: more notes in recent days, fewer in distant past
+        // Using exponential decay: most recent notes are densest
+        final daysAgo = (maxDays * (1 - progress * progress)).floor();
+        final hoursOffset = (j % 10) * 2; // Vary hours within each day
+        final createdAt = now.subtract(Duration(days: daysAgo, hours: hoursOffset));
+
+        final note = Note(channelId: channel.id!, content: content);
+        note.createdAt = createdAt;
+
+        await Note.db.insertRow(session, note);
         totalNotes++;
       }
 

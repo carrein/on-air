@@ -120,10 +120,22 @@ class _ChatViewState extends ConsumerState<ChatView> {
             return ListView.builder(
               controller: _scrollController,
               reverse: true, // Newest at bottom
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: notes.length,
               itemBuilder: (context, index) {
                 final note = notes[index];
-                return _buildNoteItem(note, channelId);
+                final previousNote = index > 0 ? notes[index - 1] : null;
+
+                // Check if we need a date separator
+                final needsSeparator = previousNote != null &&
+                    !_isSameDay(note.createdAt, previousNote.createdAt);
+
+                return Column(
+                  children: [
+                    _buildNoteItem(note, channelId),
+                    if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
+                  ],
+                );
               },
             );
           },
@@ -148,7 +160,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   Text(
                     'Drop file here to upload',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: Colors.blue,
                     ),
@@ -194,7 +206,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                         '${selection.length} selected',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
+                          fontSize: 10,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -252,7 +264,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   children: [
                     const Text(
                       'Media & Links',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -279,7 +291,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
     final isSelected = selection.contains(note.id);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -337,7 +349,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: isSelected ? Colors.blue[50] : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(4),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.05),
@@ -389,9 +401,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
               }
             },
             styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: const TextStyle(fontSize: 16),
+              p: const TextStyle(fontSize: 14),
               a: const TextStyle(
-                fontSize: 16,
+                fontSize: 10,
                 color: Colors.blue,
                 decoration: TextDecoration.underline,
               ),
@@ -517,13 +529,68 @@ class _ChatViewState extends ConsumerState<ChatView> {
   }
 
   String _formatDateTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
+    // Convert to local time
+    final localTime = dt.toLocal();
 
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    return '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
+    // Format as "Jan 5, 2:30 PM" or "Jan 5, 14:30" for 24h
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final month = months[localTime.month - 1];
+    final day = localTime.day;
+
+    // 12-hour format with AM/PM
+    final hour = localTime.hour > 12 ? localTime.hour - 12 : (localTime.hour == 0 ? 12 : localTime.hour);
+    final minute = localTime.minute.toString().padLeft(2, '0');
+    final period = localTime.hour >= 12 ? 'PM' : 'AM';
+
+    return '$month $day, $hour:$minute $period';
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    final aLocal = a.toLocal();
+    final bLocal = b.toLocal();
+    return aLocal.year == bLocal.year &&
+           aLocal.month == bLocal.month &&
+           aLocal.day == bLocal.day;
+  }
+
+  Widget _buildDateSeparator(DateTime date) {
+    final localDate = date.toLocal();
+    final now = DateTime.now();
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+
+    String dateText;
+    if (_isSameDay(localDate, now)) {
+      dateText = 'Today';
+    } else if (_isSameDay(localDate, yesterday)) {
+      dateText = 'Yesterday';
+    } else {
+      // Format as "February 6" or "February 6, 2025" if different year
+      final months = ['January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'];
+      final month = months[localDate.month - 1];
+      dateText = localDate.year == now.year
+          ? '$month ${localDate.day}'
+          : '$month ${localDate.day}, ${localDate.year}';
+    }
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          dateText,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+      ),
+    );
   }
 
   void _startEditing(Note note) {

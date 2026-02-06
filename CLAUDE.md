@@ -128,8 +128,9 @@ flutter run
 
 # Build web app and copy to server's web directory
 # (Run from memoka_server directory)
+# Note: --wasm flag is not compatible with dart:html usage
 cd ../memoka_flutter
-flutter build web --base-href /app/ --wasm --output ../memoka_server/web/app
+flutter build web --base-href /app/ --output ../memoka_server/web/app
 ```
 
 ### Testing
@@ -226,18 +227,55 @@ Examples:
 
 ## Recent Work: UI/UX Improvements (✅ COMPLETED)
 
-7 features completed:
+### Phase 1: Core Features (Completed)
 1. **Toast System** - Unified toast notifications with color-coded types (success/error/info)
-2. **Chat Bubbles** - White containers with padding, border radius, and subtle shadow
+2. **Chat Bubbles** - White containers with padding, border radius (4px), and subtle shadow
 3. **Multi-File Upload** - Batch upload via paste/drag-drop with progress dialog
 4. **Right-Click Menus** - Context menu with Copy/Edit/Delete on right-click or long-press
 5. **Channel Drafts** - Per-channel input text preservation across channel switches
 6. **Preview Fix** - Hide empty preview for media-only notes in sidebar
 7. **Paste Fix** - Allow copy/paste in textfield by checking active element
+8. **Multi-Select** - Select multiple notes via long-press/context menu with bulk delete action
 
 **Fixes Applied**:
 - Draft text now persists properly when switching channels
 - Right-click context menu works everywhere on notes (including on text)
+- Multi-select action bar properly positioned with correct z-index
+
+### Phase 2: Visual Refinements (Completed)
+1. **Font Updates**:
+   - Changed to Inter font via google_fonts package
+   - Note text size: 14px (reduced from 16px for better readability)
+
+2. **Timestamp Display**:
+   - Changed from relative ("xh ago") to absolute ("Feb 6, 2:30 PM")
+   - Automatic timezone conversion (UTC storage → local display)
+   - Shows year when different from current year
+
+3. **Date Separators**:
+   - Visual separators between notes from different days
+   - Shows "Today", "Yesterday", or formatted date (e.g., "February 6")
+   - Styled as rounded gray pill (border-radius: 20px)
+   - Fixed logic: separator now correctly shows date of notes below it (in reversed ListView)
+
+4. **Spacing & Layout**:
+   - Consistent 12px margins throughout chat view
+   - Note items: 12px horizontal padding
+   - ListView: 8px vertical padding (combines with note's 4px vertical padding for 12px total)
+   - Note border radius: 4px (sharp, modern look)
+
+5. **Seed Data**:
+   - Updated to span 10 years of history (was 7 days)
+   - Quadratic distribution: denser recent notes, sparser older notes
+   - Enables testing of date separators across various time ranges
+   - 630 notes total across 6 channels (500 in Load Test channel)
+
+### Phase 3: Settings & Account (Completed)
+1. **Settings Screen** (`memoka_flutter/lib/screens/settings_screen.dart`):
+   - Account button in sidebar below "New Channel" button
+   - Placeholder sections: User Profile, Account Settings, General Settings, About
+   - Navigation from sidebar via account circle icon
+   - Ready for future authentication implementation
 
 ## Current Work: Media Sidebar
 

@@ -8,6 +8,7 @@ import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/notes_provider.dart';
 import '../utils/toast_utils.dart';
+import '../screens/settings_screen.dart';
 
 /// Sidebar displaying channels list and add channel button.
 /// Draggable on web with two positions: emoji-only (60px) or full (250px).
@@ -89,6 +90,9 @@ class _SidebarState extends ConsumerState<Sidebar> {
               // Add channel button
               const SizedBox(height: 8),
               _buildAddButton(isCollapsed, context),
+              // Account button
+              _buildAccountButton(isCollapsed, context),
+              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -181,7 +185,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Colors.grey[600],
                           ),
                         ),
@@ -222,6 +226,42 @@ class _SidebarState extends ConsumerState<Sidebar> {
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Text('New Channel', overflow: TextOverflow.ellipsis),
+                      SizedBox(height: 16), // Match height of preview text
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountButton(bool isCollapsed, BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SettingsScreen()),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            children: [
+              Icon(Icons.account_circle, size: isCollapsed ? 24 : 20),
+              if (!isCollapsed) ...[
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('User', overflow: TextOverflow.ellipsis),
                       SizedBox(height: 16), // Match height of preview text
                     ],
                   ),

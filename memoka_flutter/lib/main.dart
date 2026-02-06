@@ -74,7 +74,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
-        textTheme: GoogleFonts.afacadTextTheme(),
+        fontFamily: GoogleFonts.inter().fontFamily,
       ),
       home: const ChatScreen(),
     );
