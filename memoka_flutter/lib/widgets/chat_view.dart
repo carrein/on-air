@@ -11,6 +11,7 @@ import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
+import '../providers/note_selection_provider.dart';
 import '../utils/toast_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../models/upload_file_data.dart';
@@ -78,7 +79,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   void _onScroll() {
     // Load more when scrolling near top (in reversed list)
-    if (_scrollController.position.pixels < 100) {
+    // Use 20% of max scroll extent or 500px, whichever is larger
+    final threshold = (_scrollController.position.maxScrollExtent * 0.2).clamp(500.0, double.infinity);
+
+    if (_scrollController.position.pixels < threshold) {
       final channelId = ref.read(currentChannelProvider).value;
       if (channelId != null) {
         ref.read(notesProvider(channelId).notifier).loadMore();
@@ -89,6 +93,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
   @override
   Widget build(BuildContext context) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
+    final selection = ref.watch(noteSelectionProvider);
+    final isSelectionMode = selection.isNotEmpty;
 
     return Stack(
       children: [
@@ -162,6 +168,52 @@ class _ChatViewState extends ConsumerState<ChatView> {
               child: const Icon(Icons.photo_library, color: Colors.white),
             ),
           ),
+        // Selection action bar (on top of everything)
+        if (isSelectionMode)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Material(
+              elevation: 4,
+              color: Colors.blue[700],
+              child: SafeArea(
+                bottom: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () {
+                          ref.read(noteSelectionProvider.notifier).clear();
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${selection.length} selected',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.white),
+                        onPressed: () {
+                          final channelId = ref.read(currentChannelProvider).value;
+                          if (channelId != null) {
+                            _deleteSelectedNotes(channelId);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -222,45 +274,99 @@ class _ChatViewState extends ConsumerState<ChatView> {
   }
 
   Widget _buildNoteItem(Note note, int channelId) {
+    final selection = ref.watch(noteSelectionProvider);
+    final isSelectionMode = selection.isNotEmpty;
+    final isSelected = selection.contains(note.id);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Listener(
-        onPointerDown: (event) {
-          // Check for secondary button (right-click)
-          if (event.buttons == 2) {
-            _showNoteContextMenu(context, note, channelId, event.position);
-          }
-        },
-        child: GestureDetector(
-          onLongPress: () => _showNoteContextMenu(context, note, channelId, null),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Selection checkbox (visible in selection mode)
+          if (isSelectionMode)
+            Padding(
+              padding: const EdgeInsets.only(right: 8, top: 8),
+              child: GestureDetector(
+                onTap: () {
+                  ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+                },
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected ? Colors.blue[700] : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected ? Colors.blue[700]! : Colors.grey[400]!,
+                      width: 2,
+                    ),
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
                 ),
-              ],
+              ),
             ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Note content
-                _buildNoteContent(note),
-                const SizedBox(height: 8),
-                // Timestamp
-                Text(
-                  _formatDateTime(note.createdAt),
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          // Note content
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Listener(
+                  onPointerDown: (event) {
+                    // Check for secondary button (right-click)
+                    if (event.buttons == 2) {
+                      _showNoteContextMenu(context, note, channelId, event.position);
+                    }
+                  },
+                  child: GestureDetector(
+                    onTap: isSelectionMode
+                        ? () {
+                            ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+                          }
+                        : null,
+                    onLongPress: () {
+                      if (isSelectionMode) {
+                        ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+                      } else {
+                        _showNoteContextMenu(context, note, channelId, null);
+                      }
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.blue[50] : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Note content
+                          _buildNoteContent(note),
+                          const SizedBox(height: 8),
+                          // Timestamp
+                          Text(
+                            _formatDateTime(note.createdAt),
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -368,6 +474,16 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ],
           ),
         ),
+        const PopupMenuItem(
+          value: 'select',
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_outline, size: 18),
+              SizedBox(width: 12),
+              Text('Select'),
+            ],
+          ),
+        ),
       ],
     ).then((value) {
       if (value == null) return;
@@ -380,6 +496,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
           break;
         case 'delete':
           _deleteNote(note, channelId);
+          break;
+        case 'select':
+          _enterSelectionMode(note.id!);
           break;
       }
     });
@@ -413,6 +532,31 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   void _deleteNote(Note note, int channelId) {
     ref.read(notesProvider(channelId).notifier).deleteNote(note.id!);
+  }
+
+  void _enterSelectionMode(int noteId) {
+    ref.read(noteSelectionProvider.notifier).select(noteId);
+  }
+
+  void _deleteSelectedNotes(int channelId) async {
+    final selection = ref.read(noteSelectionProvider);
+    final notifier = ref.read(notesProvider(channelId).notifier);
+
+    // Delete all selected notes
+    for (final noteId in selection) {
+      await notifier.deleteNote(noteId);
+    }
+
+    // Clear selection
+    ref.read(noteSelectionProvider.notifier).clear();
+
+    if (mounted) {
+      ToastUtils.show(
+        context,
+        'Deleted ${selection.length} note${selection.length > 1 ? 's' : ''}',
+        type: ToastType.success,
+      );
+    }
   }
 
   Future<void> _handleWebPaste(html.ClipboardEvent event) async {

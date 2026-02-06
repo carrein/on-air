@@ -11,6 +11,7 @@ class Notes extends _$Notes {
   List<Note> _notes = [];
   int? _oldestNoteId;
   bool _hasMore = true;
+  bool _isLoadingMore = false;
 
   @override
   Future<List<Note>> build(int channelId) async {
@@ -43,6 +44,8 @@ class Notes extends _$Notes {
     switch (event.type) {
       case 'noteCreated':
         if (event.note?.channelId == channelId) {
+          // Skip if already added via optimistic update
+          if (currentState.any((n) => n.id == event.note!.id)) break;
           _notes = [event.note!, ...currentState];
           state = AsyncValue.data(_notes);
         }
@@ -68,36 +71,53 @@ class Notes extends _$Notes {
   }
 
   Future<void> loadMore() async {
-    if (!_hasMore || _oldestNoteId == null) return;
+    // Prevent concurrent loadMore calls
+    if (!_hasMore || _oldestNoteId == null || _isLoadingMore) return;
 
-    final moreNotes = await client.chat.getNotes(
-      channelId,
-      beforeId: _oldestNoteId,
-      limit: 50,
-    );
+    _isLoadingMore = true;
+    try {
+      final moreNotes = await client.chat.getNotes(
+        channelId,
+        beforeId: _oldestNoteId,
+        limit: 50,
+      );
 
-    if (moreNotes.isNotEmpty) {
-      _notes = [..._notes, ...moreNotes];
-      _oldestNoteId = moreNotes.last.id;
-      _hasMore = moreNotes.length == 50;
-      state = AsyncValue.data(_notes);
-    } else {
-      _hasMore = false;
+      if (moreNotes.isNotEmpty) {
+        _notes = [..._notes, ...moreNotes];
+        _oldestNoteId = moreNotes.last.id;
+        _hasMore = moreNotes.length == 50;
+        state = AsyncValue.data(_notes);
+      } else {
+        _hasMore = false;
+      }
+    } finally {
+      _isLoadingMore = false;
     }
   }
 
   Future<void> createNote(String content) async {
-    await client.chat.createNote(channelId, content);
-    // WebSocket broadcast will trigger UI update via listener
+    final note = await client.chat.createNote(channelId, content);
+    // Optimistic update — don't wait for WebSocket
+    final current = state.value ?? [];
+    if (!current.any((n) => n.id == note.id)) {
+      _notes = [note, ...current];
+      state = AsyncValue.data(_notes);
+    }
   }
 
   Future<void> updateNote(int id, String content) async {
-    await client.chat.updateNote(id, content);
-    // WebSocket broadcast will trigger UI update via listener
+    final updated = await client.chat.updateNote(id, content);
+    // Optimistic update — don't wait for WebSocket
+    final current = state.value ?? [];
+    _notes = current.map((n) => n.id == id ? updated : n).toList();
+    state = AsyncValue.data(_notes);
   }
 
   Future<void> deleteNote(int id) async {
     await client.chat.deleteNote(id);
-    // WebSocket broadcast will trigger UI update via listener
+    // Optimistic update — don't wait for WebSocket
+    final current = state.value ?? [];
+    _notes = current.where((n) => n.id != id).toList();
+    state = AsyncValue.data(_notes);
   }
 }

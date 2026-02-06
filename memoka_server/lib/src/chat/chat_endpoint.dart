@@ -268,7 +268,10 @@ class ChatEndpoint extends Endpoint {
 
       // Fetch preview metadata
       final preview = await LinkPreviewService.fetchPreview(url);
-      if (preview == null) return;
+      if (preview == null) {
+        session.log('Failed to fetch link preview for: $url');
+        return;
+      }
 
       // Update note with preview
       note.linkPreview = preview;
@@ -288,8 +291,9 @@ class ChatEndpoint extends Endpoint {
       } catch (_) {
         // Redis not available, skip broadcasting
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       // Log error but don't fail
+      session.log('Error fetching link preview: $e\n$stackTrace', level: LogLevel.error);
     }
   }
 

@@ -6,9 +6,10 @@ part of 'chat_stream_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatStreamHash() => r'de7eeb389d8506f5ea57411a5ca56de8ff3dab1c';
+String _$chatStreamHash() => r'2d0a2b50f1743fc9edd2d73b05f35f629e0999ce';
 
 /// Provides the WebSocket stream for real-time chat events.
+/// Automatically reconnects with exponential backoff if the connection drops.
 ///
 /// Copied from [chatStream].
 @ProviderFor(chatStream)
