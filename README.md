@@ -1,6 +1,12 @@
-# Memoka
+# memoka (メモカ)
 
-Real-time chat-style notes application with Serverpod backend and Flutter frontend.
+memoka (メモカ) uses realtime notes to manages your awareness of existence.
+
+> This application is built with the assistance of AI generated code as part of an experiment. You can read up on this here:
+
+## Overview
+
+memoka aims to replicate the Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it very useful for making notes. memoka aims to copy and augment this functionality with new features.
 
 ## Features
 
@@ -34,12 +40,14 @@ Real-time chat-style notes application with Serverpod backend and Flutter fronte
 ### Development Setup
 
 1. **Start database services**:
+
    ```bash
    cd memoka_server
    docker compose up --build --detach
    ```
 
 2. **Install dependencies**:
+
    ```bash
    # Server
    cd memoka_server
@@ -51,6 +59,7 @@ Real-time chat-style notes application with Serverpod backend and Flutter fronte
    ```
 
 3. **Set up secrets** (IMPORTANT!):
+
    ```bash
    cd memoka_server/config
    cp passwords.yaml.template passwords.yaml
@@ -59,12 +68,14 @@ Real-time chat-style notes application with Serverpod backend and Flutter fronte
    ```
 
 4. **Run database migrations**:
+
    ```bash
    cd memoka_server
    dart bin/main.dart --apply-migrations
    ```
 
 5. **Start the server**:
+
    ```bash
    dart bin/main.dart
    ```
@@ -100,6 +111,7 @@ Built with [Serverpod](https://serverpod.dev) v3.2.3:
 - **memoka_flutter**: Cross-platform Flutter app (Web/Mobile)
 
 Key technologies:
+
 - PostgreSQL with pgvector
 - Redis for real-time messaging
 - Riverpod for state management
