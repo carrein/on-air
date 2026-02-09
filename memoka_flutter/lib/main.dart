@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:memoka_client/memoka_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -38,6 +39,10 @@ Future<String> getServerUrl() async {
   }
 
   // For mobile/desktop development
+  // Android emulator requires 10.0.2.2 to access host machine's localhost
+  if (!kIsWeb && Platform.isAndroid) {
+    return 'http://10.0.2.2:8080/';
+  }
   return 'http://localhost:8080/';
 }
 
@@ -74,7 +79,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
-        fontFamily: GoogleFonts.inter().fontFamily,
+        fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
       ),
       home: const ChatScreen(),
     );

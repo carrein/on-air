@@ -1,28 +1,29 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'note_selection_provider.dart';
+part of 'settings_page_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$noteSelectionHash() => r'e555bdb701fb53124b4c1de50fd45e229c34de56';
+String _$currentSettingsPageHash() =>
+    r'80aa603ce1c2ea11d178550ae178fbb199ce204d';
 
-/// Manages multi-selection state for notes.
+/// Provider to track which settings page is currently displayed
 ///
-/// Copied from [NoteSelection].
-@ProviderFor(NoteSelection)
-final noteSelectionProvider =
-    AutoDisposeNotifierProvider<NoteSelection, Set<int>>.internal(
-      NoteSelection.new,
-      name: r'noteSelectionProvider',
+/// Copied from [CurrentSettingsPage].
+@ProviderFor(CurrentSettingsPage)
+final currentSettingsPageProvider =
+    AutoDisposeNotifierProvider<CurrentSettingsPage, SettingsPage>.internal(
+      CurrentSettingsPage.new,
+      name: r'currentSettingsPageProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$noteSelectionHash,
+          : _$currentSettingsPageHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$NoteSelection = AutoDisposeNotifier<Set<int>>;
+typedef _$CurrentSettingsPage = AutoDisposeNotifier<SettingsPage>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

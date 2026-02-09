@@ -64,6 +64,27 @@ void main(List<String> args) async {
       Channel(name: 'Notes', emoji: '📝'),
       Channel(name: 'Links', emoji: '🔗'),
       Channel(name: 'Load Test', emoji: '🧪'),
+      // Additional channels for scrolling test
+      Channel(name: 'Project Alpha', emoji: '🚀'),
+      Channel(name: 'Resources', emoji: '📚'),
+      Channel(name: 'Design', emoji: '🎨'),
+      Channel(name: 'Development', emoji: '💻'),
+      Channel(name: 'Marketing', emoji: '📢'),
+      Channel(name: 'Sales', emoji: '💰'),
+      Channel(name: 'Support', emoji: '🛟'),
+      Channel(name: 'Feedback', emoji: '💬'),
+      Channel(name: 'Archive', emoji: '📦'),
+      Channel(name: 'Personal', emoji: '👤'),
+      Channel(name: 'Team Chat', emoji: '👥'),
+      Channel(name: 'Announcements', emoji: '📣'),
+      Channel(name: 'Random', emoji: '🎲'),
+      Channel(name: 'Water Cooler', emoji: '☕'),
+      Channel(name: 'Meetings', emoji: '📅'),
+      Channel(name: 'Goals', emoji: '🎯'),
+      Channel(name: 'Wins', emoji: '🏆'),
+      Channel(name: 'Questions', emoji: '❓'),
+      Channel(name: 'Bugs', emoji: '🐛'),
+      Channel(name: 'Features', emoji: '✨'),
     ];
 
     final createdChannels = <Channel>[];
@@ -103,8 +124,10 @@ void main(List<String> args) async {
 
     for (var i = 0; i < createdChannels.length; i++) {
       final channel = createdChannels[i];
-      // Load Test channel gets 500 notes, others get 10-50
-      final noteCount = channel.name == 'Load Test' ? 500 : 10 + (i * 8);
+      // Load Test channel gets 500 notes, first 6 channels get notes, rest are empty
+      final noteCount = channel.name == 'Load Test'
+          ? 500
+          : i < 6 ? 10 + (i * 8) : 0;
 
       for (var j = 0; j < noteCount; j++) {
         final template = noteTemplates[j % noteTemplates.length];

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../main.dart' show serverUrl;
@@ -12,6 +13,7 @@ import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
 import '../providers/note_selection_provider.dart';
+import '../providers/background_provider.dart';
 import '../utils/toast_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../models/upload_file_data.dart';
@@ -21,8 +23,8 @@ import 'file_upload_dialog.dart';
 import 'multi_file_upload_dialog.dart';
 import 'media_sidebar.dart';
 
-// Web-only imports
-import 'dart:html' as html show window, document, ClipboardEvent, FileReader;
+// Cross-platform HTML imports
+import 'package:universal_html/html.dart' as html;
 
 /// Chat view displaying notes in an inverted list (newest at bottom).
 class ChatView extends ConsumerStatefulWidget {
@@ -95,14 +97,16 @@ class _ChatViewState extends ConsumerState<ChatView> {
     final currentChannelAsync = ref.watch(currentChannelProvider);
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
+    final currentBackground = ref.watch(backgroundPreferenceProvider);
 
     return Stack(
       children: [
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             image: DecorationImage(
-              image: AssetImage('assets/images/background.jpg'),
-              fit: BoxFit.cover,
+              image: AssetImage(currentBackground.assetPath),
+              repeat: ImageRepeat.repeat,
+              scale: 1.0, // Original tile size
             ),
           ),
           child: currentChannelAsync.when(
@@ -112,8 +116,33 @@ class _ChatViewState extends ConsumerState<ChatView> {
         return notesAsync.when(
           data: (notes) {
             if (notes.isEmpty) {
-              return const Center(
-                child: Text('No notes yet. Start typing below!'),
+              return Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECEBE4),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        'assets/images/checkmark.svg',
+                        width: 48,
+                        height: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'All Caught Up!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1C1C1C),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             }
 
@@ -235,50 +264,39 @@ class _ChatViewState extends ConsumerState<ChatView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              // Handle bar
-              Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder: (context) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        behavior: HitTestBehavior.opaque,
+        child: GestureDetector(
+          onTap: () {}, // Absorb taps on the sheet itself
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) => Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Media & Links',
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 16),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
+                  ),
+                  // Media sidebar content with tabs
+                  const Expanded(
+                    child: MediaSidebar(fixedWidth: false),
+                  ),
+                ],
               ),
-              const Divider(height: 1),
-              // Media sidebar content
-              const Expanded(
-                child: MediaSidebar(),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -348,15 +366,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? Colors.blue[50] : Colors.white,
+                        color: isSelected ? const Color(0xFFDADDD8) : const Color(0xFFECEBE4),
                         borderRadius: BorderRadius.circular(4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -368,7 +379,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                           // Timestamp
                           Text(
                             _formatDateTime(note.createdAt),
-                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            style: TextStyle(fontSize: 11, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
                           ),
                         ],
                       ),
@@ -401,12 +412,20 @@ class _ChatViewState extends ConsumerState<ChatView> {
               }
             },
             styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: const TextStyle(fontSize: 14),
+              p: const TextStyle(fontSize: 14, color: Color(0xFF1C1C1C)),
               a: const TextStyle(
                 fontSize: 10,
                 color: Colors.blue,
                 decoration: TextDecoration.underline,
               ),
+              h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
+              h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
+              h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
+              h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
+              h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
+              h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
+              code: const TextStyle(color: Color(0xFF1C1C1C), backgroundColor: Color(0xFFDADDD8)),
+              blockquote: const TextStyle(color: Color(0xFF1C1C1C)),
             ),
           ),
 
@@ -576,9 +595,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.grey[300],
+          color: const Color(0xFFDADDD8).withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
@@ -586,7 +605,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: Colors.black87,
+            color: Color(0xFF1C1C1C),
           ),
         ),
       ),

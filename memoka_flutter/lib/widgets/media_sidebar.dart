@@ -8,7 +8,9 @@ import 'link_list.dart';
 /// Right sidebar displaying media and links from the current channel.
 /// Shows tabs for IMAGES, VIDEOS, DOCUMENTS, and LINKS.
 class MediaSidebar extends ConsumerStatefulWidget {
-  const MediaSidebar({super.key});
+  final bool fixedWidth;
+
+  const MediaSidebar({super.key, this.fixedWidth = true});
 
   @override
   ConsumerState<MediaSidebar> createState() => _MediaSidebarState();
@@ -38,9 +40,9 @@ class _MediaSidebarState extends ConsumerState<MediaSidebar> with SingleTickerPr
         final mediaAsync = ref.watch(channelMediaDataProvider(channelId));
 
         return Container(
-          width: 300,
+          width: widget.fixedWidth ? 300 : null,
           decoration: BoxDecoration(
-            color: Colors.grey[50],
+            color: const Color(0xFF283044),
             border: Border(
               left: BorderSide(color: Colors.grey[300]!, width: 1),
             ),
@@ -102,12 +104,12 @@ class _MediaSidebarState extends ConsumerState<MediaSidebar> with SingleTickerPr
       },
       loading: () => Container(
         width: 300,
-        color: Colors.grey[50],
+        color: const Color(0xFF283044),
         child: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, stack) => Container(
         width: 300,
-        color: Colors.grey[50],
+        color: const Color(0xFF283044),
         child: Center(
           child: Text(
             'Error: $err',

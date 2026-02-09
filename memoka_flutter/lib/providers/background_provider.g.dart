@@ -1,28 +1,29 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'note_selection_provider.dart';
+part of 'background_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$noteSelectionHash() => r'e555bdb701fb53124b4c1de50fd45e229c34de56';
+String _$backgroundPreferenceHash() =>
+    r'80bf27538b5df57d8b8bcdc12de3b460d33ce2fa';
 
-/// Manages multi-selection state for notes.
+/// Provider for managing background selection
 ///
-/// Copied from [NoteSelection].
-@ProviderFor(NoteSelection)
-final noteSelectionProvider =
-    AutoDisposeNotifierProvider<NoteSelection, Set<int>>.internal(
-      NoteSelection.new,
-      name: r'noteSelectionProvider',
+/// Copied from [BackgroundPreference].
+@ProviderFor(BackgroundPreference)
+final backgroundPreferenceProvider =
+    AutoDisposeNotifierProvider<BackgroundPreference, BackgroundType>.internal(
+      BackgroundPreference.new,
+      name: r'backgroundPreferenceProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$noteSelectionHash,
+          : _$backgroundPreferenceHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$NoteSelection = AutoDisposeNotifier<Set<int>>;
+typedef _$BackgroundPreference = AutoDisposeNotifier<BackgroundType>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
