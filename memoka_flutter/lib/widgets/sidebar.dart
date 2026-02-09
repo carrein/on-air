@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji;
+import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../providers/channels_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/notes_provider.dart';
+import '../providers/settings_view_provider.dart';
+import '../providers/settings_page_provider.dart';
 import '../utils/toast_utils.dart';
-import '../screens/settings_screen.dart';
 
 /// Sidebar displaying channels list and add channel button.
-/// Draggable on web with two positions: emoji-only (60px) or full (250px).
-/// Always emoji-only on mobile.
+/// Fixed width (240px), always visible.
 class Sidebar extends ConsumerStatefulWidget {
   const Sidebar({super.key});
 
@@ -21,118 +22,206 @@ class Sidebar extends ConsumerStatefulWidget {
 }
 
 class _SidebarState extends ConsumerState<Sidebar> {
-  static const double _collapsedWidth = 70.0;
-  static const double _expandedWidth = 250.0;
-  double _currentWidth = _expandedWidth;
-  bool _isDragging = false;
+  // -- Colors --
+  static const _backgroundColor = Color(0xFF00171F);
+  static const _selectedColor = Color(0xFFCE2161);
+  static const _dividerColor = Color(0xFFFF52A1);
+  static const _textColor = Colors.white;
+  static const _previewTextAlpha = 0.7;
+
+  // -- Layout --
+  static const double _sidebarWidth = 240.0;
+  static const _logoIconSize = 44.0;
+  static const _logoPadding = EdgeInsets.symmetric(horizontal: 20, vertical: 14);
+  static const _logoTextGap = 16.0;
+  static const _logoFontSize = 32.0;
+  static const _emojiContainerSize = 40.0;
+  static const _emojiFontSize = 18.0;
+  static const _channelItemPadding = EdgeInsets.only(left: 8, right: 18, top: 10, bottom: 10);
+  static const _emojiToTextGap = 8.0;
+  static const _channelNameFontSize = 14.0;
+  static const _previewFontSize = 10.0;
+  static const _pinIconSize = 20.0;
+  static const _pinIconRotation = 15 * 3.14159 / 180;
+  static const _pinIconGap = 12.0;
+  static const _fadeGradientHeight = 60.0;
+  static const _dividerHeight = 1.0;
+  static const _buttonPadding = EdgeInsets.only(left: 16, right: 20, top: 16, bottom: 16);
+  static const _buttonIconSize = 28.0;
+  static const _buttonTextGap = 16.0;
+  static const _buttonFontSize = 16.0;
+
+  // -- Scroll --
+  static const _scrollThreshold = 10.0;
+
+  final ScrollController _scrollController = ScrollController();
+  bool _showFadeOut = true;
+  bool _showFadeIn = false;
 
   @override
   void initState() {
     super.initState();
-    // Force collapsed on mobile
-    if (!kIsWeb) {
-      _currentWidth = _collapsedWidth;
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.hasClients) {
+      final isAtBottom = _scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - _scrollThreshold;
+      final isAtTop = _scrollController.position.pixels <= _scrollThreshold;
+
+      if (_showFadeOut == isAtBottom || _showFadeIn == isAtTop) {
+        setState(() {
+          _showFadeOut = !isAtBottom;
+          _showFadeIn = !isAtTop;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isCollapsed = _currentWidth < 150;
     final channelsAsync = ref.watch(channelsProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
 
-    return Row(
-      children: [
-        Container(
-          width: _currentWidth,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
+    return Container(
+          width: _sidebarWidth,
+          decoration: const BoxDecoration(
+            color: _backgroundColor,
           ),
           child: Column(
             children: [
-              // Channels list
-              Expanded(
-                child: channelsAsync.when(
-                  data: (channels) => ListView.separated(
-                    itemCount: channels.length,
-                    separatorBuilder: (context, index) {
-                      // Add divider between pinned and unpinned channels
-                      final currentChannel = channels[index];
-                      final nextChannel = index + 1 < channels.length ? channels[index + 1] : null;
-
-                      if (currentChannel.pinned && nextChannel != null && !nextChannel.pinned) {
-                        return Column(
-                          children: [
-                            const SizedBox(height: 4),
-                            Divider(height: 1, color: Colors.grey[400]),
-                            const SizedBox(height: 4),
-                          ],
-                        );
-                      }
-                      return const SizedBox(height: 4);
-                    },
-                    itemBuilder: (context, index) {
-                      final channel = channels[index];
-                      final isSelected = currentChannelAsync.value == channel.id;
-
-                      return _buildChannelItem(
-                        channel,
-                        isSelected,
-                        isCollapsed,
-                        context,
-                      );
-                    },
-                  ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Center(child: Text('Error: $err')),
+              // Logo and app name
+              Container(
+                padding: _logoPadding,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/images/icon.svg',
+                      width: _logoIconSize,
+                      height: _logoIconSize,
+                    ),
+                    const SizedBox(width: _logoTextGap),
+                    Text(
+                      'memoka',
+                      style: GoogleFonts.combo(
+                        fontSize: _logoFontSize,
+                        fontWeight: FontWeight.normal,
+                        color: _textColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              // Add channel button
-              const SizedBox(height: 8),
-              _buildAddButton(isCollapsed, context),
+              Container(height: _dividerHeight, color: _dividerColor),
+              // Channels list
+              Expanded(
+                child: Stack(
+                  children: [
+                    channelsAsync.when(
+                      data: (channels) => ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context).copyWith(
+                          scrollbars: false,
+                        ),
+                        child: ListView.separated(
+                          controller: _scrollController,
+                          itemCount: channels.length,
+                          separatorBuilder: (context, index) {
+                            // Add divider between pinned and unpinned channels
+                            final currentChannel = channels[index];
+                            final nextChannel = index + 1 < channels.length ? channels[index + 1] : null;
+
+                            if (currentChannel.pinned && nextChannel != null && !nextChannel.pinned) {
+                              return Container(height: _dividerHeight, color: _dividerColor);
+                            }
+                            return const SizedBox.shrink();
+                          },
+                          itemBuilder: (context, index) {
+                            final channel = channels[index];
+                            final isSelected = currentChannelAsync.value == channel.id;
+
+                            return _buildChannelItem(
+                              channel,
+                              isSelected,
+                              context,
+                            );
+                          },
+                        ),
+                      ),
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => Center(child: Text('Error: $err')),
+                    ),
+                    // Fade-in gradient at top (only when scrolled down)
+                    if (_showFadeIn)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        height: _fadeGradientHeight,
+                        child: IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  _backgroundColor,
+                                  _backgroundColor.withValues(alpha: 0.7),
+                                  _backgroundColor.withValues(alpha: 0),
+                                ],
+                                stops: const [0.0, 0.5, 1.0],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Fade-out gradient at bottom (only when not at bottom)
+                    if (_showFadeOut)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: _fadeGradientHeight,
+                        child: IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  _backgroundColor.withValues(alpha: 0),
+                                  _backgroundColor.withValues(alpha: 0.7),
+                                  _backgroundColor,
+                                ],
+                                stops: const [0.0, 0.5, 1.0],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              // Separator before buttons
+              Container(height: _dividerHeight, color: _dividerColor),
+              _buildAddButton(context),
               // Account button
-              _buildAccountButton(isCollapsed, context),
-              const SizedBox(height: 8),
+              _buildAccountButton(context),
             ],
           ),
-        ),
-        // Draggable divider (web only)
-        if (kIsWeb)
-          MouseRegion(
-            cursor: SystemMouseCursors.resizeColumn,
-            child: GestureDetector(
-              onHorizontalDragStart: (_) => setState(() => _isDragging = true),
-              onHorizontalDragUpdate: (details) {
-                setState(() {
-                  _currentWidth += details.delta.dx;
-                  _currentWidth = _currentWidth.clamp(_collapsedWidth, _expandedWidth);
-                });
-              },
-              onHorizontalDragEnd: (_) {
-                setState(() {
-                  _isDragging = false;
-                  // Snap to nearest position
-                  if (_currentWidth < 150) {
-                    _currentWidth = _collapsedWidth;
-                  } else {
-                    _currentWidth = _expandedWidth;
-                  }
-                });
-              },
-              child: Container(
-                width: 8,
-                color: _isDragging ? Colors.blue.withValues(alpha: 0.3) : Colors.transparent,
-              ),
-            ),
-          ),
-      ],
-    );
+        );
   }
 
   Widget _buildChannelItem(
     Channel channel,
     bool isSelected,
-    bool isCollapsed,
     BuildContext context,
   ) {
     // Get latest note for preview
@@ -140,65 +229,67 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final latestNote = notesAsync.value?.isNotEmpty == true ? notesAsync.value!.first : null;
 
     return Material(
-      color: isSelected ? Colors.blue[100] : Colors.transparent,
+      color: isSelected ? _selectedColor : Colors.transparent,
       child: InkWell(
         onTap: () => _switchChannel(ref, channel.id!),
         onSecondaryTapDown: (details) => _showContextMenu(context, channel, details.globalPosition),
         onLongPress: () => _showContextMenu(context, channel, null),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: _channelItemPadding,
           child: Row(
-            mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              // Emoji avatar (no pin icon overlay)
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                ),
+              // Emoji avatar (no background)
+              SizedBox(
+                width: _emojiContainerSize,
+                height: _emojiContainerSize,
                 child: Center(
                   child: Text(
                     channel.emoji,
-                    style: const TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: _emojiFontSize),
                   ),
                 ),
               ),
-              // Channel name and message preview (only when expanded)
-              if (!isCollapsed) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+              // Channel name and message preview
+              const SizedBox(width: _emojiToTextGap),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      channel.name,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: _channelNameFontSize,
+                        fontWeight: FontWeight.normal,
+                        color: _textColor,
+                      ),
+                    ),
+                    if (latestNote != null && _shouldShowPreview(latestNote))
                       Text(
-                        channel.name,
+                        _getPreviewText(latestNote),
                         overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                         style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: _previewFontSize,
+                          color: _textColor.withValues(alpha: _previewTextAlpha),
                         ),
                       ),
-                      if (latestNote != null && _shouldShowPreview(latestNote))
-                        Text(
-                          _getPreviewText(latestNote),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                    ],
+                  ],
+                ),
+              ),
+              // Pin icon at the end
+              if (channel.pinned) ...[
+                const SizedBox(width: _pinIconGap),
+                Transform.rotate(
+                  angle: _pinIconRotation,
+                  child: SvgPicture.asset(
+                    'assets/images/star.svg',
+                    width: _pinIconSize,
+                    height: _pinIconSize,
                   ),
                 ),
-                // Pin icon at the end
-                if (channel.pinned)
-                  Icon(
-                    Icons.push_pin,
-                    size: 16,
-                    color: Colors.blue[700],
-                  ),
               ],
             ],
           ),
@@ -207,30 +298,33 @@ class _SidebarState extends ConsumerState<Sidebar> {
     );
   }
 
-  Widget _buildAddButton(bool isCollapsed, BuildContext context) {
+  Widget _buildAddButton(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _showCreateChannelDialog(context, ref),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: _buttonPadding,
           child: Row(
-            mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Icon(Icons.add, size: isCollapsed ? 24 : 20),
-              if (!isCollapsed) ...[
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Text('New Channel', overflow: TextOverflow.ellipsis),
-                      SizedBox(height: 16), // Match height of preview text
-                    ],
+              SvgPicture.asset(
+                'assets/images/new-note.svg',
+                width: _buttonIconSize,
+                height: _buttonIconSize,
+              ),
+              const SizedBox(width: _buttonTextGap),
+              Expanded(
+                child: Text(
+                  'New Channel',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.combo(
+                    fontSize: _buttonFontSize,
+                    fontWeight: FontWeight.normal,
+                    color: _textColor,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -238,35 +332,36 @@ class _SidebarState extends ConsumerState<Sidebar> {
     );
   }
 
-  Widget _buildAccountButton(bool isCollapsed, BuildContext context) {
+  Widget _buildAccountButton(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SettingsScreen()),
-          );
+          ref.read(currentSettingsPageProvider.notifier).showMain();
+          ref.read(settingsVisibilityProvider.notifier).show();
         },
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          padding: _buttonPadding,
           child: Row(
-            mainAxisAlignment: isCollapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Icon(Icons.account_circle, size: isCollapsed ? 24 : 20),
-              if (!isCollapsed) ...[
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('User', overflow: TextOverflow.ellipsis),
-                      SizedBox(height: 16), // Match height of preview text
-                    ],
+              SvgPicture.asset(
+                'assets/images/settings.svg',
+                width: _buttonIconSize,
+                height: _buttonIconSize,
+              ),
+              const SizedBox(width: _buttonTextGap),
+              Expanded(
+                child: Text(
+                  'Settings',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.combo(
+                    fontSize: _buttonFontSize,
+                    fontWeight: FontWeight.normal,
+                    color: _textColor,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -352,6 +447,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
   void _switchChannel(WidgetRef ref, int channelId) {
     // Discard any editing state when switching channels
     ref.read(editingNoteProvider.notifier).cancelEditing();
+    // Hide settings if showing
+    ref.read(settingsVisibilityProvider.notifier).hide();
     ref.read(currentChannelProvider.notifier).switchChannel(channelId);
   }
 
@@ -531,15 +628,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
       context: context,
       builder: (ctx) => SizedBox(
         height: 300,
-        child: EmojiPicker(
-          onEmojiSelected: (category, emoji) {
-            onEmojiSelected(emoji.emoji);
+        child: emoji.EmojiPicker(
+          onEmojiSelected: (category, emojiData) {
+            onEmojiSelected(emojiData.emoji);
             Navigator.pop(ctx);
           },
-          config: const Config(
+          config: const emoji.Config(
             height: 256,
             checkPlatformCompatibility: true,
-            emojiViewConfig: EmojiViewConfig(
+            emojiViewConfig: emoji.EmojiViewConfig(
               emojiSizeMax: 28,
               columns: 7,
             ),

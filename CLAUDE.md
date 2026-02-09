@@ -6,6 +6,7 @@ u/docs/Overview.md
 u/docs/Plan.md
 u/docs/Security.md
 u/docs/UX.md
+u/docs/components/Sidebar.md
 
 # CLAUDE.md
 
@@ -298,3 +299,10 @@ Examples:
 4. Polish - Loading states, error handling, performance optimization
 
 **Status**: Planning and documentation complete, ready for implementation
+
+## Components
+
+Component specifications document individual Flutter widgets with their styling,
+interactions, state management, and integration details.
+
+- **Sidebar**: `docs/components/Sidebar.md`
