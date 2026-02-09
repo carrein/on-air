@@ -120,8 +120,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFECEBE4),
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFFF52A1), width: 1.0),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -216,8 +216,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
             left: 0,
             right: 0,
             child: Material(
-              elevation: 4,
-              color: Colors.blue[700],
+              elevation: 0,
+              color: const Color(0xFFFF52A1),
               child: SafeArea(
                 bottom: false,
                 child: Container(
@@ -235,13 +235,17 @@ class _ChatViewState extends ConsumerState<ChatView> {
                         '${selection.length} selected',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.white),
+                        icon: SvgPicture.asset(
+                          'assets/images/recycle.svg',
+                          width: 24,
+                          height: 24,
+                        ),
                         onPressed: () {
                           final channelId = ref.read(currentChannelProvider).value;
                           if (channelId != null) {
@@ -321,21 +325,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 onTap: () {
                   ref.read(noteSelectionProvider.notifier).toggle(note.id!);
                 },
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected ? Colors.blue[700] : Colors.transparent,
-                    border: Border.all(
-                      color: isSelected ? Colors.blue[700]! : Colors.grey[400]!,
-                      width: 2,
-                    ),
-                  ),
-                  child: isSelected
-                      ? const Icon(Icons.check, size: 16, color: Colors.white)
-                      : null,
-                ),
+                child: isSelected
+                    ? SvgPicture.asset(
+                        'assets/images/checkmark.svg',
+                        width: 24,
+                        height: 24,
+                      )
+                    : const SizedBox(width: 24, height: 24),
               ),
             ),
           // Note content
@@ -366,8 +362,11 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFFDADDD8) : const Color(0xFFECEBE4),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Colors.white,
+                        border: Border.all(
+                          color: const Color(0xFFFF52A1),
+                          width: 1.0,
+                        ),
                       ),
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -379,7 +378,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                           // Timestamp
                           Text(
                             _formatDateTime(note.createdAt),
-                            style: TextStyle(fontSize: 11, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                            style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
                           ),
                         ],
                       ),
@@ -412,7 +411,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
               }
             },
             styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: const TextStyle(fontSize: 14, color: Color(0xFF1C1C1C)),
+              p: const TextStyle(fontSize: 16, color: Color(0xFF1C1C1C)),
               a: const TextStyle(
                 fontSize: 10,
                 color: Colors.blue,

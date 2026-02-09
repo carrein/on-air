@@ -41,11 +41,8 @@ class _MediaSidebarState extends ConsumerState<MediaSidebar> with SingleTickerPr
 
         return Container(
           width: widget.fixedWidth ? 300 : null,
-          decoration: BoxDecoration(
-            color: const Color(0xFF283044),
-            border: Border(
-              left: BorderSide(color: Colors.grey[300]!, width: 1),
-            ),
+          decoration: const BoxDecoration(
+            color: Color(0xFF283044),
           ),
           child: Column(
             children: [

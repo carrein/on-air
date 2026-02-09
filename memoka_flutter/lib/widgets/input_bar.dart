@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
@@ -22,6 +24,23 @@ class InputBar extends ConsumerStatefulWidget {
 }
 
 class _InputBarState extends ConsumerState<InputBar> {
+  // -- Colors (from Theme.md) --
+  static const _barBackground = Color(0xFF00171F);
+  static const _fieldFill = Colors.white;             // core.surface
+  static const _iconColor = Color(0xFFFF52A1);        // brand.accent
+  static const _iconDisabledAlpha = 0.4;
+  static const _hintTextColor = Color(0xFFFF52A1);    // brand.accent
+  static const _hintTextAlpha = 1.0;
+  static const _tooltipBackground = Color(0xFF00171F); // core.background
+  static const _tooltipAlpha = 0.7;
+
+  // -- Layout --
+  static const _barPadding = EdgeInsets.all(12);
+  static const _fieldContentPadding = EdgeInsets.all(12);
+  static const _iconGap = 8.0;                        // space.sm
+  static const _fieldBorderRadius = 0.0;              // no border radius
+  static const _iconSize = 28.0;
+
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   String? _previewUrl;
@@ -96,41 +115,77 @@ class _InputBarState extends ConsumerState<InputBar> {
       });
     });
 
-    return Column(
-      children: [
-        // Link preview (show above input when URL detected)
-        if (_showPreview && _previewUrl != null && !isEditMode)
-          InputLinkPreview(
-            url: _previewUrl!,
-            onDismiss: () => setState(() => _showPreview = false),
-          ),
-
-        // Input bar
-        Container(
-          padding: const EdgeInsets.all(8),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        tooltipTheme: TooltipThemeData(
           decoration: BoxDecoration(
-            color: Colors.grey[100],
+            color: Colors.white,
+            border: Border.all(
+              color: _iconColor,
+              width: 1.0,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          textStyle: GoogleFonts.spaceGrotesk(
+            color: _tooltipBackground,
+            fontSize: 12,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Link preview (show above input when URL detected)
+          if (_showPreview && _previewUrl != null && !isEditMode)
+            InputLinkPreview(
+              url: _previewUrl!,
+              onDismiss: () => setState(() => _showPreview = false),
+            ),
+
+          // Input bar
+          Container(
+          padding: _barPadding,
+          decoration: const BoxDecoration(
+            color: _barBackground,
+            border: Border(
+              left: BorderSide(
+                color: _iconColor,
+                width: 1.0,
+              ),
+              right: BorderSide(
+                color: _iconColor,
+                width: 1.0,
+              ),
+            ),
           ),
           child: Row(
             children: [
               if (isEditMode)
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: _iconColor.withValues(alpha: _iconDisabledAlpha)),
                   onPressed: _cancelEditing,
                   tooltip: 'Cancel',
                 ),
               Expanded(
-                child: KeyboardListener(
+                child: RawKeyboardListener(
                   focusNode: FocusNode(),
-                  onKeyEvent: (event) {
-                    if (event is KeyDownEvent) {
-                      // Handle Enter key
-                      if (event.logicalKey == LogicalKeyboardKey.enter) {
-                        // Check if Shift is NOT pressed
-                        if (!HardwareKeyboard.instance.isShiftPressed) {
-                          _submit();
-                        }
-                        // If Shift IS pressed, do nothing and let TextField handle it
+                  onKey: (event) {
+                    if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
+                      if (event.isShiftPressed) {
+                        // Manually insert newline for Shift+Enter
+                        final text = _controller.text;
+                        final selection = _controller.selection;
+                        final newText = text.replaceRange(
+                          selection.start,
+                          selection.end,
+                          '\n',
+                        );
+                        _controller.value = TextEditingValue(
+                          text: newText,
+                          selection: TextSelection.collapsed(offset: selection.start + 1),
+                        );
+                      } else {
+                        // Plain Enter submits
+                        _submit();
                       }
                     }
                   },
@@ -140,34 +195,59 @@ class _InputBarState extends ConsumerState<InputBar> {
                     minLines: 1,
                     maxLines: 8,
                     keyboardType: TextInputType.multiline,
-                    textInputAction: TextInputAction.newline,
+                    textInputAction: TextInputAction.none, // Disable default enter behavior
                     decoration: InputDecoration(
-                      hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Type a note... (Shift+Enter for new line)',
-                      border: InputBorder.none,
+                      hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Keyboard goes brrrr...',
+                      hintStyle: TextStyle(
+                        color: _hintTextColor.withValues(alpha: _hintTextAlpha),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(_fieldBorderRadius),
+                        borderSide: BorderSide.none,
+                      ),
                       filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.all(12),
+                      fillColor: _fieldFill,
+                      contentPadding: _fieldContentPadding,
                     ),
                     onChanged: _onTextChanged,
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: _iconGap),
               if (!isEditMode)
                 IconButton(
-                  icon: const Icon(Icons.attach_file),
+                  icon: SvgPicture.asset(
+                    'assets/images/attachment.svg',
+                    width: _iconSize,
+                    height: _iconSize,
+                  ),
                   onPressed: _pickFile,
                   tooltip: 'Upload file',
                 ),
               IconButton(
-                icon: Icon(isEditMode ? Icons.save : Icons.send),
+                icon: isEditMode
+                    ? Icon(
+                        Icons.check,
+                        color: _controller.text.trim().isEmpty
+                            ? _iconColor.withValues(alpha: _iconDisabledAlpha)
+                            : _iconColor,
+                      )
+                    : Opacity(
+                        opacity: _controller.text.trim().isEmpty ? _iconDisabledAlpha : 1.0,
+                        child: SvgPicture.asset(
+                          'assets/images/send.svg',
+                          width: _iconSize,
+                          height: _iconSize,
+                        ),
+                      ),
                 onPressed: _controller.text.trim().isEmpty ? null : _submit,
                 tooltip: isEditMode ? 'Save' : 'Send',
               ),
             ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

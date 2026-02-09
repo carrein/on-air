@@ -7,6 +7,7 @@ u/docs/Plan.md
 u/docs/Security.md
 u/docs/UX.md
 u/docs/components/Sidebar.md
+u/docs/components/InputBar.md
 
 # CLAUDE.md
 
@@ -306,3 +307,4 @@ Component specifications document individual Flutter widgets with their styling,
 interactions, state management, and integration details.
 
 - **Sidebar**: `docs/components/Sidebar.md`
+- **InputBar**: `docs/components/InputBar.md`

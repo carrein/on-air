@@ -172,8 +172,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
                                 colors: [
-                                  _backgroundColor,
-                                  _backgroundColor.withValues(alpha: 0.7),
+                                  _backgroundColor.withValues(alpha: 0.95),
+                                  _backgroundColor.withValues(alpha: 0.5),
                                   _backgroundColor.withValues(alpha: 0),
                                 ],
                                 stops: const [0.0, 0.5, 1.0],
@@ -197,8 +197,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
                                 end: Alignment.bottomCenter,
                                 colors: [
                                   _backgroundColor.withValues(alpha: 0),
-                                  _backgroundColor.withValues(alpha: 0.7),
-                                  _backgroundColor,
+                                  _backgroundColor.withValues(alpha: 0.5),
+                                  _backgroundColor.withValues(alpha: 0.95),
                                 ],
                                 stops: const [0.0, 0.5, 1.0],
                               ),
@@ -481,68 +481,105 @@ class _SidebarState extends ConsumerState<Sidebar> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('New Channel'),
-          content: SizedBox(
-            width: 350,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Channel Name'),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text('Emoji: '),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _showEmojiPicker(context, (emoji) {
-                        setState(() => selectedEmoji = emoji);
-                      }),
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                        ),
-                        child: Center(
-                          child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Tap to change', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                  ],
-                ),
-              ],
+        builder: (context, setState) => Theme(
+          data: Theme.of(context).copyWith(
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF00171F),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+          child: AlertDialog(
+            title: const Text(
+              'New Channel',
+              style: TextStyle(color: Colors.white),
             ),
-            TextButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                if (name.isNotEmpty) {
-                  final channel = await ref.read(channelsProvider.notifier).createChannel(
-                        name,
-                        emoji: selectedEmoji,
-                      );
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
-                    // Switch to the newly created channel
-                    ref.read(currentChannelProvider.notifier).switchChannel(channel.id!);
+            content: SizedBox(
+              width: 350,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Channel Name',
+                      labelStyle: TextStyle(color: Colors.white),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white, width: 2.0),
+                      ),
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text('Emoji: ', style: TextStyle(color: Colors.white)),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _showEmojiPicker(context, (emoji) {
+                          setState(() => selectedEmoji = emoji);
+                        }),
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.white, width: 1.0),
+                          ),
+                          child: Center(
+                            child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Tap to change',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF00171F),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                ),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final name = nameController.text.trim();
+                  if (name.isNotEmpty) {
+                    final channel = await ref.read(channelsProvider.notifier).createChannel(
+                          name,
+                          emoji: selectedEmoji,
+                        );
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      // Switch to the newly created channel
+                      ref.read(currentChannelProvider.notifier).switchChannel(channel.id!);
+                    }
                   }
-                }
-              },
-              child: const Text('Create'),
-            ),
-          ],
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF00171F),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                ),
+                child: const Text('Create'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -559,65 +596,102 @@ class _SidebarState extends ConsumerState<Sidebar> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Channel'),
-          content: SizedBox(
-            width: 350,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Channel Name'),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text('Emoji: '),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _showEmojiPicker(context, (emoji) {
-                        setState(() => selectedEmoji = emoji);
-                      }),
-                      child: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                        ),
-                        child: Center(
-                          child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Tap to change', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                  ],
-                ),
-              ],
+        builder: (context, setState) => Theme(
+          data: Theme.of(context).copyWith(
+            dialogTheme: const DialogThemeData(
+              backgroundColor: Color(0xFF00171F),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.zero,
+              ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+          child: AlertDialog(
+            title: const Text(
+              'Edit Channel',
+              style: TextStyle(color: Colors.white),
             ),
-            TextButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                if (name.isNotEmpty) {
-                  await ref.read(channelsProvider.notifier).updateChannel(
-                        channel.id!,
-                        name: name,
-                        emoji: selectedEmoji,
-                      );
-                  if (ctx.mounted) Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Save'),
+            content: SizedBox(
+              width: 350,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Channel Name',
+                      labelStyle: TextStyle(color: Colors.white),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white, width: 2.0),
+                      ),
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text('Emoji: ', style: TextStyle(color: Colors.white)),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _showEmojiPicker(context, (emoji) {
+                          setState(() => selectedEmoji = emoji);
+                        }),
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.white, width: 1.0),
+                          ),
+                          child: Center(
+                            child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Tap to change',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF00171F),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                ),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  final name = nameController.text.trim();
+                  if (name.isNotEmpty) {
+                    await ref.read(channelsProvider.notifier).updateChannel(
+                          channel.id!,
+                          name: name,
+                          emoji: selectedEmoji,
+                        );
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF00171F),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                ),
+                child: const Text('Save'),
+              ),
+            ],
+          ),
         ),
       ),
     );
