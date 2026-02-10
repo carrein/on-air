@@ -14,11 +14,16 @@ class ChatEndpoint extends Endpoint {
   /// Silently ignores errors (e.g., Redis not available in test mode).
   static Future<void> broadcastEvent(Session session, ChatEvent event) async {
     try {
-      await session.messages.postMessage(chatEventsChannel, event, global: true);
+      await session.messages.postMessage(
+        chatEventsChannel,
+        event,
+        global: true,
+      );
     } catch (_) {
       // Redis not available (e.g., in test mode), skip broadcasting
     }
   }
+
   /// Returns all channels sorted by last modified (newest first).
   /// Pinned channels appear at the top, also sorted by last modified.
   Future<List<Channel>> getChannels(Session session) async {
@@ -125,10 +130,13 @@ class ChatEndpoint extends Endpoint {
     final channel = Channel(name: name.trim(), emoji: emoji);
     final saved = await Channel.db.insertRow(session, channel);
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'channelCreated',
-      channel: saved,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'channelCreated',
+        channel: saved,
+      ),
+    );
 
     return saved;
   }
@@ -164,10 +172,13 @@ class ChatEndpoint extends Endpoint {
     channel.updatedAt = DateTime.now();
     final updated = await Channel.db.updateRow(session, channel);
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'channelUpdated',
-      channel: updated,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'channelUpdated',
+        channel: updated,
+      ),
+    );
 
     return updated;
   }
@@ -199,10 +210,13 @@ class ChatEndpoint extends Endpoint {
     // Delete from database (cascade will handle notes and attachments)
     await Channel.db.deleteWhere(session, where: (t) => t.id.equals(id));
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'channelDeleted',
-      channelId: id,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'channelDeleted',
+        channelId: id,
+      ),
+    );
   }
 
   /// Creates a new note and broadcasts the event.
@@ -234,10 +248,13 @@ class ChatEndpoint extends Endpoint {
       await Channel.db.updateRow(session, channel);
     }
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'noteCreated',
-      note: saved,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'noteCreated',
+        note: saved,
+      ),
+    );
 
     // Fetch link preview asynchronously (don't await)
     unawaited(_fetchLinkPreviewAsync(session, saved));
@@ -264,13 +281,19 @@ class ChatEndpoint extends Endpoint {
       note.updatedAt = DateTime.now();
       final updated = await Note.db.updateRow(session, note);
 
-      await broadcastEvent(session, ChatEvent(
-        type: 'noteLinkPreviewReady',
-        note: updated,
-      ));
+      await broadcastEvent(
+        session,
+        ChatEvent(
+          type: 'noteLinkPreviewReady',
+          note: updated,
+        ),
+      );
     } catch (e, stackTrace) {
       // Log error but don't fail
-      session.log('Error fetching link preview: $e\n$stackTrace', level: LogLevel.error);
+      session.log(
+        'Error fetching link preview: $e\n$stackTrace',
+        level: LogLevel.error,
+      );
     }
   }
 
@@ -294,10 +317,13 @@ class ChatEndpoint extends Endpoint {
 
     final updated = await Note.db.updateRow(session, note);
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'noteUpdated',
-      note: updated,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'noteUpdated',
+        note: updated,
+      ),
+    );
 
     return updated;
   }
@@ -338,11 +364,14 @@ class ChatEndpoint extends Endpoint {
       ),
     );
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'noteArchived',
-      noteId: note.id!,
-      channelId: originalChannelId,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'noteArchived',
+        noteId: note.id!,
+        channelId: originalChannelId,
+      ),
+    );
   }
 
   /// Permanently deletes a note, its media attachments, and broadcasts the event.
@@ -357,7 +386,9 @@ class ChatEndpoint extends Endpoint {
     for (final attachment in attachments) {
       try {
         // Delete main file
-        final mainFile = File('${ServerConstants.mediaBaseDir}/${attachment.filePath}');
+        final mainFile = File(
+          '${ServerConstants.mediaBaseDir}/${attachment.filePath}',
+        );
         if (await mainFile.exists()) {
           await mainFile.delete();
           session.log('Deleted media file: ${attachment.filePath}');
@@ -384,11 +415,14 @@ class ChatEndpoint extends Endpoint {
     // Delete from database (cascade will delete attachment records)
     await Note.db.deleteWhere(session, where: (t) => t.id.equals(note.id!));
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'noteDeleted',
-      noteId: note.id!,
-      channelId: -1,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'noteDeleted',
+        noteId: note.id!,
+        channelId: -1,
+      ),
+    );
   }
 
   /// Restores a note from Archive back to its original channel.
@@ -409,8 +443,10 @@ class ChatEndpoint extends Endpoint {
     }
 
     // Verify original channel still exists
-    final originalChannel =
-        await Channel.db.findById(session, note.originalChannelId!);
+    final originalChannel = await Channel.db.findById(
+      session,
+      note.originalChannelId!,
+    );
     if (originalChannel == null) {
       throw Exception('Original channel no longer exists');
     }
@@ -431,12 +467,15 @@ class ChatEndpoint extends Endpoint {
     );
 
     final restoredNote = await Note.db.findById(session, note.id!);
-    await broadcastEvent(session, ChatEvent(
-      type: 'noteRestored',
-      noteId: note.id!,
-      channelId: note.originalChannelId!,
-      note: restoredNote,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'noteRestored',
+        noteId: note.id!,
+        channelId: note.originalChannelId!,
+        note: restoredNote,
+      ),
+    );
   }
 
   /// Archives a channel (soft delete). Notes stay with the channel.
@@ -455,8 +494,7 @@ class ChatEndpoint extends Endpoint {
     // Prevent archiving the last active channel
     final activeCount = await Channel.db.count(
       session,
-      where: (t) =>
-          t.archived.equals(false) & t.isSystemChannel.equals(false),
+      where: (t) => t.archived.equals(false) & t.isSystemChannel.equals(false),
     );
     if (activeCount <= 1) {
       throw Exception('Cannot archive the last remaining channel');
@@ -467,10 +505,13 @@ class ChatEndpoint extends Endpoint {
     channel.pinned = false;
     await Channel.db.updateRow(session, channel);
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'channelArchived',
-      channelId: id,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'channelArchived',
+        channelId: id,
+      ),
+    );
   }
 
   /// Restores an archived channel back to the sidebar.
@@ -498,10 +539,13 @@ class ChatEndpoint extends Endpoint {
     channel.updatedAt = DateTime.now();
     final updated = await Channel.db.updateRow(session, channel);
 
-    await broadcastEvent(session, ChatEvent(
-      type: 'channelRestored',
-      channel: updated,
-    ));
+    await broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'channelRestored',
+        channel: updated,
+      ),
+    );
 
     return updated;
   }
@@ -534,19 +578,23 @@ class ChatEndpoint extends Endpoint {
     final items = <ArchiveItem>[];
 
     for (final note in archivedNotes) {
-      items.add(ArchiveItem(
-        type: 'note',
-        note: note,
-        archivedAt: note.updatedAt,
-      ));
+      items.add(
+        ArchiveItem(
+          type: 'note',
+          note: note,
+          archivedAt: note.updatedAt,
+        ),
+      );
     }
 
     for (final channel in archivedChannels) {
-      items.add(ArchiveItem(
-        type: 'channel',
-        channel: channel,
-        archivedAt: channel.archivedAt ?? channel.updatedAt,
-      ));
+      items.add(
+        ArchiveItem(
+          type: 'channel',
+          channel: channel,
+          archivedAt: channel.archivedAt ?? channel.updatedAt,
+        ),
+      );
     }
 
     // Sort by archivedAt descending
@@ -561,7 +609,10 @@ class ChatEndpoint extends Endpoint {
   }
 
   /// Returns the count of notes in an archived channel (for confirmation dialog).
-  Future<int> getArchivedChannelNoteCount(Session session, int channelId) async {
+  Future<int> getArchivedChannelNoteCount(
+    Session session,
+    int channelId,
+  ) async {
     return await Note.db.count(
       session,
       where: (t) => t.channelId.equals(channelId),

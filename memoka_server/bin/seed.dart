@@ -1,7 +1,8 @@
+// ignore_for_file: avoid_print
 import 'dart:io';
+import 'package:memoka_server/src/generated/endpoints.dart';
+import 'package:memoka_server/src/generated/protocol.dart';
 import 'package:serverpod/serverpod.dart';
-import '../lib/src/generated/protocol.dart';
-import '../lib/src/generated/endpoints.dart';
 
 /// Resets the database to a clean state and seeds sample data.
 ///
@@ -127,7 +128,9 @@ void main(List<String> args) async {
       // Load Test channel gets 500 notes, first 6 channels get notes, rest are empty
       final noteCount = channel.name == 'Load Test'
           ? 500
-          : i < 6 ? 10 + (i * 8) : 0;
+          : i < 6
+          ? 10 + (i * 8)
+          : 0;
 
       for (var j = 0; j < noteCount; j++) {
         final template = noteTemplates[j % noteTemplates.length];
@@ -144,7 +147,9 @@ void main(List<String> args) async {
         // Using exponential decay: most recent notes are densest
         final daysAgo = (maxDays * (1 - progress * progress)).floor();
         final hoursOffset = (j % 10) * 2; // Vary hours within each day
-        final createdAt = now.subtract(Duration(days: daysAgo, hours: hoursOffset));
+        final createdAt = now.subtract(
+          Duration(days: daysAgo, hours: hoursOffset),
+        );
 
         final note = Note(channelId: channel.id!, content: content);
         note.createdAt = createdAt;
@@ -158,11 +163,15 @@ void main(List<String> args) async {
       await Channel.db.updateRow(session, channel);
 
       if (channel.name == 'Load Test') {
-        print('   ✓ Created ${noteCount} notes in ${channel.emoji} ${channel.name} (for pagination testing)');
+        print(
+          '   ✓ Created $noteCount notes in ${channel.emoji} ${channel.name} (for pagination testing)',
+        );
       }
     }
 
-    print('   ✓ Created $totalNotes total notes across ${createdChannels.length} channels');
+    print(
+      '   ✓ Created $totalNotes total notes across ${createdChannels.length} channels',
+    );
 
     await session.close();
     await pod.shutdown();
@@ -170,7 +179,6 @@ void main(List<String> args) async {
     print('\n✅ Database reset and seeded successfully!');
     print('   Run: dart bin/main.dart');
     print('   Then visit: http://localhost:8082/app/');
-
   } catch (e, stackTrace) {
     print('\n❌ Error: $e');
     print(stackTrace);

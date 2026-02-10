@@ -234,10 +234,13 @@ class MediaEndpoint extends Endpoint {
         return savedNote;
       });
 
-      await ChatEndpoint.broadcastEvent(session, ChatEvent(
-        type: 'noteCreated',
-        note: note,
-      ));
+      await ChatEndpoint.broadcastEvent(
+        session,
+        ChatEvent(
+          type: 'noteCreated',
+          note: note,
+        ),
+      );
 
       return note;
     } catch (e) {

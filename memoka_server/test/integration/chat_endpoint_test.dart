@@ -3,6 +3,18 @@ import 'test_tools/serverpod_test_tools.dart';
 
 void main() {
   withServerpod('Given Chat endpoint', (sessionBuilder, endpoints) {
+    setUp(() async {
+      // Create the Archive system channel (id=-1) required by deleteNote's
+      // archive behavior. Without this, the FK constraint on notes.channelId
+      // prevents archiving.
+      final session = sessionBuilder.build();
+      await session.db.unsafeQuery(
+        'INSERT INTO channels (id, name, emoji, pinned, "isSystemChannel", "createdAt", "updatedAt", archived) '
+        "VALUES (-1, 'Archive', '🗃️', false, true, NOW(), NOW(), false) "
+        'ON CONFLICT (id) DO NOTHING',
+      );
+    });
+
     group('Channel operations', () {
       test(
         'getChannels returns channels sorted by updatedAt (newest first)',
@@ -202,7 +214,7 @@ void main() {
         );
       });
 
-      test('deleteNote removes note from database', () async {
+      test('deleteNote archives note (moves to channelId -1)', () async {
         final channel = await endpoints.chat.createChannel(
           sessionBuilder,
           'Test Channel',
@@ -212,17 +224,26 @@ void main() {
         final note = await endpoints.chat.createNote(
           sessionBuilder,
           channel.id!,
-          'To delete',
+          'To archive',
         );
 
         await endpoints.chat.deleteNote(sessionBuilder, note.id!);
 
+        // Note should no longer appear in original channel
         final notes = await endpoints.chat.getNotes(
           sessionBuilder,
           channel.id!,
           limit: 50,
         );
         expect(notes.any((n) => n.id == note.id), isFalse);
+
+        // Note should appear in archive (channelId == -1)
+        final archived = await endpoints.chat.getNotes(
+          sessionBuilder,
+          -1,
+          limit: 50,
+        );
+        expect(archived.any((n) => n.id == note.id), isTrue);
       });
     });
 
