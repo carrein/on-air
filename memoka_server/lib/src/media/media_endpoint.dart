@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:serverpod/serverpod.dart';
-import '../chat/chat_endpoint.dart';
 import '../generated/protocol.dart';
 import '../shared/constants.dart';
 import 'image_processor.dart';
@@ -234,7 +233,7 @@ class MediaEndpoint extends Endpoint {
         return savedNote;
       });
 
-      await ChatEndpoint.broadcastEvent(
+      await ServerConstants.broadcastEvent(
         session,
         ChatEvent(
           type: 'noteCreated',

@@ -7,23 +7,6 @@ import 'link_preview_service.dart';
 
 /// Endpoint for managing channels and notes with real-time updates.
 class ChatEndpoint extends Endpoint {
-  /// Channel name used for broadcasting real-time chat events via MessageCentral.
-  static const String chatEventsChannel = 'chat_events';
-
-  /// Broadcasts a chat event via MessageCentral.
-  /// Silently ignores errors (e.g., Redis not available in test mode).
-  static Future<void> broadcastEvent(Session session, ChatEvent event) async {
-    try {
-      await session.messages.postMessage(
-        chatEventsChannel,
-        event,
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
-  }
-
   /// Returns all channels sorted by last modified (newest first).
   /// Pinned channels appear at the top, also sorted by last modified.
   Future<List<Channel>> getChannels(Session session) async {
@@ -130,7 +113,7 @@ class ChatEndpoint extends Endpoint {
     final channel = Channel(name: name.trim(), emoji: emoji);
     final saved = await Channel.db.insertRow(session, channel);
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'channelCreated',
@@ -172,7 +155,7 @@ class ChatEndpoint extends Endpoint {
     channel.updatedAt = DateTime.now();
     final updated = await Channel.db.updateRow(session, channel);
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'channelUpdated',
@@ -210,7 +193,7 @@ class ChatEndpoint extends Endpoint {
     // Delete from database (cascade will handle notes and attachments)
     await Channel.db.deleteWhere(session, where: (t) => t.id.equals(id));
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'channelDeleted',
@@ -248,7 +231,7 @@ class ChatEndpoint extends Endpoint {
       await Channel.db.updateRow(session, channel);
     }
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'noteCreated',
@@ -281,7 +264,7 @@ class ChatEndpoint extends Endpoint {
       note.updatedAt = DateTime.now();
       final updated = await Note.db.updateRow(session, note);
 
-      await broadcastEvent(
+      await ServerConstants.broadcastEvent(
         session,
         ChatEvent(
           type: 'noteLinkPreviewReady',
@@ -317,7 +300,7 @@ class ChatEndpoint extends Endpoint {
 
     final updated = await Note.db.updateRow(session, note);
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'noteUpdated',
@@ -364,7 +347,7 @@ class ChatEndpoint extends Endpoint {
       ),
     );
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'noteArchived',
@@ -415,7 +398,7 @@ class ChatEndpoint extends Endpoint {
     // Delete from database (cascade will delete attachment records)
     await Note.db.deleteWhere(session, where: (t) => t.id.equals(note.id!));
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'noteDeleted',
@@ -467,7 +450,7 @@ class ChatEndpoint extends Endpoint {
     );
 
     final restoredNote = await Note.db.findById(session, note.id!);
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'noteRestored',
@@ -505,7 +488,7 @@ class ChatEndpoint extends Endpoint {
     channel.pinned = false;
     await Channel.db.updateRow(session, channel);
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'channelArchived',
@@ -539,7 +522,7 @@ class ChatEndpoint extends Endpoint {
     channel.updatedAt = DateTime.now();
     final updated = await Channel.db.updateRow(session, channel);
 
-    await broadcastEvent(
+    await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'channelRestored',
@@ -622,7 +605,9 @@ class ChatEndpoint extends Endpoint {
   /// Streaming endpoint for real-time updates.
   /// Subscribes to all chat events (channel and note changes).
   Stream<ChatEvent> chat(Session session) async* {
-    final stream = session.messages.createStream<ChatEvent>(chatEventsChannel);
+    final stream = session.messages.createStream<ChatEvent>(
+      ServerConstants.chatEventsChannel,
+    );
 
     await for (final event in stream) {
       yield event;
