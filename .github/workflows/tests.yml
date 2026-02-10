@@ -9,39 +9,22 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: memoka_server
     env:
       VERSION: '3.2.3'
       SERVERPOD_PASSWORD_database: 'HEDBcpu2NNA1cMwC3EmK83YS-78JRpwB'
       SERVERPOD_PASSWORD_redis: 'VrcHvH3Qje8yrXsGIDWig3dxx-oNR-PX'
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.8'
-
-      - name: Start containers
-        working-directory: memoka_server
-        run: docker compose up --build -d
-
-      - name: Install dependencies
-        working-directory: memoka_server
-        run: dart pub get
-
-      - name: Install Serverpod CLI
-        working-directory: memoka_server
-        run: dart pub global activate serverpod_cli $VERSION
-
-      - name: Run Serverpod generator
-        working-directory: memoka_server
-        run: serverpod generate
-
-      - name: Run tests
-        working-directory: memoka_server
-        run: dart test
-
-      - name: Stop containers
-        if: always()
-        working-directory: memoka_server
+      - run: docker compose up --build -d
+      - run: dart pub get
+      - run: dart pub global activate serverpod_cli $VERSION
+      - run: serverpod generate
+      - run: dart test
+      - if: always()
         run: docker compose down -v
