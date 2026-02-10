@@ -21,7 +21,7 @@ The server and frontend should be combined into a single Docker container becaus
 
 ## Dockerfile Strategy
 
-Create a multi-stage Dockerfile at repository root:
+Multi-stage Dockerfile at repository root:
 
 **Stage 1: Flutter Web Build**
 - Use `ghcr.io/cirruslabs/flutter:stable` base image
@@ -105,12 +105,11 @@ If you need different database/redis hosts, modify `config/production.yaml` befo
 
 ## GitHub Action Workflow
 
-Create `.github/workflows/release.yml`:
+`.github/workflows/release.yml` triggers on release publish:
 
 ```yaml
 name: Build and Push Docker Image
 
-# Trigger only when a release is published
 on:
   release:
     types: [published]
@@ -123,15 +122,11 @@ jobs:
       packages: write
 
     steps:
-      # Checkout repository
       - uses: actions/checkout@v4
-
-      # Set up Dart for code generation
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
-      # Generate Serverpod code (required for memoka_client)
       - name: Generate Serverpod code
         run: |
           cd memoka_server
@@ -139,11 +134,9 @@ jobs:
           dart pub global activate serverpod_cli 3.2.3
           serverpod generate
 
-      # Set up Docker Buildx for multi-platform builds
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Login to GitHub Container Registry
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -151,7 +144,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract version from release tag
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -162,7 +154,6 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      # Build and push Docker image
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -173,12 +164,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 ```
-
-**Key differences from your blog example:**
-- Added `permissions` for package write access
-- Used `docker/metadata-action` for automatic version tagging from release
-- Added build cache for faster builds
-- Uses latest action versions (v4/v5)
 
 **Tagging Strategy:**
 - `latest` - Always points to most recent release
@@ -195,7 +180,7 @@ version: '3.8'
 services:
   memoka:
     container_name: memoka
-    image: ghcr.io/carrein/memoka:latest  # Adjust to your repo name
+    image: ghcr.io/carrein/memoka:latest
     restart: unless-stopped
     ports:
       - "8080:8080"  # apiServer - API endpoints (required for Flutter client)
@@ -220,15 +205,11 @@ services:
     networks:
       - memoka_network
     labels:
-      - flame.type=application
-      - flame.name=Memoka
-      - flame.url=https://${MEMOKA_PUBLIC_HOST}
-      - flame.icon=custom
       - com.centurylinklabs.watchtower.enable=true
 
   postgresql:
     container_name: memoka_postgresql
-    image: pgvector/pgvector:pg17  # Includes pgvector extension
+    image: pgvector/pgvector:pg17
     restart: unless-stopped
     environment:
       POSTGRES_USER: memoka_user
@@ -248,8 +229,6 @@ services:
     container_name: memoka_redis
     image: redis:7-alpine
     restart: unless-stopped
-    # No password for VPN-protected environment
-    # Add --requirepass ${REDIS_PASSWORD} if you want password auth
     volumes:
       - memoka_redis_data:/data
     healthcheck:
@@ -271,10 +250,7 @@ volumes:
 
 **Environment Variables (.env file):**
 ```env
-# Database password
 MEMOKA_DB_PASSWORD=your_secure_database_password
-
-# Authentication secrets (generate with commands below)
 MEMOKA_SERVICE_SECRET=your_service_secret_here
 MEMOKA_EMAIL_PEPPER=your_email_pepper_here
 MEMOKA_JWT_KEY=your_jwt_private_key_here
@@ -300,11 +276,60 @@ echo "MEMOKA_JWT_REFRESH_PEPPER=$(openssl rand -base64 32)"
   - Port 8082: Flutter web app (at `/app/`) and static files
   - Access the app at: `http://your-host:8082/app/`
   - The Flutter client will connect to `http://your-host:8080/` for API calls
-- Healthchecks ensure PostgreSQL and Redis are ready before Serverpod starts, preventing crash loops
-- `condition: service_healthy` waits for database readiness, not just container start
-- Memoka service healthcheck enables reverse proxy integration and monitoring
+- Healthchecks ensure PostgreSQL and Redis are ready before Serverpod starts
 - Watchtower will auto-update when new `latest` tag is pushed
 - If using reverse proxy (Traefik/Nginx), adjust port mapping and add proxy labels
+
+## Local Testing
+
+### Test Compiled Binary
+
+Before building Docker image, verify the compiled binary works:
+
+```bash
+cd memoka_server
+dart compile exe bin/main.dart -o server
+./server --mode production
+```
+
+Verify it finds `config/production.yaml` and starts correctly.
+
+### Build Docker Image Locally
+
+```bash
+# Generate Serverpod code first
+cd memoka_server
+dart pub get
+dart pub global activate serverpod_cli 3.2.3
+serverpod generate
+cd ..
+
+# Build Docker image
+docker build -t memoka:test .
+
+# Run with test environment
+docker run --rm \
+  -p 8080:8080 \
+  -p 8082:8082 \
+  -e DATABASE_HOST=host.docker.internal \
+  -e DATABASE_PORT=5432 \
+  -e DATABASE_NAME=memoka \
+  -e DATABASE_USER=memoka_user \
+  -e DATABASE_PASSWORD=test_password \
+  -e REDIS_HOST=host.docker.internal \
+  -e REDIS_PORT=6379 \
+  -e REDIS_USER=default \
+  -e PUBLIC_HOST=localhost \
+  -e SERVICE_SECRET=$(openssl rand -base64 32) \
+  -e EMAIL_SECRET_PEPPER=$(openssl rand -base64 32) \
+  -e JWT_PRIVATE_KEY=$(openssl rand -base64 64) \
+  -e JWT_REFRESH_PEPPER=$(openssl rand -base64 32) \
+  memoka:test
+
+# Test healthcheck and access points
+curl http://localhost:8082/           # webServer (Flutter app)
+curl http://localhost:8080/serverpod/ # apiServer (API endpoints)
+```
 
 ## Reverse Proxy Configuration
 
@@ -344,6 +369,20 @@ networks:
 ```
 
 **Note:** The Flutter client needs to know the apiServer URL. Update `memoka_flutter/lib/main.dart` if using custom routing.
+
+## Release Process
+
+1. Ensure all changes are committed and pushed
+2. Create a new release on GitHub:
+   - Go to Releases → "Draft a new release"
+   - Create new tag (e.g., `v1.0.0`)
+   - Add release notes
+   - Click "Publish release"
+3. GitHub Action will automatically:
+   - Generate Serverpod code
+   - Build Docker image
+   - Push to GHCR with tags `latest` and version number
+4. Watchtower on hosting server will detect and deploy the update
 
 ## Deployment Steps
 
@@ -405,10 +444,7 @@ If migrations fail and the container is in a crash loop, you have these options:
 
 1. **Manual backup before risky migrations:**
    ```bash
-   # Create backup
    docker exec memoka_postgresql pg_dump -U memoka_user -d memoka > backup.sql
-
-   # Restore if needed
    docker exec -i memoka_postgresql psql -U memoka_user -d memoka < backup.sql
    ```
 
@@ -423,6 +459,28 @@ If migrations fail and the container is in a crash loop, you have these options:
    docker compose up -d memoka
    ```
 
+## Troubleshooting
+
+**Container crashes on startup:**
+```bash
+docker logs memoka
+docker exec memoka ls -la /app/migrations
+docker exec -it memoka_postgresql psql -U memoka_user -d memoka
+```
+
+**Migration failures:**
+```bash
+docker exec memoka_postgresql pg_dump -U memoka_user -d memoka > backup.sql
+docker exec -i memoka_postgresql psql -U memoka_user -d memoka < backup.sql
+```
+
+**Healthcheck failing:**
+```bash
+docker exec memoka curl -v http://localhost:8082/           # webServer
+docker exec memoka curl -v http://localhost:8080/serverpod/ # apiServer
+docker exec memoka ps aux
+```
+
 ## Monitoring and Troubleshooting
 
 **Check logs:**
@@ -432,11 +490,6 @@ docker logs memoka_postgresql
 docker logs memoka_redis
 ```
 
-**Check migrations:**
-```bash
-docker exec memoka ls -la /migrations
-```
-
 **Database connection test:**
 ```bash
 docker exec memoka_postgresql psql -U memoka_user -d memoka -c "SELECT version();"
@@ -444,7 +497,7 @@ docker exec memoka_postgresql psql -U memoka_user -d memoka -c "SELECT version()
 
 **Redis connection test:**
 ```bash
-docker exec memoka_redis redis-cli -a ${MEMOKA_REDIS_PASSWORD} ping
+docker exec memoka_redis redis-cli ping
 ```
 
 ## Security Considerations
@@ -456,7 +509,7 @@ docker exec memoka_redis redis-cli -a ${MEMOKA_REDIS_PASSWORD} ping
 
 2. **Network Security:**
    - Use internal network for database/redis communication
-   - Only expose port 8080 through reverse proxy
+   - Only expose web server ports through reverse proxy
    - Enable HTTPS via reverse proxy
 
 3. **Container Updates:**
@@ -480,100 +533,9 @@ If you decide to use separate containers despite the recommendation:
 - Need to coordinate releases between frontend/backend
 - Reverse proxy routing complexity
 
-**Architecture:**
-- `memoka_server` - Serverpod backend (port 8080)
-- `memoka_frontend` - Nginx serving Flutter web (port 80)
-- PostgreSQL (port 5432)
-- Redis (port 6379)
+## Files
 
-This approach is only recommended if you have specific scaling or deployment needs that require separation.
-
-## Pre-Implementation Verification Checklist
-
-Before implementing the Dockerfile, verify these assumptions:
-
-**1. Serverpod Environment Variable Substitution** ✅ VERIFIED
-- [x] `${VAR}` substitution in YAML does NOT work in Serverpod
-- [x] `SERVERPOD_PASSWORD_*` environment variables work for passwords
-- [x] Configuration values use defaults from `production.yaml`
-- [x] Solution: Use Docker service names (`postgresql`, `redis`) in production.yaml
-
-**2. Code Generation in CI** ✅ Addressed in GitHub Action
-- [x] GitHub Action now includes `serverpod generate` step before Docker build
-- [x] Generated `memoka_client/` code will be available for copying into image
-- [ ] **Verify:** Test GitHub Action locally or in CI to confirm generation works
-
-**3. Compiled Binary Path Resolution**
-- [ ] Test that `/app/server` (compiled binary) finds `config/production.yaml` relative to `/app` WORKDIR
-- [ ] Verify `migrations/` directory is discovered at `/app/migrations/`
-- [ ] Confirm `web/` directory is served from `/app/web/`
-- [ ] Note: `dart compile exe` may resolve paths differently than `dart run`
-
-**4. Healthcheck Endpoint** ✅ Likely Works
-- [x] `server.dart` has `RootRoute()` registered at `/` and `/index.html`
-- [ ] **Verify:** Test that root route returns HTTP 200 (should serve the default Serverpod page)
-- [ ] Alternative if healthcheck fails: Create explicit `/health` endpoint that returns HTTP 200
-
-**5. Runtime Dependencies**
-- [ ] Add to Stage 3: `RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*`
-- [ ] Ensure `curl` is available for healthcheck
-
-**6. Directory Permissions**
-- [ ] Add to Stage 3: `RUN chmod 755 /app/data/media` or `chown` to server user
-- [ ] Ensure media upload directory is writable
-
-**7. Configuration Alignment**
-- [ ] Ensure `config/production.yaml` apiServer.port is 8080 (or use env var)
-- [ ] Match exposed port, healthcheck port, and config port
-- [ ] Remove `--mode production` flag if `SERVERPOD_MODE` env var is set (avoid redundancy)
-
-**8. Port Configuration in production.yaml**
-Update `config/production.yaml` to use environment variables (use simple `${VAR}` without defaults):
-```yaml
-apiServer:
-  port: 8080  # Or ${SERVER_PORT} if making it configurable
-  publicHost: ${PUBLIC_HOST}
-  publicPort: 443  # Or ${PUBLIC_PORT}
-  publicScheme: https  # Or ${PUBLIC_SCHEME}
-```
-
-**9. Migration Lock Safety** ✅ Acceptable for Single-Instance
-- Serverpod uses migration versioning to track applied migrations
-- `--apply-migrations` on startup is safe for single-instance deployments
-- Risk: Container crash mid-migration could leave database in partial state
-- Mitigation: Manual backup before releases with schema changes (see Disaster Recovery section)
-- Not recommended for multi-instance high-availability deployments
-
-## Implementation Complete ✅
-
-The deployment is implemented and tested. Here's what was built:
-
-**Completed:**
-- ✅ Dockerfile with multi-stage build (Flutter → Dart → Runtime)
-- ✅ GitHub Action workflow with code generation
-- ✅ Configuration files (`production.yaml`, `passwords.yaml`)
-- ✅ `.dockerignore` for optimized builds
-- ✅ `DEPLOYMENT.md` quick reference guide
-- ✅ Docker image builds successfully
-- ✅ Container runs with proper configuration
-
-**Test Results:**
-- ✅ Docker build completes in ~1 minute (after image cache)
-- ✅ Flutter web builds without `--wasm` (wasm fails in Docker)
-- ✅ Serverpod server compiles to native binary
-- ✅ Configuration files copied correctly
-- ✅ Directory structure works (`/app/config`, `/app/migrations`, `/app/web`)
-- ❌ `${VAR}` substitution in YAML doesn't work (use `SERVERPOD_PASSWORD_*` env vars instead)
-
-**Key Configuration:**
-- `production.yaml` uses Docker defaults: `postgresql:5432`, `redis:6379`
-- Passwords via `SERVERPOD_PASSWORD_*` environment variables
-- Migrations run automatically on startup (`--apply-migrations`)
-- Healthcheck on port 8080
-
-**Ready for Production:**
-1. Generate secrets with `openssl rand -base64 32/64`
-2. Set environment variables in docker-compose
-3. Ensure services named `postgresql` and `redis`
-4. Create GitHub release to trigger build
-5. Deploy with Watchtower auto-update
+- `Dockerfile` - Multi-stage build configuration (at repository root)
+- `.github/workflows/release.yml` - GitHub Action for automated builds
+- `.dockerignore` - Build context exclusions
+- `docs/.env.example` - Environment variables template

@@ -1,15 +1,16 @@
-u/docs/Channel.md
-u/docs/Link.md
-u/docs/Media.md
+u/docs/channel.md
+u/docs/link.md
+u/docs/media.md
 u/docs/media_sidebar.md
-u/docs/Overview.md
-u/docs/Plan.md
-u/docs/Security.md
-u/docs/UX.md
+u/docs/overview.md
+u/docs/plan.md
+u/docs/security.md
+u/docs/ux.md
 u/docs/components/Sidebar.md
 u/docs/components/InputBar.md
 u/docs/components/ArchiveCrate.md
 u/docs/components/NewChannelModal.md
+u/docs/components/Tooltip.md
 
 # CLAUDE.md
 
@@ -23,14 +24,18 @@ Memoka is a real-time chat-style notes application for organizing thoughts in to
 - **memoka_client**: Generated client library (Dart)
 - **memoka_flutter**: Flutter mobile/web application
 
-Key features:
-- Real-time WebSocket updates via MessageCentral
-- Channel-based note organization with emoji identifiers
-- Link preview generation for URLs in notes
-- Image and document upload support
-- Cursor-based pagination for note history
-
 Serverpod is a backend framework for Dart/Flutter that handles database connections, endpoints, authentication, and code generation.
+
+## Features
+
+- **Channels**: Create, update, delete, pin/unpin, emoji identifiers, archive/restore
+- **Notes**: Create, update, delete with cursor-based pagination, archive/restore
+- **Real-time**: WebSocket streaming via MessageCentral for live updates
+- **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
+- **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, compression, thumbnail generation, EXIF stripping
+- **Media Sidebar**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
+- **Archive System**: Archive Crate for soft-deleted notes, channel archiving with restore
+- **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, Inter font
 
 ## Architecture
 
@@ -38,7 +43,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 
 1. **Server Layer** (`memoka_server/`)
    - Endpoints define the server API in `lib/src/*_endpoint.dart`
-   - Protocol models are defined in `.spy.yaml` files (e.g., `lib/src/greetings/greeting.spy.yaml`)
+   - Protocol models are defined in `.spy.yaml` files (e.g., `lib/src/chat/channel.spy.yaml`)
    - Generated code lives in `lib/src/generated/` and should NEVER be manually edited
    - Server entry point: `lib/server.dart` initializes Serverpod, auth services, and web routes
 
@@ -50,6 +55,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 3. **Flutter App** (`memoka_flutter/`)
    - Uses `memoka_client` to communicate with the server
    - Client instance initialized in `lib/main.dart` with server URL from `assets/config.json`
+   - Riverpod for state management
    - Authentication support via `serverpod_auth_idp_flutter`
 
 ### Code Generation Workflow
@@ -83,6 +89,20 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 - Managed via Docker Compose (`memoka_server/docker-compose.yaml`)
 - Separate containers for development and testing
 - Migrations stored in `memoka_server/migrations/` with registry in `migration_registry.txt`
+
+### Data Models
+
+**Channel** (`channels` table): name, emoji, pinned, isSystemChannel, createdAt, updatedAt, archived, archivedAt
+
+**Note** (`notes` table): channelId (FK → channels, cascade), content, linkPreview (LinkPreview?), attachments (List\<MediaAttachment\>?), originalChannelId, createdAt, updatedAt
+
+**MediaAttachment** (`media_attachments` table): noteId (FK → notes, cascade), channelId (FK → channels, cascade), filePath, originalFilename, mimeType, fileSize, width, height, duration, thumbnailPath, compressed, animated, contentHash, uploadedAt
+
+**LinkPreview** (non-table): url, title, description, imageUrl, faviconUrl, fetchedAt
+
+**ChatEvent** (non-table): type, note, noteId, channelId, channel
+
+**ArchiveItem** (non-table): type, note, channel, archivedAt
 
 ## Common Commands
 
@@ -149,10 +169,10 @@ Integration tests use `withServerpod` test helper from `serverpod_test` package.
 Example test structure:
 
 ```dart
-withServerpod('Given Example endpoint', (sessionBuilder, endpoints) {
-  test('when calling `hello` then should return greeting', () async {
-    final greeting = await endpoints.greeting.hello(sessionBuilder, 'Michael');
-    expect(greeting.message, 'Hello Michael');
+withServerpod('Given Chat endpoint', (sessionBuilder, endpoints) {
+  test('when calling `getChannels` then should return channels', () async {
+    final channels = await endpoints.chat.getChannels(sessionBuilder);
+    expect(channels, isA<List<Channel>>());
   });
 });
 ```
@@ -197,13 +217,15 @@ Server serves:
 ### Current Endpoints
 
 - `chat`: Channel and note management with real-time WebSocket updates
-  - Channels: create, update, delete, list, pin/unpin
-  - Notes: create, update, delete, list with pagination
-  - Link previews: automatic URL detection and metadata fetching (see `docs/Link.md`)
+  - Channels: create, update, delete, list, pin/unpin, archive/restore
+  - Notes: create, update, delete, list with pagination, archive/restore
+  - Archive: getArchiveItems, getArchivedChannelNoteCount
+  - Link previews: automatic URL detection and metadata fetching (see `docs/link.md`)
   - Real-time streaming: WebSocket events for live updates
+- `media`: Media upload and management
+  - uploadMediaAndCreateNote, uploadMedia, deleteAttachment
 - `emailIdp`: Email authentication (login, registration, password reset)
 - `jwtRefresh`: Token refresh
-- `greeting`: Example endpoint with `hello` method
 
 ## Git Workflow Policy
 
@@ -216,92 +238,18 @@ Server serves:
 - When git operations are requested, follow the standard commit message format with Co-Authored-By tag
 
 Examples:
-- ✅ "Fix the bug and commit the changes" → Commit and push allowed for this instruction only
-- ✅ "Update the config" → Make changes but DO NOT commit/push
-- ✅ "Add feature X" (next instruction after previous commit request) → Make changes but DO NOT commit/push
-- ❌ Never assume commit permission from previous instructions
+- "Fix the bug and commit the changes" → Commit and push allowed for this instruction only
+- "Update the config" → Make changes but DO NOT commit/push
+- "Add feature X" (next instruction after previous commit request) → Make changes but DO NOT commit/push
+- Never assume commit permission from previous instructions
 
 ## Important Conventions
 
-- Endpoint class names must end with `Endpoint` (e.g., `GreetingEndpoint`)
-- When accessed from client, the `Endpoint` suffix is removed (e.g., `client.greeting`)
+- Endpoint class names must end with `Endpoint` (e.g., `ChatEndpoint`)
+- When accessed from client, the `Endpoint` suffix is removed (e.g., `client.chat`)
 - All server-side code generation is triggered by `serverpod generate`
 - Docker services MUST be running before starting the server
 - Test environment uses separate database/redis instances to avoid conflicts
-
-## Recent Work: UI/UX Improvements (✅ COMPLETED)
-
-### Phase 1: Core Features (Completed)
-1. **Toast System** - Unified toast notifications with color-coded types (success/error/info)
-2. **Chat Bubbles** - White containers with padding, border radius (4px), and subtle shadow
-3. **Multi-File Upload** - Batch upload via paste/drag-drop with progress dialog
-4. **Right-Click Menus** - Context menu with Copy/Edit/Delete on right-click or long-press
-5. **Channel Drafts** - Per-channel input text preservation across channel switches
-6. **Preview Fix** - Hide empty preview for media-only notes in sidebar
-7. **Paste Fix** - Allow copy/paste in textfield by checking active element
-8. **Multi-Select** - Select multiple notes via long-press/context menu with bulk delete action
-
-**Fixes Applied**:
-- Draft text now persists properly when switching channels
-- Right-click context menu works everywhere on notes (including on text)
-- Multi-select action bar properly positioned with correct z-index
-
-### Phase 2: Visual Refinements (Completed)
-1. **Font Updates**:
-   - Changed to Inter font via google_fonts package
-   - Note text size: 14px (reduced from 16px for better readability)
-
-2. **Timestamp Display**:
-   - Changed from relative ("xh ago") to absolute ("Feb 6, 2:30 PM")
-   - Automatic timezone conversion (UTC storage → local display)
-   - Shows year when different from current year
-
-3. **Date Separators**:
-   - Visual separators between notes from different days
-   - Shows "Today", "Yesterday", or formatted date (e.g., "February 6")
-   - Styled as rounded gray pill (border-radius: 20px)
-   - Fixed logic: separator now correctly shows date of notes below it (in reversed ListView)
-
-4. **Spacing & Layout**:
-   - Consistent 12px margins throughout chat view
-   - Note items: 12px horizontal padding
-   - ListView: 8px vertical padding (combines with note's 4px vertical padding for 12px total)
-   - Note border radius: 4px (sharp, modern look)
-
-5. **Seed Data**:
-   - Updated to span 10 years of history (was 7 days)
-   - Quadratic distribution: denser recent notes, sparser older notes
-   - Enables testing of date separators across various time ranges
-   - 630 notes total across 6 channels (500 in Load Test channel)
-
-### Phase 3: Settings & Account (Completed)
-1. **Settings Screen** (`memoka_flutter/lib/screens/settings_screen.dart`):
-   - Account button in sidebar below "New Channel" button
-   - Placeholder sections: User Profile, Account Settings, General Settings, About
-   - Navigation from sidebar via account circle icon
-   - Ready for future authentication implementation
-
-## Current Work: Media Sidebar
-
-**Documentation**: See `/Users/carrein/Desktop/memoka/docs/media_sidebar.md` for detailed plan
-
-**Feature**: Right sidebar displaying all media and links from current channel
-
-**Key Components**:
-- 4 tabs: IMAGES | VIDEOS | DOCUMENTS | LINKS
-- Grid layout for media (3 columns), list for links
-- Responsive: Always visible on desktop (≥1200px), hidden on mobile/tablet with menu access
-- Resizable sidebar (250-400px range)
-- Real-time updates via WebSocket
-- Lightbox viewer for images/videos
-
-**Implementation Phases**:
-1. Data Layer - Models and providers for channel media
-2. Core UI - Sidebar, tabs, grid, list widgets
-3. Integration - Layout updates, responsive behavior, mobile menu
-4. Polish - Loading states, error handling, performance optimization
-
-**Status**: Planning and documentation complete, ready for implementation
 
 ## Components
 
@@ -312,3 +260,4 @@ interactions, state management, and integration details.
 - **InputBar**: `docs/components/InputBar.md`
 - **ArchiveCrate**: `docs/components/ArchiveCrate.md`
 - **NewChannelModal**: `docs/components/NewChannelModal.md`
+- **Tooltip**: `docs/components/Tooltip.md`

@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:serverpod/serverpod.dart';
+import '../chat/chat_endpoint.dart';
 import '../generated/protocol.dart';
+import '../shared/constants.dart';
 import 'image_processor.dart';
 import 'video_processor.dart';
 
@@ -104,7 +106,7 @@ class MediaEndpoint extends Endpoint {
 
     // Create channel-specific directory
     // Use local data directory in development, /app/media in production
-    final mediaBaseDir = Directory('data/media');
+    final mediaBaseDir = Directory(ServerConstants.mediaBaseDir);
     if (!await mediaBaseDir.exists()) {
       await mediaBaseDir.create(recursive: true);
     }
@@ -232,19 +234,10 @@ class MediaEndpoint extends Endpoint {
         return savedNote;
       });
 
-      // Broadcast note creation event
-      try {
-        await session.messages.postMessage(
-          'chat_events',
-          ChatEvent(
-            type: 'noteCreated',
-            note: note,
-          ),
-          global: true,
-        );
-      } catch (_) {
-        // Redis not available, skip broadcasting
-      }
+      await ChatEndpoint.broadcastEvent(session, ChatEvent(
+        type: 'noteCreated',
+        note: note,
+      ));
 
       return note;
     } catch (e) {
@@ -299,7 +292,7 @@ class MediaEndpoint extends Endpoint {
 
     // Create channel-specific directory
     // Use local data directory in development, /app/media in production
-    final mediaBaseDir = Directory('data/media');
+    final mediaBaseDir = Directory(ServerConstants.mediaBaseDir);
     if (!await mediaBaseDir.exists()) {
       await mediaBaseDir.create(recursive: true);
     }
@@ -461,7 +454,7 @@ class MediaEndpoint extends Endpoint {
 
     // Delete files
     // Use local data directory in development, /app/media in production
-    final mediaBaseDir = Directory('data/media');
+    final mediaBaseDir = Directory(ServerConstants.mediaBaseDir);
     final filePath = path.join(mediaBaseDir.path, attachment.filePath);
     final file = File(filePath);
     if (await file.exists()) {

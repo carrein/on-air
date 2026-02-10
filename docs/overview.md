@@ -1,11 +1,11 @@
 **Overview**
-Single-user real-time chat-style notes. Static 250px left sidebar (non-responsive). Serverpod backend, Flutter frontend, Riverpod state management.
+Single-user real-time chat-style notes. Responsive layout with left sidebar (60-250px), chat view, and right media sidebar (250-400px). Serverpod backend, Flutter frontend, Riverpod state management.
 
 **Tech Stack**
 
 - Backend: Serverpod (Dart)
 - Frontend: Flutter (Android + Web)
-- Database: PostgreSQL
+- Database: PostgreSQL (with pgvector)
 - Cache: Redis
 - State: Riverpod
 - Local: shared_preferences
@@ -17,18 +17,71 @@ class: Channel
 table: channels
 fields:
   name: String
-  createdAt: DateTime, defaultValue=now
-  updatedAt: DateTime, defaultValue=now
+  emoji: String, default='💬'
+  pinned: bool, default=false
+  isSystemChannel: bool, default=false
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+  archived: bool, default=false
+  archivedAt: DateTime?
 
 class: Note
 table: notes
 fields:
-  channelId: int, parent=channel
+  channelId: int, relation(parent=channels, onDelete=Cascade)
   content: String
-  createdAt: DateTime, defaultValue=now
-  updatedAt: DateTime, defaultValue=now
+  linkPreview: LinkPreview?
+  attachments: List<MediaAttachment>?
+  originalChannelId: int?
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
 indexes:
   channel_created_idx: fields: channelId, createdAt
+
+class: ChatEvent
+fields:
+  type: String
+  note: Note?
+  noteId: int?
+  channelId: int?
+  channel: Channel?
+
+class: LinkPreview
+fields:
+  url: String
+  title: String?
+  description: String?
+  imageUrl: String?
+  faviconUrl: String?
+  fetchedAt: DateTime, default=now
+
+class: MediaAttachment
+table: media_attachments
+fields:
+  noteId: int, relation(parent=notes, onDelete=Cascade)
+  channelId: int, relation(parent=channels, onDelete=Cascade)
+  filePath: String
+  originalFilename: String
+  mimeType: String
+  fileSize: int
+  width: int?
+  height: int?
+  duration: double?
+  thumbnailPath: String?
+  compressed: bool, default=false
+  animated: bool, default=false
+  contentHash: String?
+  uploadedAt: DateTime, default=now
+indexes:
+  note_idx: fields: noteId
+  channel_idx: fields: channelId, uploadedAt
+
+class: ArchiveItem
+fields:
+  type: String
+  note: Note?
+  channel: Channel?
+  archivedAt: DateTime
 ```
 
 **Database Setup**
@@ -36,23 +89,36 @@ indexes:
 - `serverpod create-migration` then `serverpod generate`
 - Server auto-creates "General" channel if `channels` table empty on startup
 
-**REST Endpoints**
+**REST Endpoints** (Chat)
 
-- `getChannels()` → `List<Channel>` sorted `createdAt ASC`
-- `getNotes(channelId, {beforeId?, limit=50})` → `List<Note>` (cursor pagination, `id < beforeId`)
-- `createChannel(name)` → `Channel` (reject empty)
-- `deleteChannel(id)` → void (reject if last remaining channel, cascade delete notes)
-- `createNote(channelId, content)` → `Note` (reject empty)
+- `getChannels()` → `List<Channel>` (pinned first, then by updatedAt DESC, excludes archived)
+- `getNotes(channelId, {beforeId?, limit=50})` → `List<Note>` (cursor pagination, LEFT JOIN attachments)
+- `createChannel(name, {emoji?})` → `Channel` (reject empty)
+- `updateChannel(id, name, {emoji?, pinned?})` → `Channel`
+- `deleteChannel(id)` → void (reject if last active channel, cascade delete notes + media files)
+- `createNote(channelId, content)` → `Note` (reject empty, async link preview fetch)
 - `updateNote(id, content)` → `Note` (last-write-wins)
-- `deleteNote(id)` → void (hard delete)
+- `deleteNote(id)` → void (archives to Archive Crate, or permanently deletes if already in Archive)
+- `restoreNote(id)` → void (restore from Archive to original channel)
+- `archiveChannel(id)` → void (soft delete, notes stay with channel)
+- `restoreChannel(id)` → `Channel` (unarchive)
+- `getArchiveItems({beforeTimestamp?, limit=50})` → `List<ArchiveItem>` (mixed notes + channels)
+- `getArchivedChannelNoteCount(channelId)` → `int`
+
+**REST Endpoints** (Media)
+
+- `uploadMediaAndCreateNote(channelId, ...)` → `Note` (image/document upload with note creation)
+- `uploadMedia(noteId, channelId, ...)` → `MediaAttachment` (add media to existing note)
+- `deleteAttachment(attachmentId)` → void
 
 **WebSocket Protocol** (Streaming endpoint: `chat`)
-Client subscribes to global stream. Server broadcasts JSON:
+Client subscribes to global stream. Server broadcasts:
 
 ```json
 {"type": "noteCreated", "note": {...}}
 {"type": "noteUpdated", "note": {...}}
 {"type": "noteDeleted", "noteId": 123, "channelId": 1}
+{"type": "noteLinkPreviewReady", "note": {...}}
 {"type": "channelCreated", "channel": {...}}
 {"type": "channelDeleted", "channelId": 1}
 ```
@@ -67,47 +133,75 @@ Client subscribes to global stream. Server broadcasts JSON:
 
 _Layout_
 
-- Fixed 250px left sidebar (always visible, non-responsive)
-- Remaining width: chat view (inverted list: newest at bottom)
+- Responsive three-panel layout:
+  - Left sidebar: 60-250px (channels, collapsible)
+  - Center: chat view (inverted list: newest at bottom)
+  - Right sidebar: 250-400px media sidebar (4 tabs: Images/Videos/Documents/Links)
+  - Desktop (>=1200px): Both sidebars always visible
+  - Tablet (768-1199px): Right sidebar hidden, toggle via button
+  - Mobile (<768px): Right sidebar as bottom sheet
 - Static bottom input bar
 
 _Sidebar_
 
-- Channels listed by `createdAt ASC` (oldest top)
+- Channels listed pinned first, then by updatedAt DESC
+- Emoji display per channel
 - Tap channel to switch
-- Bottom item: Fixed "+" button → dialog (text field + Create/Cancel)
-- Context menu per channel: Delete only (blocked if last channel)
-- **Channel switch behavior**: If editing note, discard changes and clear input field immediately
+- Bottom: "New Channel" button → modal with name + emoji picker
+- Context menu per channel: Edit, Pin/Unpin, Archive, Delete
+- Account/Settings button below channel list
+- Archive Crate: system channel showing archived notes and channels
 
 _Chat View_
 
 - Inverted `ListView` (newest bottom)
 - Load initial 50 notes, scroll up triggers load next 50 (cursor `beforeId`)
 - Auto-scroll to bottom on new note unless user scrolling history
-- Long-press note → populate input field for edit
+- Date separators (Today, Yesterday, or formatted date)
+- Absolute timestamps (e.g., "Feb 6, 2:30 PM")
+- Chat bubbles with 4px border radius
+- Right-click/long-press context menu: Copy, Edit, Delete
+- Multi-select via long-press with bulk delete action bar
+- Media attachments displayed inline with thumbnails
+- Link preview cards
 
 _Input Bar_
 
 - Multiline `TextField`, Enter to submit, Shift+Enter for newline
 - Create mode: Send button (enabled if non-empty)
 - Edit mode: Shows Cancel (X) button, Send becomes Save icon
-- Cancel returns to empty create mode
+- Drag-and-drop + paste file upload support
+- Multi-file batch upload with progress dialog
+- Per-channel draft text preservation
+- Link detection banner
+
+_Media Sidebar_
+
+- 4 tabs: Images, Videos, Documents, Links
+- Grid layout for media (3 columns), list layout for links
+- Click to open lightbox (images/videos) or download (documents) or navigate (links)
+- Resizable width (250-400px)
+- Real-time updates via WebSocket
 
 _Delete Behavior_
 
-- Immediate hard delete, no confirmation
-- Channel delete cascades to notes
+- Notes: Soft delete to Archive Crate (permanent delete from within Archive)
+- Channels: Soft archive (can be restored)
+- Channel permanent delete cascades to notes + media files
 
 **Local Storage** (`shared_preferences`)
 
 - `lastOpenedChannelId`: int? (restore on launch, fallback to first channel)
 - `deviceUuid`: String (generated once)
+- Channel draft text: per-channel input preservation
 
 **Validation Rules**
 
-- Channel name: non-empty
-- Note content: non-empty
-- Cannot delete last remaining channel
+- Channel name: non-empty, max 100 chars
+- Channel emoji: max 10 chars
+- Note content: non-empty, max 50,000 chars
+- File size: max 50 MB
+- Cannot delete last remaining active channel
 
 **State Management (Riverpod)**
 
@@ -116,3 +210,5 @@ _Delete Behavior_
 - `currentChannelIdProvider`: StateProvider<int>
 - `editingNoteIdProvider`: StateProvider<int?> (null = create mode)
 - `connectionStateProvider`: StreamProvider<ConnectionState>
+- `channelMediaProvider(channelId)`: Family provider for media sidebar data
+- `mediaSidebarVisibleProvider`: Global state for sidebar visibility on mobile/tablet

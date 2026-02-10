@@ -2,10 +2,23 @@ import 'dart:async';
 import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
+import '../shared/constants.dart';
 import 'link_preview_service.dart';
 
 /// Endpoint for managing channels and notes with real-time updates.
 class ChatEndpoint extends Endpoint {
+  /// Channel name used for broadcasting real-time chat events via MessageCentral.
+  static const String chatEventsChannel = 'chat_events';
+
+  /// Broadcasts a chat event via MessageCentral.
+  /// Silently ignores errors (e.g., Redis not available in test mode).
+  static Future<void> broadcastEvent(Session session, ChatEvent event) async {
+    try {
+      await session.messages.postMessage(chatEventsChannel, event, global: true);
+    } catch (_) {
+      // Redis not available (e.g., in test mode), skip broadcasting
+    }
+  }
   /// Returns all channels sorted by last modified (newest first).
   /// Pinned channels appear at the top, also sorted by last modified.
   Future<List<Channel>> getChannels(Session session) async {
@@ -112,19 +125,10 @@ class ChatEndpoint extends Endpoint {
     final channel = Channel(name: name.trim(), emoji: emoji);
     final saved = await Channel.db.insertRow(session, channel);
 
-    // Broadcast creation event (only if Redis is available)
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'channelCreated',
-          channel: saved,
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    await broadcastEvent(session, ChatEvent(
+      type: 'channelCreated',
+      channel: saved,
+    ));
 
     return saved;
   }
@@ -160,19 +164,10 @@ class ChatEndpoint extends Endpoint {
     channel.updatedAt = DateTime.now();
     final updated = await Channel.db.updateRow(session, channel);
 
-    // Broadcast update event
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'channelUpdated',
-          channel: updated,
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    await broadcastEvent(session, ChatEvent(
+      type: 'channelUpdated',
+      channel: updated,
+    ));
 
     return updated;
   }
@@ -195,7 +190,7 @@ class ChatEndpoint extends Endpoint {
     }
 
     // Delete media files for this channel
-    final mediaDir = Directory('data/media/channels/$id');
+    final mediaDir = Directory('${ServerConstants.mediaBaseDir}/channels/$id');
     if (await mediaDir.exists()) {
       await mediaDir.delete(recursive: true);
       session.log('Deleted media directory for channel $id');
@@ -204,19 +199,10 @@ class ChatEndpoint extends Endpoint {
     // Delete from database (cascade will handle notes and attachments)
     await Channel.db.deleteWhere(session, where: (t) => t.id.equals(id));
 
-    // Broadcast deletion event (only if Redis is available)
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'channelDeleted',
-          channelId: id,
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    await broadcastEvent(session, ChatEvent(
+      type: 'channelDeleted',
+      channelId: id,
+    ));
   }
 
   /// Creates a new note and broadcasts the event.
@@ -248,19 +234,10 @@ class ChatEndpoint extends Endpoint {
       await Channel.db.updateRow(session, channel);
     }
 
-    // Broadcast creation event (only if Redis is available)
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'noteCreated',
-          note: saved,
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    await broadcastEvent(session, ChatEvent(
+      type: 'noteCreated',
+      note: saved,
+    ));
 
     // Fetch link preview asynchronously (don't await)
     unawaited(_fetchLinkPreviewAsync(session, saved));
@@ -287,19 +264,10 @@ class ChatEndpoint extends Endpoint {
       note.updatedAt = DateTime.now();
       final updated = await Note.db.updateRow(session, note);
 
-      // Broadcast preview ready event
-      try {
-        await session.messages.postMessage(
-          'chat_events',
-          ChatEvent(
-            type: 'noteLinkPreviewReady',
-            note: updated,
-          ),
-          global: true,
-        );
-      } catch (_) {
-        // Redis not available, skip broadcasting
-      }
+      await broadcastEvent(session, ChatEvent(
+        type: 'noteLinkPreviewReady',
+        note: updated,
+      ));
     } catch (e, stackTrace) {
       // Log error but don't fail
       session.log('Error fetching link preview: $e\n$stackTrace', level: LogLevel.error);
@@ -326,19 +294,10 @@ class ChatEndpoint extends Endpoint {
 
     final updated = await Note.db.updateRow(session, note);
 
-    // Broadcast update event (only if Redis is available)
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'noteUpdated',
-          note: updated,
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    await broadcastEvent(session, ChatEvent(
+      type: 'noteUpdated',
+      note: updated,
+    ));
 
     return updated;
   }
@@ -379,20 +338,11 @@ class ChatEndpoint extends Endpoint {
       ),
     );
 
-    // Broadcast archive event (only if Redis is available)
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'noteArchived',
-          noteId: note.id!,
-          channelId: originalChannelId, // Original channel
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    await broadcastEvent(session, ChatEvent(
+      type: 'noteArchived',
+      noteId: note.id!,
+      channelId: originalChannelId,
+    ));
   }
 
   /// Permanently deletes a note, its media attachments, and broadcasts the event.
@@ -407,7 +357,7 @@ class ChatEndpoint extends Endpoint {
     for (final attachment in attachments) {
       try {
         // Delete main file
-        final mainFile = File('data/media/${attachment.filePath}');
+        final mainFile = File('${ServerConstants.mediaBaseDir}/${attachment.filePath}');
         if (await mainFile.exists()) {
           await mainFile.delete();
           session.log('Deleted media file: ${attachment.filePath}');
@@ -416,7 +366,7 @@ class ChatEndpoint extends Endpoint {
         // Delete thumbnail if exists
         if (attachment.thumbnailPath != null) {
           final thumbnailFile = File(
-            'data/media/channels/${attachment.channelId}/${attachment.thumbnailPath}',
+            '${ServerConstants.mediaBaseDir}/channels/${attachment.channelId}/${attachment.thumbnailPath}',
           );
           if (await thumbnailFile.exists()) {
             await thumbnailFile.delete();
@@ -434,20 +384,11 @@ class ChatEndpoint extends Endpoint {
     // Delete from database (cascade will delete attachment records)
     await Note.db.deleteWhere(session, where: (t) => t.id.equals(note.id!));
 
-    // Broadcast deletion event (only if Redis is available)
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'noteDeleted',
-          noteId: note.id!,
-          channelId: -1,
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    await broadcastEvent(session, ChatEvent(
+      type: 'noteDeleted',
+      noteId: note.id!,
+      channelId: -1,
+    ));
   }
 
   /// Restores a note from Archive back to its original channel.
@@ -489,22 +430,13 @@ class ChatEndpoint extends Endpoint {
       ),
     );
 
-    // Broadcast restore event (only if Redis is available)
-    try {
-      final restoredNote = await Note.db.findById(session, note.id!);
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'noteRestored',
-          noteId: note.id!,
-          channelId: note.originalChannelId!,
-          note: restoredNote,
-        ),
-        global: true,
-      );
-    } catch (_) {
-      // Redis not available (e.g., in test mode), skip broadcasting
-    }
+    final restoredNote = await Note.db.findById(session, note.id!);
+    await broadcastEvent(session, ChatEvent(
+      type: 'noteRestored',
+      noteId: note.id!,
+      channelId: note.originalChannelId!,
+      note: restoredNote,
+    ));
   }
 
   /// Archives a channel (soft delete). Notes stay with the channel.
@@ -535,16 +467,10 @@ class ChatEndpoint extends Endpoint {
     channel.pinned = false;
     await Channel.db.updateRow(session, channel);
 
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'channelArchived',
-          channelId: id,
-        ),
-        global: true,
-      );
-    } catch (_) {}
+    await broadcastEvent(session, ChatEvent(
+      type: 'channelArchived',
+      channelId: id,
+    ));
   }
 
   /// Restores an archived channel back to the sidebar.
@@ -572,16 +498,10 @@ class ChatEndpoint extends Endpoint {
     channel.updatedAt = DateTime.now();
     final updated = await Channel.db.updateRow(session, channel);
 
-    try {
-      await session.messages.postMessage(
-        'chat_events',
-        ChatEvent(
-          type: 'channelRestored',
-          channel: updated,
-        ),
-        global: true,
-      );
-    } catch (_) {}
+    await broadcastEvent(session, ChatEvent(
+      type: 'channelRestored',
+      channel: updated,
+    ));
 
     return updated;
   }
@@ -651,7 +571,7 @@ class ChatEndpoint extends Endpoint {
   /// Streaming endpoint for real-time updates.
   /// Subscribes to all chat events (channel and note changes).
   Stream<ChatEvent> chat(Session session) async* {
-    final stream = session.messages.createStream<ChatEvent>('chat_events');
+    final stream = session.messages.createStream<ChatEvent>(chatEventsChannel);
 
     await for (final event in stream) {
       yield event;

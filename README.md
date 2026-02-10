@@ -1,21 +1,27 @@
 # memoka (メモカ)
 
-memoka (メモカ) uses realtime notes to manages your awareness of existence.
+memoka (メモカ) uses realtime notes to manage your awareness of existence.
 
-> This application is built with the assistance of AI generated code as part of an experiment. You can read up on this here:
+> This application is built with the assistance of AI generated code as part of an experiment.
 
 ## Overview
 
-memoka aims to replicate the Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it very useful for making notes. memoka aims to copy and augment this functionality with new features.
+memoka aims to replicate Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it useful for making notes. memoka copies and augments this functionality with new features.
 
 ## Features
 
-- 📝 Real-time notes with WebSocket streaming
-- 📁 Organized channels with pinning support
-- 🔗 Automatic link previews
-- 🖼️ Image uploads with drag-and-drop and paste support
-- 💬 Markdown formatting
-- 🎨 Clean, sharp UI design
+- Real-time notes with WebSocket streaming
+- Organized channels with emoji identifiers and pinning
+- Automatic link previews (OpenGraph + Twitter Cards)
+- Image and document uploads with drag-and-drop and paste support
+- Multi-file batch upload with compression
+- Media sidebar with grid/list views (Images, Videos, Documents, Links)
+- Archive system for notes and channels
+- Right-click context menus, multi-select, bulk delete
+- Per-channel input draft preservation
+- Responsive layout (desktop, tablet, mobile)
+- Date separators and absolute timestamps
+- Markdown formatting
 
 ## Documentation
 
@@ -24,16 +30,17 @@ memoka aims to replicate the Telegram's [Saved Message](https://telegram.org/blo
 - [Channel Management](docs/channel.md)
 - [Link Previews](docs/link.md)
 - [Media Uploads](docs/media.md)
+- [Media Sidebar](docs/media_sidebar.md)
 - [UX Design](docs/ux.md)
-- **[Security Documentation](docs/security.md)** ⚠️ **Read before deployment!**
-- **[Security Setup Guide](SECURITY_SETUP.md)** - Step-by-step hardening
+- [Deployment Guide](docs/Deployment.md)
+- **[Security Documentation](docs/security.md)** - Read before deployment
 
 ## Quick Start
 
 ### Prerequisites
 
-- Dart SDK 3.0+
-- Flutter 3.10+
+- Dart SDK 3.8+
+- Flutter 3.32+
 - Docker & Docker Compose
 - PostgreSQL client (optional, for manual DB access)
 
@@ -88,19 +95,16 @@ memoka aims to replicate the Telegram's [Saved Message](https://telegram.org/blo
 
 ## Security
 
-⚠️ **CRITICAL**: This application has NO authentication by design (single-user environment).
+This application has NO authentication by design (single-user environment).
 
 **Before deploying publicly or sharing with others:**
 
 1. Read [docs/security.md](docs/security.md) - Full security documentation
-2. Follow [SECURITY_SETUP.md](SECURITY_SETUP.md) - Hardening checklist
-3. Rotate all secrets in `passwords.yaml`
-4. Add authentication (see docs/security.md)
-5. Configure CORS for production domain
-6. Enable HTTPS
-7. Set up firewall rules
-
-**Recent Security Incident**: Passwords file was nearly exposed. See [docs/security.md](docs/security.md#security-incidents--lessons-learned) for details and prevention measures.
+2. Rotate all secrets in `passwords.yaml`
+3. Add authentication (see docs/security.md)
+4. Configure CORS for production domain
+5. Enable HTTPS
+6. Set up firewall rules
 
 ## Architecture
 
@@ -119,6 +123,10 @@ Key technologies:
 - Image processing with EXIF handling
 
 See [CLAUDE.md](CLAUDE.md) for detailed architecture and development workflow.
+
+## Deployment
+
+See [docs/Deployment.md](docs/Deployment.md) for the full deployment guide, including Docker setup, GitHub Actions CI/CD, and hosting configuration.
 
 ## Contributing
 

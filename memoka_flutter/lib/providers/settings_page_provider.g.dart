@@ -7,7 +7,7 @@ part of 'settings_page_provider.dart';
 // **************************************************************************
 
 String _$currentSettingsPageHash() =>
-    r'80aa603ce1c2ea11d178550ae178fbb199ce204d';
+    r'3af1cef7d170310ccda8d9d98af9cbeeeb56f62b';
 
 /// Provider to track which settings page is currently displayed
 ///

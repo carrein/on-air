@@ -15,7 +15,7 @@ apiServer:
 insightsServer:
   port: 8081
   host: 0.0.0.0  # Bind to all interfaces in Docker
-  publicHost: catallenya.kamori-mulley.ts.net
+  publicHost: localhost  # Override with SERVERPOD_insightsServer_publicHost
   publicPort: 443
   publicScheme: https
 
@@ -47,19 +47,6 @@ redis:
   requireSsl: false  # Internal Docker network
 
 maxRequestSize: 157286400 # 150MB - allows 100MB files with base64 encoding + overhead
-
-# Enable CORS for web client
-cors:
-  allowOrigins:
-    - "*"
-  allowMethods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
-    - OPTIONS
-  allowHeaders:
-    - "*"
 
 sessionLogs:
   consoleEnabled: false

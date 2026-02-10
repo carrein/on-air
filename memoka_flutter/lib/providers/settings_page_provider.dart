@@ -4,7 +4,6 @@ part 'settings_page_provider.g.dart';
 
 enum SettingsPage {
   main,
-  backgroundPicker,
 }
 
 /// Provider to track which settings page is currently displayed
@@ -17,9 +16,5 @@ class CurrentSettingsPage extends _$CurrentSettingsPage {
 
   void showMain() {
     state = SettingsPage.main;
-  }
-
-  void showBackgroundPicker() {
-    state = SettingsPage.backgroundPicker;
   }
 }

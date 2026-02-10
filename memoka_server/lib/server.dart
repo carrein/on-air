@@ -6,6 +6,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart';
 
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
+import 'src/shared/constants.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/root.dart';
 
@@ -51,7 +52,7 @@ void run(List<String> args) async {
 
   // Serve media files
   // Use local data/media directory in development, /app/media in production
-  final mediaDir = Directory('data/media');
+  final mediaDir = Directory(ServerConstants.mediaBaseDir);
   if (!await mediaDir.exists()) {
     await mediaDir.create(recursive: true);
   }

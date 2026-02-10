@@ -33,7 +33,7 @@ class ToastUtils {
     late OverlayEntry overlayEntry;
 
     overlayEntry = OverlayEntry(
-      builder: (context) => _CopyNotification(
+      builder: (context) => _ToastNotification(
         data: notificationData,
         index: _activeToasts.length,
         onDismiss: () {
@@ -90,22 +90,22 @@ class _NotificationData {
   }
 }
 
-class _CopyNotification extends StatefulWidget {
+class _ToastNotification extends StatefulWidget {
   final _NotificationData data;
   final int index;
   final VoidCallback onDismiss;
 
-  const _CopyNotification({
+  const _ToastNotification({
     required this.data,
     required this.index,
     required this.onDismiss,
   });
 
   @override
-  State<_CopyNotification> createState() => _CopyNotificationState();
+  State<_ToastNotification> createState() => _ToastNotificationState();
 }
 
-class _CopyNotificationState extends State<_CopyNotification> with SingleTickerProviderStateMixin {
+class _ToastNotificationState extends State<_ToastNotification> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
