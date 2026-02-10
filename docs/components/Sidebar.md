@@ -60,19 +60,20 @@ Bottom action button for opening the settings view.
 - Same padding and gap as New Channel button
 - Opens settings overlay on tap
 
-### Dialogs (Create/Edit Channel, Emoji Picker)
+### Dialogs (Create/Edit Channel)
 
-- **Create Channel Dialog**: AlertDialog with text field for name and emoji selector (default: speech bubble emoji). Creates channel and auto-switches to it.
-- **Edit Channel Dialog**: Same layout, pre-populated with existing channel name and emoji.
-- **Emoji Picker**: Modal bottom sheet (300px tall) using `emoji_picker_flutter` package with 7-column grid and 28px max emoji size.
+Channel creation and editing are handled by the extracted `NewChannelModal` widget. See `docs/components/NewChannelModal.md` for full specification.
+
+- **Create**: Opens `NewChannelModal` in create mode. Creates channel and auto-switches to it.
+- **Edit**: Opens `NewChannelModal` in edit mode, pre-populated with existing channel name and emoji.
 
 ### Context Menu
 
 Right-click or long-press menu on channel items with three options:
 
-- **Edit**: Opens edit channel dialog
+- **Edit**: Opens `NewChannelModal` in edit mode
 - **Pin/Unpin**: Toggles channel pin state
-- **Delete**: Removes channel with error toast on failure
+- **Archive**: Soft-deletes channel to Archive Crate with success/error toast
 
 ## Styling
 
@@ -133,9 +134,9 @@ Right-click or long-press menu on channel items with three options:
 
 ### Channel CRUD
 
-- **Create**: "New Channel" button opens dialog with name field and emoji picker. Default emoji is speech bubble. On create, auto-switches to the new channel.
-- **Edit**: Context menu "Edit" opens dialog pre-filled with current name and emoji.
-- **Delete**: Context menu "Delete" calls provider. Shows error toast on failure.
+- **Create**: "New Channel" button opens `NewChannelModal`. Default emoji is speech bubble. On create, auto-switches to the new channel.
+- **Edit**: Context menu "Edit" opens `NewChannelModal` pre-filled with current name and emoji.
+- **Archive**: Context menu "Archive" soft-deletes channel to Archive Crate. Shows error toast on failure.
 - **Pin/Unpin**: Context menu toggle. Pinned channels sort to the top of the list.
 
 ### Scroll Behavior
@@ -190,4 +191,5 @@ The Sidebar is placed as the left-most child in the app's main `Row` layout (in 
 | `lib/providers/editing_note_provider.dart` | Note editing state (cleared on switch) |
 | `lib/providers/settings_view_provider.dart` | Settings overlay visibility |
 | `lib/providers/settings_page_provider.dart` | Settings page navigation |
+| `lib/widgets/new_channel_modal.dart` | Channel create/edit dialog |
 | `lib/utils/toast_utils.dart` | Error toast display |

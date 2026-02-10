@@ -23,6 +23,7 @@ abstract class Note implements _i1.SerializableModel {
     required this.content,
     this.linkPreview,
     this.attachments,
+    this.originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -34,6 +35,7 @@ abstract class Note implements _i1.SerializableModel {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
+    int? originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _NoteImpl;
@@ -53,6 +55,7 @@ abstract class Note implements _i1.SerializableModel {
           : _i4.Protocol().deserialize<List<_i3.MediaAttachment>>(
               jsonSerialization['attachments'],
             ),
+      originalChannelId: jsonSerialization['originalChannelId'] as int?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -79,6 +82,9 @@ abstract class Note implements _i1.SerializableModel {
   /// Media attachments associated with this note.
   List<_i3.MediaAttachment>? attachments;
 
+  /// Original channel ID before archiving (for restoration).
+  int? originalChannelId;
+
   /// When the note was created.
   DateTime createdAt;
 
@@ -94,6 +100,7 @@ abstract class Note implements _i1.SerializableModel {
     String? content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
+    int? originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -107,6 +114,7 @@ abstract class Note implements _i1.SerializableModel {
       if (linkPreview != null) 'linkPreview': linkPreview?.toJson(),
       if (attachments != null)
         'attachments': attachments?.toJson(valueToJson: (v) => v.toJson()),
+      if (originalChannelId != null) 'originalChannelId': originalChannelId,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -127,6 +135,7 @@ class _NoteImpl extends Note {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
+    int? originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -135,6 +144,7 @@ class _NoteImpl extends Note {
          content: content,
          linkPreview: linkPreview,
          attachments: attachments,
+         originalChannelId: originalChannelId,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -149,6 +159,7 @@ class _NoteImpl extends Note {
     String? content,
     Object? linkPreview = _Undefined,
     Object? attachments = _Undefined,
+    Object? originalChannelId = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -162,6 +173,9 @@ class _NoteImpl extends Note {
       attachments: attachments is List<_i3.MediaAttachment>?
           ? attachments
           : this.attachments?.map((e0) => e0.copyWith()).toList(),
+      originalChannelId: originalChannelId is int?
+          ? originalChannelId
+          : this.originalChannelId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

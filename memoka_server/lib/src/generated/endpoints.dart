@@ -431,6 +431,98 @@ class Endpoints extends _i1.EndpointDispatch {
                 params['id'],
               ),
         ),
+        'restoreNote': _i1.MethodConnector(
+          name: 'restoreNote',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i4.ChatEndpoint).restoreNote(
+                session,
+                params['id'],
+              ),
+        ),
+        'archiveChannel': _i1.MethodConnector(
+          name: 'archiveChannel',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i4.ChatEndpoint).archiveChannel(
+                session,
+                params['id'],
+              ),
+        ),
+        'restoreChannel': _i1.MethodConnector(
+          name: 'restoreChannel',
+          params: {
+            'id': _i1.ParameterDescription(
+              name: 'id',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i4.ChatEndpoint).restoreChannel(
+                session,
+                params['id'],
+              ),
+        ),
+        'getArchiveItems': _i1.MethodConnector(
+          name: 'getArchiveItems',
+          params: {
+            'limit': _i1.ParameterDescription(
+              name: 'limit',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['chat'] as _i4.ChatEndpoint).getArchiveItems(
+                    session,
+                    limit: params['limit'],
+                  ),
+        ),
+        'getArchivedChannelNoteCount': _i1.MethodConnector(
+          name: 'getArchivedChannelNoteCount',
+          params: {
+            'channelId': _i1.ParameterDescription(
+              name: 'channelId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i4.ChatEndpoint)
+                  .getArchivedChannelNoteCount(
+                    session,
+                    params['channelId'],
+                  ),
+        ),
         'chat': _i1.MethodStreamConnector(
           name: 'chat',
           params: {},

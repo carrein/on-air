@@ -18,8 +18,9 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
 import 'package:memoka_server/src/generated/chat/channel.dart' as _i5;
 import 'package:memoka_server/src/generated/chat/note.dart' as _i6;
-import 'package:memoka_server/src/generated/chat/chat_event.dart' as _i7;
-import 'package:memoka_server/src/generated/media/media_attachment.dart' as _i8;
+import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i7;
+import 'package:memoka_server/src/generated/chat/chat_event.dart' as _i8;
+import 'package:memoka_server/src/generated/media/media_attachment.dart' as _i9;
 import 'package:memoka_server/src/generated/protocol.dart';
 import 'package:memoka_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -735,8 +736,163 @@ class _ChatEndpoint {
     });
   }
 
-  _i3.Stream<_i7.ChatEvent> chat(_i1.TestSessionBuilder sessionBuilder) {
-    var _localTestStreamManager = _i1.TestStreamManager<_i7.ChatEvent>();
+  _i3.Future<void> restoreNote(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'restoreNote',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'restoreNote',
+          parameters: _i1.testObjectToJson({'id': id}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<void> archiveChannel(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'archiveChannel',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'archiveChannel',
+          parameters: _i1.testObjectToJson({'id': id}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i5.Channel> restoreChannel(
+    _i1.TestSessionBuilder sessionBuilder,
+    int id,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'restoreChannel',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'restoreChannel',
+          parameters: _i1.testObjectToJson({'id': id}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i5.Channel>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<List<_i7.ArchiveItem>> getArchiveItems(
+    _i1.TestSessionBuilder sessionBuilder, {
+    required int limit,
+  }) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'getArchiveItems',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'getArchiveItems',
+          parameters: _i1.testObjectToJson({'limit': limit}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<List<_i7.ArchiveItem>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<int> getArchivedChannelNoteCount(
+    _i1.TestSessionBuilder sessionBuilder,
+    int channelId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'getArchivedChannelNoteCount',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'getArchivedChannelNoteCount',
+          parameters: _i1.testObjectToJson({'channelId': channelId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<int>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Stream<_i8.ChatEvent> chat(_i1.TestSessionBuilder sessionBuilder) {
+    var _localTestStreamManager = _i1.TestStreamManager<_i8.ChatEvent>();
     _i1.callStreamFunctionAndHandleExceptions(
       () async {
         var _localUniqueSession =
@@ -818,7 +974,7 @@ class _MediaEndpoint {
     });
   }
 
-  _i3.Future<_i8.MediaAttachment> uploadMedia(
+  _i3.Future<_i9.MediaAttachment> uploadMedia(
     _i1.TestSessionBuilder sessionBuilder,
     int channelId,
     String originalFilename,
@@ -826,7 +982,7 @@ class _MediaEndpoint {
     bool compress,
     _i3.Stream<List<int>> fileStream,
   ) async {
-    var _localTestStreamManager = _i1.TestStreamManager<_i8.MediaAttachment>();
+    var _localTestStreamManager = _i1.TestStreamManager<_i9.MediaAttachment>();
     return _i1.callAwaitableFunctionWithStreamInputAndHandleExceptions(
       () async {
         var _localUniqueSession =

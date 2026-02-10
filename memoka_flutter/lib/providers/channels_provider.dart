@@ -15,7 +15,9 @@ class Channels extends _$Channels {
       event.whenData((chatEvent) {
         if (chatEvent.type == 'channelCreated' ||
             chatEvent.type == 'channelDeleted' ||
-            chatEvent.type == 'channelUpdated') {
+            chatEvent.type == 'channelUpdated' ||
+            chatEvent.type == 'channelArchived' ||
+            chatEvent.type == 'channelRestored') {
           // Refetch channels when they change
           ref.invalidateSelf();
         }
@@ -49,6 +51,18 @@ class Channels extends _$Channels {
       // Provide user-friendly error messages
       if (e.toString().contains('last remaining channel')) {
         throw Exception('Cannot delete the last channel. Create another channel first.');
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> archiveChannel(int id) async {
+    try {
+      await client.chat.archiveChannel(id);
+      // WebSocket broadcast will trigger refetch via listener above
+    } catch (e) {
+      if (e.toString().contains('last remaining channel')) {
+        throw Exception('Cannot archive the last channel. Create another channel first.');
       }
       rethrow;
     }

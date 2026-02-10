@@ -94,7 +94,10 @@ void run(List<String> args) async {
 Future<void> _ensureDefaultChannel(Serverpod pod) async {
   final session = await pod.createSession();
   try {
-    final count = await Channel.db.count(session);
+    final count = await Channel.db.count(
+      session,
+      where: (t) => t.archived.equals(false),
+    );
     if (count == 0) {
       await Channel.db.insertRow(
         session,

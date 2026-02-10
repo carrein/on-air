@@ -17,6 +17,11 @@ chat:
   - createNote:
   - updateNote:
   - deleteNote:
+  - restoreNote:
+  - archiveChannel:
+  - restoreChannel:
+  - getArchiveItems:
+  - getArchivedChannelNoteCount:
   - chat:
 media:
   - uploadMediaAndCreateNote:

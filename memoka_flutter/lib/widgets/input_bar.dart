@@ -14,6 +14,7 @@ import '../models/upload_file_data.dart';
 import 'input_link_preview.dart';
 import 'file_upload_dialog.dart';
 import 'multi_file_upload_dialog.dart';
+import 'styled_tooltip.dart';
 
 /// Input bar for creating and editing notes.
 class InputBar extends ConsumerStatefulWidget {
@@ -31,8 +32,6 @@ class _InputBarState extends ConsumerState<InputBar> {
   static const _iconDisabledAlpha = 0.4;
   static const _hintTextColor = Color(0xFFFF52A1);    // brand.accent
   static const _hintTextAlpha = 1.0;
-  static const _tooltipBackground = Color(0xFF00171F); // core.background
-  static const _tooltipAlpha = 0.7;
 
   // -- Layout --
   static const _barPadding = EdgeInsets.all(12);
@@ -115,24 +114,7 @@ class _InputBarState extends ConsumerState<InputBar> {
       });
     });
 
-    return Theme(
-      data: Theme.of(context).copyWith(
-        tooltipTheme: TooltipThemeData(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(
-              color: _iconColor,
-              width: 1.0,
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-          textStyle: GoogleFonts.spaceGrotesk(
-            color: _tooltipBackground,
-            fontSize: 12,
-          ),
-        ),
-      ),
-      child: Column(
+    return Column(
         children: [
           // Link preview (show above input when URL detected)
           if (_showPreview && _previewUrl != null && !isEditMode)
@@ -160,10 +142,12 @@ class _InputBarState extends ConsumerState<InputBar> {
           child: Row(
             children: [
               if (isEditMode)
-                IconButton(
-                  icon: Icon(Icons.close, color: _iconColor.withValues(alpha: _iconDisabledAlpha)),
-                  onPressed: _cancelEditing,
-                  tooltip: 'Cancel',
+                StyledTooltip(
+                  message: 'Cancel',
+                  child: IconButton(
+                    icon: Icon(Icons.close, color: _iconColor.withValues(alpha: _iconDisabledAlpha)),
+                    onPressed: _cancelEditing,
+                  ),
                 ),
               Expanded(
                 child: RawKeyboardListener(
@@ -215,39 +199,42 @@ class _InputBarState extends ConsumerState<InputBar> {
               ),
               const SizedBox(width: _iconGap),
               if (!isEditMode)
-                IconButton(
-                  icon: SvgPicture.asset(
-                    'assets/images/attachment.svg',
-                    width: _iconSize,
-                    height: _iconSize,
+                StyledTooltip(
+                  message: 'Upload file',
+                  child: IconButton(
+                    icon: SvgPicture.asset(
+                      'assets/images/attachment.svg',
+                      width: _iconSize,
+                      height: _iconSize,
+                    ),
+                    onPressed: _pickFile,
                   ),
-                  onPressed: _pickFile,
-                  tooltip: 'Upload file',
                 ),
-              IconButton(
-                icon: isEditMode
-                    ? Icon(
-                        Icons.check,
-                        color: _controller.text.trim().isEmpty
-                            ? _iconColor.withValues(alpha: _iconDisabledAlpha)
-                            : _iconColor,
-                      )
-                    : Opacity(
-                        opacity: _controller.text.trim().isEmpty ? _iconDisabledAlpha : 1.0,
-                        child: SvgPicture.asset(
-                          'assets/images/send.svg',
-                          width: _iconSize,
-                          height: _iconSize,
+              StyledTooltip(
+                message: isEditMode ? 'Save' : 'Send',
+                child: IconButton(
+                  icon: isEditMode
+                      ? Icon(
+                          Icons.check,
+                          color: _controller.text.trim().isEmpty
+                              ? _iconColor.withValues(alpha: _iconDisabledAlpha)
+                              : _iconColor,
+                        )
+                      : Opacity(
+                          opacity: _controller.text.trim().isEmpty ? _iconDisabledAlpha : 1.0,
+                          child: SvgPicture.asset(
+                            'assets/images/right-arrow.svg',
+                            width: _iconSize,
+                            height: _iconSize,
+                          ),
                         ),
-                      ),
-                onPressed: _controller.text.trim().isEmpty ? null : _submit,
-                tooltip: isEditMode ? 'Save' : 'Send',
+                  onPressed: _controller.text.trim().isEmpty ? null : _submit,
+                ),
               ),
             ],
             ),
           ),
         ],
-      ),
     );
   }
 

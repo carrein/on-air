@@ -51,6 +51,34 @@ class Notes extends _$Notes {
         }
         break;
 
+      case 'noteArchived':
+        // Remove from current channel if it matches
+        if (event.channelId == channelId) {
+          _notes = currentState.where((n) => n.id != event.noteId).toList();
+          state = AsyncValue.data(_notes);
+        }
+        // If viewing Archive (-1), refetch to show the newly archived note
+        if (channelId == -1) {
+          ref.invalidateSelf();
+        }
+        break;
+
+      case 'noteRestored':
+        // Remove from Archive if viewing it
+        if (channelId == -1) {
+          _notes = currentState.where((n) => n.id != event.noteId).toList();
+          state = AsyncValue.data(_notes);
+        }
+        // Add to original channel if viewing it
+        if (event.channelId == channelId && event.note != null) {
+          // Skip if already exists
+          if (currentState.any((n) => n.id == event.note!.id)) break;
+          _notes = [event.note!, ...currentState];
+          _sortNotes();
+          state = AsyncValue.data(_notes);
+        }
+        break;
+
       case 'noteUpdated':
       case 'noteLinkPreviewReady':  // Handle preview ready same as update
         if (event.note?.channelId == channelId) {
@@ -62,12 +90,17 @@ class Notes extends _$Notes {
         break;
 
       case 'noteDeleted':
+        // Remove from current channel (permanent deletion from Archive)
         if (event.channelId == channelId) {
           _notes = currentState.where((n) => n.id != event.noteId).toList();
           state = AsyncValue.data(_notes);
         }
         break;
     }
+  }
+
+  void _sortNotes() {
+    _notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   Future<void> loadMore() async {

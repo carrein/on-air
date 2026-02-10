@@ -16,13 +16,16 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'chat/channel.dart' as _i5;
-import 'chat/chat_event.dart' as _i6;
-import 'chat/link_preview.dart' as _i7;
-import 'chat/note.dart' as _i8;
-import 'media/media_attachment.dart' as _i9;
-import 'package:memoka_server/src/generated/chat/channel.dart' as _i10;
-import 'package:memoka_server/src/generated/chat/note.dart' as _i11;
+import 'chat/archive_item.dart' as _i5;
+import 'chat/channel.dart' as _i6;
+import 'chat/chat_event.dart' as _i7;
+import 'chat/link_preview.dart' as _i8;
+import 'chat/note.dart' as _i9;
+import 'media/media_attachment.dart' as _i10;
+import 'package:memoka_server/src/generated/chat/channel.dart' as _i11;
+import 'package:memoka_server/src/generated/chat/note.dart' as _i12;
+import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i13;
+export 'chat/archive_item.dart';
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
 export 'chat/link_preview.dart';
@@ -71,6 +74,13 @@ class Protocol extends _i1.SerializationManagerServer {
           columnDefault: 'false',
         ),
         _i2.ColumnDefinition(
+          name: 'isSystemChannel',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
           name: 'createdAt',
           columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
@@ -83,6 +93,19 @@ class Protocol extends _i1.SerializationManagerServer {
           isNullable: false,
           dartType: 'DateTime',
           columnDefault: 'CURRENT_TIMESTAMP',
+        ),
+        _i2.ColumnDefinition(
+          name: 'archived',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
+          name: 'archivedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
         ),
       ],
       foreignKeys: [],
@@ -311,6 +334,12 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'List<protocol:MediaAttachment>?',
         ),
         _i2.ColumnDefinition(
+          name: 'originalChannelId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: true,
+          dartType: 'int?',
+        ),
+        _i2.ColumnDefinition(
           name: 'createdAt',
           columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: false,
@@ -403,56 +432,68 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
 
-    if (t == _i5.Channel) {
-      return _i5.Channel.fromJson(data) as T;
+    if (t == _i5.ArchiveItem) {
+      return _i5.ArchiveItem.fromJson(data) as T;
     }
-    if (t == _i6.ChatEvent) {
-      return _i6.ChatEvent.fromJson(data) as T;
+    if (t == _i6.Channel) {
+      return _i6.Channel.fromJson(data) as T;
     }
-    if (t == _i7.LinkPreview) {
-      return _i7.LinkPreview.fromJson(data) as T;
+    if (t == _i7.ChatEvent) {
+      return _i7.ChatEvent.fromJson(data) as T;
     }
-    if (t == _i8.Note) {
-      return _i8.Note.fromJson(data) as T;
+    if (t == _i8.LinkPreview) {
+      return _i8.LinkPreview.fromJson(data) as T;
     }
-    if (t == _i9.MediaAttachment) {
-      return _i9.MediaAttachment.fromJson(data) as T;
+    if (t == _i9.Note) {
+      return _i9.Note.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i5.Channel?>()) {
-      return (data != null ? _i5.Channel.fromJson(data) : null) as T;
+    if (t == _i10.MediaAttachment) {
+      return _i10.MediaAttachment.fromJson(data) as T;
     }
-    if (t == _i1.getType<_i6.ChatEvent?>()) {
-      return (data != null ? _i6.ChatEvent.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.ArchiveItem?>()) {
+      return (data != null ? _i5.ArchiveItem.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.LinkPreview?>()) {
-      return (data != null ? _i7.LinkPreview.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i6.Channel?>()) {
+      return (data != null ? _i6.Channel.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i8.Note?>()) {
-      return (data != null ? _i8.Note.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i7.ChatEvent?>()) {
+      return (data != null ? _i7.ChatEvent.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i9.MediaAttachment?>()) {
-      return (data != null ? _i9.MediaAttachment.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i8.LinkPreview?>()) {
+      return (data != null ? _i8.LinkPreview.fromJson(data) : null) as T;
     }
-    if (t == List<_i9.MediaAttachment>) {
+    if (t == _i1.getType<_i9.Note?>()) {
+      return (data != null ? _i9.Note.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i10.MediaAttachment?>()) {
+      return (data != null ? _i10.MediaAttachment.fromJson(data) : null) as T;
+    }
+    if (t == List<_i10.MediaAttachment>) {
       return (data as List)
-              .map((e) => deserialize<_i9.MediaAttachment>(e))
+              .map((e) => deserialize<_i10.MediaAttachment>(e))
               .toList()
           as T;
     }
-    if (t == _i1.getType<List<_i9.MediaAttachment>?>()) {
+    if (t == _i1.getType<List<_i10.MediaAttachment>?>()) {
       return (data != null
               ? (data as List)
-                    .map((e) => deserialize<_i9.MediaAttachment>(e))
+                    .map((e) => deserialize<_i10.MediaAttachment>(e))
                     .toList()
               : null)
           as T;
     }
-    if (t == List<_i10.Channel>) {
-      return (data as List).map((e) => deserialize<_i10.Channel>(e)).toList()
+    if (t == List<_i11.Channel>) {
+      return (data as List).map((e) => deserialize<_i11.Channel>(e)).toList()
           as T;
     }
-    if (t == List<_i11.Note>) {
-      return (data as List).map((e) => deserialize<_i11.Note>(e)).toList() as T;
+    if (t == List<_i12.Note>) {
+      return (data as List).map((e) => deserialize<_i12.Note>(e)).toList() as T;
+    }
+    if (t == List<_i13.ArchiveItem>) {
+      return (data as List)
+              .map((e) => deserialize<_i13.ArchiveItem>(e))
+              .toList()
+          as T;
     }
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
@@ -471,11 +512,12 @@ class Protocol extends _i1.SerializationManagerServer {
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
-      _i5.Channel => 'Channel',
-      _i6.ChatEvent => 'ChatEvent',
-      _i7.LinkPreview => 'LinkPreview',
-      _i8.Note => 'Note',
-      _i9.MediaAttachment => 'MediaAttachment',
+      _i5.ArchiveItem => 'ArchiveItem',
+      _i6.Channel => 'Channel',
+      _i7.ChatEvent => 'ChatEvent',
+      _i8.LinkPreview => 'LinkPreview',
+      _i9.Note => 'Note',
+      _i10.MediaAttachment => 'MediaAttachment',
       _ => null,
     };
   }
@@ -490,15 +532,17 @@ class Protocol extends _i1.SerializationManagerServer {
     }
 
     switch (data) {
-      case _i5.Channel():
+      case _i5.ArchiveItem():
+        return 'ArchiveItem';
+      case _i6.Channel():
         return 'Channel';
-      case _i6.ChatEvent():
+      case _i7.ChatEvent():
         return 'ChatEvent';
-      case _i7.LinkPreview():
+      case _i8.LinkPreview():
         return 'LinkPreview';
-      case _i8.Note():
+      case _i9.Note():
         return 'Note';
-      case _i9.MediaAttachment():
+      case _i10.MediaAttachment():
         return 'MediaAttachment';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -525,20 +569,23 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'ArchiveItem') {
+      return deserialize<_i5.ArchiveItem>(data['data']);
+    }
     if (dataClassName == 'Channel') {
-      return deserialize<_i5.Channel>(data['data']);
+      return deserialize<_i6.Channel>(data['data']);
     }
     if (dataClassName == 'ChatEvent') {
-      return deserialize<_i6.ChatEvent>(data['data']);
+      return deserialize<_i7.ChatEvent>(data['data']);
     }
     if (dataClassName == 'LinkPreview') {
-      return deserialize<_i7.LinkPreview>(data['data']);
+      return deserialize<_i8.LinkPreview>(data['data']);
     }
     if (dataClassName == 'Note') {
-      return deserialize<_i8.Note>(data['data']);
+      return deserialize<_i9.Note>(data['data']);
     }
     if (dataClassName == 'MediaAttachment') {
-      return deserialize<_i9.MediaAttachment>(data['data']);
+      return deserialize<_i10.MediaAttachment>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -579,12 +626,12 @@ class Protocol extends _i1.SerializationManagerServer {
       }
     }
     switch (t) {
-      case _i5.Channel:
-        return _i5.Channel.t;
-      case _i8.Note:
-        return _i8.Note.t;
-      case _i9.MediaAttachment:
-        return _i9.MediaAttachment.t;
+      case _i6.Channel:
+        return _i6.Channel.t;
+      case _i9.Note:
+        return _i9.Note.t;
+      case _i10.MediaAttachment:
+        return _i10.MediaAttachment.t;
     }
     return null;
   }

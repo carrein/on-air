@@ -19,20 +19,28 @@ abstract class Channel implements _i1.SerializableModel {
     required this.name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    this.archivedAt,
   }) : emoji = emoji ?? '💬',
        pinned = pinned ?? false,
+       isSystemChannel = isSystemChannel ?? false,
        createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+       updatedAt = updatedAt ?? DateTime.now(),
+       archived = archived ?? false;
 
   factory Channel({
     int? id,
     required String name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    DateTime? archivedAt,
   }) = _ChannelImpl;
 
   factory Channel.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -41,12 +49,17 @@ abstract class Channel implements _i1.SerializableModel {
       name: jsonSerialization['name'] as String,
       emoji: jsonSerialization['emoji'] as String?,
       pinned: jsonSerialization['pinned'] as bool?,
+      isSystemChannel: jsonSerialization['isSystemChannel'] as bool?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
       updatedAt: jsonSerialization['updatedAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      archived: jsonSerialization['archived'] as bool?,
+      archivedAt: jsonSerialization['archivedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['archivedAt']),
     );
   }
 
@@ -64,11 +77,20 @@ abstract class Channel implements _i1.SerializableModel {
   /// Whether the channel is pinned.
   bool pinned;
 
+  /// Whether this is a system channel (cannot be deleted/renamed by users).
+  bool isSystemChannel;
+
   /// When the channel was created.
   DateTime createdAt;
 
   /// When the channel was last updated (e.g., when a note is posted).
   DateTime updatedAt;
+
+  /// Whether this channel is archived (soft deleted).
+  bool archived;
+
+  /// When the channel was archived.
+  DateTime? archivedAt;
 
   /// Returns a shallow copy of this [Channel]
   /// with some or all fields replaced by the given arguments.
@@ -78,8 +100,11 @@ abstract class Channel implements _i1.SerializableModel {
     String? name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    DateTime? archivedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -89,8 +114,11 @@ abstract class Channel implements _i1.SerializableModel {
       'name': name,
       'emoji': emoji,
       'pinned': pinned,
+      'isSystemChannel': isSystemChannel,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      'archived': archived,
+      if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
     };
   }
 
@@ -108,15 +136,21 @@ class _ChannelImpl extends Channel {
     required String name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    DateTime? archivedAt,
   }) : super._(
          id: id,
          name: name,
          emoji: emoji,
          pinned: pinned,
+         isSystemChannel: isSystemChannel,
          createdAt: createdAt,
          updatedAt: updatedAt,
+         archived: archived,
+         archivedAt: archivedAt,
        );
 
   /// Returns a shallow copy of this [Channel]
@@ -128,16 +162,22 @@ class _ChannelImpl extends Channel {
     String? name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    Object? archivedAt = _Undefined,
   }) {
     return Channel(
       id: id is int? ? id : this.id,
       name: name ?? this.name,
       emoji: emoji ?? this.emoji,
       pinned: pinned ?? this.pinned,
+      isSystemChannel: isSystemChannel ?? this.isSystemChannel,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      archived: archived ?? this.archived,
+      archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
     );
   }
 }

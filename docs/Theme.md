@@ -22,6 +22,7 @@ should reference these tokens rather than hard-coding values.
 |--------------------|-----------|------------------|----------------------------------------|
 | `brand.primary`    | `#CE2161` | `206, 33, 97`    | Selected states, primary actions       |
 | `brand.accent`     | `#FF52A1` | `255, 82, 161`   | Dividers, highlights, decorative lines |
+| `brand.green`      | `#9BFF00` | `155, 255, 0`    | Archive notes border                   |
 | `brand.blue`       | `#48EEFF` | `72, 238, 255`   | Reserved (brand palette)               |
 | `brand.yellow`     | `#FFE236` | `255, 226, 54`   | Reserved (brand palette)               |
 

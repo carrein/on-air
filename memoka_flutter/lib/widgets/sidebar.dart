@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../providers/channels_provider.dart';
@@ -11,6 +10,7 @@ import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/settings_page_provider.dart';
 import '../utils/toast_utils.dart';
+import 'new_channel_modal.dart';
 
 /// Sidebar displaying channels list and add channel button.
 /// Fixed width (240px), always visible.
@@ -126,35 +126,40 @@ class _SidebarState extends ConsumerState<Sidebar> {
                 child: Stack(
                   children: [
                     channelsAsync.when(
-                      data: (channels) => ScrollConfiguration(
-                        behavior: ScrollConfiguration.of(context).copyWith(
-                          scrollbars: false,
-                        ),
-                        child: ListView.separated(
-                          controller: _scrollController,
-                          itemCount: channels.length,
-                          separatorBuilder: (context, index) {
-                            // Add divider between pinned and unpinned channels
-                            final currentChannel = channels[index];
-                            final nextChannel = index + 1 < channels.length ? channels[index + 1] : null;
+                      data: (channels) {
+                        // Filter out system channels (e.g., Archive)
+                        final regularChannels = channels.where((c) => !c.isSystemChannel).toList();
 
-                            if (currentChannel.pinned && nextChannel != null && !nextChannel.pinned) {
-                              return Container(height: _dividerHeight, color: _dividerColor);
-                            }
-                            return const SizedBox.shrink();
-                          },
-                          itemBuilder: (context, index) {
-                            final channel = channels[index];
-                            final isSelected = currentChannelAsync.value == channel.id;
+                        return ScrollConfiguration(
+                          behavior: ScrollConfiguration.of(context).copyWith(
+                            scrollbars: false,
+                          ),
+                          child: ListView.separated(
+                            controller: _scrollController,
+                            itemCount: regularChannels.length,
+                            separatorBuilder: (context, index) {
+                              // Add divider between pinned and unpinned channels
+                              final currentChannel = regularChannels[index];
+                              final nextChannel = index + 1 < regularChannels.length ? regularChannels[index + 1] : null;
 
-                            return _buildChannelItem(
-                              channel,
-                              isSelected,
-                              context,
-                            );
-                          },
-                        ),
-                      ),
+                              if (currentChannel.pinned && nextChannel != null && !nextChannel.pinned) {
+                                return Container(height: _dividerHeight, color: _dividerColor);
+                              }
+                              return const SizedBox.shrink();
+                            },
+                            itemBuilder: (context, index) {
+                              final channel = regularChannels[index];
+                              final isSelected = currentChannelAsync.value == channel.id;
+
+                              return _buildChannelItem(
+                                channel,
+                                isSelected,
+                                context,
+                              );
+                            },
+                          ),
+                        );
+                      },
                       loading: () => const Center(child: CircularProgressIndicator()),
                       error: (err, stack) => Center(child: Text('Error: $err')),
                     ),
@@ -212,7 +217,9 @@ class _SidebarState extends ConsumerState<Sidebar> {
               // Separator before buttons
               Container(height: _dividerHeight, color: _dividerColor),
               _buildAddButton(context),
-              // Account button
+              // Archive Crate button
+              _buildArchiveButton(),
+              // Settings button
               _buildAccountButton(context),
             ],
           ),
@@ -332,6 +339,46 @@ class _SidebarState extends ConsumerState<Sidebar> {
     );
   }
 
+  Widget _buildArchiveButton() {
+    final currentChannelAsync = ref.watch(currentChannelProvider);
+    final isSelected = currentChannelAsync.maybeWhen(
+      data: (id) => id == -1,
+      orElse: () => false,
+    );
+
+    return Material(
+      color: isSelected ? _selectedColor : Colors.transparent,
+      child: InkWell(
+        onTap: () => _switchChannel(ref, -1),
+        child: Padding(
+          padding: _buttonPadding,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              SvgPicture.asset(
+                'assets/images/recycle.svg',
+                width: _buttonIconSize,
+                height: _buttonIconSize,
+              ),
+              const SizedBox(width: _buttonTextGap),
+              Expanded(
+                child: Text(
+                  'Archive Crate',
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.combo(
+                    fontSize: _buttonFontSize,
+                    fontWeight: FontWeight.normal,
+                    color: _textColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAccountButton(BuildContext context) {
     return Material(
       color: Colors.transparent,
@@ -423,7 +470,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
           value: channel.pinned ? 'unpin' : 'pin',
           child: Text(channel.pinned ? 'Unpin' : 'Pin'),
         ),
-        const PopupMenuItem(value: 'delete', child: Text('Delete')),
+        const PopupMenuItem(value: 'archive', child: Text('Archive')),
       ],
     ).then((value) {
       if (value == null) return;
@@ -437,8 +484,8 @@ class _SidebarState extends ConsumerState<Sidebar> {
         case 'unpin':
           _togglePin(ref, channel.id!, false);
           break;
-        case 'delete':
-          _deleteChannel(context, ref, channel.id!, channel.name);
+        case 'archive':
+          _archiveChannel(context, ref, channel.id!);
           break;
       }
     });
@@ -452,17 +499,29 @@ class _SidebarState extends ConsumerState<Sidebar> {
     ref.read(currentChannelProvider.notifier).switchChannel(channelId);
   }
 
-  void _deleteChannel(
+  void _archiveChannel(
     BuildContext context,
     WidgetRef ref,
     int channelId,
-    String channelName,
   ) async {
     try {
-      await ref.read(channelsProvider.notifier).deleteChannel(channelId);
+      // If archiving the currently viewed channel, switch first
+      final currentId = ref.read(currentChannelProvider).value;
+      await ref.read(channelsProvider.notifier).archiveChannel(channelId);
+      if (currentId == channelId) {
+        // Channels will refetch; switch to first available
+        final channels = await ref.read(channelsProvider.future);
+        if (channels.isNotEmpty) {
+          ref.read(currentChannelProvider.notifier).switchChannel(channels.first.id!);
+        }
+      }
+      if (context.mounted) {
+        ToastUtils.show(context, 'Channel archived', type: ToastType.success);
+      }
     } catch (e) {
       if (context.mounted) {
-        ToastUtils.show(context, 'Cannot delete channel: $e', type: ToastType.error);
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        ToastUtils.show(context, msg, type: ToastType.error);
       }
     }
   }
@@ -475,113 +534,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
   }
 
   void _showCreateChannelDialog(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    String selectedEmoji = '💬';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => Theme(
-          data: Theme.of(context).copyWith(
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF00171F),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
-            ),
-          ),
-          child: AlertDialog(
-            title: const Text(
-              'New Channel',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: SizedBox(
-              width: 350,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Channel Name',
-                      labelStyle: TextStyle(color: Colors.white),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2.0),
-                      ),
-                    ),
-                    autofocus: true,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text('Emoji: ', style: TextStyle(color: Colors.white)),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _showEmojiPicker(context, (emoji) {
-                          setState(() => selectedEmoji = emoji);
-                        }),
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.white, width: 1.0),
-                          ),
-                          child: Center(
-                            child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Tap to change',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF00171F),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                ),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final name = nameController.text.trim();
-                  if (name.isNotEmpty) {
-                    final channel = await ref.read(channelsProvider.notifier).createChannel(
-                          name,
-                          emoji: selectedEmoji,
-                        );
-                    if (ctx.mounted) {
-                      Navigator.pop(ctx);
-                      // Switch to the newly created channel
-                      ref.read(currentChannelProvider.notifier).switchChannel(channel.id!);
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF00171F),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                ),
-                child: const Text('Create'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    NewChannelModal.show(
+      context,
+      onConfirm: (name, emoji) async {
+        final channel = await ref.read(channelsProvider.notifier).createChannel(
+              name,
+              emoji: emoji,
+            );
+        ref.read(currentChannelProvider.notifier).switchChannel(channel.id!);
+      },
     );
   }
 
@@ -590,133 +551,16 @@ class _SidebarState extends ConsumerState<Sidebar> {
     WidgetRef ref,
     Channel channel,
   ) {
-    final nameController = TextEditingController(text: channel.name);
-    String selectedEmoji = channel.emoji;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => Theme(
-          data: Theme.of(context).copyWith(
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF00171F),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.zero,
-              ),
-            ),
-          ),
-          child: AlertDialog(
-            title: const Text(
-              'Edit Channel',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: SizedBox(
-              width: 350,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Channel Name',
-                      labelStyle: TextStyle(color: Colors.white),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white, width: 2.0),
-                      ),
-                    ),
-                    autofocus: true,
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text('Emoji: ', style: TextStyle(color: Colors.white)),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => _showEmojiPicker(context, (emoji) {
-                          setState(() => selectedEmoji = emoji);
-                        }),
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: Colors.white, width: 1.0),
-                          ),
-                          child: Center(
-                            child: Text(selectedEmoji, style: const TextStyle(fontSize: 24)),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Tap to change',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF00171F),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                ),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final name = nameController.text.trim();
-                  if (name.isNotEmpty) {
-                    await ref.read(channelsProvider.notifier).updateChannel(
-                          channel.id!,
-                          name: name,
-                          emoji: selectedEmoji,
-                        );
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF00171F),
-                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                ),
-                child: const Text('Save'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showEmojiPicker(BuildContext context, Function(String) onEmojiSelected) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SizedBox(
-        height: 300,
-        child: emoji.EmojiPicker(
-          onEmojiSelected: (category, emojiData) {
-            onEmojiSelected(emojiData.emoji);
-            Navigator.pop(ctx);
-          },
-          config: const emoji.Config(
-            height: 256,
-            checkPlatformCompatibility: true,
-            emojiViewConfig: emoji.EmojiViewConfig(
-              emojiSizeMax: 28,
-              columns: 7,
-            ),
-          ),
-        ),
-      ),
+    NewChannelModal.show(
+      context,
+      channel: channel,
+      onConfirm: (name, emoji) async {
+        await ref.read(channelsProvider.notifier).updateChannel(
+              channel.id!,
+              name: name,
+              emoji: emoji,
+            );
+      },
     );
   }
 }

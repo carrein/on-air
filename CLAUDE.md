@@ -8,6 +8,8 @@ u/docs/Security.md
 u/docs/UX.md
 u/docs/components/Sidebar.md
 u/docs/components/InputBar.md
+u/docs/components/ArchiveCrate.md
+u/docs/components/NewChannelModal.md
 
 # CLAUDE.md
 
@@ -308,3 +310,5 @@ interactions, state management, and integration details.
 
 - **Sidebar**: `docs/components/Sidebar.md`
 - **InputBar**: `docs/components/InputBar.md`
+- **ArchiveCrate**: `docs/components/ArchiveCrate.md`
+- **NewChannelModal**: `docs/components/NewChannelModal.md`

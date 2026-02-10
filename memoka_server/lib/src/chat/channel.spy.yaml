@@ -9,7 +9,13 @@ fields:
   emoji: String, default='💬'
   ### Whether the channel is pinned.
   pinned: bool, default=false
+  ### Whether this is a system channel (cannot be deleted/renamed by users).
+  isSystemChannel: bool, default=false
   ### When the channel was created.
   createdAt: DateTime, default=now
   ### When the channel was last updated (e.g., when a note is posted).
   updatedAt: DateTime, default=now
+  ### Whether this channel is archived (soft deleted).
+  archived: bool, default=false
+  ### When the channel was archived.
+  archivedAt: DateTime?

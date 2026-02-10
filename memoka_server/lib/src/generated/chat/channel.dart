@@ -20,20 +20,28 @@ abstract class Channel
     required this.name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    this.archivedAt,
   }) : emoji = emoji ?? '💬',
        pinned = pinned ?? false,
+       isSystemChannel = isSystemChannel ?? false,
        createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+       updatedAt = updatedAt ?? DateTime.now(),
+       archived = archived ?? false;
 
   factory Channel({
     int? id,
     required String name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    DateTime? archivedAt,
   }) = _ChannelImpl;
 
   factory Channel.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -42,12 +50,17 @@ abstract class Channel
       name: jsonSerialization['name'] as String,
       emoji: jsonSerialization['emoji'] as String?,
       pinned: jsonSerialization['pinned'] as bool?,
+      isSystemChannel: jsonSerialization['isSystemChannel'] as bool?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
       updatedAt: jsonSerialization['updatedAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      archived: jsonSerialization['archived'] as bool?,
+      archivedAt: jsonSerialization['archivedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['archivedAt']),
     );
   }
 
@@ -67,11 +80,20 @@ abstract class Channel
   /// Whether the channel is pinned.
   bool pinned;
 
+  /// Whether this is a system channel (cannot be deleted/renamed by users).
+  bool isSystemChannel;
+
   /// When the channel was created.
   DateTime createdAt;
 
   /// When the channel was last updated (e.g., when a note is posted).
   DateTime updatedAt;
+
+  /// Whether this channel is archived (soft deleted).
+  bool archived;
+
+  /// When the channel was archived.
+  DateTime? archivedAt;
 
   @override
   _i1.Table<int?> get table => t;
@@ -84,8 +106,11 @@ abstract class Channel
     String? name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    DateTime? archivedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -95,8 +120,11 @@ abstract class Channel
       'name': name,
       'emoji': emoji,
       'pinned': pinned,
+      'isSystemChannel': isSystemChannel,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      'archived': archived,
+      if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
     };
   }
 
@@ -108,8 +136,11 @@ abstract class Channel
       'name': name,
       'emoji': emoji,
       'pinned': pinned,
+      'isSystemChannel': isSystemChannel,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      'archived': archived,
+      if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
     };
   }
 
@@ -151,15 +182,21 @@ class _ChannelImpl extends Channel {
     required String name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    DateTime? archivedAt,
   }) : super._(
          id: id,
          name: name,
          emoji: emoji,
          pinned: pinned,
+         isSystemChannel: isSystemChannel,
          createdAt: createdAt,
          updatedAt: updatedAt,
+         archived: archived,
+         archivedAt: archivedAt,
        );
 
   /// Returns a shallow copy of this [Channel]
@@ -171,16 +208,22 @@ class _ChannelImpl extends Channel {
     String? name,
     String? emoji,
     bool? pinned,
+    bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    bool? archived,
+    Object? archivedAt = _Undefined,
   }) {
     return Channel(
       id: id is int? ? id : this.id,
       name: name ?? this.name,
       emoji: emoji ?? this.emoji,
       pinned: pinned ?? this.pinned,
+      isSystemChannel: isSystemChannel ?? this.isSystemChannel,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      archived: archived ?? this.archived,
+      archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
     );
   }
 }
@@ -203,6 +246,11 @@ class ChannelUpdateTable extends _i1.UpdateTable<ChannelTable> {
     value,
   );
 
+  _i1.ColumnValue<bool, bool> isSystemChannel(bool value) => _i1.ColumnValue(
+    table.isSystemChannel,
+    value,
+  );
+
   _i1.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _i1.ColumnValue(
         table.createdAt,
@@ -212,6 +260,17 @@ class ChannelUpdateTable extends _i1.UpdateTable<ChannelTable> {
   _i1.ColumnValue<DateTime, DateTime> updatedAt(DateTime value) =>
       _i1.ColumnValue(
         table.updatedAt,
+        value,
+      );
+
+  _i1.ColumnValue<bool, bool> archived(bool value) => _i1.ColumnValue(
+    table.archived,
+    value,
+  );
+
+  _i1.ColumnValue<DateTime, DateTime> archivedAt(DateTime? value) =>
+      _i1.ColumnValue(
+        table.archivedAt,
         value,
       );
 }
@@ -233,6 +292,11 @@ class ChannelTable extends _i1.Table<int?> {
       this,
       hasDefault: true,
     );
+    isSystemChannel = _i1.ColumnBool(
+      'isSystemChannel',
+      this,
+      hasDefault: true,
+    );
     createdAt = _i1.ColumnDateTime(
       'createdAt',
       this,
@@ -242,6 +306,15 @@ class ChannelTable extends _i1.Table<int?> {
       'updatedAt',
       this,
       hasDefault: true,
+    );
+    archived = _i1.ColumnBool(
+      'archived',
+      this,
+      hasDefault: true,
+    );
+    archivedAt = _i1.ColumnDateTime(
+      'archivedAt',
+      this,
     );
   }
 
@@ -256,11 +329,20 @@ class ChannelTable extends _i1.Table<int?> {
   /// Whether the channel is pinned.
   late final _i1.ColumnBool pinned;
 
+  /// Whether this is a system channel (cannot be deleted/renamed by users).
+  late final _i1.ColumnBool isSystemChannel;
+
   /// When the channel was created.
   late final _i1.ColumnDateTime createdAt;
 
   /// When the channel was last updated (e.g., when a note is posted).
   late final _i1.ColumnDateTime updatedAt;
+
+  /// Whether this channel is archived (soft deleted).
+  late final _i1.ColumnBool archived;
+
+  /// When the channel was archived.
+  late final _i1.ColumnDateTime archivedAt;
 
   @override
   List<_i1.Column> get columns => [
@@ -268,8 +350,11 @@ class ChannelTable extends _i1.Table<int?> {
     name,
     emoji,
     pinned,
+    isSystemChannel,
     createdAt,
     updatedAt,
+    archived,
+    archivedAt,
   ];
 }
 

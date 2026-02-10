@@ -23,6 +23,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required this.content,
     this.linkPreview,
     this.attachments,
+    this.originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -34,6 +35,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
+    int? originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _NoteImpl;
@@ -53,6 +55,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
           : _i4.Protocol().deserialize<List<_i3.MediaAttachment>>(
               jsonSerialization['attachments'],
             ),
+      originalChannelId: jsonSerialization['originalChannelId'] as int?,
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -81,6 +84,9 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   /// Media attachments associated with this note.
   List<_i3.MediaAttachment>? attachments;
 
+  /// Original channel ID before archiving (for restoration).
+  int? originalChannelId;
+
   /// When the note was created.
   DateTime createdAt;
 
@@ -99,6 +105,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     String? content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
+    int? originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -112,6 +119,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       if (linkPreview != null) 'linkPreview': linkPreview?.toJson(),
       if (attachments != null)
         'attachments': attachments?.toJson(valueToJson: (v) => v.toJson()),
+      if (originalChannelId != null) 'originalChannelId': originalChannelId,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -129,6 +137,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
         'attachments': attachments?.toJson(
           valueToJson: (v) => v.toJsonForProtocol(),
         ),
+      if (originalChannelId != null) 'originalChannelId': originalChannelId,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -173,6 +182,7 @@ class _NoteImpl extends Note {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
+    int? originalChannelId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -181,6 +191,7 @@ class _NoteImpl extends Note {
          content: content,
          linkPreview: linkPreview,
          attachments: attachments,
+         originalChannelId: originalChannelId,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -195,6 +206,7 @@ class _NoteImpl extends Note {
     String? content,
     Object? linkPreview = _Undefined,
     Object? attachments = _Undefined,
+    Object? originalChannelId = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -208,6 +220,9 @@ class _NoteImpl extends Note {
       attachments: attachments is List<_i3.MediaAttachment>?
           ? attachments
           : this.attachments?.map((e0) => e0.copyWith()).toList(),
+      originalChannelId: originalChannelId is int?
+          ? originalChannelId
+          : this.originalChannelId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -237,6 +252,11 @@ class NoteUpdateTable extends _i1.UpdateTable<NoteTable> {
   _i1.ColumnValue<List<_i3.MediaAttachment>, List<_i3.MediaAttachment>>
   attachments(List<_i3.MediaAttachment>? value) => _i1.ColumnValue(
     table.attachments,
+    value,
+  );
+
+  _i1.ColumnValue<int, int> originalChannelId(int? value) => _i1.ColumnValue(
+    table.originalChannelId,
     value,
   );
 
@@ -272,6 +292,10 @@ class NoteTable extends _i1.Table<int?> {
       'attachments',
       this,
     );
+    originalChannelId = _i1.ColumnInt(
+      'originalChannelId',
+      this,
+    );
     createdAt = _i1.ColumnDateTime(
       'createdAt',
       this,
@@ -298,6 +322,9 @@ class NoteTable extends _i1.Table<int?> {
   /// Media attachments associated with this note.
   late final _i1.ColumnSerializable<List<_i3.MediaAttachment>> attachments;
 
+  /// Original channel ID before archiving (for restoration).
+  late final _i1.ColumnInt originalChannelId;
+
   /// When the note was created.
   late final _i1.ColumnDateTime createdAt;
 
@@ -311,6 +338,7 @@ class NoteTable extends _i1.Table<int?> {
     content,
     linkPreview,
     attachments,
+    originalChannelId,
     createdAt,
     updatedAt,
   ];

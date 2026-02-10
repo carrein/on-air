@@ -7,6 +7,7 @@ import '../widgets/offline_banner.dart';
 import '../widgets/media_sidebar.dart';
 import '../widgets/settings_view.dart';
 import '../providers/settings_view_provider.dart';
+import '../providers/current_channel_provider.dart';
 import '../utils/responsive_utils.dart';
 
 /// Main chat screen with sidebar, chat view, and input bar.
@@ -17,15 +18,23 @@ class ChatScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final showMediaSidebar = ResponsiveUtils.shouldShowMediaSidebar(context);
     final isShowingSettings = ref.watch(settingsVisibilityProvider);
+    final currentChannelAsync = ref.watch(currentChannelProvider);
 
     Widget getMainContent() {
       if (isShowingSettings) {
         return const SettingsView();
       } else {
+        // Check if viewing Archive channel
+        final isArchive = currentChannelAsync.maybeWhen(
+          data: (channelId) => channelId == -1,
+          orElse: () => false,
+        );
+
         return Column(
           children: [
             const Expanded(child: ChatView()),
-            const InputBar(),
+            // Hide InputBar in Archive
+            if (!isArchive) const InputBar(),
           ],
         );
       }

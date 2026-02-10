@@ -11,6 +11,7 @@ class ChatEndpoint extends Endpoint {
   Future<List<Channel>> getChannels(Session session) async {
     final channels = await Channel.db.find(
       session,
+      where: (t) => t.archived.equals(false),
       orderBy: (t) => t.updatedAt,
       orderDescending: true,
     );
@@ -177,12 +178,20 @@ class ChatEndpoint extends Endpoint {
   }
 
   /// Deletes a channel and cascades to delete its notes and media files.
-  /// Rejects if it's the last remaining channel.
+  /// Rejects if it's the last remaining active (non-archived) channel.
   Future<void> deleteChannel(Session session, int id) async {
-    final count = await Channel.db.count(session);
+    final channel = await Channel.db.findById(session, id);
 
-    if (count <= 1) {
-      throw Exception('Cannot delete the last remaining channel');
+    // Only check "last channel" for active (non-archived) channels
+    if (channel != null && !channel.archived) {
+      final activeCount = await Channel.db.count(
+        session,
+        where: (t) =>
+            t.archived.equals(false) & t.isSystemChannel.equals(false),
+      );
+      if (activeCount <= 1) {
+        throw Exception('Cannot delete the last remaining channel');
+      }
     }
 
     // Delete media files for this channel
@@ -334,17 +343,64 @@ class ChatEndpoint extends Endpoint {
     return updated;
   }
 
-  /// Deletes a note, its media attachments, and broadcasts the event.
+  /// Deletes a note - archives it if in a regular channel, permanently deletes if in Archive.
   Future<void> deleteNote(Session session, int id) async {
     final note = await Note.db.findById(session, id);
     if (note == null) {
       throw Exception('Note not found');
     }
 
+    // Check if already in Archive (-1)
+    if (note.channelId == -1) {
+      // PERMANENT DELETE from Archive
+      await _permanentlyDeleteNote(session, note);
+    } else {
+      // SOFT DELETE - move to Archive
+      await _archiveNote(session, note);
+    }
+  }
+
+  /// Archives a note by moving it to the Archive Crate channel.
+  Future<void> _archiveNote(Session session, Note note) async {
+    final originalChannelId = note.channelId;
+
+    // Move note to Archive channel, store original channel ID
+    await Note.db.updateRow(
+      session,
+      Note(
+        id: note.id,
+        channelId: -1, // Archive channel ID
+        content: note.content,
+        linkPreview: note.linkPreview,
+        attachments: note.attachments,
+        originalChannelId: originalChannelId, // Track for restore
+        createdAt: note.createdAt,
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    // Broadcast archive event (only if Redis is available)
+    try {
+      await session.messages.postMessage(
+        'chat_events',
+        ChatEvent(
+          type: 'noteArchived',
+          noteId: note.id!,
+          channelId: originalChannelId, // Original channel
+        ),
+        global: true,
+      );
+    } catch (_) {
+      // Redis not available (e.g., in test mode), skip broadcasting
+    }
+  }
+
+  /// Permanently deletes a note, its media attachments, and broadcasts the event.
+  Future<void> _permanentlyDeleteNote(Session session, Note note) async {
     // Get all media attachments for this note
     final attachments = await MediaAttachment.db.find(
       session,
-      where: (t) => t.noteId.equals(id),
+      where: (t) => t.noteId.equals(note.id!),
     );
 
     // Delete media files from disk
@@ -376,7 +432,7 @@ class ChatEndpoint extends Endpoint {
     }
 
     // Delete from database (cascade will delete attachment records)
-    await Note.db.deleteWhere(session, where: (t) => t.id.equals(id));
+    await Note.db.deleteWhere(session, where: (t) => t.id.equals(note.id!));
 
     // Broadcast deletion event (only if Redis is available)
     try {
@@ -384,14 +440,212 @@ class ChatEndpoint extends Endpoint {
         'chat_events',
         ChatEvent(
           type: 'noteDeleted',
-          noteId: id,
-          channelId: note.channelId,
+          noteId: note.id!,
+          channelId: -1,
         ),
         global: true,
       );
     } catch (_) {
       // Redis not available (e.g., in test mode), skip broadcasting
     }
+  }
+
+  /// Restores a note from Archive back to its original channel.
+  Future<void> restoreNote(Session session, int id) async {
+    final note = await Note.db.findById(session, id);
+    if (note == null) {
+      throw Exception('Note not found');
+    }
+
+    // Can only restore from Archive
+    if (note.channelId != -1) {
+      throw Exception('Note is not in Archive');
+    }
+
+    // Must have original channel ID
+    if (note.originalChannelId == null) {
+      throw Exception('Cannot restore: original channel unknown');
+    }
+
+    // Verify original channel still exists
+    final originalChannel =
+        await Channel.db.findById(session, note.originalChannelId!);
+    if (originalChannel == null) {
+      throw Exception('Original channel no longer exists');
+    }
+
+    // Move note back to original channel
+    await Note.db.updateRow(
+      session,
+      Note(
+        id: note.id,
+        channelId: note.originalChannelId!,
+        content: note.content,
+        linkPreview: note.linkPreview,
+        attachments: note.attachments,
+        originalChannelId: null, // Clear after restore
+        createdAt: note.createdAt,
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    // Broadcast restore event (only if Redis is available)
+    try {
+      final restoredNote = await Note.db.findById(session, note.id!);
+      await session.messages.postMessage(
+        'chat_events',
+        ChatEvent(
+          type: 'noteRestored',
+          noteId: note.id!,
+          channelId: note.originalChannelId!,
+          note: restoredNote,
+        ),
+        global: true,
+      );
+    } catch (_) {
+      // Redis not available (e.g., in test mode), skip broadcasting
+    }
+  }
+
+  /// Archives a channel (soft delete). Notes stay with the channel.
+  Future<void> archiveChannel(Session session, int id) async {
+    final channel = await Channel.db.findById(session, id);
+    if (channel == null) {
+      throw Exception('Channel not found');
+    }
+    if (channel.isSystemChannel) {
+      throw Exception('Cannot archive a system channel');
+    }
+    if (channel.archived) {
+      throw Exception('Channel is already archived');
+    }
+
+    // Prevent archiving the last active channel
+    final activeCount = await Channel.db.count(
+      session,
+      where: (t) =>
+          t.archived.equals(false) & t.isSystemChannel.equals(false),
+    );
+    if (activeCount <= 1) {
+      throw Exception('Cannot archive the last remaining channel');
+    }
+
+    channel.archived = true;
+    channel.archivedAt = DateTime.now();
+    channel.pinned = false;
+    await Channel.db.updateRow(session, channel);
+
+    try {
+      await session.messages.postMessage(
+        'chat_events',
+        ChatEvent(
+          type: 'channelArchived',
+          channelId: id,
+        ),
+        global: true,
+      );
+    } catch (_) {}
+  }
+
+  /// Restores an archived channel back to the sidebar.
+  Future<Channel> restoreChannel(Session session, int id) async {
+    final channel = await Channel.db.findById(session, id);
+    if (channel == null) {
+      throw Exception('Channel not found');
+    }
+    if (!channel.archived) {
+      throw Exception('Channel is not archived');
+    }
+
+    // Check name conflict with active channels
+    final existing = await Channel.db.find(
+      session,
+      where: (t) => t.archived.equals(false) & t.name.equals(channel.name),
+    );
+    if (existing.isNotEmpty) {
+      channel.name = '${channel.name} (Restored)';
+    }
+
+    channel.archived = false;
+    channel.archivedAt = null;
+    channel.pinned = false;
+    channel.updatedAt = DateTime.now();
+    final updated = await Channel.db.updateRow(session, channel);
+
+    try {
+      await session.messages.postMessage(
+        'chat_events',
+        ChatEvent(
+          type: 'channelRestored',
+          channel: updated,
+        ),
+        global: true,
+      );
+    } catch (_) {}
+
+    return updated;
+  }
+
+  /// Returns a mixed list of archived notes and archived channels,
+  /// sorted by archivedAt descending (newest first).
+  Future<List<ArchiveItem>> getArchiveItems(
+    Session session, {
+    int limit = 50,
+  }) async {
+    // Fetch archived notes (channelId == -1)
+    final archivedNotes = await Note.db.find(
+      session,
+      where: (t) => t.channelId.equals(-1),
+      orderBy: (t) => t.updatedAt,
+      orderDescending: true,
+      limit: limit,
+    );
+
+    // Fetch archived channels
+    final archivedChannels = await Channel.db.find(
+      session,
+      where: (t) => t.archived.equals(true),
+      orderBy: (t) => t.archivedAt,
+      orderDescending: true,
+      limit: limit,
+    );
+
+    // Build mixed list
+    final items = <ArchiveItem>[];
+
+    for (final note in archivedNotes) {
+      items.add(ArchiveItem(
+        type: 'note',
+        note: note,
+        archivedAt: note.updatedAt,
+      ));
+    }
+
+    for (final channel in archivedChannels) {
+      items.add(ArchiveItem(
+        type: 'channel',
+        channel: channel,
+        archivedAt: channel.archivedAt ?? channel.updatedAt,
+      ));
+    }
+
+    // Sort by archivedAt descending
+    items.sort((a, b) => b.archivedAt.compareTo(a.archivedAt));
+
+    // Limit total items
+    if (items.length > limit) {
+      return items.sublist(0, limit);
+    }
+
+    return items;
+  }
+
+  /// Returns the count of notes in an archived channel (for confirmation dialog).
+  Future<int> getArchivedChannelNoteCount(Session session, int channelId) async {
+    return await Note.db.count(
+      session,
+      where: (t) => t.channelId.equals(channelId),
+    );
   }
 
   /// Streaming endpoint for real-time updates.

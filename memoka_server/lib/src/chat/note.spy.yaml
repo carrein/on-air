@@ -11,6 +11,8 @@ fields:
   linkPreview: LinkPreview?
   ### Media attachments associated with this note.
   attachments: List<MediaAttachment>?
+  ### Original channel ID before archiving (for restoration).
+  originalChannelId: int?
   ### When the note was created.
   createdAt: DateTime, default=now
   ### When the note was last updated.

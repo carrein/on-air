@@ -7,8 +7,9 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../main.dart' show serverUrl;
+import '../main.dart' show serverUrl, client;
 import '../providers/notes_provider.dart';
+import '../providers/archive_items_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
@@ -22,6 +23,7 @@ import 'media_attachment_widget.dart';
 import 'file_upload_dialog.dart';
 import 'multi_file_upload_dialog.dart';
 import 'media_sidebar.dart';
+import 'styled_tooltip.dart';
 
 // Cross-platform HTML imports
 import 'package:universal_html/html.dart' as html;
@@ -111,6 +113,11 @@ class _ChatViewState extends ConsumerState<ChatView> {
           ),
           child: currentChannelAsync.when(
       data: (channelId) {
+        // Use archive items provider for Archive Crate
+        if (channelId == -1) {
+          return _buildArchiveView();
+        }
+
         final notesAsync = ref.watch(notesProvider(channelId));
 
         return notesAsync.when(
@@ -127,16 +134,16 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SvgPicture.asset(
-                        'assets/images/checkmark.svg',
+                        'assets/images/labs.svg',
                         width: 48,
                         height: 48,
                       ),
                       const SizedBox(height: 16),
                       const Text(
-                        'All Caught Up!',
+                        'It\'s quiet in here...',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                           color: Color(0xFF1C1C1C),
                         ),
                       ),
@@ -148,7 +155,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
             return ListView.builder(
               controller: _scrollController,
-              reverse: true, // Newest at bottom
+              reverse: true,
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: notes.length,
               itemBuilder: (context, index) {
@@ -312,6 +319,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
     final isSelectionMode = selection.isNotEmpty;
     final isSelected = selection.contains(note.id);
 
+    // Border color: consistent pink for all notes
+    const borderColor = Color(0xFFCE2161);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
@@ -338,57 +348,418 @@ class _ChatViewState extends ConsumerState<ChatView> {
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Listener(
-                  onPointerDown: (event) {
-                    // Check for secondary button (right-click)
-                    if (event.buttons == 2) {
-                      _showNoteContextMenu(context, note, channelId, event.position);
-                    }
-                  },
-                  child: GestureDetector(
-                    onTap: isSelectionMode
-                        ? () {
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Listener(
+                      onPointerDown: (event) {
+                        // Check for secondary button (right-click)
+                        if (event.buttons == 2) {
+                          _showNoteContextMenu(context, note, channelId, event.position);
+                        }
+                      },
+                      child: GestureDetector(
+                        onTap: isSelectionMode
+                            ? () {
+                                ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+                              }
+                            : null,
+                        onLongPress: () {
+                          if (isSelectionMode) {
                             ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+                          } else {
+                            _showNoteContextMenu(context, note, channelId, null);
                           }
-                        : null,
-                    onLongPress: () {
-                      if (isSelectionMode) {
-                        ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                      } else {
-                        _showNoteContextMenu(context, note, channelId, null);
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(
-                          color: const Color(0xFFFF52A1),
-                          width: 1.0,
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Note content
-                          _buildNoteContent(note),
-                          const SizedBox(height: 8),
-                          // Timestamp
-                          Text(
-                            _formatDateTime(note.createdAt),
-                            style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1.0,
+                            ),
                           ),
-                        ],
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Note content
+                              _buildNoteContent(note),
+                              const SizedBox(height: 8),
+                              // Timestamp
+                              Text(
+                                _formatDateTime(note.createdAt),
+                                style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  // Action buttons outside the note container
+                  if (channelId == -1) ...[
+                    // Restore button for Archive
+                    const SizedBox(width: 12),
+                    StyledTooltip(
+                      message: 'Restore note',
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => _restoreNote(note),
+                          child: SvgPicture.asset(
+                            'assets/images/restore.svg',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Delete button for Archive
+                    const SizedBox(width: 8),
+                    StyledTooltip(
+                      message: 'Delete note',
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => _deleteNote(note, channelId),
+                          child: SvgPicture.asset(
+                            'assets/images/cancel.svg',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    // Archive button for regular channels
+                    const SizedBox(width: 12),
+                    StyledTooltip(
+                      message: 'Archive note',
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => _deleteNote(note, channelId),
+                          child: SvgPicture.asset(
+                            'assets/images/recycle.svg',
+                            width: 24,
+                            height: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildArchiveView() {
+    final archiveAsync = ref.watch(archiveItemsProvider);
+
+    return archiveAsync.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFFF52A1), width: 1.0),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset(
+                    'assets/images/labs.svg',
+                    width: 48,
+                    height: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'It\'s quiet in here...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1C1C1C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            if (item.type == 'note' && item.note != null) {
+              return _buildNoteItem(item.note!, -1);
+            } else if (item.type == 'channel' && item.channel != null) {
+              return _buildArchivedChannelItem(item.channel!);
+            }
+            return const SizedBox.shrink();
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+    );
+  }
+
+  Widget _buildArchivedChannelItem(Channel channel) {
+    const borderColor = Color(0xFFCE2161);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: Listener(
+                      onPointerDown: (event) {
+                        if (event.buttons == 2) {
+                          _showChannelArchiveContextMenu(context, channel, event.position);
+                        }
+                      },
+                      child: GestureDetector(
+                        onLongPress: () {
+                          _showChannelArchiveContextMenu(context, channel, null);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(
+                              color: borderColor,
+                              width: 1.0,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                channel.emoji,
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                              const SizedBox(width: 10),
+                              Flexible(
+                                child: Text(
+                                  channel.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF1C1C1C),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDADDD8),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'Channel',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF666666),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  StyledTooltip(
+                    message: 'Restore channel',
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => _restoreChannel(channel),
+                        child: SvgPicture.asset(
+                          'assets/images/restore.svg',
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  StyledTooltip(
+                    message: 'Delete channel',
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => _showDeleteChannelConfirmation(channel),
+                        child: SvgPicture.asset(
+                          'assets/images/cancel.svg',
+                          width: 24,
+                          height: 24,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChannelArchiveContextMenu(BuildContext context, Channel channel, Offset? globalPosition) {
+    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+
+    final Offset position;
+    if (globalPosition != null) {
+      position = globalPosition;
+    } else {
+      position = Offset(overlay.size.width / 2, overlay.size.height / 2);
+    }
+
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        overlay.size.width - position.dx,
+        overlay.size.height - position.dy,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'restore',
+          child: Row(
+            children: [
+              Icon(Icons.restore, size: 18),
+              SizedBox(width: 12),
+              Text('Restore'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_forever, size: 18),
+              SizedBox(width: 12),
+              Text('Delete'),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == null) return;
+      switch (value) {
+        case 'restore':
+          _restoreChannel(channel);
+          break;
+        case 'delete':
+          _showDeleteChannelConfirmation(channel);
+          break;
+      }
+    });
+  }
+
+  void _restoreChannel(Channel channel) async {
+    try {
+      await ref.read(archiveItemsProvider.notifier).restoreChannel(channel.id!);
+      if (mounted) {
+        ToastUtils.show(context, 'Channel restored', type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastUtils.show(context, 'Failed to restore: $e', type: ToastType.error);
+      }
+    }
+  }
+
+  void _showDeleteChannelConfirmation(Channel channel) async {
+    // Fetch note count
+    int noteCount = 0;
+    try {
+      noteCount = await client.chat.getArchivedChannelNoteCount(channel.id!);
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Theme(
+        data: Theme.of(context).copyWith(
+          dialogTheme: const DialogThemeData(
+            backgroundColor: Color(0xFF00171F),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
+            ),
+          ),
+        ),
+        child: AlertDialog(
+          title: const Text(
+            'Delete Channel',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            'Delete ${channel.emoji} ${channel.name} and $noteCount note${noteCount == 1 ? '' : 's'} permanently?',
+            style: const TextStyle(color: Colors.white),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF00171F),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              ),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await ref.read(archiveItemsProvider.notifier).deleteChannel(channel.id!);
+                  if (mounted) {
+                    ToastUtils.show(context, 'Channel deleted permanently', type: ToastType.success);
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ToastUtils.show(context, 'Failed to delete: $e', type: ToastType.error);
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -465,6 +836,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
       position = Offset(overlay.size.width / 2, overlay.size.height / 2);
     }
 
+    // Check if in Archive channel
+    final isArchiveChannel = channelId == -1;
+
     showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
@@ -484,26 +858,51 @@ class _ChatViewState extends ConsumerState<ChatView> {
             ],
           ),
         ),
-        const PopupMenuItem(
-          value: 'edit',
-          child: Row(
-            children: [
-              Icon(Icons.edit, size: 18),
-              SizedBox(width: 12),
-              Text('Edit'),
-            ],
+        // Edit only in regular channels
+        if (!isArchiveChannel)
+          const PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit, size: 18),
+                SizedBox(width: 12),
+                Text('Edit'),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete, size: 18),
-              SizedBox(width: 12),
-              Text('Delete'),
-            ],
+        // Archive: show Restore + Delete; Regular: show Archive
+        if (isArchiveChannel) ...[
+          const PopupMenuItem(
+            value: 'restore',
+            child: Row(
+              children: [
+                Icon(Icons.restore, size: 18),
+                SizedBox(width: 12),
+                Text('Restore'),
+              ],
+            ),
           ),
-        ),
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete_forever, size: 18),
+                SizedBox(width: 12),
+                Text('Delete'),
+              ],
+            ),
+          ),
+        ] else
+          const PopupMenuItem(
+            value: 'archive',
+            child: Row(
+              children: [
+                Icon(Icons.archive, size: 18),
+                SizedBox(width: 12),
+                Text('Archive'),
+              ],
+            ),
+          ),
         const PopupMenuItem(
           value: 'select',
           child: Row(
@@ -524,8 +923,12 @@ class _ChatViewState extends ConsumerState<ChatView> {
         case 'edit':
           _startEditing(note);
           break;
+        case 'archive':
         case 'delete':
           _deleteNote(note, channelId);
+          break;
+        case 'restore':
+          _restoreNote(note);
           break;
         case 'select':
           _enterSelectionMode(note.id!);
@@ -617,6 +1020,19 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   void _deleteNote(Note note, int channelId) {
     ref.read(notesProvider(channelId).notifier).deleteNote(note.id!);
+  }
+
+  void _restoreNote(Note note) async {
+    try {
+      await client.chat.restoreNote(note.id!);
+      if (mounted) {
+        ToastUtils.show(context, 'Note restored', type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastUtils.show(context, 'Failed to restore: $e', type: ToastType.error);
+      }
+    }
   }
 
   void _enterSelectionMode(int noteId) {

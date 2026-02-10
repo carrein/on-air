@@ -1,0 +1,12 @@
+### An item in the mixed archive list (note or channel).
+class: ArchiveItem
+
+fields:
+  ### The type of archive item: "note" or "channel".
+  type: String
+  ### The archived note (if type is "note").
+  note: Note?
+  ### The archived channel (if type is "channel").
+  channel: Channel?
+  ### When this item was archived, for chronological sorting.
+  archivedAt: DateTime

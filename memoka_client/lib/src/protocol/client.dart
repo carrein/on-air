@@ -18,9 +18,10 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i4;
 import 'package:memoka_client/src/protocol/chat/channel.dart' as _i5;
 import 'package:memoka_client/src/protocol/chat/note.dart' as _i6;
-import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i7;
-import 'package:memoka_client/src/protocol/media/media_attachment.dart' as _i8;
-import 'protocol.dart' as _i9;
+import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i7;
+import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i8;
+import 'package:memoka_client/src/protocol/media/media_attachment.dart' as _i9;
+import 'protocol.dart' as _i10;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -301,7 +302,7 @@ class EndpointChat extends _i2.EndpointRef {
   );
 
   /// Deletes a channel and cascades to delete its notes and media files.
-  /// Rejects if it's the last remaining channel.
+  /// Rejects if it's the last remaining active (non-archived) channel.
   _i3.Future<void> deleteChannel(int id) => caller.callServerEndpoint<void>(
     'chat',
     'deleteChannel',
@@ -336,17 +337,56 @@ class EndpointChat extends _i2.EndpointRef {
     },
   );
 
-  /// Deletes a note, its media attachments, and broadcasts the event.
+  /// Deletes a note - archives it if in a regular channel, permanently deletes if in Archive.
   _i3.Future<void> deleteNote(int id) => caller.callServerEndpoint<void>(
     'chat',
     'deleteNote',
     {'id': id},
   );
 
+  /// Restores a note from Archive back to its original channel.
+  _i3.Future<void> restoreNote(int id) => caller.callServerEndpoint<void>(
+    'chat',
+    'restoreNote',
+    {'id': id},
+  );
+
+  /// Archives a channel (soft delete). Notes stay with the channel.
+  _i3.Future<void> archiveChannel(int id) => caller.callServerEndpoint<void>(
+    'chat',
+    'archiveChannel',
+    {'id': id},
+  );
+
+  /// Restores an archived channel back to the sidebar.
+  _i3.Future<_i5.Channel> restoreChannel(int id) =>
+      caller.callServerEndpoint<_i5.Channel>(
+        'chat',
+        'restoreChannel',
+        {'id': id},
+      );
+
+  /// Returns a mixed list of archived notes and archived channels,
+  /// sorted by archivedAt descending (newest first).
+  _i3.Future<List<_i7.ArchiveItem>> getArchiveItems({required int limit}) =>
+      caller.callServerEndpoint<List<_i7.ArchiveItem>>(
+        'chat',
+        'getArchiveItems',
+        {'limit': limit},
+      );
+
+  /// Returns the count of notes in an archived channel (for confirmation dialog).
+  _i3.Future<int> getArchivedChannelNoteCount(int channelId) =>
+      caller.callServerEndpoint<int>(
+        'chat',
+        'getArchivedChannelNoteCount',
+        {'channelId': channelId},
+      );
+
   /// Streaming endpoint for real-time updates.
   /// Subscribes to all chat events (channel and note changes).
-  _i3.Stream<_i7.ChatEvent> chat() => caller
-      .callStreamingServerEndpoint<_i3.Stream<_i7.ChatEvent>, _i7.ChatEvent>(
+  _i3.Stream<_i8.ChatEvent> chat() => caller
+      .callStreamingServerEndpoint<_i3.Stream<_i8.ChatEvent>, _i8.ChatEvent>(
         'chat',
         'chat',
         {},
@@ -398,7 +438,7 @@ class EndpointMedia extends _i2.EndpointRef {
   /// 3. Insert database record
   /// 4. Rename to final filename
   /// 5. On error: cleanup temp file
-  _i3.Future<_i8.MediaAttachment> uploadMedia(
+  _i3.Future<_i9.MediaAttachment> uploadMedia(
     int channelId,
     String originalFilename,
     String mimeType,
@@ -406,8 +446,8 @@ class EndpointMedia extends _i2.EndpointRef {
     _i3.Stream<List<int>> fileStream,
   ) =>
       caller.callStreamingServerEndpoint<
-        _i3.Future<_i8.MediaAttachment>,
-        _i8.MediaAttachment
+        _i3.Future<_i9.MediaAttachment>,
+        _i9.MediaAttachment
       >(
         'media',
         'uploadMedia',
@@ -460,7 +500,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i9.Protocol(),
+         _i10.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
