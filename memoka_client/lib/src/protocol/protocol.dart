@@ -20,10 +20,6 @@ import 'media/media_attachment.dart' as _i7;
 import 'package:memoka_client/src/protocol/chat/channel.dart' as _i8;
 import 'package:memoka_client/src/protocol/chat/note.dart' as _i9;
 import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i10;
-import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i11;
-import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i12;
 export 'chat/archive_item.dart';
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
@@ -132,12 +128,6 @@ class Protocol extends _i1.SerializationManager {
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
-    try {
-      return _i11.Protocol().deserialize<T>(data, t);
-    } on _i1.DeserializationTypeNotFoundException catch (_) {}
-    try {
-      return _i12.Protocol().deserialize<T>(data, t);
-    } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
 
@@ -176,14 +166,6 @@ class Protocol extends _i1.SerializationManager {
       case _i7.MediaAttachment():
         return 'MediaAttachment';
     }
-    className = _i11.Protocol().getClassNameForObject(data);
-    if (className != null) {
-      return 'serverpod_auth_idp.$className';
-    }
-    className = _i12.Protocol().getClassNameForObject(data);
-    if (className != null) {
-      return 'serverpod_auth_core.$className';
-    }
     if (data is List<int>) {
       return 'List<int>';
     }
@@ -214,14 +196,6 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'MediaAttachment') {
       return deserialize<_i7.MediaAttachment>(data['data']);
     }
-    if (dataClassName.startsWith('serverpod_auth_idp.')) {
-      data['className'] = dataClassName.substring(19);
-      return _i11.Protocol().deserializeByClassName(data);
-    }
-    if (dataClassName.startsWith('serverpod_auth_core.')) {
-      data['className'] = dataClassName.substring(20);
-      return _i12.Protocol().deserializeByClassName(data);
-    }
     if (dataClassName == 'List<int>') {
       return deserialize<List<int>>(data['data']);
     }
@@ -237,12 +211,6 @@ class Protocol extends _i1.SerializationManager {
     if (record == null) {
       return null;
     }
-    try {
-      return _i11.Protocol().mapRecordToJson(record);
-    } catch (_) {}
-    try {
-      return _i12.Protocol().mapRecordToJson(record);
-    } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }
 }

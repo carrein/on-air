@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
-import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import 'screens/chat_screen.dart';
 
@@ -61,10 +60,7 @@ void main() async {
   serverUrl = await getServerUrl();
 
   client = Client(serverUrl)
-    ..connectivityMonitor = FlutterConnectivityMonitor()
-    ..authSessionManager = FlutterAuthSessionManager();
-
-  client.auth.initialize();
+    ..connectivityMonitor = FlutterConnectivityMonitor();
 
   runApp(const ProviderScope(child: MyApp()));
 }

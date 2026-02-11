@@ -41,7 +41,6 @@ dependencies:
   photo_view: ^0.14.0
   flutter_image_compress: ^2.1.0
   riverpod_annotation: ^2.6.1
-  serverpod_auth_idp_flutter: 3.2.3
   serverpod_flutter: 3.2.3
   shared_preferences: ^2.3.4
   url_launcher: ^6.3.1
@@ -82,8 +81,6 @@ flutter:
     - assets/config.json
     - assets/images/
     - assets/images/backgrounds/
-dependency_overrides:
-  flutter_secure_storage: ^10.0.0
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a

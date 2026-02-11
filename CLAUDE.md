@@ -24,7 +24,7 @@ Memoka is a real-time chat-style notes application for organizing thoughts in to
 - **memoka_client**: Generated client library (Dart)
 - **memoka_flutter**: Flutter mobile/web application
 
-Serverpod is a backend framework for Dart/Flutter that handles database connections, endpoints, authentication, and code generation.
+Serverpod is a backend framework for Dart/Flutter that handles database connections, endpoints, and code generation.
 
 ## Features
 
@@ -45,7 +45,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
    - Endpoints define the server API in `lib/src/*_endpoint.dart`
    - Protocol models are defined in `.spy.yaml` files (e.g., `lib/src/chat/channel.spy.yaml`)
    - Generated code lives in `lib/src/generated/` and should NEVER be manually edited
-   - Server entry point: `lib/server.dart` initializes Serverpod, auth services, and web routes
+   - Server entry point: `lib/server.dart` initializes Serverpod and web routes
 
 2. **Client Layer** (`memoka_client/`)
    - Auto-generated from server code via `serverpod generate`
@@ -56,7 +56,6 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
    - Uses `memoka_client` to communicate with the server
    - Client instance initialized in `lib/main.dart` with server URL from `assets/config.json`
    - Riverpod for state management
-   - Authentication support via `serverpod_auth_idp_flutter`
 
 ### Code Generation Workflow
 
@@ -74,13 +73,6 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 - Test helpers
 
 **Never manually edit files in `lib/src/generated/` directories.**
-
-### Authentication Architecture
-
-- JWT-based authentication via `serverpod_auth_idp_server`
-- Email identity provider configured in `lib/server.dart`
-- Verification codes for registration/password reset are logged to console (see `_sendRegistrationCode` and `_sendPasswordResetCode` in `lib/server.dart`)
-- Endpoints: `emailIdp` (login, registration, password reset) and `jwtRefresh`
 
 ### Database & Services
 
@@ -224,8 +216,6 @@ Server serves:
   - Real-time streaming: WebSocket events for live updates
 - `media`: Media upload and management
   - uploadMediaAndCreateNote, uploadMedia, deleteAttachment
-- `emailIdp`: Email authentication (login, registration, password reset)
-- `jwtRefresh`: Token refresh
 
 ## Git Workflow Policy
 

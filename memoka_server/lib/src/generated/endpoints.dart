@@ -11,238 +11,26 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _i1;
-import '../auth/email_idp_endpoint.dart' as _i2;
-import '../auth/jwt_refresh_endpoint.dart' as _i3;
-import '../chat/chat_endpoint.dart' as _i4;
-import '../media/media_endpoint.dart' as _i5;
-import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i6;
-import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i7;
+import '../chat/chat_endpoint.dart' as _i2;
+import '../media/media_endpoint.dart' as _i3;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
   void initializeEndpoints(_i1.Server server) {
     var endpoints = <String, _i1.Endpoint>{
-      'emailIdp': _i2.EmailIdpEndpoint()
-        ..initialize(
-          server,
-          'emailIdp',
-          null,
-        ),
-      'jwtRefresh': _i3.JwtRefreshEndpoint()
-        ..initialize(
-          server,
-          'jwtRefresh',
-          null,
-        ),
-      'chat': _i4.ChatEndpoint()
+      'chat': _i2.ChatEndpoint()
         ..initialize(
           server,
           'chat',
           null,
         ),
-      'media': _i5.MediaEndpoint()
+      'media': _i3.MediaEndpoint()
         ..initialize(
           server,
           'media',
           null,
         ),
     };
-    connectors['emailIdp'] = _i1.EndpointConnector(
-      name: 'emailIdp',
-      endpoint: endpoints['emailIdp']!,
-      methodConnectors: {
-        'login': _i1.MethodConnector(
-          name: 'login',
-          params: {
-            'email': _i1.ParameterDescription(
-              name: 'email',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'password': _i1.ParameterDescription(
-              name: 'password',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i2.EmailIdpEndpoint).login(
-                session,
-                email: params['email'],
-                password: params['password'],
-              ),
-        ),
-        'startRegistration': _i1.MethodConnector(
-          name: 'startRegistration',
-          params: {
-            'email': _i1.ParameterDescription(
-              name: 'email',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i2.EmailIdpEndpoint)
-                  .startRegistration(
-                    session,
-                    email: params['email'],
-                  ),
-        ),
-        'verifyRegistrationCode': _i1.MethodConnector(
-          name: 'verifyRegistrationCode',
-          params: {
-            'accountRequestId': _i1.ParameterDescription(
-              name: 'accountRequestId',
-              type: _i1.getType<_i1.UuidValue>(),
-              nullable: false,
-            ),
-            'verificationCode': _i1.ParameterDescription(
-              name: 'verificationCode',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i2.EmailIdpEndpoint)
-                  .verifyRegistrationCode(
-                    session,
-                    accountRequestId: params['accountRequestId'],
-                    verificationCode: params['verificationCode'],
-                  ),
-        ),
-        'finishRegistration': _i1.MethodConnector(
-          name: 'finishRegistration',
-          params: {
-            'registrationToken': _i1.ParameterDescription(
-              name: 'registrationToken',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'password': _i1.ParameterDescription(
-              name: 'password',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i2.EmailIdpEndpoint)
-                  .finishRegistration(
-                    session,
-                    registrationToken: params['registrationToken'],
-                    password: params['password'],
-                  ),
-        ),
-        'startPasswordReset': _i1.MethodConnector(
-          name: 'startPasswordReset',
-          params: {
-            'email': _i1.ParameterDescription(
-              name: 'email',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i2.EmailIdpEndpoint)
-                  .startPasswordReset(
-                    session,
-                    email: params['email'],
-                  ),
-        ),
-        'verifyPasswordResetCode': _i1.MethodConnector(
-          name: 'verifyPasswordResetCode',
-          params: {
-            'passwordResetRequestId': _i1.ParameterDescription(
-              name: 'passwordResetRequestId',
-              type: _i1.getType<_i1.UuidValue>(),
-              nullable: false,
-            ),
-            'verificationCode': _i1.ParameterDescription(
-              name: 'verificationCode',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i2.EmailIdpEndpoint)
-                  .verifyPasswordResetCode(
-                    session,
-                    passwordResetRequestId: params['passwordResetRequestId'],
-                    verificationCode: params['verificationCode'],
-                  ),
-        ),
-        'finishPasswordReset': _i1.MethodConnector(
-          name: 'finishPasswordReset',
-          params: {
-            'finishPasswordResetToken': _i1.ParameterDescription(
-              name: 'finishPasswordResetToken',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'newPassword': _i1.ParameterDescription(
-              name: 'newPassword',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['emailIdp'] as _i2.EmailIdpEndpoint)
-                  .finishPasswordReset(
-                    session,
-                    finishPasswordResetToken:
-                        params['finishPasswordResetToken'],
-                    newPassword: params['newPassword'],
-                  ),
-        ),
-      },
-    );
-    connectors['jwtRefresh'] = _i1.EndpointConnector(
-      name: 'jwtRefresh',
-      endpoint: endpoints['jwtRefresh']!,
-      methodConnectors: {
-        'refreshAccessToken': _i1.MethodConnector(
-          name: 'refreshAccessToken',
-          params: {
-            'refreshToken': _i1.ParameterDescription(
-              name: 'refreshToken',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['jwtRefresh'] as _i3.JwtRefreshEndpoint)
-                  .refreshAccessToken(
-                    session,
-                    refreshToken: params['refreshToken'],
-                  ),
-        ),
-      },
-    );
     connectors['chat'] = _i1.EndpointConnector(
       name: 'chat',
       endpoint: endpoints['chat']!,
@@ -255,7 +43,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['chat'] as _i4.ChatEndpoint).getChannels(session),
+                  (endpoints['chat'] as _i2.ChatEndpoint).getChannels(session),
         ),
         'getNotes': _i1.MethodConnector(
           name: 'getNotes',
@@ -280,7 +68,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).getNotes(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).getNotes(
                 session,
                 params['channelId'],
                 beforeId: params['beforeId'],
@@ -305,7 +93,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).createChannel(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).createChannel(
                 session,
                 params['name'],
                 emoji: params['emoji'],
@@ -339,7 +127,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).updateChannel(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).updateChannel(
                 session,
                 params['id'],
                 name: params['name'],
@@ -360,7 +148,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).deleteChannel(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).deleteChannel(
                 session,
                 params['id'],
               ),
@@ -383,7 +171,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).createNote(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).createNote(
                 session,
                 params['channelId'],
                 params['content'],
@@ -407,7 +195,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).updateNote(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).updateNote(
                 session,
                 params['id'],
                 params['content'],
@@ -426,7 +214,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).deleteNote(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).deleteNote(
                 session,
                 params['id'],
               ),
@@ -444,7 +232,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).restoreNote(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).restoreNote(
                 session,
                 params['id'],
               ),
@@ -462,7 +250,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).archiveChannel(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).archiveChannel(
                 session,
                 params['id'],
               ),
@@ -480,7 +268,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).restoreChannel(
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).restoreChannel(
                 session,
                 params['id'],
               ),
@@ -499,7 +287,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['chat'] as _i4.ChatEndpoint).getArchiveItems(
+                  (endpoints['chat'] as _i2.ChatEndpoint).getArchiveItems(
                     session,
                     limit: params['limit'],
                   ),
@@ -517,7 +305,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint)
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint)
                   .getArchivedChannelNoteCount(
                     session,
                     params['channelId'],
@@ -533,7 +321,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
                 Map<String, Stream> streamParams,
-              ) => (endpoints['chat'] as _i4.ChatEndpoint).chat(session),
+              ) => (endpoints['chat'] as _i2.ChatEndpoint).chat(session),
         ),
       },
     );
@@ -579,7 +367,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['media'] as _i5.MediaEndpoint)
+              ) async => (endpoints['media'] as _i3.MediaEndpoint)
                   .uploadMediaAndCreateNote(
                     session,
                     params['channelId'],
@@ -604,7 +392,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['media'] as _i5.MediaEndpoint).deleteAttachment(
+                  (endpoints['media'] as _i3.MediaEndpoint).deleteAttachment(
                     session,
                     params['attachmentId'],
                   ),
@@ -645,7 +433,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
                 Map<String, Stream> streamParams,
-              ) => (endpoints['media'] as _i5.MediaEndpoint).uploadMedia(
+              ) => (endpoints['media'] as _i3.MediaEndpoint).uploadMedia(
                 session,
                 params['channelId'],
                 params['originalFilename'],
@@ -656,9 +444,5 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i6.Endpoints()
-      ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i7.Endpoints()
-      ..initializeEndpoints(server);
   }
 }

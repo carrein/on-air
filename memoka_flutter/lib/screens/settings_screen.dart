@@ -37,7 +37,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Not signed in',
+                      'Memoka',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey,
@@ -50,17 +50,6 @@ class SettingsScreen extends StatelessWidget {
           ),
           const Divider(height: 1),
           // Settings sections
-          _buildSection('Account', [
-            _buildListTile(
-              icon: Icons.login,
-              title: 'Sign In',
-              subtitle: 'Sign in to sync your data',
-              onTap: () {
-                // TODO: Implement sign in
-              },
-            ),
-          ]),
-          const Divider(height: 1),
           _buildSection('General', [
             _buildListTile(
               icon: Icons.palette,
