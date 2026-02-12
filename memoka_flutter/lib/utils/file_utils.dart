@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// Utilities for file handling and display.
@@ -60,11 +61,21 @@ class FileUtils {
   }
 
   /// Build media URL with cache busting.
-  /// Converts API server URL (port 8080) to media server URL (port 8082).
-  /// The media server serves static files from the web directory.
+  /// Media is served from the /media route on the web server (same server
+  /// that serves the Flutter app). On web, use the app's own origin so it
+  /// works behind reverse proxies without hardcoded port swapping.
   static String buildMediaUrl(String serverUrl, String path, String? contentHash) {
-    final mediaServerUrl = serverUrl.replaceAll(':8080', ':8082');
+    final String base;
+    if (kIsWeb) {
+      // Use the origin where the app was loaded from — this is always the
+      // web server, which also serves /media.
+      final origin = Uri.base;
+      base = '${origin.scheme}://${origin.host}:${origin.port}';
+    } else {
+      // Native: API server is on 8080, web server (media) is on 8082.
+      base = serverUrl.replaceAll(':8080', ':8082').replaceAll(RegExp(r'/$'), '');
+    }
     final cacheBuster = contentHash ?? '';
-    return '$mediaServerUrl/media/$path?v=$cacheBuster';
+    return '$base/media/$path?v=$cacheBuster';
   }
 }
