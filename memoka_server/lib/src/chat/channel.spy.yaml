@@ -15,6 +15,8 @@ fields:
   createdAt: DateTime, default=now
   ### When the channel was last updated (e.g., when a note is posted).
   updatedAt: DateTime, default=now
+  ### Manual sort order within pinned/unpinned groups (lower = higher).
+  sortOrder: int, default=0
   ### Whether this channel is archived (soft deleted).
   archived: bool, default=false
   ### When the channel was archived.

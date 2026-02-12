@@ -56,6 +56,10 @@ class Channels extends _$Channels {
     }
   }
 
+  Future<void> reorderChannels(List<int> channelIds) async {
+    await client.chat.reorderChannels(channelIds);
+  }
+
   Future<void> archiveChannel(int id) async {
     try {
       await client.chat.archiveChannel(id);

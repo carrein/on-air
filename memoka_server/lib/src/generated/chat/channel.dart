@@ -23,6 +23,7 @@ abstract class Channel
     bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? sortOrder,
     bool? archived,
     this.archivedAt,
   }) : emoji = emoji ?? '💬',
@@ -30,6 +31,7 @@ abstract class Channel
        isSystemChannel = isSystemChannel ?? false,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now(),
+       sortOrder = sortOrder ?? 0,
        archived = archived ?? false;
 
   factory Channel({
@@ -40,6 +42,7 @@ abstract class Channel
     bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
   }) = _ChannelImpl;
@@ -57,6 +60,7 @@ abstract class Channel
       updatedAt: jsonSerialization['updatedAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      sortOrder: jsonSerialization['sortOrder'] as int?,
       archived: jsonSerialization['archived'] as bool?,
       archivedAt: jsonSerialization['archivedAt'] == null
           ? null
@@ -89,6 +93,9 @@ abstract class Channel
   /// When the channel was last updated (e.g., when a note is posted).
   DateTime updatedAt;
 
+  /// Manual sort order within pinned/unpinned groups (lower = higher).
+  int sortOrder;
+
   /// Whether this channel is archived (soft deleted).
   bool archived;
 
@@ -109,6 +116,7 @@ abstract class Channel
     bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
   });
@@ -123,6 +131,7 @@ abstract class Channel
       'isSystemChannel': isSystemChannel,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      'sortOrder': sortOrder,
       'archived': archived,
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
     };
@@ -139,6 +148,7 @@ abstract class Channel
       'isSystemChannel': isSystemChannel,
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      'sortOrder': sortOrder,
       'archived': archived,
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
     };
@@ -185,6 +195,7 @@ class _ChannelImpl extends Channel {
     bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
   }) : super._(
@@ -195,6 +206,7 @@ class _ChannelImpl extends Channel {
          isSystemChannel: isSystemChannel,
          createdAt: createdAt,
          updatedAt: updatedAt,
+         sortOrder: sortOrder,
          archived: archived,
          archivedAt: archivedAt,
        );
@@ -211,6 +223,7 @@ class _ChannelImpl extends Channel {
     bool? isSystemChannel,
     DateTime? createdAt,
     DateTime? updatedAt,
+    int? sortOrder,
     bool? archived,
     Object? archivedAt = _Undefined,
   }) {
@@ -222,6 +235,7 @@ class _ChannelImpl extends Channel {
       isSystemChannel: isSystemChannel ?? this.isSystemChannel,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      sortOrder: sortOrder ?? this.sortOrder,
       archived: archived ?? this.archived,
       archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
     );
@@ -262,6 +276,11 @@ class ChannelUpdateTable extends _i1.UpdateTable<ChannelTable> {
         table.updatedAt,
         value,
       );
+
+  _i1.ColumnValue<int, int> sortOrder(int value) => _i1.ColumnValue(
+    table.sortOrder,
+    value,
+  );
 
   _i1.ColumnValue<bool, bool> archived(bool value) => _i1.ColumnValue(
     table.archived,
@@ -307,6 +326,11 @@ class ChannelTable extends _i1.Table<int?> {
       this,
       hasDefault: true,
     );
+    sortOrder = _i1.ColumnInt(
+      'sortOrder',
+      this,
+      hasDefault: true,
+    );
     archived = _i1.ColumnBool(
       'archived',
       this,
@@ -338,6 +362,9 @@ class ChannelTable extends _i1.Table<int?> {
   /// When the channel was last updated (e.g., when a note is posted).
   late final _i1.ColumnDateTime updatedAt;
 
+  /// Manual sort order within pinned/unpinned groups (lower = higher).
+  late final _i1.ColumnInt sortOrder;
+
   /// Whether this channel is archived (soft deleted).
   late final _i1.ColumnBool archived;
 
@@ -353,6 +380,7 @@ class ChannelTable extends _i1.Table<int?> {
     isSystemChannel,
     createdAt,
     updatedAt,
+    sortOrder,
     archived,
     archivedAt,
   ];

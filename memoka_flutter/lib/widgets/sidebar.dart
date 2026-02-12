@@ -130,31 +130,79 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         // Filter out system channels (e.g., Archive)
                         final regularChannels = channels.where((c) => !c.isSystemChannel).toList();
 
+                        // Split into pinned and unpinned groups
+                        final pinned = regularChannels.where((c) => c.pinned).toList();
+                        final unpinned = regularChannels.where((c) => !c.pinned).toList();
+
+                        // Build flat list: pinned items + optional divider + unpinned items
+                        // Divider is at index pinned.length (if both groups non-empty)
+                        final hasDivider = pinned.isNotEmpty && unpinned.isNotEmpty;
+                        final dividerIndex = pinned.length;
+                        final totalCount = pinned.length + unpinned.length + (hasDivider ? 1 : 0);
+
                         return ScrollConfiguration(
                           behavior: ScrollConfiguration.of(context).copyWith(
                             scrollbars: false,
                           ),
-                          child: ListView.separated(
-                            controller: _scrollController,
-                            itemCount: regularChannels.length,
-                            separatorBuilder: (context, index) {
-                              // Add divider between pinned and unpinned channels
-                              final currentChannel = regularChannels[index];
-                              final nextChannel = index + 1 < regularChannels.length ? regularChannels[index + 1] : null;
-
-                              if (currentChannel.pinned && nextChannel != null && !nextChannel.pinned) {
-                                return Container(height: _dividerHeight, color: _dividerColor);
-                              }
-                              return const SizedBox.shrink();
+                          child: ReorderableListView.builder(
+                            scrollController: _scrollController,
+                            buildDefaultDragHandles: false,
+                            proxyDecorator: (child, index, animation) {
+                              return AnimatedBuilder(
+                                animation: animation,
+                                builder: (context, child) {
+                                  final scale = 1.0 + 0.02 * animation.value;
+                                  return Transform.scale(
+                                    scale: scale,
+                                    child: Material(
+                                      elevation: 6 * animation.value,
+                                      shadowColor: Colors.black54,
+                                      color: _backgroundColor,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: child,
+                              );
                             },
+                            itemCount: totalCount,
+                            onReorder: (oldIndex, newIndex) => _onReorder(
+                              oldIndex,
+                              newIndex,
+                              pinned,
+                              unpinned,
+                              hasDivider,
+                              dividerIndex,
+                            ),
                             itemBuilder: (context, index) {
-                              final channel = regularChannels[index];
+                              // Divider row
+                              if (hasDivider && index == dividerIndex) {
+                                return Container(
+                                  key: const ValueKey('pinned-divider'),
+                                  height: _dividerHeight,
+                                  color: _dividerColor,
+                                );
+                              }
+
+                              // Determine which channel this index maps to
+                              final Channel channel;
+                              if (index < pinned.length) {
+                                channel = pinned[index];
+                              } else {
+                                final unpinnedIdx = index - pinned.length - (hasDivider ? 1 : 0);
+                                channel = unpinned[unpinnedIdx];
+                              }
+
                               final isSelected = currentChannelAsync.value == channel.id;
 
-                              return _buildChannelItem(
-                                channel,
-                                isSelected,
-                                context,
+                              return ReorderableDragStartListener(
+                                key: ValueKey(channel.id),
+                                index: index,
+                                child: _buildChannelItem(
+                                  channel,
+                                  isSelected,
+                                  context,
+                                ),
                               );
                             },
                           ),
@@ -224,6 +272,54 @@ class _SidebarState extends ConsumerState<Sidebar> {
             ],
           ),
         );
+  }
+
+  void _onReorder(
+    int oldIndex,
+    int newIndex,
+    List<Channel> pinned,
+    List<Channel> unpinned,
+    bool hasDivider,
+    int dividerIndex,
+  ) {
+    // Determine which group the old index belongs to
+    final oldInPinned = oldIndex < pinned.length;
+    final pinnedEnd = pinned.length;
+    final unpinnedStart = pinnedEnd + (hasDivider ? 1 : 0);
+
+    // Clamp destination to stay within the same group
+    if (oldInPinned) {
+      // Keep within pinned group [0, pinnedEnd)
+      if (newIndex > pinnedEnd) newIndex = pinnedEnd;
+      if (newIndex < 0) newIndex = 0;
+
+      // Standard ReorderableListView adjustment
+      if (newIndex > oldIndex) newIndex--;
+
+      final reordered = List<Channel>.from(pinned);
+      final item = reordered.removeAt(oldIndex);
+      reordered.insert(newIndex, item);
+
+      ref.read(channelsProvider.notifier).reorderChannels(
+            reordered.map((c) => c.id!).toList(),
+          );
+    } else {
+      // Keep within unpinned group [unpinnedStart, totalCount)
+      if (newIndex < unpinnedStart) newIndex = unpinnedStart;
+
+      // Convert to unpinned-local indices
+      var localOld = oldIndex - unpinnedStart;
+      var localNew = newIndex - unpinnedStart;
+      if (localNew > localOld) localNew--;
+
+      final reordered = List<Channel>.from(unpinned);
+      final item = reordered.removeAt(localOld);
+      reordered.insert(localNew, item);
+
+      ref.read(channelsProvider.notifier).reorderChannels(
+            reordered.map((c) => c.id!).toList(),
+          );
+    }
   }
 
   Widget _buildChannelItem(

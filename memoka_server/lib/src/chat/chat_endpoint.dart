@@ -7,20 +7,19 @@ import 'link_preview_service.dart';
 
 /// Endpoint for managing channels and notes with real-time updates.
 class ChatEndpoint extends Endpoint {
-  /// Returns all channels sorted by last modified (newest first).
-  /// Pinned channels appear at the top, also sorted by last modified.
+  /// Returns all channels sorted by pinned first, then sortOrder, then updatedAt.
   Future<List<Channel>> getChannels(Session session) async {
     final channels = await Channel.db.find(
       session,
       where: (t) => t.archived.equals(false),
-      orderBy: (t) => t.updatedAt,
-      orderDescending: true,
     );
 
-    // Sort pinned channels first, then by updatedAt
+    // Sort: pinned first, then by sortOrder ascending, then by updatedAt descending
     channels.sort((a, b) {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
+      final orderCmp = a.sortOrder.compareTo(b.sortOrder);
+      if (orderCmp != 0) return orderCmp;
       return b.updatedAt.compareTo(a.updatedAt);
     });
 
@@ -110,7 +109,17 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Emoji too long (max 10 characters)');
     }
 
-    final channel = Channel(name: name.trim(), emoji: emoji);
+    // Assign sortOrder as max + 1 so new channels appear at the bottom
+    final existing = await Channel.db.find(
+      session,
+      where: (t) => t.archived.equals(false),
+      orderBy: (t) => t.sortOrder,
+      orderDescending: true,
+      limit: 1,
+    );
+    final nextOrder = existing.isNotEmpty ? existing.first.sortOrder + 1 : 0;
+
+    final channel = Channel(name: name.trim(), emoji: emoji, sortOrder: nextOrder);
     final saved = await Channel.db.insertRow(session, channel);
 
     await ServerConstants.broadcastEvent(
@@ -164,6 +173,25 @@ class ChatEndpoint extends Endpoint {
     );
 
     return updated;
+  }
+
+  /// Reorders channels within a group (pinned or unpinned).
+  /// Accepts an ordered list of channel IDs; assigns sortOrder = index.
+  Future<void> reorderChannels(
+    Session session,
+    List<int> channelIds,
+  ) async {
+    for (var i = 0; i < channelIds.length; i++) {
+      final channel = await Channel.db.findById(session, channelIds[i]);
+      if (channel == null) continue;
+      channel.sortOrder = i;
+      await Channel.db.updateRow(session, channel);
+    }
+
+    await ServerConstants.broadcastEvent(
+      session,
+      ChatEvent(type: 'channelUpdated'),
+    );
   }
 
   /// Deletes a channel and cascades to delete its notes and media files.

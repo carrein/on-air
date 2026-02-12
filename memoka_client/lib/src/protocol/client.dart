@@ -27,8 +27,7 @@ class EndpointChat extends _i1.EndpointRef {
   @override
   String get name => 'chat';
 
-  /// Returns all channels sorted by last modified (newest first).
-  /// Pinned channels appear at the top, also sorted by last modified.
+  /// Returns all channels sorted by pinned first, then sortOrder, then updatedAt.
   _i2.Future<List<_i3.Channel>> getChannels() =>
       caller.callServerEndpoint<List<_i3.Channel>>(
         'chat',
@@ -82,6 +81,15 @@ class EndpointChat extends _i1.EndpointRef {
       'pinned': pinned,
     },
   );
+
+  /// Reorders channels within a group (pinned or unpinned).
+  /// Accepts an ordered list of channel IDs; assigns sortOrder = index.
+  _i2.Future<void> reorderChannels(List<int> channelIds) =>
+      caller.callServerEndpoint<void>(
+        'chat',
+        'reorderChannels',
+        {'channelIds': channelIds},
+      );
 
   /// Deletes a channel and cascades to delete its notes and media files.
   /// Rejects if it's the last remaining active (non-archived) channel.

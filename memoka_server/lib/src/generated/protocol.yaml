@@ -3,6 +3,7 @@ chat:
   - getNotes:
   - createChannel:
   - updateChannel:
+  - reorderChannels:
   - deleteChannel:
   - createNote:
   - updateNote:

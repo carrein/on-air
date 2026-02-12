@@ -135,6 +135,25 @@ class Endpoints extends _i1.EndpointDispatch {
                 pinned: params['pinned'],
               ),
         ),
+        'reorderChannels': _i1.MethodConnector(
+          name: 'reorderChannels',
+          params: {
+            'channelIds': _i1.ParameterDescription(
+              name: 'channelIds',
+              type: _i1.getType<List<int>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['chat'] as _i2.ChatEndpoint).reorderChannels(
+                    session,
+                    params['channelIds'],
+                  ),
+        ),
         'deleteChannel': _i1.MethodConnector(
           name: 'deleteChannel',
           params: {

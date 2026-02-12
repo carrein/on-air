@@ -119,14 +119,14 @@ class Protocol extends _i1.SerializationManager {
     if (t == List<_i9.Note>) {
       return (data as List).map((e) => deserialize<_i9.Note>(e)).toList() as T;
     }
+    if (t == List<int>) {
+      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
+    }
     if (t == List<_i10.ArchiveItem>) {
       return (data as List)
               .map((e) => deserialize<_i10.ArchiveItem>(e))
               .toList()
           as T;
-    }
-    if (t == List<int>) {
-      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
     return super.deserialize<T>(data, t);
   }

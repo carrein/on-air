@@ -91,6 +91,13 @@ class Protocol extends _i1.SerializationManagerServer {
           columnDefault: 'CURRENT_TIMESTAMP',
         ),
         _i2.ColumnDefinition(
+          name: 'sortOrder',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '0',
+        ),
+        _i2.ColumnDefinition(
           name: 'archived',
           columnType: _i2.ColumnType.boolean,
           isNullable: false,
@@ -507,14 +514,14 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == List<_i10.Note>) {
       return (data as List).map((e) => deserialize<_i10.Note>(e)).toList() as T;
     }
+    if (t == List<int>) {
+      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
+    }
     if (t == List<_i11.ArchiveItem>) {
       return (data as List)
               .map((e) => deserialize<_i11.ArchiveItem>(e))
               .toList()
           as T;
-    }
-    if (t == List<int>) {
-      return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
     try {
       return _i2.Protocol().deserialize<T>(data, t);
