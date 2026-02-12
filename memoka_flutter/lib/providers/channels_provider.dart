@@ -57,6 +57,27 @@ class Channels extends _$Channels {
   }
 
   Future<void> reorderChannels(List<int> channelIds) async {
+    // Optimistically update local state to prevent flicker
+    final current = state.valueOrNull;
+    if (current != null) {
+      final idToChannel = {for (final c in current) c.id: c};
+      final reordered = <Channel>[];
+      for (var i = 0; i < channelIds.length; i++) {
+        final ch = idToChannel[channelIds[i]];
+        if (ch != null) {
+          reordered.add(ch.copyWith(sortOrder: i));
+        }
+      }
+      // Add any channels not in the reorder list (other group)
+      for (final ch in current) {
+        if (!channelIds.contains(ch.id)) {
+          reordered.add(ch);
+        }
+      }
+      reordered.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      state = AsyncData(reordered);
+    }
+
     await client.chat.reorderChannels(channelIds);
   }
 

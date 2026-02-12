@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../utils/file_utils.dart';
 
@@ -51,7 +52,22 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
             : 'Upload File';
     final double dialogWidth = (_isImage || _isVideo) ? 400 : 300;
 
-    return AlertDialog(
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.enter): _SendIntent(),
+      },
+      child: Actions(
+        actions: {
+          _SendIntent: CallbackAction<_SendIntent>(
+            onInvoke: (_) {
+              if (!_uploading) _handleSend();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: AlertDialog(
       title: Text(title),
       content: SizedBox(
         width: dialogWidth,
@@ -146,6 +162,9 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
               : const Text('Send'),
         ),
       ],
+    ),
+        ),
+      ),
     );
   }
 
@@ -164,4 +183,8 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
       rethrow; // Let parent handle error display
     }
   }
+}
+
+class _SendIntent extends Intent {
+  const _SendIntent();
 }

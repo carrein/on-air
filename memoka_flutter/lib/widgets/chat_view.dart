@@ -858,7 +858,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
             styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
               p: const TextStyle(fontSize: 16, color: Color(0xFF1C1C1C)),
               a: const TextStyle(
-                fontSize: 10,
+                fontSize: 16,
                 color: Colors.blue,
                 decoration: TextDecoration.underline,
               ),

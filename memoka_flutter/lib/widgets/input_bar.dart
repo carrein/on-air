@@ -145,55 +145,45 @@ class _InputBarState extends ConsumerState<InputBar> {
                 StyledTooltip(
                   message: 'Cancel',
                   child: IconButton(
-                    icon: Icon(Icons.close, color: _iconColor.withValues(alpha: _iconDisabledAlpha)),
+                    icon: Icon(Icons.close, color: _iconColor),
                     onPressed: _cancelEditing,
                   ),
                 ),
               Expanded(
-                child: RawKeyboardListener(
-                  focusNode: FocusNode(),
-                  onKey: (event) {
-                    if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
-                      if (event.isShiftPressed) {
-                        // Manually insert newline for Shift+Enter
-                        final text = _controller.text;
-                        final selection = _controller.selection;
-                        final newText = text.replaceRange(
-                          selection.start,
-                          selection.end,
-                          '\n',
-                        );
-                        _controller.value = TextEditingValue(
-                          text: newText,
-                          selection: TextSelection.collapsed(offset: selection.start + 1),
-                        );
-                      } else {
-                        // Plain Enter submits
-                        _submit();
-                      }
-                    }
+                child: Shortcuts(
+                  shortcuts: const {
+                    SingleActivator(LogicalKeyboardKey.enter): _SubmitIntent(),
                   },
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    minLines: 1,
-                    maxLines: 8,
-                    keyboardType: TextInputType.multiline,
-                    textInputAction: TextInputAction.none, // Disable default enter behavior
-                    decoration: InputDecoration(
-                      hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Keyboard goes brrrr...',
-                      hintStyle: TextStyle(
-                        color: _hintTextColor.withValues(alpha: _hintTextAlpha),
+                  child: Actions(
+                    actions: {
+                      _SubmitIntent: CallbackAction<_SubmitIntent>(
+                        onInvoke: (_) {
+                          _submit();
+                          return null;
+                        },
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(_fieldBorderRadius),
-                        borderSide: BorderSide.none,
+                    },
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      minLines: 1,
+                      maxLines: 8,
+                      keyboardType: TextInputType.multiline,
+                      decoration: InputDecoration(
+                        hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Keyboard goes brrrr...',
+                        hintStyle: TextStyle(
+                          color: _hintTextColor.withValues(alpha: _hintTextAlpha),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(_fieldBorderRadius),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: _fieldFill,
+                        contentPadding: _fieldContentPadding,
                       ),
-                      filled: true,
-                      fillColor: _fieldFill,
-                      contentPadding: _fieldContentPadding,
+                      onChanged: _onTextChanged,
                     ),
-                    onChanged: _onTextChanged,
                   ),
                 ),
               ),
@@ -427,4 +417,8 @@ class _InputBarState extends ConsumerState<InputBar> {
     _focusNode.dispose();
     super.dispose();
   }
+}
+
+class _SubmitIntent extends Intent {
+  const _SubmitIntent();
 }
