@@ -4,6 +4,7 @@ import 'package:memoka_client/memoka_client.dart';
 import 'package:video_player/video_player.dart';
 
 import '../utils/file_utils.dart';
+import 'media_attachment_widget.dart';
 
 /// Widget for displaying a video attachment inline in chat.
 /// Shows thumbnail with play button overlay. Tapping opens full-screen player.
@@ -23,6 +24,16 @@ class VideoAttachmentWidget extends StatelessWidget {
     final videoUrl = _buildVideoUrl();
     final thumbnailUrl = _buildThumbnailUrl();
 
+    const double maxWidth = 400;
+    const double maxHeight = 300;
+
+    final displaySize = computeDisplaySize(
+      width: attachment.width,
+      height: attachment.height,
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
+    );
+
     return GestureDetector(
       onTap: () {
         // Open full screen video player
@@ -39,26 +50,23 @@ class VideoAttachmentWidget extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           // Thumbnail
-          Container(
-            constraints: const BoxConstraints(
-              maxWidth: 400,
-              maxHeight: 300,
-            ),
+          SizedBox(
+            width: displaySize.width,
+            height: displaySize.height,
             child: thumbnailUrl != null
                 ? CachedNetworkImage(
                     imageUrl: thumbnailUrl,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: Colors.grey[800],
-                      child: const Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                    fadeInDuration: const Duration(milliseconds: 150),
+                    placeholder: (context, url) => ShimmerPlaceholder(
+                      width: displaySize.width,
+                      height: displaySize.height,
                     ),
                     errorWidget: (context, url, error) {
-                      return _defaultVideoThumbnail();
+                      return _defaultVideoThumbnail(displaySize);
                     },
                   )
-                : _defaultVideoThumbnail(),
+                : _defaultVideoThumbnail(displaySize),
           ),
 
           // Play button overlay
@@ -122,8 +130,10 @@ class VideoAttachmentWidget extends StatelessWidget {
   }
 
   /// Default video thumbnail (icon + filename).
-  Widget _defaultVideoThumbnail() {
+  Widget _defaultVideoThumbnail(Size size) {
     return Container(
+      width: size.width,
+      height: size.height,
       color: Colors.grey[800],
       child: Center(
         child: Column(
