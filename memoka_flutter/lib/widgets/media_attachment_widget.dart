@@ -12,11 +12,15 @@ import 'video_attachment_widget.dart';
 class MediaAttachmentWidget extends StatelessWidget {
   final MediaAttachment attachment;
   final String serverUrl;
+  final List<String> allImageUrls;
+  final int initialImageIndex;
 
   const MediaAttachmentWidget({
     super.key,
     required this.attachment,
     required this.serverUrl,
+    this.allImageUrls = const [],
+    this.initialImageIndex = 0,
   });
 
   bool get _isImage {
@@ -36,6 +40,8 @@ class MediaAttachmentWidget extends StatelessWidget {
       return _ImageAttachmentWidget(
         attachment: attachment,
         serverUrl: serverUrl,
+        allImageUrls: allImageUrls,
+        initialImageIndex: initialImageIndex,
       );
     } else if (_isVideo) {
       return VideoAttachmentWidget(
@@ -55,71 +61,97 @@ class MediaAttachmentWidget extends StatelessWidget {
 class _ImageAttachmentWidget extends StatelessWidget {
   final MediaAttachment attachment;
   final String serverUrl;
+  final List<String> allImageUrls;
+  final int initialImageIndex;
 
   const _ImageAttachmentWidget({
     required this.attachment,
     required this.serverUrl,
+    required this.allImageUrls,
+    required this.initialImageIndex,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Build URL with cache busting using content hash
-    final imageUrl = _buildImageUrl(useThumbnail: true);
+    final imageUrl = _buildImageUrl(useThumbnail: false);
     final fullImageUrl = _buildImageUrl(useThumbnail: false);
 
     return GestureDetector(
       onTap: () {
-        // Open full screen viewer
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => FullScreenImageView(
-              imageUrl: fullImageUrl,
-              heroTag: 'media_${attachment.id}',
-            ),
-          ),
+        FullScreenImageView.show(
+          context,
+          imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [fullImageUrl],
+          initialIndex: allImageUrls.isNotEmpty ? initialImageIndex : 0,
         );
       },
-      child: Hero(
-        tag: 'media_${attachment.id}',
-        child: Container(
-          constraints: const BoxConstraints(
-            maxWidth: 400,
-            maxHeight: 300,
+      child: Stack(
+        children: [
+          Container(
+            constraints: const BoxConstraints(
+              maxWidth: 600,
+              maxHeight: 500,
+            ),
+            child: CachedNetworkImage(
+              imageUrl: imageUrl,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: Colors.grey[800],
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+              errorWidget: (context, url, error) {
+                return Container(
+                  color: Colors.grey[800],
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Error: ${error.toString().substring(0, 50)}...',
+                          style:
+                              const TextStyle(color: Colors.red, fontSize: 10),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
-          child: CachedNetworkImage(
-            imageUrl: imageUrl,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              color: Colors.grey[800],
-              child: const Center(
-                child: CircularProgressIndicator(),
+          // Compressed indicator
+          if (attachment.compressed)
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.compress, color: Colors.white70, size: 12),
+                    SizedBox(width: 3),
+                    Text(
+                      'Compressed',
+                      style: TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                  ],
+                ),
               ),
             ),
-            errorWidget: (context, url, error) {
-              return Container(
-                color: Colors.grey[800],
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.broken_image,
-                        color: Colors.grey,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Error: ${error.toString().substring(0, 50)}...',
-                        style: const TextStyle(color: Colors.red, fontSize: 10),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
+        ],
       ),
     );
   }

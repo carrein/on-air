@@ -16,6 +16,7 @@ import '../providers/media_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/background_provider.dart';
 import '../utils/toast_utils.dart';
+import '../utils/file_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../models/upload_file_data.dart';
 import 'link_preview_card.dart';
@@ -153,6 +154,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
               );
             }
 
+            // Collect all image URLs across notes (chronological order)
+            final allImageUrls = notes.reversed
+                .expand((n) => (n.attachments ?? [])
+                    .where((a) => a.mimeType.toLowerCase().startsWith('image/'))
+                    .map((a) => FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash)))
+                .toList();
+
             return ListView.builder(
               controller: _scrollController,
               reverse: true,
@@ -168,7 +176,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
                 return Column(
                   children: [
-                    _buildNoteItem(note, channelId),
+                    _buildNoteItem(note, channelId, allImageUrls),
                     if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
                   ],
                 );
@@ -314,7 +322,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
     );
   }
 
-  Widget _buildNoteItem(Note note, int channelId) {
+  Widget _buildNoteItem(Note note, int channelId, [List<String> allImageUrls = const []]) {
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
     final isSelected = selection.contains(note.id);
@@ -323,7 +331,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
     const borderColor = Color(0xFFCE2161);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -374,29 +382,41 @@ class _ChatViewState extends ConsumerState<ChatView> {
                             _showNoteContextMenu(context, note, channelId, null);
                           }
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: borderColor,
-                              width: 1.0,
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Note content
-                              _buildNoteContent(note),
-                              const SizedBox(height: 8),
-                              // Timestamp
-                              Text(
-                                _formatDateTime(note.createdAt),
-                                style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                        child: _isImageOnlyNote(note)
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildNoteContent(note, allImageUrls),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatDateTime(note.createdAt),
+                                  style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                                ),
+                              ],
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(
+                                  color: borderColor,
+                                  width: 1.0,
+                                ),
                               ),
-                            ],
-                          ),
-                        ),
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Note content
+                                  _buildNoteContent(note, allImageUrls),
+                                  const SizedBox(height: 8),
+                                  // Timestamp
+                                  Text(
+                                    _formatDateTime(note.createdAt),
+                                    style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                                  ),
+                                ],
+                              ),
+                            ),
                       ),
                     ),
                   ),
@@ -764,7 +784,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
     );
   }
 
-  Widget _buildNoteContent(Note note) {
+  Widget _buildNoteContent(Note note, [List<String> allImageUrls = const []]) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -806,13 +826,19 @@ class _ChatViewState extends ConsumerState<ChatView> {
             children: [
               const SizedBox(height: 8),
               ...note.attachments!.map(
-                (attachment) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: MediaAttachmentWidget(
-                    attachment: attachment,
-                    serverUrl: serverUrl,
-                  ),
-                ),
+                (attachment) {
+                  final url = FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
+                  final imageIndex = allImageUrls.indexOf(url);
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: MediaAttachmentWidget(
+                      attachment: attachment,
+                      serverUrl: serverUrl,
+                      allImageUrls: allImageUrls,
+                      initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -1014,6 +1040,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
     );
   }
 
+  bool _isImageOnlyNote(Note note) {
+    if (note.content.isNotEmpty) return false;
+    final attachments = note.attachments;
+    if (attachments == null || attachments.isEmpty) return false;
+    return attachments.every((a) => a.mimeType.toLowerCase().startsWith('image/'));
+  }
+
   void _startEditing(Note note) {
     ref.read(editingNoteProvider.notifier).startEditing(note.id!);
   }
@@ -1064,24 +1097,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
     if (!mounted) return;
 
     try {
-      // Check if paste target is input/textarea - let browser handle it
-      final activeElement = html.document.activeElement;
-      if (activeElement != null) {
-        final activeTagName = activeElement.tagName.toLowerCase();
-        if (activeTagName == 'input' ||
-            activeTagName == 'textarea' ||
-            activeElement.contentEditable == 'true') {
-          return; // Let browser handle paste in editable elements
-        }
-      }
-
-      final target = event.target;
-      final targetTagName = (target as dynamic)?.tagName?.toLowerCase();
-      if (targetTagName == 'input' || targetTagName == 'textarea') {
-        return;
-      }
-
-      event.preventDefault();
       final clipboardData = event.clipboardData;
       if (clipboardData == null) return;
 
@@ -1090,6 +1105,22 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
       final length = items.length;
       if (length == null) return;
+
+      // Check if clipboard contains any file items (image/video)
+      bool hasFiles = false;
+      for (var i = 0; i < length; i++) {
+        final itemType = items[i].type;
+        if (itemType != null && (itemType.startsWith('image/') || itemType.startsWith('video/'))) {
+          hasFiles = true;
+          break;
+        }
+      }
+
+      // No files — let browser handle normally (e.g. text paste into input)
+      if (!hasFiles) return;
+
+      // Files found — prevent default so browser doesn't paste filename as text
+      event.preventDefault();
 
       // Collect all image/video files from clipboard
       final List<UploadFileData> uploadFiles = [];
@@ -1124,7 +1155,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
               bytes: uint8List,
               fileName: fileName,
               extension: extension,
-              compress: true,
             ));
           }
         }
@@ -1198,7 +1228,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
               bytes: uint8List,
               fileName: file.name,
               extension: extension,
-              compress: true,
             ));
           }
         }

@@ -20,7 +20,7 @@ class ImageUploadDialog extends StatefulWidget {
 }
 
 class _ImageUploadDialogState extends State<ImageUploadDialog> {
-  bool _compress = true;
+  bool _compress = false;
 
   @override
   Widget build(BuildContext context) {

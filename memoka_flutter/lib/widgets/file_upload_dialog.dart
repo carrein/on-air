@@ -25,7 +25,7 @@ class FileUploadDialog extends StatefulWidget {
 }
 
 class _FileUploadDialogState extends State<FileUploadDialog> {
-  bool _compress = true;
+  bool _compress = false;
   bool _uploading = false;
 
   bool get _isImage {

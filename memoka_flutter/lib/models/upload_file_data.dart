@@ -13,7 +13,7 @@ class UploadFileData {
     required this.bytes,
     required this.fileName,
     required this.extension,
-    this.compress = true,
+    this.compress = false,
   });
 
   bool get isImage {
