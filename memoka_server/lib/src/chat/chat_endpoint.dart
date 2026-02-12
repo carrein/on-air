@@ -119,7 +119,11 @@ class ChatEndpoint extends Endpoint {
     );
     final nextOrder = existing.isNotEmpty ? existing.first.sortOrder + 1 : 0;
 
-    final channel = Channel(name: name.trim(), emoji: emoji, sortOrder: nextOrder);
+    final channel = Channel(
+      name: name.trim(),
+      emoji: emoji,
+      sortOrder: nextOrder,
+    );
     final saved = await Channel.db.insertRow(session, channel);
 
     await ServerConstants.broadcastEvent(

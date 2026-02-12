@@ -5,9 +5,9 @@ void main() {
   withServerpod('Given Chat endpoint', (sessionBuilder, endpoints) {
     group('Channel operations', () {
       test(
-        'getChannels returns channels sorted by updatedAt (newest first)',
+        'getChannels returns channels sorted by sortOrder ascending',
         () async {
-          // Create test channels
+          // Create test channels (each gets incrementing sortOrder)
           await endpoints.chat.createChannel(
             sessionBuilder,
             'First',
@@ -23,8 +23,8 @@ void main() {
 
           expect(channels, isNotEmpty);
           expect(channels.length, greaterThanOrEqualTo(2));
-          // Second was created later, so it should come first
-          expect(channels.first.name, 'Second');
+          // First has sortOrder=0, Second has sortOrder=1
+          expect(channels.first.name, 'First');
         },
       );
 
