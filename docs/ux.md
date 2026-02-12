@@ -136,8 +136,9 @@ The sidebar supports two width states (web only):
 ## Input Behavior
 
 ### Keyboard Shortcuts
-- **Enter**: Submit message
-- **Shift+Enter**: Insert new line (multiline support)
+- **Enter**: Submit message (handled via `Shortcuts`/`Actions` with `SingleActivator`)
+- **Shift+Enter**: Insert new line (natural TextField multiline behavior, not manually intercepted)
+- **Enter in FileUploadDialog**: Submits the upload (also via `Shortcuts`/`Actions`)
 - **Hint text**: Reminds users about Shift+Enter
 - **Ctrl+V / Cmd+V**: Paste text in textfield (file paste detected when not focused)
 
@@ -205,6 +206,13 @@ The sidebar supports two width states (web only):
 - **Close**: Click backdrop, press Escape, or tap close button
 - **Implementation**: Dialog overlay (`FullScreenImageView.show()`)
 
+### Video Lightbox
+- **Open**: Click any inline video thumbnail to open the video lightbox
+- **Dialog**: Full-screen dialog overlay (not a route), `Colors.black` at 92% opacity backdrop
+- **Controls**: Play/pause button, progress bar with seek, duration display
+- **Keyboard**: Space to play/pause, Escape to close
+- **Implementation**: `_VideoLightbox.show()` in `video_attachment_widget.dart`
+
 ## Chat Backgrounds
 
 ### Background Picker
@@ -225,6 +233,10 @@ The sidebar supports two width states (web only):
 - Flutter's `ListView` disposes off-screen widgets; scrolling back re-creates them
 - `CachedNetworkImage` reads from disk cache but still shows a placeholder during the read
 - **Mitigation**: Pre-sized shimmer + 150ms fade-in makes cache reads feel instant (vs default 500ms spinner)
+
+### Media Sidebar Images
+- **Full resolution**: Media sidebar loads full-res images (not thumbnails) with `cacheWidth: 400` for memory efficiency
+- **Implementation**: `Image.network` with `cacheWidth: 400` in `MediaGridItem`
 
 ### Size Constraints
 - **Images**: Max 600x500, aspect ratio preserved via `computeDisplaySize()`

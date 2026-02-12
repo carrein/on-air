@@ -474,6 +474,17 @@ Key display behavior:
 - **Fast fade-in**: `fadeInDuration: 150ms` so disk-cached images appear near-instantly (vs default 500ms)
 - **Aspect-ratio preservation**: `computeDisplaySize()` helper clamps to max constraints (600x500 for images, 400x300 for videos) while maintaining aspect ratio
 - **Fallback sizing**: If `width`/`height` metadata is null, falls back to 300x200
+- **Animated GIF handling**: Animated GIFs use `Image.network` (preserves animation); static images use `CachedNetworkImage` (disk caching with shimmer placeholder). The `attachment.animated` flag determines which widget to use.
+- **Media-only notes**: Notes with only media attachments and no text content render without the white chat bubble wrapper for a cleaner visual appearance. Detected via `_isMediaOnlyNote()` helper.
+
+**Video Lightbox:**
+
+Videos open in a lightbox dialog (not a route push) via `_VideoLightbox.show()`:
+- Triggered by tapping the video thumbnail in chat
+- Full-screen dialog with `Colors.black` at 92% opacity backdrop
+- Embedded video player with play/pause controls, progress bar, and duration display
+- Keyboard support: Space to play/pause, Escape to close
+- Implemented in `video_attachment_widget.dart`
 
 ```dart
 // Shared helper for computing display dimensions

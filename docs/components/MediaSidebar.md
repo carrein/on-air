@@ -31,7 +31,7 @@ Grid of image thumbnails from the channel.
 - Spacing: 0px cross-axis, 0px main-axis, no padding
 - Cell background: white
 - No border radius on cells
-- Thumbnails loaded via `Image.network` with `BoxFit.cover`
+- Full-resolution images loaded via `Image.network` with `BoxFit.cover` and `cacheWidth: 400` for memory efficiency (not thumbnails)
 - Loading state: `Container(color: Colors.grey[200])` with `CircularProgressIndicator(strokeWidth: 2)`
 - Error state: grey[100] background with `Icons.broken_image` (32px) + "Failed to load" text (10px)
 - Tap: Sets `scrollToNoteProvider` to the note ID, scrolling chat view to that note

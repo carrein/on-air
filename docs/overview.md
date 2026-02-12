@@ -170,13 +170,15 @@ _Chat View_
 - Right-click/long-press context menu: Copy, Edit, Delete
 - Multi-select via long-press with bulk delete action bar
 - Media attachments displayed inline with pre-sized shimmer placeholders (no layout jump)
-- Full-screen lightbox with gallery navigation (arrows, keyboard, swipe, counter)
+- Full-screen image lightbox with gallery navigation (arrows, keyboard, swipe, counter)
+- Video lightbox dialog with player controls (play/pause, progress bar, keyboard shortcuts)
 - Link preview cards
 - Selectable chat background patterns (via Settings → Background Picker)
 
 _Input Bar_
 
-- Multiline `TextField`, Enter to submit, Shift+Enter for newline
+- Multiline `TextField`, Enter to submit (via `Shortcuts`/`Actions`), Shift+Enter for newline
+- Supported file types: images (jpg, png, gif, webp, heic), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip)
 - Create mode: Send button (enabled if non-empty)
 - Edit mode: Shows Cancel (X) button, Send becomes Save icon
 - Drag-and-drop + paste file upload support
@@ -214,7 +216,7 @@ _Delete Behavior_
 
 **State Management (Riverpod)**
 
-- `channelsProvider`: AsyncNotifier managing channel list
+- `channelsProvider`: AsyncNotifier managing channel list (optimistic reorder on drag-to-reorder)
 - `notesProvider(channelId)`: AsyncNotifier managing paginated notes
 - `currentChannelIdProvider`: StateProvider<int>
 - `editingNoteIdProvider`: StateProvider<int?> (null = create mode)

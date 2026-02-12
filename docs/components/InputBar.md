@@ -53,7 +53,7 @@ Submit trigger for creating/updating notes.
 
 Shown when editing an existing note.
 
-- Material `Icons.close` in `brand.accent` at 40% opacity
+- Material `Icons.close` in `brand.accent` at full color (no opacity reduction)
 - Cancels edit mode and clears the field
 
 ### Link Preview
@@ -117,8 +117,9 @@ Custom-styled tooltips on all icon buttons.
 
 ### Text Input & Submission
 
-- **Enter**: Submits the note (calls `_submit()`)
-- **Shift+Enter**: Inserts a newline (manually via `RawKeyboardListener`, text field expands)
+- **Enter**: Submits the note (via `Shortcuts`/`Actions` with `SingleActivator(LogicalKeyboardKey.enter)` → `_SubmitIntent`)
+- **Shift+Enter**: Inserts a newline naturally (TextField's default multiline behavior; not manually intercepted)
+- **Enter in FileUploadDialog**: Also submits via `Shortcuts`/`Actions` pattern (disabled while uploading)
 - Focus is retained after submission for continuous typing
 - Text is cleared after successful submit
 - Newlines are converted to markdown line breaks (`\n` → `  \n`) on submit
@@ -189,7 +190,7 @@ Custom-styled tooltips on all icon buttons.
 
 ## Integration
 
-The InputBar is placed at the bottom of the `ChatView` column, below the scrollable note list. It communicates exclusively through Riverpod providers. The `RawKeyboardListener` wrapping the `TextField` intercepts Enter/Shift+Enter before the field processes them.
+The InputBar is placed at the bottom of the `ChatView` column, below the scrollable note list. It communicates exclusively through Riverpod providers. The `Shortcuts`/`Actions` widgets wrapping the `TextField` intercept Enter to submit; Shift+Enter inserts a newline via the TextField's natural multiline behavior.
 
 ## Related Files
 

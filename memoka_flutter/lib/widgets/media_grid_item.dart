@@ -40,14 +40,15 @@ class MediaGridItem extends ConsumerWidget {
   }
 
   Widget _buildImageContent() {
-    final thumbnailUrl = item.getThumbnailUrl(serverUrl) ?? item.getMediaUrl(serverUrl);
+    final imageUrl = item.getMediaUrl(serverUrl);
 
     return Stack(
       fit: StackFit.expand,
       children: [
         Image.network(
-          thumbnailUrl,
+          imageUrl,
           fit: BoxFit.cover,
+          cacheWidth: 400,
           errorBuilder: (context, error, stackTrace) {
             return _buildErrorPlaceholder(Icons.broken_image, 'Failed to load');
           },
