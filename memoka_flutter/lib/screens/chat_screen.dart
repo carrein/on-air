@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:universal_html/html.dart' as html;
 import '../widgets/sidebar.dart';
 import '../widgets/chat_view.dart';
 import '../widgets/input_bar.dart';
@@ -8,6 +10,7 @@ import '../widgets/media_sidebar.dart';
 import '../widgets/settings_view.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/current_channel_provider.dart';
+import '../providers/channels_provider.dart';
 import '../utils/responsive_utils.dart';
 
 /// Main chat screen with sidebar, chat view, and input bar.
@@ -19,6 +22,23 @@ class ChatScreen extends ConsumerWidget {
     final showMediaSidebar = ResponsiveUtils.shouldShowMediaSidebar(context);
     final isShowingSettings = ref.watch(settingsVisibilityProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
+
+    // Update browser/PWA title with current channel name
+    if (kIsWeb) {
+      final channelsAsync = ref.watch(channelsProvider);
+      currentChannelAsync.whenData((channelId) {
+        if (channelId == -1) {
+          html.document.title = 'Memoka - Archive';
+        } else {
+          channelsAsync.whenData((channels) {
+            final channel = channels.where((c) => c.id == channelId).firstOrNull;
+            if (channel != null) {
+              html.document.title = 'Memoka - ${channel.name}';
+            }
+          });
+        }
+      });
+    }
 
     Widget getMainContent() {
       if (isShowingSettings) {

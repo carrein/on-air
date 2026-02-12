@@ -1,11 +1,11 @@
 {
-    "name": "memoka_flutter",
-    "short_name": "memoka_flutter",
+    "name": "Memoka",
+    "short_name": "Memoka",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Real-time chat-style notes organized in topical channels",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
