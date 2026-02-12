@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/channel_media.dart';
 import '../main.dart' show serverUrl;
+import '../providers/scroll_to_note_provider.dart';
 import '../utils/file_utils.dart';
 import 'media_grid.dart';
 
 /// Individual grid item displaying a media thumbnail or document card.
-class MediaGridItem extends StatelessWidget {
+class MediaGridItem extends ConsumerWidget {
   final MediaItem item;
   final MediaType type;
 
@@ -16,20 +18,12 @@ class MediaGridItem extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
-      onTap: () => _handleTap(context),
-      borderRadius: BorderRadius.circular(8),
+      onTap: () => _handleTap(context, ref),
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: _buildContent(context),
-        ),
+        color: Colors.white,
+        child: _buildContent(context),
       ),
     );
   }
@@ -193,21 +187,8 @@ class MediaGridItem extends StatelessWidget {
     return '${minutes}:${secs.toString().padLeft(2, '0')}';
   }
 
-  void _handleTap(BuildContext context) {
-    switch (type) {
-      case MediaType.image:
-      case MediaType.video:
-        // TODO: Open in lightbox viewer
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Opening ${item.attachment.originalFilename}')),
-        );
-        break;
-      case MediaType.document:
-        // TODO: Download file
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Downloading ${item.attachment.originalFilename}')),
-        );
-        break;
-    }
+  void _handleTap(BuildContext context, WidgetRef ref) {
+    // Scroll to the note containing this media item
+    ref.read(scrollToNoteProvider.notifier).state = item.noteId;
   }
 }

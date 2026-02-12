@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/channel_media.dart';
-import '../utils/responsive_utils.dart';
 import 'media_grid_item.dart';
 
 enum MediaType {
@@ -26,19 +25,13 @@ class MediaGrid extends StatelessWidget {
       return _buildEmptyState(context);
     }
 
-    final columnCount = ResponsiveUtils.getGridColumnCount(
-      context,
-      isDocument: type == MediaType.document,
-    );
-    final spacing = ResponsiveUtils.getGridSpacing(context);
-
     return GridView.builder(
-      padding: EdgeInsets.all(spacing),
+      padding: EdgeInsets.zero,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columnCount,
-        crossAxisSpacing: spacing,
-        mainAxisSpacing: spacing,
-        childAspectRatio: type == MediaType.document ? 1.2 : 1.0,
+        crossAxisCount: 3,
+        crossAxisSpacing: 0,
+        mainAxisSpacing: 0,
+        childAspectRatio: 1.0,
       ),
       itemCount: items.length,
       itemBuilder: (context, index) {

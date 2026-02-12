@@ -42,30 +42,31 @@ class _MediaSidebarState extends ConsumerState<MediaSidebar> with SingleTickerPr
         return Container(
           width: widget.fixedWidth ? 300 : null,
           decoration: const BoxDecoration(
-            color: Color(0xFF283044),
+            color: Color(0xFF00171F),
           ),
           child: Column(
             children: [
-              // Tab bar
+              // Tab bar — flush against content (no separator)
               Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-                  ),
-                ),
+                color: const Color(0xFF00171F),
                 child: TabBar(
                   controller: _tabController,
-                  labelColor: Colors.blue[700],
-                  unselectedLabelColor: Colors.grey[600],
-                  indicatorColor: Colors.blue[700],
+                  labelColor: const Color(0xFFFF52A1),
+                  unselectedLabelColor: Colors.grey[500],
+                  indicatorColor: const Color(0xFFFF52A1),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: const UnderlineTabIndicator(
+                    borderRadius: BorderRadius.zero,
+                    borderSide: BorderSide(color: Color(0xFFFF52A1), width: 3),
+                  ),
+                  dividerHeight: 0,
                   labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                   unselectedLabelStyle: const TextStyle(fontSize: 11),
-                  tabs: [
-                    _buildTab('IMAGES', mediaAsync.valueOrNull?.images.length ?? 0),
-                    _buildTab('VIDEOS', mediaAsync.valueOrNull?.videos.length ?? 0),
-                    _buildTab('DOCS', mediaAsync.valueOrNull?.documents.length ?? 0),
-                    _buildTab('LINKS', mediaAsync.valueOrNull?.links.length ?? 0),
+                  tabs: const [
+                    Tab(text: 'IMAGES'),
+                    Tab(text: 'VIDEOS'),
+                    Tab(text: 'DOCS'),
+                    Tab(text: 'LINKS'),
                   ],
                 ),
               ),
@@ -101,34 +102,18 @@ class _MediaSidebarState extends ConsumerState<MediaSidebar> with SingleTickerPr
       },
       loading: () => Container(
         width: 300,
-        color: const Color(0xFF283044),
+        color: const Color(0xFF00171F),
         child: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, stack) => Container(
         width: 300,
-        color: const Color(0xFF283044),
+        color: const Color(0xFF00171F),
         child: Center(
           child: Text(
             'Error: $err',
             style: TextStyle(color: Colors.red[700]),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTab(String label, int count) {
-    return Tab(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(label),
-          if (count > 0)
-            Text(
-              '$count',
-              style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-            ),
-        ],
       ),
     );
   }

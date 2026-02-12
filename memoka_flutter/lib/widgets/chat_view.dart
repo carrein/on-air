@@ -14,6 +14,7 @@ import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
 import '../providers/note_selection_provider.dart';
+import '../providers/scroll_to_note_provider.dart';
 import '../providers/background_provider.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
@@ -39,6 +40,8 @@ class ChatView extends ConsumerStatefulWidget {
 
 class _ChatViewState extends ConsumerState<ChatView> {
   final ScrollController _scrollController = ScrollController();
+  final Map<int, GlobalKey> _noteKeys = {};
+  int? _highlightedNoteId;
   bool _isDragOver = false;
 
   @override
@@ -95,12 +98,38 @@ class _ChatViewState extends ConsumerState<ChatView> {
     }
   }
 
+  void _scrollToNote(int noteId) {
+    final key = _noteKeys[noteId];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        alignment: 0.5, // Center in viewport
+      );
+    }
+    // Highlight the note briefly
+    setState(() => _highlightedNoteId = noteId);
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _highlightedNoteId = null);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
     final currentBackground = ref.watch(backgroundPreferenceProvider);
+
+    // Listen for scroll-to-note requests from media sidebar
+    ref.listen(scrollToNoteProvider, (prev, noteId) {
+      if (noteId != null) {
+        _scrollToNote(noteId);
+        // Reset after handling
+        Future.microtask(() => ref.read(scrollToNoteProvider.notifier).state = null);
+      }
+    });
 
     return Stack(
       children: [
@@ -174,9 +203,22 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 final needsSeparator = previousNote != null &&
                     !_isSameDay(note.createdAt, previousNote.createdAt);
 
+                // Assign a GlobalKey for scroll-to-note
+                final noteKey = _noteKeys.putIfAbsent(note.id!, () => GlobalKey());
+                final isHighlighted = _highlightedNoteId == note.id;
+
                 return Column(
+                  key: noteKey,
                   children: [
-                    _buildNoteItem(note, channelId, allImageUrls),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 500),
+                      decoration: BoxDecoration(
+                        color: isHighlighted
+                            ? const Color(0xFFFF52A1).withValues(alpha: 0.15)
+                            : Colors.transparent,
+                      ),
+                      child: _buildNoteItem(note, channelId, allImageUrls),
+                    ),
                     if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
                   ],
                 );
