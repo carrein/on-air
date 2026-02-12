@@ -23,10 +23,12 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required this.content,
     this.linkPreview,
     this.attachments,
-    this.originalChannelId,
+    bool? archived,
+    this.archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : createdAt = createdAt ?? DateTime.now(),
+  }) : archived = archived ?? false,
+       createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
   factory Note({
@@ -35,7 +37,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
-    int? originalChannelId,
+    bool? archived,
+    DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _NoteImpl;
@@ -55,7 +58,10 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
           : _i4.Protocol().deserialize<List<_i3.MediaAttachment>>(
               jsonSerialization['attachments'],
             ),
-      originalChannelId: jsonSerialization['originalChannelId'] as int?,
+      archived: jsonSerialization['archived'] as bool?,
+      archivedAt: jsonSerialization['archivedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['archivedAt']),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -84,8 +90,11 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   /// Media attachments associated with this note.
   List<_i3.MediaAttachment>? attachments;
 
-  /// Original channel ID before archiving (for restoration).
-  int? originalChannelId;
+  /// Whether this note has been archived (soft-deleted).
+  bool archived;
+
+  /// When the note was archived.
+  DateTime? archivedAt;
 
   /// When the note was created.
   DateTime createdAt;
@@ -105,7 +114,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     String? content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
-    int? originalChannelId,
+    bool? archived,
+    DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -119,7 +129,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       if (linkPreview != null) 'linkPreview': linkPreview?.toJson(),
       if (attachments != null)
         'attachments': attachments?.toJson(valueToJson: (v) => v.toJson()),
-      if (originalChannelId != null) 'originalChannelId': originalChannelId,
+      'archived': archived,
+      if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -137,7 +148,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
         'attachments': attachments?.toJson(
           valueToJson: (v) => v.toJsonForProtocol(),
         ),
-      if (originalChannelId != null) 'originalChannelId': originalChannelId,
+      'archived': archived,
+      if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -182,7 +194,8 @@ class _NoteImpl extends Note {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
-    int? originalChannelId,
+    bool? archived,
+    DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -191,7 +204,8 @@ class _NoteImpl extends Note {
          content: content,
          linkPreview: linkPreview,
          attachments: attachments,
-         originalChannelId: originalChannelId,
+         archived: archived,
+         archivedAt: archivedAt,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -206,7 +220,8 @@ class _NoteImpl extends Note {
     String? content,
     Object? linkPreview = _Undefined,
     Object? attachments = _Undefined,
-    Object? originalChannelId = _Undefined,
+    bool? archived,
+    Object? archivedAt = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -220,9 +235,8 @@ class _NoteImpl extends Note {
       attachments: attachments is List<_i3.MediaAttachment>?
           ? attachments
           : this.attachments?.map((e0) => e0.copyWith()).toList(),
-      originalChannelId: originalChannelId is int?
-          ? originalChannelId
-          : this.originalChannelId,
+      archived: archived ?? this.archived,
+      archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -255,10 +269,16 @@ class NoteUpdateTable extends _i1.UpdateTable<NoteTable> {
     value,
   );
 
-  _i1.ColumnValue<int, int> originalChannelId(int? value) => _i1.ColumnValue(
-    table.originalChannelId,
+  _i1.ColumnValue<bool, bool> archived(bool value) => _i1.ColumnValue(
+    table.archived,
     value,
   );
+
+  _i1.ColumnValue<DateTime, DateTime> archivedAt(DateTime? value) =>
+      _i1.ColumnValue(
+        table.archivedAt,
+        value,
+      );
 
   _i1.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
       _i1.ColumnValue(
@@ -292,8 +312,13 @@ class NoteTable extends _i1.Table<int?> {
       'attachments',
       this,
     );
-    originalChannelId = _i1.ColumnInt(
-      'originalChannelId',
+    archived = _i1.ColumnBool(
+      'archived',
+      this,
+      hasDefault: true,
+    );
+    archivedAt = _i1.ColumnDateTime(
+      'archivedAt',
       this,
     );
     createdAt = _i1.ColumnDateTime(
@@ -322,8 +347,11 @@ class NoteTable extends _i1.Table<int?> {
   /// Media attachments associated with this note.
   late final _i1.ColumnSerializable<List<_i3.MediaAttachment>> attachments;
 
-  /// Original channel ID before archiving (for restoration).
-  late final _i1.ColumnInt originalChannelId;
+  /// Whether this note has been archived (soft-deleted).
+  late final _i1.ColumnBool archived;
+
+  /// When the note was archived.
+  late final _i1.ColumnDateTime archivedAt;
 
   /// When the note was created.
   late final _i1.ColumnDateTime createdAt;
@@ -338,7 +366,8 @@ class NoteTable extends _i1.Table<int?> {
     content,
     linkPreview,
     attachments,
-    originalChannelId,
+    archived,
+    archivedAt,
     createdAt,
     updatedAt,
   ];

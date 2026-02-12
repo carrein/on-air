@@ -23,10 +23,12 @@ abstract class Note implements _i1.SerializableModel {
     required this.content,
     this.linkPreview,
     this.attachments,
-    this.originalChannelId,
+    bool? archived,
+    this.archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) : createdAt = createdAt ?? DateTime.now(),
+  }) : archived = archived ?? false,
+       createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
 
   factory Note({
@@ -35,7 +37,8 @@ abstract class Note implements _i1.SerializableModel {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
-    int? originalChannelId,
+    bool? archived,
+    DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _NoteImpl;
@@ -55,7 +58,10 @@ abstract class Note implements _i1.SerializableModel {
           : _i4.Protocol().deserialize<List<_i3.MediaAttachment>>(
               jsonSerialization['attachments'],
             ),
-      originalChannelId: jsonSerialization['originalChannelId'] as int?,
+      archived: jsonSerialization['archived'] as bool?,
+      archivedAt: jsonSerialization['archivedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['archivedAt']),
       createdAt: jsonSerialization['createdAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
@@ -82,8 +88,11 @@ abstract class Note implements _i1.SerializableModel {
   /// Media attachments associated with this note.
   List<_i3.MediaAttachment>? attachments;
 
-  /// Original channel ID before archiving (for restoration).
-  int? originalChannelId;
+  /// Whether this note has been archived (soft-deleted).
+  bool archived;
+
+  /// When the note was archived.
+  DateTime? archivedAt;
 
   /// When the note was created.
   DateTime createdAt;
@@ -100,7 +109,8 @@ abstract class Note implements _i1.SerializableModel {
     String? content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
-    int? originalChannelId,
+    bool? archived,
+    DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   });
@@ -114,7 +124,8 @@ abstract class Note implements _i1.SerializableModel {
       if (linkPreview != null) 'linkPreview': linkPreview?.toJson(),
       if (attachments != null)
         'attachments': attachments?.toJson(valueToJson: (v) => v.toJson()),
-      if (originalChannelId != null) 'originalChannelId': originalChannelId,
+      'archived': archived,
+      if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
     };
@@ -135,7 +146,8 @@ class _NoteImpl extends Note {
     required String content,
     _i2.LinkPreview? linkPreview,
     List<_i3.MediaAttachment>? attachments,
-    int? originalChannelId,
+    bool? archived,
+    DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : super._(
@@ -144,7 +156,8 @@ class _NoteImpl extends Note {
          content: content,
          linkPreview: linkPreview,
          attachments: attachments,
-         originalChannelId: originalChannelId,
+         archived: archived,
+         archivedAt: archivedAt,
          createdAt: createdAt,
          updatedAt: updatedAt,
        );
@@ -159,7 +172,8 @@ class _NoteImpl extends Note {
     String? content,
     Object? linkPreview = _Undefined,
     Object? attachments = _Undefined,
-    Object? originalChannelId = _Undefined,
+    bool? archived,
+    Object? archivedAt = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -173,9 +187,8 @@ class _NoteImpl extends Note {
       attachments: attachments is List<_i3.MediaAttachment>?
           ? attachments
           : this.attachments?.map((e0) => e0.copyWith()).toList(),
-      originalChannelId: originalChannelId is int?
-          ? originalChannelId
-          : this.originalChannelId,
+      archived: archived ?? this.archived,
+      archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

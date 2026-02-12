@@ -11,8 +11,10 @@ fields:
   linkPreview: LinkPreview?
   ### Media attachments associated with this note.
   attachments: List<MediaAttachment>?
-  ### Original channel ID before archiving (for restoration).
-  originalChannelId: int?
+  ### Whether this note has been archived (soft-deleted).
+  archived: bool, default=false
+  ### When the note was archived.
+  archivedAt: DateTime?
   ### When the note was created.
   createdAt: DateTime, default=now
   ### When the note was last updated.
@@ -21,3 +23,5 @@ fields:
 indexes:
   channel_created_idx:
     fields: channelId, createdAt
+  archived_updated_idx:
+    fields: archived, updatedAt

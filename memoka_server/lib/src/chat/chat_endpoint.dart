@@ -65,7 +65,7 @@ class ChatEndpoint extends Endpoint {
         ) as attachments_json
       FROM notes n
       LEFT JOIN media_attachments ma ON ma."noteId" = n.id
-      WHERE n."channelId" = $channelId $beforeClause
+      WHERE n."channelId" = $channelId AND n.archived = false $beforeClause
       GROUP BY n.id
       ORDER BY n."createdAt" DESC
       LIMIT $limit
@@ -318,41 +318,29 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Note not found');
     }
 
-    // Check if already in Archive (-1)
-    if (note.channelId == -1) {
+    // Check if already archived
+    if (note.archived) {
       // PERMANENT DELETE from Archive
       await _permanentlyDeleteNote(session, note);
     } else {
-      // SOFT DELETE - move to Archive
+      // SOFT DELETE - mark as archived
       await _archiveNote(session, note);
     }
   }
 
-  /// Archives a note by moving it to the Archive Crate channel.
+  /// Archives a note by marking it as archived (soft delete).
   Future<void> _archiveNote(Session session, Note note) async {
-    final originalChannelId = note.channelId;
-
-    // Move note to Archive channel, store original channel ID
-    await Note.db.updateRow(
-      session,
-      Note(
-        id: note.id,
-        channelId: -1, // Archive channel ID
-        content: note.content,
-        linkPreview: note.linkPreview,
-        attachments: note.attachments,
-        originalChannelId: originalChannelId, // Track for restore
-        createdAt: note.createdAt,
-        updatedAt: DateTime.now(),
-      ),
-    );
+    note.archived = true;
+    note.archivedAt = DateTime.now();
+    note.updatedAt = DateTime.now();
+    await Note.db.updateRow(session, note);
 
     await ServerConstants.broadcastEvent(
       session,
       ChatEvent(
         type: 'noteArchived',
         noteId: note.id!,
-        channelId: originalChannelId,
+        channelId: note.channelId,
       ),
     );
   }
@@ -403,51 +391,33 @@ class ChatEndpoint extends Endpoint {
       ChatEvent(
         type: 'noteDeleted',
         noteId: note.id!,
-        channelId: -1,
+        channelId: note.channelId,
       ),
     );
   }
 
-  /// Restores a note from Archive back to its original channel.
+  /// Restores a note from Archive back to its channel.
   Future<void> restoreNote(Session session, int id) async {
     final note = await Note.db.findById(session, id);
     if (note == null) {
       throw Exception('Note not found');
     }
 
-    // Can only restore from Archive
-    if (note.channelId != -1) {
-      throw Exception('Note is not in Archive');
+    // Can only restore archived notes
+    if (!note.archived) {
+      throw Exception('Note is not archived');
     }
 
-    // Must have original channel ID
-    if (note.originalChannelId == null) {
-      throw Exception('Cannot restore: original channel unknown');
-    }
-
-    // Verify original channel still exists
-    final originalChannel = await Channel.db.findById(
-      session,
-      note.originalChannelId!,
-    );
-    if (originalChannel == null) {
+    // Verify channel still exists
+    final channel = await Channel.db.findById(session, note.channelId);
+    if (channel == null) {
       throw Exception('Original channel no longer exists');
     }
 
-    // Move note back to original channel
-    await Note.db.updateRow(
-      session,
-      Note(
-        id: note.id,
-        channelId: note.originalChannelId!,
-        content: note.content,
-        linkPreview: note.linkPreview,
-        attachments: note.attachments,
-        originalChannelId: null, // Clear after restore
-        createdAt: note.createdAt,
-        updatedAt: DateTime.now(),
-      ),
-    );
+    note.archived = false;
+    note.archivedAt = null;
+    note.updatedAt = DateTime.now();
+    await Note.db.updateRow(session, note);
 
     final restoredNote = await Note.db.findById(session, note.id!);
     await ServerConstants.broadcastEvent(
@@ -455,7 +425,7 @@ class ChatEndpoint extends Endpoint {
       ChatEvent(
         type: 'noteRestored',
         noteId: note.id!,
-        channelId: note.originalChannelId!,
+        channelId: note.channelId,
         note: restoredNote,
       ),
     );
@@ -539,11 +509,11 @@ class ChatEndpoint extends Endpoint {
     Session session, {
     int limit = 50,
   }) async {
-    // Fetch archived notes (channelId == -1)
+    // Fetch archived notes
     final archivedNotes = await Note.db.find(
       session,
-      where: (t) => t.channelId.equals(-1),
-      orderBy: (t) => t.updatedAt,
+      where: (t) => t.archived.equals(true),
+      orderBy: (t) => t.archivedAt,
       orderDescending: true,
       limit: limit,
     );
@@ -565,7 +535,7 @@ class ChatEndpoint extends Endpoint {
         ArchiveItem(
           type: 'note',
           note: note,
-          archivedAt: note.updatedAt,
+          archivedAt: note.archivedAt ?? note.updatedAt,
         ),
       );
     }

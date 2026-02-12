@@ -330,10 +330,17 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'List<protocol:MediaAttachment>?',
         ),
         _i2.ColumnDefinition(
-          name: 'originalChannelId',
-          columnType: _i2.ColumnType.bigint,
+          name: 'archived',
+          columnType: _i2.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'false',
+        ),
+        _i2.ColumnDefinition(
+          name: 'archivedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
           isNullable: true,
-          dartType: 'int?',
+          dartType: 'DateTime?',
         ),
         _i2.ColumnDefinition(
           name: 'createdAt',
@@ -387,6 +394,23 @@ class Protocol extends _i1.SerializationManagerServer {
             _i2.IndexElementDefinition(
               type: _i2.IndexElementDefinitionType.column,
               definition: 'createdAt',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'archived_updated_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'archived',
+            ),
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'updatedAt',
             ),
           ],
           type: 'btree',

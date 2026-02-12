@@ -202,30 +202,91 @@ void main() {
         );
       });
 
-      test(
-        'deleteNote attempts to archive (FK error without Archive channel)',
-        () async {
-          final channel = await endpoints.chat.createChannel(
-            sessionBuilder,
-            'Test Channel',
-            emoji: '💬',
-          );
+      test('deleteNote archives note (soft delete)', () async {
+        final channel = await endpoints.chat.createChannel(
+          sessionBuilder,
+          'Test Channel',
+          emoji: '💬',
+        );
 
-          final note = await endpoints.chat.createNote(
-            sessionBuilder,
-            channel.id!,
-            'To archive',
-          );
+        final note = await endpoints.chat.createNote(
+          sessionBuilder,
+          channel.id!,
+          'To archive',
+        );
 
-          // deleteNote tries to move note to channelId=-1 (Archive).
-          // In tests, no channel with id=-1 exists, so the FK constraint
-          // causes an exception.
-          expect(
-            () => endpoints.chat.deleteNote(sessionBuilder, note.id!),
-            throwsA(isA<Exception>()),
-          );
-        },
-      );
+        // First delete archives the note
+        await endpoints.chat.deleteNote(sessionBuilder, note.id!);
+
+        // Note should no longer appear in channel notes
+        final notes = await endpoints.chat.getNotes(
+          sessionBuilder,
+          channel.id!,
+          limit: 50,
+        );
+        expect(notes.any((n) => n.id == note.id), isFalse);
+
+        // Note should appear in archive items
+        final archiveItems = await endpoints.chat.getArchiveItems(
+          sessionBuilder,
+          limit: 50,
+        );
+        expect(archiveItems.any((item) => item.note?.id == note.id), isTrue);
+      });
+
+      test('deleteNote permanently deletes archived note', () async {
+        final channel = await endpoints.chat.createChannel(
+          sessionBuilder,
+          'Test Channel',
+          emoji: '💬',
+        );
+
+        final note = await endpoints.chat.createNote(
+          sessionBuilder,
+          channel.id!,
+          'To permanently delete',
+        );
+
+        // First delete archives
+        await endpoints.chat.deleteNote(sessionBuilder, note.id!);
+        // Second delete permanently removes
+        await endpoints.chat.deleteNote(sessionBuilder, note.id!);
+
+        // Note should be gone from archive
+        final archiveItems = await endpoints.chat.getArchiveItems(
+          sessionBuilder,
+          limit: 50,
+        );
+        expect(archiveItems.any((item) => item.note?.id == note.id), isFalse);
+      });
+
+      test('restoreNote moves note back to channel', () async {
+        final channel = await endpoints.chat.createChannel(
+          sessionBuilder,
+          'Test Channel',
+          emoji: '💬',
+        );
+
+        final note = await endpoints.chat.createNote(
+          sessionBuilder,
+          channel.id!,
+          'To restore',
+        );
+
+        // Archive it
+        await endpoints.chat.deleteNote(sessionBuilder, note.id!);
+
+        // Restore it
+        await endpoints.chat.restoreNote(sessionBuilder, note.id!);
+
+        // Note should reappear in channel
+        final notes = await endpoints.chat.getNotes(
+          sessionBuilder,
+          channel.id!,
+          limit: 50,
+        );
+        expect(notes.any((n) => n.id == note.id), isTrue);
+      });
     });
 
     group('Cascade delete', () {

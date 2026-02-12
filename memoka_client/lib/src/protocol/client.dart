@@ -126,7 +126,7 @@ class EndpointChat extends _i1.EndpointRef {
     {'id': id},
   );
 
-  /// Restores a note from Archive back to its original channel.
+  /// Restores a note from Archive back to its channel.
   _i2.Future<void> restoreNote(int id) => caller.callServerEndpoint<void>(
     'chat',
     'restoreNote',
