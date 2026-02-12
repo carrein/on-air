@@ -22,6 +22,7 @@ fields:
   isSystemChannel: bool, default=false
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now
+  sortOrder: int, default=0
   archived: bool, default=false
   archivedAt: DateTime?
 
@@ -32,11 +33,13 @@ fields:
   content: String
   linkPreview: LinkPreview?
   attachments: List<MediaAttachment>?
-  originalChannelId: int?
+  archived: bool, default=false
+  archivedAt: DateTime?
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now
 indexes:
   channel_created_idx: fields: channelId, createdAt
+  archived_updated_idx: fields: archived, updatedAt
 
 class: ChatEvent
 fields:
@@ -91,7 +94,8 @@ fields:
 
 **REST Endpoints** (Chat)
 
-- `getChannels()` → `List<Channel>` (pinned first, then by updatedAt DESC, excludes archived)
+- `getChannels()` → `List<Channel>` (pinned first, then by sortOrder, excludes archived)
+- `reorderChannels(channelIds)` → void (persist drag-to-reorder sort order)
 - `getNotes(channelId, {beforeId?, limit=50})` → `List<Note>` (cursor pagination, LEFT JOIN attachments)
 - `createChannel(name, {emoji?})` → `Channel` (reject empty)
 - `updateChannel(id, name, {emoji?, pinned?})` → `Channel`
@@ -144,7 +148,8 @@ _Layout_
 
 _Sidebar_
 
-- Channels listed pinned first, then by updatedAt DESC
+- Channels listed pinned first, then by sortOrder within each group
+- Drag-to-reorder channels (long-press to drag, constrained within pinned/unpinned groups)
 - Emoji display per channel
 - Tap channel to switch
 - Bottom: "New Channel" button → modal with name + emoji picker
@@ -160,10 +165,14 @@ _Chat View_
 - Date separators (Today, Yesterday, or formatted date)
 - Absolute timestamps (e.g., "Feb 6, 2:30 PM")
 - Chat bubbles with 4px border radius
+- Image-only notes render without bubble wrapper
+- Compressed badge indicator on media attachments
 - Right-click/long-press context menu: Copy, Edit, Delete
 - Multi-select via long-press with bulk delete action bar
-- Media attachments displayed inline with thumbnails
+- Media attachments displayed inline with pre-sized shimmer placeholders (no layout jump)
+- Full-screen lightbox with gallery navigation (arrows, keyboard, swipe, counter)
 - Link preview cards
+- Selectable chat background patterns (via Settings → Background Picker)
 
 _Input Bar_
 

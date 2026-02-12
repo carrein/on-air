@@ -37,16 +37,21 @@
 **Media Upload Feature**
 - Image upload (JPEG, PNG, WebP, GIF, HEIC)
 - Document upload (PDF, TXT, MD, DOC, DOCX, XLS, XLSX, ZIP)
-- Clipboard paste support (Ctrl+V)
+- Clipboard paste support (Ctrl+V) — intercepts image/video files even when text field is focused
 - Drag-and-drop upload support
 - Multi-file batch upload with progress dialog
-- Compression with WebP conversion
+- Compression with WebP conversion (default compress toggle: off)
 - Thumbnail generation in isolates
 - EXIF metadata stripping (after orientation correction)
 - Animated GIF preservation
 - UUID-based filenames for security
 - Two-phase commit (temp file → DB → atomic rename)
 - Public media serving via static routes
+- Full-res inline previews (not thumbnails), max display 600x500
+- Image-only notes render without white bubble wrapper
+- Compressed badge indicator on media attachments
+- Full-screen lightbox with gallery navigation (arrows, keyboard, swipe, counter)
+- Web media URL uses `Uri.base` origin (works behind reverse proxies)
 
 **UI/UX Features**
 - Toast notification system (success/error/info)
@@ -57,7 +62,11 @@
 - Inter font with 14px note text
 - Absolute timestamps with timezone conversion
 - Date separators (Today, Yesterday, formatted date)
-- Settings screen (account/profile placeholders)
+- Settings overlay with page navigation
+- Chat background picker with themed patterns (14 options)
+- Shimmer placeholders for media loading (pre-sized from attachment metadata, no layout jumps)
+- Fast fade-in (150ms) for disk-cached images to reduce perceived re-loading on scroll
+- Custom PWA icons (192, 512, maskable variants) and 32x32 favicon
 
 **Media Sidebar**
 - Right sidebar with 4 tabs (Images, Videos, Documents, Links)
@@ -77,6 +86,10 @@
 - Channel validation on startup with fallback
 - Emoji identifiers per channel
 - Pin/unpin support
+- Drag-to-reorder channels (sortOrder field, ReorderableListView, reorderChannels endpoint)
+
+**Architecture Cleanup**
+- Removed unused auth scaffolding (JWT, email IDP, sign-in screen) — ~1500 lines of dead code and 3 unused dependencies
 
 ---
 

@@ -465,56 +465,33 @@ Widget _buildNoteItem(Note note, int channelId) {
 ```
 
 **MediaAttachmentWidget:**
+
+Routes to `_ImageAttachmentWidget`, `VideoAttachmentWidget`, or `DocumentAttachmentWidget` based on MIME type.
+
+Key display behavior:
+- **Pre-sized placeholders**: Uses `attachment.width` and `attachment.height` metadata from the server to compute display dimensions before the image loads, eliminating layout jumps
+- **Shimmer animation**: Placeholder shows an animated gradient sweep (grey[800] → grey[700] → grey[800]) instead of a spinner, sized to exact computed dimensions
+- **Fast fade-in**: `fadeInDuration: 150ms` so disk-cached images appear near-instantly (vs default 500ms)
+- **Aspect-ratio preservation**: `computeDisplaySize()` helper clamps to max constraints (600x500 for images, 400x300 for videos) while maintaining aspect ratio
+- **Fallback sizing**: If `width`/`height` metadata is null, falls back to 300x200
+
 ```dart
-class MediaAttachmentWidget extends StatelessWidget {
-  final MediaAttachment attachment;
-  
-  @override
-  Widget build(BuildContext context) {
-    // Use content hash for cache busting
-    final imageUrl = '/media/${attachment.filePath}?v=${attachment.contentHash}';
-    
-    return GestureDetector(
-      onTap: () => _showFullScreen(context),
-      child: Container(
-        margin: EdgeInsets.only(top: 8),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: CachedNetworkImage(
-            imageUrl: imageUrl,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            placeholder: (context, url) => Container(
-              height: 200,
-              color: Colors.grey[200],
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => Container(
-              height: 200,
-              color: Colors.grey[100],
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.broken_image, size: 48, color: Colors.grey[400]),
-                    SizedBox(height: 8),
-                    Text('Failed to load image', style: TextStyle(color: Colors.grey[600])),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-  
-  void _showFullScreen(BuildContext context) {
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => FullScreenImageView(attachment: attachment),
-    ));
-  }
+// Shared helper for computing display dimensions
+Size computeDisplaySize({
+  int? width, int? height,
+  required double maxWidth, required double maxHeight,
+  Size fallback = const Size(300, 200),
+}) {
+  if (width == null || height == null) return fallback;
+  final scale = min(maxWidth / width, maxHeight / height).clamp(0.0, 1.0);
+  return Size(width * scale, height * scale);
 }
+
+// ShimmerPlaceholder: StatefulWidget with AnimationController
+// - 1200ms repeat cycle
+// - LinearGradient with sliding alignment
+// - Rounded corners (8px border radius)
+// - Sized to computed display dimensions
 ```
 
 ---
@@ -551,8 +528,8 @@ class MediaAttachmentWidget extends StatelessWidget {
 
 ### Upload Behavior
 - **Multi-file support:** Select, drag, or paste multiple files at once
-- **Paste priority:** If clipboard has files, ignore text (unless textfield focused)
-- **Textfield paste fix:** Paste events check active element to allow text paste in input field
+- **Paste priority:** If clipboard has files, ignore text — intercepts even when text field is focused
+- **Default compression:** Compress toggle defaults to **off** (user opts in)
 - **Progress indicator:** Shows upload count and progress for multi-file uploads
 - **Error handling:** Toast notifications (success/error) with human-readable messages
 - **Streaming:** Upload via stream (memory-safe)
@@ -564,8 +541,10 @@ class MediaAttachmentWidget extends StatelessWidget {
 ### Display & Interaction
 - **Delete:** Delete entire note to remove images (no individual image delete yet)
 - **Full screen:** Click image to open full screen viewer
-- **Loading:** Show placeholder while loading
-- **Failed load:** Show broken image icon with retry option
+- **Loading:** Shimmer placeholder sized to actual image dimensions (no layout jump)
+- **Scroll-back:** Pre-sized placeholder prevents re-layout when ListView virtualizes and re-creates widgets
+- **Cached images:** 150ms fade-in so disk-cached images appear near-instantly
+- **Failed load:** Show broken image icon with error message, sized to computed dimensions
 
 ### Security & Privacy
 - **Public access:** No authentication required (single-user/trusted environment)
@@ -580,6 +559,7 @@ class MediaAttachmentWidget extends StatelessWidget {
 - **Content hash:** For cache busting (URL param: ?v={hash})
 - **Original filename:** Stored in DB only, never used in file paths
 - **Animated GIF detection:** Check frame count, preserve if animated
+- **Web media URLs:** Uses `Uri.base` origin on web platform (works behind reverse proxies without hardcoded ports)
 
 ### Performance
 - **Streaming uploads:** Stream to temp file, process from disk
@@ -985,6 +965,8 @@ withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
 - Client: CachedNetworkImage with disk cache
 - Server: `Cache-Control: public, max-age=31536000, immutable`
 - Cache busting via content hash in URL param
+- Fast fade-in (150ms) for disk-cached images to avoid perceived re-loading on scroll-back
+- Pre-sized shimmer placeholders prevent layout shifts during cache reads
 
 ### Image Optimization
 - WebP format (30% smaller than JPEG)

@@ -28,6 +28,12 @@ The sidebar supports two width states (web only):
 
 ## Channel List Design
 
+### Drag-to-Reorder
+- **Trigger**: Long-press on a channel item to start drag
+- **Constraint**: Pinned channels reorder only among pinned; unpinned only among unpinned
+- **Persistence**: Order saved via `sortOrder` field on Channel model and `reorderChannels` endpoint
+- **Widget**: `ReorderableListView` replaces `ListView.separated`
+
 ### Visual Style
 - **No border radius**: All elements use sharp corners
 - **Background**: Light gray (Colors.grey[200])
@@ -107,6 +113,8 @@ The sidebar supports two width states (web only):
   - 12px border radius (rounded corners)
   - Subtle shadow: `BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: Offset(0, 2))`
   - 8px horizontal margin, 4px vertical margin between messages
+- **Image-only notes**: Notes with only image attachments (no text) render without the white bubble wrapper for a cleaner look
+- **Compressed badge**: Media attachments that were compressed show a small "Compressed" badge overlay at bottom-right
 - **Content**:
   - Markdown-formatted text with link support
   - Media attachments (images, videos, documents)
@@ -186,6 +194,42 @@ The sidebar supports two width states (web only):
 - **Technology**: `OverlayEntry` with `AnimatedPositioned` and `FadeTransition`
 - **State Management**: `List<_NotificationData>` tracks active toasts with `ValueNotifier<double>` for positioning
 - **Replaced**: All `SnackBar` usage converted to toast system for consistency
+
+## Full-Screen Image Viewer (Lightbox)
+
+### Gallery Navigation
+- **Open**: Click any inline image to open the lightbox
+- **Gallery mode**: All images in the current chat are navigable as a gallery
+- **Navigation**: Left/right arrow buttons, keyboard arrow keys, swipe gestures
+- **Counter**: Shows "X / Y" indicator for current position in gallery
+- **Close**: Click backdrop, press Escape, or tap close button
+- **Implementation**: Dialog overlay (`FullScreenImageView.show()`)
+
+## Chat Backgrounds
+
+### Background Picker
+- Accessible via Settings overlay → Background Picker screen
+- Selection of themed background patterns (flower, food, gift, leaves, light, memphis, morocco, pentagon, sakura, sun, terrazzo, tree, wheat, wormz)
+- Selected background is applied behind the chat view
+- Persisted via `BackgroundProvider` with Riverpod state management
+
+## Media Loading Behavior
+
+### Shimmer Placeholders
+- **Pre-sized**: Placeholders use server-provided `width` and `height` metadata to match the final image dimensions exactly
+- **No layout jump**: Since the placeholder is the same size as the loaded image, the chat list doesn't shift when images finish loading
+- **Animated shimmer**: Grey gradient sweep (grey[800] → grey[700] → grey[800]) with 1200ms cycle, 8px rounded corners
+- **Fallback**: If dimensions are unavailable, defaults to 300x200
+
+### Scroll Virtualization
+- Flutter's `ListView` disposes off-screen widgets; scrolling back re-creates them
+- `CachedNetworkImage` reads from disk cache but still shows a placeholder during the read
+- **Mitigation**: Pre-sized shimmer + 150ms fade-in makes cache reads feel instant (vs default 500ms spinner)
+
+### Size Constraints
+- **Images**: Max 600x500, aspect ratio preserved via `computeDisplaySize()`
+- **Video thumbnails**: Max 400x300, same aspect-ratio logic
+- **Error widgets**: Sized identically to the placeholder so layout stays stable
 
 ## Design Principles
 

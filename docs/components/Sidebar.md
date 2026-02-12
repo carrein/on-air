@@ -24,7 +24,11 @@ Top section displaying the app icon and name.
 
 Scrollable list of all channels, sorted with pinned channels first.
 
-- Uses `ListView.separated` inside a `Stack` (for fade gradients)
+- Uses `ReorderableListView` inside a `Stack` (for fade gradients)
+- **Drag-to-reorder**: Long-press and drag to reorder channels within their group
+  - Pinned channels can only be reordered among pinned channels
+  - Unpinned channels can only be reordered among unpinned channels
+  - Order is persisted via `sortOrder` field and `reorderChannels` endpoint
 - Scrollbar hidden via `ScrollConfiguration`
 - A 1px pink divider appears between the last pinned channel and first unpinned channel
 - Fade gradients (60px tall) appear at top/bottom edges when content is scrollable beyond view

@@ -28,14 +28,15 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 
 ## Features
 
-- **Channels**: Create, update, delete, pin/unpin, emoji identifiers, archive/restore
+- **Channels**: Create, update, delete, pin/unpin, emoji identifiers, drag-to-reorder, archive/restore
 - **Notes**: Create, update, delete with cursor-based pagination, archive/restore
 - **Real-time**: WebSocket streaming via MessageCentral for live updates
 - **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
 - **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, compression, thumbnail generation, EXIF stripping
+- **Media Display**: Shimmer placeholders with correct dimensions, full-screen lightbox with gallery navigation, compressed badge
 - **Media Sidebar**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
 - **Archive System**: Archive Crate for soft-deleted notes, channel archiving with restore
-- **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, Inter font
+- **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
 
@@ -84,9 +85,9 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 
 ### Data Models
 
-**Channel** (`channels` table): name, emoji, pinned, isSystemChannel, createdAt, updatedAt, archived, archivedAt
+**Channel** (`channels` table): name, emoji, pinned, isSystemChannel, createdAt, updatedAt, sortOrder, archived, archivedAt
 
-**Note** (`notes` table): channelId (FK → channels, cascade), content, linkPreview (LinkPreview?), attachments (List\<MediaAttachment\>?), originalChannelId, createdAt, updatedAt
+**Note** (`notes` table): channelId (FK → channels, cascade), content, linkPreview (LinkPreview?), attachments (List\<MediaAttachment\>?), archived, archivedAt, createdAt, updatedAt
 
 **MediaAttachment** (`media_attachments` table): noteId (FK → notes, cascade), channelId (FK → channels, cascade), filePath, originalFilename, mimeType, fileSize, width, height, duration, thumbnailPath, compressed, animated, contentHash, uploadedAt
 
