@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:memoka_client/memoka_client.dart';
@@ -39,15 +40,15 @@ class ChatView extends ConsumerStatefulWidget {
 }
 
 class _ChatViewState extends ConsumerState<ChatView> {
-  final ScrollController _scrollController = ScrollController();
-  final Map<int, GlobalKey> _noteKeys = {};
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
   int? _highlightedNoteId;
   bool _isDragOver = false;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
+    _itemPositionsListener.itemPositions.addListener(_onScroll);
     if (kIsWeb) {
       _setupWebEventListeners();
     }
@@ -86,28 +87,40 @@ class _ChatViewState extends ConsumerState<ChatView> {
   }
 
   void _onScroll() {
-    // Load more when scrolling near top (in reversed list)
-    // Use 20% of max scroll extent or 500px, whichever is larger
-    final threshold = (_scrollController.position.maxScrollExtent * 0.2).clamp(500.0, double.infinity);
+    // Load more when the highest visible index is near the end of the list
+    final positions = _itemPositionsListener.itemPositions.value;
+    if (positions.isEmpty) return;
 
-    if (_scrollController.position.pixels < threshold) {
-      final channelId = ref.read(currentChannelProvider).value;
-      if (channelId != null) {
-        ref.read(notesProvider(channelId).notifier).loadMore();
-      }
+    final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    final notes = ref.read(notesProvider(channelId)).value;
+    if (notes == null) return;
+
+    // In a reversed list, higher indices = older notes (top of screen).
+    // Load more when within 10 items of the oldest loaded note.
+    if (maxIndex >= notes.length - 10) {
+      ref.read(notesProvider(channelId).notifier).loadMore();
     }
   }
 
   void _scrollToNote(int noteId) {
-    final key = _noteKeys[noteId];
-    if (key?.currentContext != null) {
-      Scrollable.ensureVisible(
-        key!.currentContext!,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        alignment: 0.5, // Center in viewport
-      );
-    }
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+    final notes = ref.read(notesProvider(channelId)).value;
+    if (notes == null) return;
+
+    final index = notes.indexWhere((n) => n.id == noteId);
+    if (index == -1) return;
+
+    _itemScrollController.scrollTo(
+      index: index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      alignment: 0.0,
+    );
+
     // Highlight the note briefly
     setState(() => _highlightedNoteId = noteId);
     Future.delayed(const Duration(seconds: 2), () {
@@ -190,8 +203,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     .map((a) => FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash)))
                 .toList();
 
-            return ListView.builder(
-              controller: _scrollController,
+            return ScrollablePositionedList.builder(
+              itemScrollController: _itemScrollController,
+              itemPositionsListener: _itemPositionsListener,
+              physics: const ClampingScrollPhysics(),
               reverse: true,
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: notes.length,
@@ -203,12 +218,9 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 final needsSeparator = previousNote != null &&
                     !_isSameDay(note.createdAt, previousNote.createdAt);
 
-                // Assign a GlobalKey for scroll-to-note
-                final noteKey = _noteKeys.putIfAbsent(note.id!, () => GlobalKey());
                 final isHighlighted = _highlightedNoteId == note.id;
 
                 return Column(
-                  key: noteKey,
                   children: [
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 500),
@@ -424,7 +436,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                             _showNoteContextMenu(context, note, channelId, null);
                           }
                         },
-                        child: _isImageOnlyNote(note)
+                        child: _isMediaOnlyNote(note)
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1082,11 +1094,11 @@ class _ChatViewState extends ConsumerState<ChatView> {
     );
   }
 
-  bool _isImageOnlyNote(Note note) {
+  bool _isMediaOnlyNote(Note note) {
     if (note.content.isNotEmpty) return false;
     final attachments = note.attachments;
     if (attachments == null || attachments.isEmpty) return false;
-    return attachments.every((a) => a.mimeType.toLowerCase().startsWith('image/'));
+    return true;
   }
 
   void _startEditing(Note note) {
@@ -1363,7 +1375,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _itemPositionsListener.itemPositions.removeListener(_onScroll);
     super.dispose();
   }
 }

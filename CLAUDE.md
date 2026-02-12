@@ -1,7 +1,6 @@
 u/docs/channel.md
 u/docs/link.md
 u/docs/media.md
-u/docs/media_sidebar.md
 u/docs/overview.md
 u/docs/plan.md
 u/docs/security.md
@@ -11,6 +10,7 @@ u/docs/components/InputBar.md
 u/docs/components/ArchiveCrate.md
 u/docs/components/NewChannelModal.md
 u/docs/components/Tooltip.md
+u/docs/components/MediaSidebar.md
 
 # CLAUDE.md
 
@@ -252,3 +252,4 @@ interactions, state management, and integration details.
 - **ArchiveCrate**: `docs/components/ArchiveCrate.md`
 - **NewChannelModal**: `docs/components/NewChannelModal.md`
 - **Tooltip**: `docs/components/Tooltip.md`
+- **MediaSidebar**: `docs/components/MediaSidebar.md`

@@ -124,7 +124,22 @@ class _ImageAttachmentWidget extends StatelessWidget {
           SizedBox(
             width: displaySize.width,
             height: displaySize.height,
-            child: CachedNetworkImage(
+            child: attachment.animated
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return ShimmerPlaceholder(
+                        width: displaySize.width,
+                        height: displaySize.height,
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildErrorWidget(displaySize, error);
+                    },
+                  )
+                : CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
               fadeInDuration: const Duration(milliseconds: 150),
@@ -133,30 +148,7 @@ class _ImageAttachmentWidget extends StatelessWidget {
                 height: displaySize.height,
               ),
               errorWidget: (context, url, error) {
-                return Container(
-                  width: displaySize.width,
-                  height: displaySize.height,
-                  color: Colors.grey[800],
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.broken_image,
-                          color: Colors.grey,
-                          size: 48,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Error: ${error.toString().substring(0, math.min(50, error.toString().length))}...',
-                          style:
-                              const TextStyle(color: Colors.red, fontSize: 10),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+                return _buildErrorWidget(displaySize, error);
               },
             ),
           ),
@@ -186,6 +178,28 @@ class _ImageAttachmentWidget extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget(Size displaySize, Object error) {
+    return Container(
+      width: displaySize.width,
+      height: displaySize.height,
+      color: Colors.grey[800],
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.broken_image, color: Colors.grey, size: 48),
+            const SizedBox(height: 8),
+            Text(
+              'Error: ${error.toString().substring(0, math.min(50, error.toString().length))}...',
+              style: const TextStyle(color: Colors.red, fontSize: 10),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

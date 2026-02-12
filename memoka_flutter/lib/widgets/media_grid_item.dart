@@ -128,26 +128,26 @@ class MediaGridItem extends ConsumerWidget {
     final sizeFormatted = FileUtils.formatFileSize(item.attachment.fileSize);
 
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 40, color: Colors.grey[700]),
-          const SizedBox(height: 8),
+          Icon(icon, size: 36, color: Colors.grey[700]),
+          const SizedBox(height: 6),
           Flexible(
             child: Text(
               item.attachment.originalFilename,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             sizeFormatted,
-            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 9, color: Colors.grey[600]),
           ),
         ],
       ),
