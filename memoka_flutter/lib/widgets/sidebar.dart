@@ -9,6 +9,7 @@ import '../providers/editing_note_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/settings_page_provider.dart';
+import '../utils/responsive_utils.dart';
 import '../utils/toast_utils.dart';
 import 'new_channel_modal.dart';
 
@@ -31,6 +32,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
   // -- Layout --
   static const double _sidebarWidth = 240.0;
+  static const double _sidebarCompactWidth = 64.0;
   static const _logoIconSize = 44.0;
   static const _logoPadding = EdgeInsets.symmetric(horizontal: 20, vertical: 14);
   static const _logoTextGap = 16.0;
@@ -89,9 +91,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
   Widget build(BuildContext context) {
     final channelsAsync = ref.watch(channelsProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
+    final compact = ResponsiveUtils.isMobile(context);
 
     return Container(
-          width: _sidebarWidth,
+          width: compact ? _sidebarCompactWidth : _sidebarWidth,
           decoration: const BoxDecoration(
             color: _backgroundColor,
           ),
@@ -99,26 +102,36 @@ class _SidebarState extends ConsumerState<Sidebar> {
             children: [
               // Logo and app name
               Container(
-                padding: _logoPadding,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    SvgPicture.asset(
-                      'assets/images/icon.svg',
-                      width: _logoIconSize,
-                      height: _logoIconSize,
-                    ),
-                    const SizedBox(width: _logoTextGap),
-                    Text(
-                      'memoka',
-                      style: GoogleFonts.combo(
-                        fontSize: _logoFontSize,
-                        fontWeight: FontWeight.normal,
-                        color: _textColor,
+                padding: compact
+                    ? const EdgeInsets.symmetric(vertical: 14)
+                    : _logoPadding,
+                child: compact
+                    ? Center(
+                        child: SvgPicture.asset(
+                          'assets/images/icon.svg',
+                          width: 32,
+                          height: 32,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          SvgPicture.asset(
+                            'assets/images/icon.svg',
+                            width: _logoIconSize,
+                            height: _logoIconSize,
+                          ),
+                          const SizedBox(width: _logoTextGap),
+                          Text(
+                            'memoka',
+                            style: GoogleFonts.combo(
+                              fontSize: _logoFontSize,
+                              fontWeight: FontWeight.normal,
+                              color: _textColor,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
               Container(height: _dividerHeight, color: _dividerColor),
               // Channels list
@@ -202,6 +215,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                                   channel,
                                   isSelected,
                                   context,
+                                  compact: compact,
                                 ),
                               );
                             },
@@ -264,11 +278,11 @@ class _SidebarState extends ConsumerState<Sidebar> {
               ),
               // Separator before buttons
               Container(height: _dividerHeight, color: _dividerColor),
-              _buildAddButton(context),
+              _buildAddButton(context, compact: compact),
               // Archive Crate button
-              _buildArchiveButton(),
+              _buildArchiveButton(compact: compact),
               // Settings button
-              _buildAccountButton(context),
+              _buildAccountButton(context, compact: compact),
             ],
           ),
         );
@@ -325,11 +339,12 @@ class _SidebarState extends ConsumerState<Sidebar> {
   Widget _buildChannelItem(
     Channel channel,
     bool isSelected,
-    BuildContext context,
-  ) {
-    // Get latest note for preview
-    final notesAsync = ref.watch(notesProvider(channel.id!));
-    final latestNote = notesAsync.value?.isNotEmpty == true ? notesAsync.value!.first : null;
+    BuildContext context, {
+    bool compact = false,
+  }) {
+    // Get latest note for preview (skip in compact mode)
+    final notesAsync = compact ? null : ref.watch(notesProvider(channel.id!));
+    final latestNote = notesAsync?.value?.isNotEmpty == true ? notesAsync!.value!.first : null;
 
     return Material(
       color: isSelected ? _selectedColor : Colors.transparent,
@@ -337,105 +352,126 @@ class _SidebarState extends ConsumerState<Sidebar> {
         onTap: () => _switchChannel(ref, channel.id!),
         onSecondaryTapDown: (details) => _showContextMenu(context, channel, details.globalPosition),
         onLongPress: () => _showContextMenu(context, channel, null),
-        child: Padding(
-          padding: _channelItemPadding,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              // Emoji avatar (no background)
-              SizedBox(
-                width: _emojiContainerSize,
-                height: _emojiContainerSize,
+        child: compact
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Center(
                   child: Text(
                     channel.emoji,
-                    style: const TextStyle(fontSize: _emojiFontSize),
+                    style: const TextStyle(fontSize: 22),
                   ),
                 ),
-              ),
-              // Channel name and message preview
-              const SizedBox(width: _emojiToTextGap),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              )
+            : Padding(
+                padding: _channelItemPadding,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Text(
-                      channel.name,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: _channelNameFontSize,
-                        fontWeight: FontWeight.normal,
-                        color: _textColor,
-                      ),
-                    ),
-                    if (latestNote != null && _shouldShowPreview(latestNote))
-                      Text(
-                        _getPreviewText(latestNote),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: TextStyle(
-                          fontSize: _previewFontSize,
-                          color: _textColor.withValues(alpha: _previewTextAlpha),
+                    // Emoji avatar (no background)
+                    SizedBox(
+                      width: _emojiContainerSize,
+                      height: _emojiContainerSize,
+                      child: Center(
+                        child: Text(
+                          channel.emoji,
+                          style: const TextStyle(fontSize: _emojiFontSize),
                         ),
                       ),
+                    ),
+                    // Channel name and message preview
+                    const SizedBox(width: _emojiToTextGap),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            channel.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: _channelNameFontSize,
+                              fontWeight: FontWeight.normal,
+                              color: _textColor,
+                            ),
+                          ),
+                          if (latestNote != null && _shouldShowPreview(latestNote))
+                            Text(
+                              _getPreviewText(latestNote),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: _previewFontSize,
+                                color: _textColor.withValues(alpha: _previewTextAlpha),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Pin icon at the end
+                    if (channel.pinned) ...[
+                      const SizedBox(width: _pinIconGap),
+                      Transform.rotate(
+                        angle: _pinIconRotation,
+                        child: SvgPicture.asset(
+                          'assets/images/star.svg',
+                          width: _pinIconSize,
+                          height: _pinIconSize,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              // Pin icon at the end
-              if (channel.pinned) ...[
-                const SizedBox(width: _pinIconGap),
-                Transform.rotate(
-                  angle: _pinIconRotation,
-                  child: SvgPicture.asset(
-                    'assets/images/star.svg',
-                    width: _pinIconSize,
-                    height: _pinIconSize,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildAddButton(BuildContext context) {
+  Widget _buildAddButton(BuildContext context, {bool compact = false}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _showCreateChannelDialog(context, ref),
-        child: Padding(
-          padding: _buttonPadding,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              SvgPicture.asset(
-                'assets/images/new-note.svg',
-                width: _buttonIconSize,
-                height: _buttonIconSize,
-              ),
-              const SizedBox(width: _buttonTextGap),
-              Expanded(
-                child: Text(
-                  'New Channel',
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.combo(
-                    fontSize: _buttonFontSize,
-                    fontWeight: FontWeight.normal,
-                    color: _textColor,
+        child: compact
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/images/new-note.svg',
+                    width: 24,
+                    height: 24,
                   ),
                 ),
+              )
+            : Padding(
+                padding: _buttonPadding,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/images/new-note.svg',
+                      width: _buttonIconSize,
+                      height: _buttonIconSize,
+                    ),
+                    const SizedBox(width: _buttonTextGap),
+                    Expanded(
+                      child: Text(
+                        'New Channel',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.combo(
+                          fontSize: _buttonFontSize,
+                          fontWeight: FontWeight.normal,
+                          color: _textColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildArchiveButton() {
+  Widget _buildArchiveButton({bool compact = false}) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
     final isSelected = currentChannelAsync.maybeWhen(
       data: (id) => id == -1,
@@ -446,36 +482,47 @@ class _SidebarState extends ConsumerState<Sidebar> {
       color: isSelected ? _selectedColor : Colors.transparent,
       child: InkWell(
         onTap: () => _switchChannel(ref, -1),
-        child: Padding(
-          padding: _buttonPadding,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              SvgPicture.asset(
-                'assets/images/recycle.svg',
-                width: _buttonIconSize,
-                height: _buttonIconSize,
-              ),
-              const SizedBox(width: _buttonTextGap),
-              Expanded(
-                child: Text(
-                  'Archive Crate',
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.combo(
-                    fontSize: _buttonFontSize,
-                    fontWeight: FontWeight.normal,
-                    color: _textColor,
+        child: compact
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/images/recycle.svg',
+                    width: 24,
+                    height: 24,
                   ),
                 ),
+              )
+            : Padding(
+                padding: _buttonPadding,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/images/recycle.svg',
+                      width: _buttonIconSize,
+                      height: _buttonIconSize,
+                    ),
+                    const SizedBox(width: _buttonTextGap),
+                    Expanded(
+                      child: Text(
+                        'Archive Crate',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.combo(
+                          fontSize: _buttonFontSize,
+                          fontWeight: FontWeight.normal,
+                          color: _textColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildAccountButton(BuildContext context) {
+  Widget _buildAccountButton(BuildContext context, {bool compact = false}) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -483,31 +530,42 @@ class _SidebarState extends ConsumerState<Sidebar> {
           ref.read(currentSettingsPageProvider.notifier).showMain();
           ref.read(settingsVisibilityProvider.notifier).show();
         },
-        child: Padding(
-          padding: _buttonPadding,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              SvgPicture.asset(
-                'assets/images/settings.svg',
-                width: _buttonIconSize,
-                height: _buttonIconSize,
-              ),
-              const SizedBox(width: _buttonTextGap),
-              Expanded(
-                child: Text(
-                  'Settings',
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.combo(
-                    fontSize: _buttonFontSize,
-                    fontWeight: FontWeight.normal,
-                    color: _textColor,
+        child: compact
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/images/settings.svg',
+                    width: 24,
+                    height: 24,
                   ),
                 ),
+              )
+            : Padding(
+                padding: _buttonPadding,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SvgPicture.asset(
+                      'assets/images/settings.svg',
+                      width: _buttonIconSize,
+                      height: _buttonIconSize,
+                    ),
+                    const SizedBox(width: _buttonTextGap),
+                    Expanded(
+                      child: Text(
+                        'Settings',
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.combo(
+                          fontSize: _buttonFontSize,
+                          fontWeight: FontWeight.normal,
+                          color: _textColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }

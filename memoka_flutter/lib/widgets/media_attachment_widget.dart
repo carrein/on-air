@@ -101,8 +101,8 @@ class _ImageAttachmentWidget extends StatelessWidget {
     final imageUrl = _buildImageUrl(useThumbnail: false);
     final fullImageUrl = _buildImageUrl(useThumbnail: false);
 
-    const double maxWidth = 600;
-    const double maxHeight = 500;
+    const double maxWidth = 300;
+    const double maxHeight = 250;
 
     final displaySize = computeDisplaySize(
       width: attachment.width,

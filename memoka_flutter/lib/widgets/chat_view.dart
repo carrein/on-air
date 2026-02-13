@@ -415,7 +415,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                     child: Listener(
                       onPointerDown: (event) {
                         // Check for secondary button (right-click)
@@ -606,7 +606,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                     child: Listener(
                       onPointerDown: (event) {
                         if (event.buttons == 2) {

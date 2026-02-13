@@ -1,27 +1,26 @@
 # memoka (メモカ)
 
+![memoka](memoka.png)
+
 memoka (メモカ) uses realtime notes to manage your awareness of existence.
 
-> This application is built with the assistance of AI generated code as part of an experiment.
+> This application is built with the assistance of AI generated code as part of an experiment. You can read more about this on [carrein-blog](https://catallenya.com).
 
 ## Overview
 
-memoka aims to replicate Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it useful for making notes. memoka copies and augments this functionality with new features.
+memoka (メモカ) aims to replicate Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it useful for making notes. memoka (メモカ) copies and augments this functionality with new features.
 
 ## Features
 
-- Real-time notes with WebSocket streaming
-- Organized channels with emoji identifiers and pinning
-- Automatic link previews (OpenGraph + Twitter Cards)
-- Image and document uploads with drag-and-drop and paste support
-- Multi-file batch upload with compression
-- Media sidebar with grid/list views (Images, Videos, Documents, Links)
-- Archive system for notes and channels
-- Right-click context menus, multi-select, bulk delete
-- Per-channel input draft preservation
-- Responsive layout (desktop, tablet, mobile)
-- Date separators and absolute timestamps
-- Markdown formatting
+- Live notes through WebSocket streaming.
+- Channel based notes organization.
+- Automatic link previews.
+- Media upload support.
+- Archival system.
+- Contextual action menu.
+- Cross-platform (desktop, mobile) support.
+- Markdown formatting.
+- LLM integration.
 
 ## Documentation
 
@@ -127,11 +126,3 @@ See [CLAUDE.md](CLAUDE.md) for detailed architecture and development workflow.
 ## Deployment
 
 See [docs/Deployment.md](docs/Deployment.md) for the full deployment guide, including Docker setup, GitHub Actions CI/CD, and hosting configuration.
-
-## Contributing
-
-This is a personal project. Security issues should be reported privately.
-
-## License
-
-[Add your license here]
