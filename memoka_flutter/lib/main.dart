@@ -1,27 +1,24 @@
-import 'dart:io' show Platform;
 import 'package:memoka_client/memoka_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/chat_screen.dart';
+import 'screens/server_setup_screen.dart';
 
-/// Sets up a global client object that can be used to talk to the server from
-/// anywhere in our app. The client is generated from your server code
-/// and is set up to connect to a Serverpod running on a local server on
-/// the default port. You will need to modify this to connect to staging or
-/// production servers.
-/// In a larger app, you may want to use the dependency injection of your choice
-/// instead of using a global client object. This is just a simple example.
-late final Client client;
+late Client client;
 
 late String serverUrl;
 
+/// SharedPreferences key for stored server URL.
+const _serverUrlKey = 'server_url';
+
 /// Get the server URL based on the platform.
-/// For web builds, use the same origin (since frontend and backend are served together).
-/// For mobile/desktop, use localhost or a configured URL.
+/// Web: same-origin (frontend and backend served together).
+/// Native: check SharedPreferences, then --dart-define, then debug fallback.
 Future<String> getServerUrl() async {
   if (kIsWeb) {
     final uri = Uri.base;
@@ -33,34 +30,51 @@ Future<String> getServerUrl() async {
     }
 
     // In production with reverse proxy, use same origin (host + port)
-    // API endpoints are routed via path-based routing by the reverse proxy
     return '${uri.scheme}://${uri.host}:${uri.port}/';
   }
 
-  // For mobile/desktop development
-  // Android emulator requires 10.0.2.2 to access host machine's localhost
-  if (!kIsWeb && Platform.isAndroid) {
-    return 'http://10.0.2.2:8080/';
+  // Native: check SharedPreferences for saved URL
+  final prefs = await SharedPreferences.getInstance();
+  final saved = prefs.getString(_serverUrlKey);
+  if (saved != null && saved.isNotEmpty) {
+    return saved;
   }
-  return 'http://localhost:8080/';
+
+  // Compile-time override: --dart-define=SERVER_URL=https://...
+  const defineUrl = String.fromEnvironment('SERVER_URL');
+  if (defineUrl.isNotEmpty) {
+    return defineUrl;
+  }
+
+  // No URL configured — return empty to signal setup needed
+  return '';
+}
+
+/// Whether the native app needs server URL configuration.
+bool get needsServerSetup => !kIsWeb && serverUrl.isEmpty;
+
+/// Update the server URL and reinitialize the client.
+Future<void> setServerUrl(String url) async {
+  serverUrl = url;
+  client = Client(serverUrl)
+    ..connectivityMonitor = FlutterConnectivityMonitor();
+
+  if (!kIsWeb) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_serverUrlKey, url);
+  }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // When you are running the app on a physical device, you need to set the
-  // server URL to the IP address of your computer. You can find the IP
-  // address by running `ipconfig` on Windows or `ifconfig` on Mac/Linux.
-  //
-  // You can set the variable when running or building your app like this:
-  // E.g. `flutter run --dart-define=SERVER_URL=https://api.example.com/`.
-  //
-  // Otherwise, the server URL is fetched from the assets/config.json file or
-  // defaults to http://$localhost:8080/ if not found.
   serverUrl = await getServerUrl();
 
-  client = Client(serverUrl)
-    ..connectivityMonitor = FlutterConnectivityMonitor();
+  // Only create client if we have a URL (web always has one)
+  if (serverUrl.isNotEmpty) {
+    client = Client(serverUrl)
+      ..connectivityMonitor = FlutterConnectivityMonitor();
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -77,7 +91,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
       ),
-      home: const ChatScreen(),
+      home: needsServerSetup ? const ServerSetupScreen() : const ChatScreen(),
     );
   }
 }

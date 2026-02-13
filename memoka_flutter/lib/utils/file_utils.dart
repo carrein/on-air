@@ -72,8 +72,19 @@ class FileUtils {
       final origin = Uri.base;
       base = '${origin.scheme}://${origin.host}:${origin.port}';
     } else {
-      // Native: API server is on 8080, web server (media) is on 8082.
-      base = serverUrl.replaceAll(':8080', ':8082').replaceAll(RegExp(r'/$'), '');
+      // Native: dev server (localhost/10.0.2.2 on port 8080) uses separate
+      // web server on 8082. Production servers (everything else, e.g. Tailscale)
+      // serve media from the same base URL.
+      final uri = Uri.parse(serverUrl);
+      final isDevServer = (uri.host == 'localhost' ||
+              uri.host == '127.0.0.1' ||
+              uri.host == '10.0.2.2') &&
+          uri.port == 8080;
+      if (isDevServer) {
+        base = '${uri.scheme}://${uri.host}:8082';
+      } else {
+        base = '${uri.scheme}://${uri.host}${uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
+      }
     }
     final cacheBuster = contentHash ?? '';
     return '$base/media/$path?v=$cacheBuster';

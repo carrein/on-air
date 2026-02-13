@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/background_provider.dart';
+import '../main.dart';
+import '../screens/server_setup_screen.dart';
 
 /// Settings view widget (displayed in main content area)
 class SettingsView extends ConsumerWidget {
@@ -43,6 +46,8 @@ class SettingsView extends ConsumerWidget {
           Expanded(
             child: ListView(
               children: [
+                // Server section (native only)
+                if (!kIsWeb) _buildServerSection(context),
                 // Chat Background section
                 _buildBackgroundSection(ref, currentBackground),
               ],
@@ -50,6 +55,47 @@ class SettingsView extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildServerSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            'Server',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1C1C1C),
+            ),
+          ),
+        ),
+        ListTile(
+          title: const Text('Server URL', style: TextStyle(fontSize: 14)),
+          subtitle: Text(
+            serverUrl,
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: TextButton(
+            onPressed: () async {
+              await Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => const ServerSetupScreen(isEditing: true),
+                ),
+              );
+            },
+            child: const Text(
+              'Change',
+              style: TextStyle(color: Color(0xFFFF52A1)),
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+      ],
     );
   }
 

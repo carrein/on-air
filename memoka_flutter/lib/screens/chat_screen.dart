@@ -8,9 +8,11 @@ import '../widgets/input_bar.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/media_sidebar.dart';
 import '../widgets/settings_view.dart';
+import '../widgets/share_intent_dialog.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/channels_provider.dart';
+import '../providers/share_intent_provider.dart';
 import '../utils/responsive_utils.dart';
 
 /// Main chat screen with sidebar, chat view, and input bar.
@@ -22,6 +24,20 @@ class ChatScreen extends ConsumerWidget {
     final showMediaSidebar = ResponsiveUtils.shouldShowMediaSidebar(context);
     final isShowingSettings = ref.watch(settingsVisibilityProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
+
+    // Listen for share intents (Android only)
+    if (!kIsWeb) {
+      ref.listen(shareIntentProvider, (prev, next) {
+        next.whenData((files) {
+          if (files.isNotEmpty) {
+            showDialog(
+              context: context,
+              builder: (_) => ShareIntentDialog(sharedFiles: files),
+            );
+          }
+        });
+      });
+    }
 
     // Update browser/PWA title with current channel name
     if (kIsWeb) {

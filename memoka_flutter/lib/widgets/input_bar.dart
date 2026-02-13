@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
@@ -188,7 +189,15 @@ class _InputBarState extends ConsumerState<InputBar> {
                 ),
               ),
               const SizedBox(width: _iconGap),
-              if (!isEditMode)
+              if (!isEditMode) ...[
+                if (!kIsWeb)
+                  StyledTooltip(
+                    message: 'Camera',
+                    child: IconButton(
+                      icon: Icon(Icons.camera_alt, color: _iconColor, size: _iconSize),
+                      onPressed: _capturePhoto,
+                    ),
+                  ),
                 StyledTooltip(
                   message: 'Upload file',
                   child: IconButton(
@@ -200,6 +209,7 @@ class _InputBarState extends ConsumerState<InputBar> {
                     onPressed: _pickFile,
                   ),
                 ),
+              ],
               StyledTooltip(
                 message: isEditMode ? 'Save' : 'Send',
                 child: IconButton(
@@ -274,6 +284,24 @@ class _InputBarState extends ConsumerState<InputBar> {
       _previewUrl = null;
       _showPreview = true;
     });
+  }
+
+  Future<void> _capturePhoto() async {
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(source: ImageSource.camera);
+      if (photo == null) return;
+
+      final bytes = await photo.readAsBytes();
+      final fileName = photo.name;
+      final ext = fileName.split('.').last;
+
+      await _showFileUploadDialog(bytes, fileName, ext);
+    } catch (e) {
+      if (mounted) {
+        ToastUtils.show(context, 'Camera failed: $e', type: ToastType.error);
+      }
+    }
   }
 
   Future<void> _pickFile() async {

@@ -1,3 +1,4 @@
+u/docs/Android.md
 u/docs/channel.md
 u/docs/link.md
 u/docs/media.md
@@ -253,3 +254,7 @@ interactions, state management, and integration details.
 - **NewChannelModal**: `docs/components/NewChannelModal.md`
 - **Tooltip**: `docs/components/Tooltip.md`
 - **MediaSidebar**: `docs/components/MediaSidebar.md`
+
+## Platform Guides
+
+- **Android**: `docs/Android.md` — Build, signing, server setup, share intent, camera

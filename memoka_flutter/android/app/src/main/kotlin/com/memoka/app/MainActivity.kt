@@ -1,4 +1,4 @@
-package com.example.memoka_flutter
+package com.memoka.app
 
 import io.flutter.embedding.android.FlutterActivity
 
