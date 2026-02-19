@@ -131,12 +131,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
 
     final isMobile = ResponsiveUtils.isMobile(context);
+    final isInDetailMode = isShowingSettings || isArchive;
 
     Widget getMainContent() {
-      if (isShowingSettings) {
-        return const Expanded(child: SettingsView());
-      }
-      return const Expanded(child: ChatView());
+      final key = ValueKey(isShowingSettings ? 'settings' : (isArchive ? 'archive' : 'chat'));
+      return Expanded(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+            child: child,
+          ),
+          child: isShowingSettings
+              ? SettingsView(key: key)
+              : ChatView(key: key),
+        ),
+      );
     }
 
     // Returns the inner column content (without Expanded).
@@ -183,13 +193,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Column(
             children: [
               const OfflineBanner(),
-              if (!isShowingSettings) const ChannelTopBar(),
+              const ChannelTopBar(),
               Expanded(
                 child: Row(
                   children: [
-                    const Sidebar(),
+                    if (!isInDetailMode) const Sidebar(),
                     buildContentColumn(),
-                    if (showMediaSidebar && !isShowingSettings) const MediaSidebar(),
+                    if (showMediaSidebar && !isInDetailMode) const MediaSidebar(),
                   ],
                 ),
               ),

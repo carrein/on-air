@@ -29,7 +29,11 @@ class FullScreenImageView extends StatefulWidget {
         imageUrls: imageUrls,
         initialIndex: initialIndex,
       ),
-    );
+    ).then((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        FocusManager.instance.primaryFocus?.unfocus();
+      });
+    });
   }
 
   @override
@@ -75,6 +79,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
       _goTo(_currentIndex + 1);
       return KeyEventResult.handled;
     } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+      FocusScope.of(context).unfocus();
       Navigator.of(context).pop();
       return KeyEventResult.handled;
     }
@@ -88,7 +93,10 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
       child: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
+        onTap: () {
+          FocusScope.of(context).unfocus();
+          Navigator.of(context).pop();
+        },
         child: Stack(
           children: [
             // Image gallery
@@ -127,7 +135,10 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
               right: 16,
               child: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  FocusScope.of(context).unfocus();
+                  Navigator.of(context).pop();
+                },
               ),
             ),
             // Navigation arrows (desktop)

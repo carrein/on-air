@@ -12,9 +12,10 @@ The InputBar is the note composition component pinned to the bottom of the scree
 
 ### Bar Container
 
-The outer dark container holding the text field and action icons.
+The outer light container holding the text field and action icons.
 
-- Background: `#191C2F`
+- Background: `#F6F0ED` (core.surface)
+- Top border: 1px `brand.primary` (`#CE2161`)
 - Padding: left 10px, top 8px, bottom 8px, right 6px
 - Full-width, spans below both the sidebar and content area
 
@@ -28,29 +29,31 @@ The main text input area.
 - Content padding: zero
 - Dense mode enabled (`isDense: true`)
 - Starts at 1 line (`minLines: 1`), expands up to 8 lines (`maxLines: 8`)
-- Text color: white
-- Cursor color: `#FF52A1` (brand.accent)
-- Placeholder text: "Keyboard goes brrrr..." in `#FF52A1` at 80% opacity
+- Text color: `#00171F` (core.text)
+- Cursor color: `#CE2161` (brand.primary)
+- Placeholder text: "Keyboard goes brrrr..." in `#00171F` at 40% opacity
 - Edit mode placeholder: "Edit note... (Shift+Enter for new line)"
 
 ### Action Icons (normal mode)
 
-Tappable icons using `IconButtonStyled` with Phosphor duotone icons.
+Tappable icons using `IconButtonStyled` with regular Phosphor icons.
 
-- **Camera** (mobile only): `PhosphorIconsDuotone.camera` — opens device camera
+- **Camera** (mobile only): `PhosphorIcons.camera()` — opens device camera
   - Fades out with `AnimatedOpacity` + collapses with `AnimatedSize` when text is entered
-- **Attachment**: `PhosphorIconsDuotone.paperclip` — opens file picker
+- **Attachment**: `PhosphorIcons.paperclip()` — opens file picker
   - Zooms out via `AnimatedSwitcher` + `ScaleTransition` when text is entered
-- **Send**: `PhosphorIconsDuotone.paperPlaneRight` — submits note
+- **Send**: `PhosphorIcons.paperPlaneRight()` — submits note
   - Zooms in via `AnimatedSwitcher` + `ScaleTransition` when text is entered
   - Replaces the attachment icon in the same slot
 
-All icons: 24px, white primary color, `#F9A302` duotone secondary color at 100% opacity.
+All icons: 24px, `#CE2161` (brand.primary) color.
 
 ### Action Icons (edit mode)
 
-- **Cancel**: Material `Icons.close` in `#FF52A1`
-- **Save**: Material `Icons.check` in `#FF52A1`, disabled at 40% opacity when empty
+Both icons appear on the **right side** of the text field (same position as camera/attachment/send):
+
+- **Cancel**: `IconButtonStyled(icon: PhosphorIcons.xCircle())` — clears field and exits edit mode
+- **Save**: `IconButtonStyled(icon: PhosphorIcons.highlighter())` — saves changes; dimmed at 40% opacity when field is empty
 
 ### Animation
 
@@ -80,20 +83,20 @@ Appears above the input bar when a URL is detected in the text.
 
 | Token                | Value       | Usage                          |
 |----------------------|-------------|--------------------------------|
-| `_barBackground`     | `#191C2F`   | Bar container background       |
+| `_barBackground`     | `#F6F0ED`   | Bar container background       |
 | `_fieldFill`         | transparent | Text field fill (blends with bar) |
-| `_iconColor`         | `#FF52A1`   | Edit mode icons, cursor, hints |
+| `_borderColor`       | `#CE2161`   | Top border                     |
+| `_iconColor`         | `#CE2161`   | All action icons, cursor       |
 | `_iconDisabledAlpha` | `0.4`       | Disabled save icon opacity     |
-| `_hintTextColor`     | `#FF52A1`   | Placeholder text color         |
-| `_hintTextAlpha`     | `0.8`       | Placeholder text opacity       |
-| `_duotoneColor`      | `#F9A302`   | Icon duotone secondary color   |
+| `_hintTextColor`     | `#00171F`   | Placeholder text color         |
+| `_hintTextAlpha`     | `0.4`       | Placeholder text opacity       |
 
 ### Typography
 
 | Element    | Size  | Weight | Color                  |
 |------------|-------|--------|------------------------|
-| Input text | —     | Normal | White                  |
-| Hint text  | —     | Normal | `#FF52A1` @ 80%        |
+| Input text | —     | Normal | `#00171F` (core.text)  |
+| Hint text  | —     | Normal | `#00171F` @ 40%        |
 
 ### Dimensions
 
@@ -127,8 +130,9 @@ Appears above the input bar when a URL is detected in the text.
 - Triggered externally via `editingNoteProvider`
 - Populates the text field with the existing note content
 - Field auto-focuses when entering edit mode
-- Cancel button clears field and exits edit mode
-- Submit updates the existing note instead of creating a new one
+- Cancel button (`xCircle`, right side) clears field and exits edit mode
+- Save button (`highlighter`, right side) updates the existing note instead of creating a new one
+- Both edit mode buttons are on the **right side** of the text field
 
 ### Draft Persistence
 
@@ -189,14 +193,14 @@ Appears above the input bar when a URL is detected in the text.
 
 ## Integration
 
-The InputBar is placed at the bottom of the `ChatScreen` column, below the main `Row` containing the sidebar, chat view, and media sidebar. It spans the full width of the screen. It is hidden when viewing the Archive channel or when settings is open.
+The InputBar is placed at the bottom of the `ChatScreen` layout. On desktop/web it sits below the main `Row` (sidebar + chat + media sidebar), spanning the content area. On mobile it's the last item in the outermost `Column`. It is hidden when viewing the Archive channel or when settings is open (both are "detail mode").
 
 ## Related Files
 
 | File | Relationship |
 |------|-------------|
 | `lib/widgets/input_bar.dart` | This component |
-| `lib/widgets/icon_button_styled.dart` | Reusable icon button (camera, send, attach) |
+| `lib/widgets/icon_button_styled.dart` | Reusable icon button (camera, send, attach, edit mode) |
 | `lib/widgets/input_link_preview.dart` | Link preview widget shown above bar |
 | `lib/widgets/file_upload_dialog.dart` | Single file upload dialog |
 | `lib/widgets/multi_file_upload_dialog.dart` | Multi-file upload dialog |

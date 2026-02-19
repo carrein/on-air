@@ -43,6 +43,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
 
   // -- Scroll --
   static const _scrollThreshold = 10.0;
+  static const _itemHeight = _emojiContainerSize + 20.0; // top(10) + bottom(10) padding
 
   final ScrollController _scrollController = ScrollController();
   bool _showFadeOut = true;
@@ -58,6 +59,32 @@ class _SidebarState extends ConsumerState<Sidebar> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToChannel(int channelId, List<Channel> pinned, List<Channel> unpinned) {
+    if (!_scrollController.hasClients) return;
+
+    int index = pinned.indexWhere((c) => c.id == channelId);
+    if (index == -1) {
+      final u = unpinned.indexWhere((c) => c.id == channelId);
+      if (u == -1) return;
+      index = pinned.length + u;
+    }
+
+    final itemTop = index * _itemHeight;
+    final pos = _scrollController.position;
+
+    // Center the item in the viewport, clamped to valid scroll range
+    final target = (itemTop - (pos.viewportDimension - _itemHeight) / 2)
+        .clamp(pos.minScrollExtent, pos.maxScrollExtent);
+
+    if ((target - pos.pixels).abs() < 1.0) return;
+
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _onScroll() {
@@ -80,6 +107,19 @@ class _SidebarState extends ConsumerState<Sidebar> {
     final channelsAsync = ref.watch(channelsProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
     final compact = ResponsiveUtils.isMobile(context);
+
+    ref.listen(currentChannelProvider, (prev, next) {
+      final channelId = next.value;
+      if (channelId == null || channelId == prev?.value) return;
+      final channels = ref.read(channelsProvider).value;
+      if (channels == null) return;
+      final regular = channels.where((c) => !c.isSystemChannel).toList();
+      final pinned = regular.where((c) => c.pinned).toList();
+      final unpinned = regular.where((c) => !c.pinned).toList();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToChannel(channelId, pinned, unpinned);
+      });
+    });
 
     return Container(
           width: compact ? _sidebarCompactWidth : _sidebarWidth,

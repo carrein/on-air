@@ -120,11 +120,6 @@ class _InputBarState extends ConsumerState<InputBar> {
           ),
           child: Row(
             children: [
-              if (isEditMode)
-                IconButton(
-                  icon: Icon(Icons.close, color: _iconColor),
-                  onPressed: _cancelEditing,
-                ),
               Expanded(
                 child: Shortcuts(
                   shortcuts: const {
@@ -169,14 +164,18 @@ class _InputBarState extends ConsumerState<InputBar> {
               ),
               const SizedBox(width: _iconGap),
               if (isEditMode) ...[
-                IconButton(
-                  icon: Icon(
-                    Icons.check,
-                    color: _controller.text.trim().isEmpty
-                        ? _iconColor.withValues(alpha: _iconDisabledAlpha)
-                        : _iconColor,
-                  ),
-                  onPressed: _controller.text.trim().isEmpty ? null : _submit,
+                IconButtonStyled(
+                  icon: PhosphorIcons.xCircle(),
+                  onPressed: _cancelEditing,
+                  size: _iconSize,
+                ),
+                IconButtonStyled(
+                  icon: PhosphorIcons.highlighter(),
+                  onPressed: _submit,
+                  size: _iconSize,
+                  color: _controller.text.trim().isEmpty
+                      ? _iconColor.withValues(alpha: _iconDisabledAlpha)
+                      : _iconColor,
                 ),
               ] else ...[
                 _buildActionIcons(),

@@ -2,54 +2,52 @@
 
 ## Overview
 
-The TopBar is the channel title bar displayed at the top of the screen. It shows the current channel icon and name, and a three-dot menu button giving access to channel actions and global app actions.
+The TopBar is the channel title bar displayed at the top of the screen. It renders in one of three modes depending on app state: **standard** (channel name + menu), **detail** (back button + plain title for settings/archive), or **selection** (bulk-action bar when notes are selected).
 
 **File**: `memoka_flutter/lib/widgets/channel_top_bar.dart`
 **Widget**: `ChannelTopBar` (ConsumerWidget)
 
-## Subcomponents
+## Modes
 
-### Bar Container
+### Standard Mode
 
-The outer container spanning full width.
+Shown when viewing a real channel (not archive, not settings).
 
-- Background: `core.surface` (`#F6F0ED`)
-- Bottom border: 1px `brand.primary` (`#CE2161`)
-- Padding: left 16px, top 8px, bottom 8px, right 8px
-- Height driven by children (icon button = 40px tall, so bar ≈ 56px with padding)
+- **Background**: `core.surface` (`#F6F0ED`)
+- **Bottom border**: 1px `brand.primary` (`#CE2161`)
+- **Padding**: `_paddingStandard` — left 16px, right 8px, top 8px, bottom 8px
+- **Layout**: `[pin button?]` + `[channel icon + name (Expanded)]` + `[menu button]`
 
-### Channel Title
+#### Channel Title
 
 Left-aligned icon + text showing the current channel.
 
-- Phosphor icon (20px) + channel name at 20px bold, `core.text` (`#00171F`)
-- Shows archive icon + "Archive" when viewing the Archive Crate
+- Phosphor Fill icon (20px) + channel name at 20px bold, `core.text` (`#00171F`)
 - Ellipsis overflow for long names
 
-### Pin Button
+#### Pin Button
 
 Inline icon button shown to the left of the three-dot button, using `IconButtonStyled`.
 
 - Icon: `PhosphorIcons.pushPin()` when unpinned; `PhosphorIcons.pushPinSlash()` when pinned
-- Visible only when a real channel is active (hidden on Archive Crate)
+- Visible only when a real channel is active (hidden on Archive)
 - Tap immediately toggles the pinned state via `channelsProvider.notifier.updateChannel`
 
-### Menu Button
+#### Menu Button
 
-Right-aligned three-dot button using `IconButtonStyled`.
+Right-aligned button using `IconButtonStyled`.
 
 - Icon: `PhosphorIcons.dotsThreeCircle()`
-- Always visible
 - Opens a popup menu on tap
 
-### Popup Menu
+#### Popup Menu
 
 Light popup menu anchored to the top-right corner.
 
 - Background: `core.surface` (`#F6F0ED`)
 - Text/icons: `core.text` (`#00171F`)
 
-**Channel actions** (shown only when a real channel is active, not Archive):
+**Channel actions** (shown only when a real channel is active):
 
 | Item | Icon | Action |
 |------|------|--------|
@@ -65,6 +63,30 @@ Light popup menu anchored to the top-right corner.
 | Archive Crate | `archive` | Navigates to the Archive channel (`-1`) |
 | Media | `images` | Opens media bottom sheet (mobile/tablet only) |
 | Settings | `gear` | Opens settings view |
+
+### Detail Mode
+
+Shown when `isShowingSettings == true` or `currentChannelId == -1` (Archive Crate).
+
+- **Padding**: `_padding` — horizontal 8px, vertical 8px (same as selection mode)
+- **Layout**: `[back button]` + `[plain title (Expanded)]`
+- **Back button**: `PhosphorIcons.arrowCircleLeft()` via `IconButtonStyled` on the left
+- **Title**: plain `Text('Settings')` or `Text('Archive')` — no channel icon
+- Pin button and three-dot menu are **hidden** in detail mode
+- `_goBack()` logic: hides settings if open, otherwise restores the channel from `previousChannelProvider`, falling back to the first non-system channel
+
+### Selection Mode
+
+Shown when `noteSelectionProvider` is non-empty (user has selected notes). Replaces the other modes entirely.
+
+- **Padding**: `_padding` — horizontal 8px, vertical 8px
+- **Layout**: `[xCircle cancel]` + `[N selected text]` (Spacer) + `[archive button]`
+- **Cancel**: `IconButtonStyled(icon: PhosphorIcons.xCircle())` — clears selection
+- **Count text**: "N selected", 16px, w500, `#00171F`
+- **Archive**: `IconButtonStyled(icon: PhosphorIcons.archive())` — archives all selected notes
+  - Calls `notesProvider(channelId).notifier.deleteNote(noteId)` for each selected ID
+  - Clears selection after completion
+  - Shows toast: "N note(s) archived"
 
 ### Media Bottom Sheet
 
@@ -90,26 +112,33 @@ Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
 | Element       | Size  | Weight | Color      |
 |---------------|-------|--------|------------|
 | Channel title | 20px  | Bold   | `#00171F`  |
+| Selection count | 16px | w500  | `#00171F`  |
 | Menu items    | 14px  | Normal | `#00171F`  |
 
 ### Dimensions
 
-| Token      | Value                     | Usage                   |
-|------------|---------------------------|-------------------------|
-| `_padding` | L: 16, T: 8, B: 8, R: 8 | Bar container padding   |
+| Token              | Value                          | Usage                        |
+|--------------------|--------------------------------|------------------------------|
+| `_padding`         | H: 8, V: 8                    | Detail mode and selection mode |
+| `_paddingStandard` | L: 16, T: 8, B: 8, R: 8      | Standard channel view        |
 
 ## Interactions
 
 ### Menu Button
 
 - Tap opens a popup menu anchored to the top-right
-- Channel actions (Edit/Pin/Archive) only appear when the active channel is a real channel (not Archive Crate)
+- Channel actions (Edit/Archive) only appear when the active channel is a real channel (not Archive Crate)
 - Dismissing without selecting does nothing
 
 ### Archive Channel
 
 - If archiving the currently viewed channel, automatically switches to the next available channel
 - Shows a success toast on completion, error toast on failure
+
+### Back Navigation (Detail Mode)
+
+- If settings is showing: hides settings overlay
+- If archive is showing: restores the channel recorded in `previousChannelProvider`, or falls back to the first non-system channel
 
 ### Media Bottom Sheet
 
@@ -122,37 +151,46 @@ Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
 
 ### Providers Watched (reactive)
 
-| Provider                | Type                        | Purpose                      |
-|-------------------------|-----------------------------|------------------------------|
-| `currentChannelProvider`| `AsyncValue<int>`           | Current channel ID           |
-| `channelsProvider`      | `AsyncValue<List<Channel>>` | Channel list for name lookup |
+| Provider                | Type                        | Purpose                         |
+|-------------------------|-----------------------------|----------------------------------|
+| `currentChannelProvider`| `AsyncValue<int>`           | Current channel ID               |
+| `channelsProvider`      | `AsyncValue<List<Channel>>` | Channel list for name/icon lookup|
+| `settingsVisibilityProvider` | `bool`               | Whether settings view is open    |
+| `noteSelectionProvider` | `Set<int>`                  | Selected note IDs (selection mode) |
 
 ### Providers Read (on interaction)
 
-| Provider                               | Usage                                      |
-|----------------------------------------|--------------------------------------------|
-| `currentChannelProvider` (read)        | Get active channel ID for menu setup       |
-| `channelsProvider` (read/future)       | Channel lookup, post-archive refetch       |
-| `channelsProvider.notifier`            | Update (pin) or archive channel            |
-| `currentChannelProvider.notifier`      | Switch channel after archive / new channel |
-| `editingNoteProvider.notifier`         | Cancel editing on archive crate switch     |
-| `settingsVisibilityProvider.notifier`  | Show/hide settings                         |
-| `currentSettingsPageProvider.notifier` | Navigate to main settings page             |
+| Provider                               | Usage                                          |
+|----------------------------------------|------------------------------------------------|
+| `currentChannelProvider` (read)        | Get active channel ID for menu setup           |
+| `channelsProvider` (read/future)       | Channel lookup, post-archive refetch           |
+| `channelsProvider.notifier`            | Update (pin) or archive channel                |
+| `currentChannelProvider.notifier`      | Switch channel after archive / new channel     |
+| `previousChannelProvider`             | Restore channel when leaving archive view       |
+| `previousChannelProvider.notifier`    | Clear after back navigation                     |
+| `editingNoteProvider.notifier`         | Cancel editing on archive crate switch         |
+| `settingsVisibilityProvider.notifier`  | Show/hide settings                             |
+| `currentSettingsPageProvider.notifier` | Navigate to main settings page                 |
+| `noteSelectionProvider.notifier`       | Clear selection, or select all                 |
+| `notesProvider(channelId).notifier`    | Delete (archive) notes in bulk                 |
 
 ## Integration
 
-The `ChannelTopBar` is placed in the `ChatScreen` column above the main `Row` layout. It spans full width across both the sidebar and content area. It is hidden when the settings view is open.
+The `ChannelTopBar` is placed in the `ChatScreen` column above the main `Row` layout. It spans full width and is **always visible** — including when settings or archive is open. The sidebar and media sidebar are hidden in detail mode; the TopBar remains.
 
 ## Related Files
 
 | File | Relationship |
 |------|-------------|
 | `lib/widgets/channel_top_bar.dart` | This component |
-| `lib/widgets/icon_button_styled.dart` | Menu button widget |
+| `lib/widgets/icon_button_styled.dart` | All icon buttons |
 | `lib/widgets/media_sidebar.dart` | Media content in bottom sheet |
 | `lib/widgets/new_channel_modal.dart` | Channel create/edit dialog |
 | `lib/screens/chat_screen.dart` | Parent layout |
-| `lib/providers/current_channel_provider.dart` | Active channel ID |
+| `lib/providers/current_channel_provider.dart` | Active channel ID and previous channel |
 | `lib/providers/channels_provider.dart` | Channel list data and mutations |
+| `lib/providers/note_selection_provider.dart` | Multi-select state |
+| `lib/providers/notes_provider.dart` | Note deletion for bulk archive |
+| `lib/providers/settings_view_provider.dart` | Settings overlay visibility |
 | `lib/utils/responsive_utils.dart` | Breakpoint detection for Media item |
 | `lib/utils/toast_utils.dart` | Archive success/error toasts |

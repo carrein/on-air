@@ -113,6 +113,16 @@ Channel create/edit/pin/archive actions are accessed via the **TopBar 3-dot menu
 - Gradients use the sidebar background color for a seamless blend effect
 - Gradients are wrapped in `IgnorePointer` so they don't block interaction
 
+### Scroll-to-Active-Channel
+
+When the active channel changes (via keyboard arrow keys or swipe gestures in `ChatScreen`), the sidebar automatically scrolls to center the newly selected channel in the viewport.
+
+- Triggered via `ref.listen(currentChannelProvider)` with `addPostFrameCallback`
+- Item height: `_emojiContainerSize + 20.0 = 60px` (40px icon + 10px top + 10px bottom padding)
+- Target position: `itemTop - (viewportHeight - itemHeight) / 2`, clamped to valid scroll extents
+- Animation: 250ms `easeInOut`
+- No-op if target is within 1px of current position (avoids jitter)
+
 ## State Management
 
 ### Providers Watched (reactive)
@@ -134,15 +144,21 @@ Channel create/edit/pin/archive actions are accessed via the **TopBar 3-dot menu
 
 ### Local Widget State
 
-| Field               | Type               | Purpose                           |
-|---------------------|--------------------|-----------------------------------|
-| `_scrollController` | `ScrollController` | Tracks scroll position for fades  |
-| `_showFadeOut`      | `bool`             | Bottom fade gradient visibility   |
-| `_showFadeIn`       | `bool`             | Top fade gradient visibility      |
+| Field               | Type               | Purpose                                        |
+|---------------------|--------------------|------------------------------------------------|
+| `_scrollController` | `ScrollController` | Tracks scroll position for fades and auto-scroll |
+| `_showFadeOut`      | `bool`             | Bottom fade gradient visibility                |
+| `_showFadeIn`       | `bool`             | Top fade gradient visibility                   |
+
+### Side Effects
+
+| Listener | Trigger | Effect |
+|----------|---------|--------|
+| `ref.listen(currentChannelProvider)` | Channel ID changes | Scrolls to center the new active channel (`addPostFrameCallback`) |
 
 ## Integration
 
-The Sidebar is placed as the left-most child in the app's main `Row` layout (in `ChatScreen`). It is always visible at its fixed width. The sidebar communicates with the rest of the app exclusively through Riverpod providers — it has no direct widget-to-widget coupling.
+The Sidebar is placed as the left-most child in the app's main `Row` layout (in `ChatScreen`). It is **hidden in detail mode** — when the settings view is open or the Archive Crate is selected (`isInDetailMode = isShowingSettings || isArchive`). The sidebar communicates with the rest of the app exclusively through Riverpod providers — it has no direct widget-to-widget coupling.
 
 ## Related Files
 

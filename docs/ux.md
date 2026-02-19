@@ -6,66 +6,54 @@ This document captures the user experience design decisions for the Memoka appli
 ## Sidebar Design
 
 ### Layout States
-The sidebar supports two width states (web only):
-- **Collapsed**: 70px width, emoji-only view
-- **Expanded**: 250px width, shows emoji + channel name + message preview
-- **Mobile**: Always collapsed (70px)
 
-### Draggable Behavior (Web)
-- Sidebar can be dragged from the right edge
-- 8px wide draggable divider
-- Snaps to one of two positions:
-  - Threshold at 150px
-  - < 150px → snaps to 70px (collapsed)
-  - ≥ 150px → snaps to 250px (expanded)
-- Visual feedback: Blue highlight on divider during drag
+The sidebar supports two width states:
+
+- **Compact (mobile — 64px)**: Emoji/icon only, no text or preview
+- **Full (desktop/web — 240px)**: Icon + channel name + message preview
 
 ### Spacing & Padding
-- **Container**: No outer padding (edge-to-edge content)
-- **Channel Items**: 12px horizontal and vertical padding
-- **Inter-channel Spacing**: 4px gap between items
-- **Emoji-to-text Gap**: 12px spacing in expanded mode
 
-## Channel List Design
-
-### Drag-to-Reorder
-- **Trigger**: Long-press on a channel item to start drag
-- **Constraint**: Pinned channels reorder only among pinned; unpinned only among unpinned
-- **Persistence**: Order saved via `sortOrder` field on Channel model and `reorderChannels` endpoint
-- **Widget**: `ReorderableListView` replaces `ListView.separated`
+- **Channel Items**: left 8px, right 18px, top/bottom 10px
+- **Icon-to-text Gap**: 8px (full mode only)
+- **Pin Icon Gap**: 12px before the star icon
 
 ### Visual Style
-- **No border radius**: All elements use sharp corners
-- **Background**: Light gray (Colors.grey[200])
-- **Selection**: Light blue background (Colors.blue[100])
-- **Divider**: Horizontal line between pinned and unpinned channels
 
-### Channel Item Structure (Expanded)
-```
-[Emoji Circle] [Channel Name          ] [Pin Icon]
-               [Latest Message Preview]
-```
+- **Background**: `#F6F0ED` (core.surface)
+- **Selected channel**: `#CE2161` background, white icon/text
+- **Pin indicator** (full mode): Phosphor star icon (20px) rotated 15°, `#CE2161`
+- **Pin indicator** (compact, pinned but not selected): icon inside a 32×32px `#CE2161` circle
 
-### Channel Item Structure (Collapsed)
+### Channel Item Structure (Full)
+
 ```
-    [Emoji Circle]
+[Icon 40x40] [Channel Name          ] [Pin Star?]
+             [Latest Message Preview]
 ```
 
-### Emoji Display
-- **Size**: 40x40px circle
+### Channel Item Structure (Compact)
+
+```
+    [Icon 22px]
+```
+
+### Emoji/Icon Display
+
+- **Size**: 40x40px container, icon at 18px (full) / 22px (compact)
 - **Background**: Transparent
-- **Border**: 1px solid gray
-- **Emoji Size**: 20px font size
-- **Alignment**: Centered in circle
+- **Alignment**: Centered in container
 
 ### Pin Indicator
-- **Position**: Right side of channel item (end of row)
-- **Icon**: Small blue pin (16px)
-- **Not overlaid on emoji** (previous design had it as badge on emoji)
+
+- **Position**: Right end of channel item row (full mode)
+- **Icon**: Phosphor star Fill (20px), rotated 15°, `#CE2161`
+- **Compact pinned**: icon shown inside a 32×32px `#CE2161` circle (overridden by selected state)
 
 ### Message Preview
-- **Font Size**: 12px
-- **Color**: Gray (Colors.grey[600])
+
+- **Font Size**: 10px
+- **Color**: `#00171F` at 70% opacity (unselected) / white at 70% (selected)
 - **Lines**: Single line with ellipsis
 - **Content**: Shows newest note in the channel
 - **Updates**: Real-time via WebSocket
@@ -75,96 +63,168 @@ The sidebar supports two width states (web only):
   - If link-only: Show "Link: Page Title"
   - If completely empty: Hide preview line (no empty space)
 
-### "New Channel" Button
-- **Styling**: Matches channel items exactly
-- **Same padding**: 12px horizontal and vertical
-- **Same height**: Uses Column structure with spacer to match channel items
-- **Icon**: Plus icon (24px collapsed, 20px expanded)
-- **Alignment**: Centered when collapsed, left-aligned when expanded
+## Channel List Design
+
+### Drag-to-Reorder
+
+- **Trigger**: Long-press on a channel item to start drag
+- **Constraint**: Pinned channels reorder only among pinned; unpinned only among unpinned
+- **Persistence**: Order saved via `sortOrder` field on Channel model and `reorderChannels` endpoint
+- **Widget**: `ReorderableListView` with `ReorderableDelayedDragStartListener`
+
+### Keyboard/Swipe Navigation
+
+- **Web/Desktop**: Left/right arrow keys cycle through channels (when no text field is focused)
+- **Mobile**: Horizontal swipe gestures cycle through channels
+- **Auto-scroll**: Sidebar scrolls to center the newly active channel (250ms easeInOut)
 
 ## Context Menus
 
-### Interaction Patterns
-- **Desktop**: Right-click on channel item
-- **Mobile**: Long-press on channel item
-- **Menu Position**: Appears at cursor position (desktop) or widget position (mobile)
+### Note Context Menu
 
-### Menu Options
-1. Edit - Opens dialog to modify channel name and emoji
-2. Pin/Unpin - Toggles pin state
-3. Delete - Removes channel (with confirmation via cascade behavior)
+- **Desktop**: Right-click on a note
+- **Mobile**: Long-press enters **selection mode** instead of showing a context menu (see Selection Mode section)
+- **Menu Position**: Appears at cursor position on desktop; center of overlay if no position
+- **Menu Options** (regular channel):
+  1. Copy — copies note content to clipboard, shows toast
+  2. Edit — enters edit mode (populates input bar)
+  3. Archive — soft-deletes the note
+  4. Select — enters selection mode with this note selected
+- **Menu Options** (archive view):
+  1. Copy
+  2. Restore — returns note to original channel
+  3. Delete — permanently deletes note
+  4. Select
 
-### Removed Elements
-- No three-dot menu button (replaced with context menu)
-- No circular button ripple effects (consistent rectangular InkWell)
+### Channel Context Menu
+
+Channel actions are accessed via the **TopBar 3-dot menu** (not the sidebar). See `docs/components/TopBar.md`.
+
+## Selection Mode
+
+### Triggering
+
+- **Mobile**: Long-press any note → enters selection mode with that note selected
+- **Desktop**: Right-click a note → "Select" menu item
+
+### Behavior
+
+- **TopBar transforms**: replaces normal bar with `[xCircle cancel]` + `[N selected]` + `[archive button]`
+- **Note appearance**: each note shows a `PhosphorIcons.circle()` / `PhosphorIcons.checkCircle()` checkbox on the left (pink, `#CE2161`)
+- **Toggle**: Tap a note in selection mode to toggle its checkbox
+- **Cancel**: Tap xCircle in TopBar to exit selection mode
+- **Bulk archive**: Tap archive icon in TopBar → archives all selected notes, clears selection, shows toast
+
+### Selection Checkbox Icons
+
+| State | Icon |
+|-------|------|
+| Unselected | `PhosphorIcons.circle()` |
+| Selected | `PhosphorIcons.checkCircle()` |
+
+Both at 24px, `#CE2161` color.
+
+## Settings and Archive Pages (Detail Mode)
+
+### What is Detail Mode
+
+When the user opens Settings or navigates to the Archive Crate, the app enters **detail mode**:
+
+- The sidebar and media sidebar are **hidden**
+- The TopBar shows a **back button** (`PhosphorIcons.arrowCircleLeft()`) on the left + plain text title ("Settings" or "Archive")
+- The content area expands to full width
+
+### Transition Animation
+
+Content transitions use a **220ms fade animation** (`AnimatedSwitcher` with `FadeTransition`). Three distinct keys are used:
+
+- `'settings'` — settings view
+- `'archive'` — archive crate
+- `'chat'` — normal channel chat
+
+### Back Navigation
+
+- **From Settings**: hides the settings overlay, returns to the previously viewed channel
+- **From Archive**: restores the channel recorded in `previousChannelProvider` (set when navigating to archive), falls back to the first non-system channel
+
+### Input Bar
+
+The input bar is **hidden** in detail mode (archive and settings).
 
 ## Chat View
 
-### Message Ordering
+### Note Ordering
+
 - **Newest at bottom**: Natural chat progression
 - **Oldest at top**: Scroll up to see history
-- **Auto-scroll**: New messages appear at bottom
-- **Pagination**: Loads older messages when scrolling near top
+- **Auto-scroll**: New notes appear at bottom
+- **Pagination**: Loads older notes when scrolling near top (cursor-based)
 
-### Message Display - Chat Bubbles
-- **Container Style**:
-  - White background (`Colors.white`)
-  - 12px padding on all sides
-  - 12px border radius (rounded corners)
-  - Subtle shadow: `BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: Offset(0, 2))`
-  - 8px horizontal margin, 4px vertical margin between messages
-- **Image-only notes**: Notes with only image attachments (no text) render without the white bubble wrapper for a cleaner look
-- **Compressed badge**: Media attachments that were compressed show a small "Compressed" badge overlay at bottom-right
-- **Content**:
-  - Markdown-formatted text with link support
-  - Media attachments (images, videos, documents)
-  - Link preview cards
-- **Timestamp**: Below content, 11px font, grey color
-- **Actions**: Available via right-click context menu (see below)
+### Note Cards — Regular Channel
 
-### Note Context Menu
-- **Interaction Patterns**:
-  - **Desktop**: Right-click on note
-  - **Mobile**: Long-press on note
-  - **Menu Position**: Appears at cursor position
-- **Menu Options**:
-  1. Copy - Copies note content to clipboard, shows toast notification
-  2. Edit - Enters edit mode (populates input bar with note content)
-  3. Delete - Removes note with confirmation
-- **Removed Elements**: No visible copy/delete icons (moved to context menu for cleaner UI)
+- **Background**: `#F6F0ED` (core.surface)
+- **Border**: 1px `#CE2161` (brand.primary)
+- **Border radius**: 0px (sharp corners)
+- **Padding**: 12px all sides
+- **No shadow**
+- **Max width**: 75% of screen width
+- **Outer padding**: 14px horizontal, 6px vertical between cards
+
+**Media-only notes** (attachments but no text) render without the container — no border or background, just the media + footer floating directly.
+
+**Content inside card**:
+- Markdown-formatted text with link support
+- Media attachments (images, videos, documents)
+- Link preview cards
+
+### Note Footer (always visible)
+
+The note footer is permanently visible below each note card. No hover state required.
+
+| Icon | Archive mode | Regular mode |
+|------|-------------|--------------|
+| Edit (`pencilSimple`) | hidden | visible |
+| Copy (`copySimple`) | visible | visible |
+| Archive/Restore (`archive` / `arrowCounterClockwise`) | restore | archive |
+| Share (`shareNetwork`) | visible | visible |
+
+All footer icons: 20px, `#00171F` at 50% opacity.
 
 ## Input Behavior
 
 ### Keyboard Shortcuts
-- **Enter**: Submit message (handled via `Shortcuts`/`Actions` with `SingleActivator`)
-- **Shift+Enter**: Insert new line (natural TextField multiline behavior, not manually intercepted)
+
+- **Enter**: Submit note (via `Shortcuts`/`Actions` with `SingleActivator`)
+- **Shift+Enter**: Insert new line (TextField multiline behavior)
 - **Enter in FileUploadDialog**: Submits the upload (also via `Shortcuts`/`Actions`)
-- **Hint text**: Reminds users about Shift+Enter
-- **Ctrl+V / Cmd+V**: Paste text in textfield (file paste detected when not focused)
+- **Ctrl+V / Cmd+V**: Paste text in text field (file paste detected when not focused)
 
 ### Visual Feedback
-- Send button enabled only when text is non-empty
-- Edit mode shows cancel (X) button
-- Save icon replaces send icon during edit
+
+- Send icon (`paperPlaneRight`) appears when text is non-empty; attachment/camera visible when empty
+- **Edit mode**: Cancel (`xCircle`) + Save (`highlighter`) icons both on the **right side** of the text field
+- Save icon dimmed at 40% opacity when text field is empty
 
 ### Channel Drafts
+
 - **Per-Channel State**: Each channel maintains its own input draft
 - **Auto-Save**: Text is automatically saved when switching channels
 - **Auto-Load**: Switching back to a channel restores the draft
-- **Clear on Send**: Draft is cleared after successfully sending a message
-- **Edit Mode Preservation**: Draft is saved when entering edit mode, restored on cancel
-- **Storage**: In-memory only (not persisted on app restart, good for privacy)
+- **Clear on Send**: Draft is cleared after successfully sending
+- **Storage**: In-memory only (not persisted on app restart)
 - **Implementation**: `DraftsProvider` with `Map<int, String>` keyed by channel ID
 
 ## Real-time Updates
 
 ### Live Features
+
 - New channels appear instantly
 - Channel updates (name, emoji, pin) reflect immediately
 - Message previews update as notes are posted
 - Divider appears/disappears as channels are pinned/unpinned
 
 ### WebSocket Integration
+
 - All changes broadcast to connected clients
 - No page refresh needed
 - Optimistic updates for better UX
@@ -172,6 +232,7 @@ The sidebar supports two width states (web only):
 ## Toast Notifications
 
 ### Design System
+
 - **Position**: Top-right corner of viewport
 - **Stacking**: Up to 3 toasts visible simultaneously
 - **Auto-Dismiss**: 2500ms duration, then fade out (800ms animation)
@@ -179,6 +240,7 @@ The sidebar supports two width states (web only):
 - **Animation**: Fade in (300ms), repositioning when dismissed
 
 ### Toast Types
+
 1. **Error** (Red background):
    - Upload failures
    - Delete constraints (e.g., "Cannot delete last channel")
@@ -191,6 +253,7 @@ The sidebar supports two width states (web only):
    - General notifications
 
 ### Implementation
+
 - **Utility**: `ToastUtils.show(context, message, {type, duration})`
 - **Technology**: `OverlayEntry` with `AnimatedPositioned` and `FadeTransition`
 - **State Management**: `List<_NotificationData>` tracks active toasts with `ValueNotifier<double>` for positioning
@@ -199,6 +262,7 @@ The sidebar supports two width states (web only):
 ## Full-Screen Image Viewer (Lightbox)
 
 ### Gallery Navigation
+
 - **Open**: Click any inline image to open the lightbox
 - **Gallery mode**: All images in the current chat are navigable as a gallery
 - **Navigation**: Left/right arrow buttons, keyboard arrow keys, swipe gestures
@@ -207,6 +271,7 @@ The sidebar supports two width states (web only):
 - **Implementation**: Dialog overlay (`FullScreenImageView.show()`)
 
 ### Video Lightbox
+
 - **Open**: Click any inline video thumbnail to open the video lightbox
 - **Dialog**: Full-screen dialog overlay (not a route), `Colors.black` at 92% opacity backdrop
 - **Controls**: Play/pause button, progress bar with seek, duration display
@@ -216,6 +281,7 @@ The sidebar supports two width states (web only):
 ## Chat Backgrounds
 
 ### Background Picker
+
 - Accessible via Settings overlay → Background Picker screen
 - Selection of themed background patterns (flower, food, gift, leaves, light, memphis, morocco, pentagon, sakura, sun, terrazzo, tree, wheat, wormz)
 - Selected background is applied behind the chat view
@@ -224,21 +290,25 @@ The sidebar supports two width states (web only):
 ## Media Loading Behavior
 
 ### Shimmer Placeholders
+
 - **Pre-sized**: Placeholders use server-provided `width` and `height` metadata to match the final image dimensions exactly
 - **No layout jump**: Since the placeholder is the same size as the loaded image, the chat list doesn't shift when images finish loading
 - **Animated shimmer**: Grey gradient sweep (grey[800] → grey[700] → grey[800]) with 1200ms cycle, 8px rounded corners
 - **Fallback**: If dimensions are unavailable, defaults to 300x200
 
 ### Scroll Virtualization
+
 - Flutter's `ListView` disposes off-screen widgets; scrolling back re-creates them
 - `CachedNetworkImage` reads from disk cache but still shows a placeholder during the read
 - **Mitigation**: Pre-sized shimmer + 150ms fade-in makes cache reads feel instant (vs default 500ms spinner)
 
 ### Media Sidebar Images
+
 - **Full resolution**: Media sidebar loads full-res images (not thumbnails) with `cacheWidth: 400` for memory efficiency
 - **Implementation**: `Image.network` with `cacheWidth: 400` in `MediaGridItem`
 
 ### Size Constraints
+
 - **Images**: Max 600x500, aspect ratio preserved via `computeDisplaySize()`
 - **Video thumbnails**: Max 400x300, same aspect-ratio logic
 - **Error widgets**: Sized identically to the placeholder so layout stays stable
@@ -246,21 +316,25 @@ The sidebar supports two width states (web only):
 ## Design Principles
 
 ### Consistency
+
 - All interactive items (channels, buttons) use same padding and structure
-- No mixed interaction patterns (all use Material/InkWell)
-- Sharp corners throughout (no border radius)
+- No mixed interaction patterns (all use Material/InkWell or GestureDetector+AnimatedContainer)
+- Sharp corners throughout (0px border radius on note cards, dialogs)
 
 ### Clarity
-- Transparent backgrounds with borders for definition
-- Clear visual hierarchy (name bold, preview gray)
+
+- Light surface (`#F6F0ED`) with `#CE2161` borders for definition
+- Clear visual hierarchy (name bold, preview muted)
 - Adequate spacing prevents crowding
 
 ### Efficiency
-- Quick actions via context menus
+
+- Quick actions via context menus (desktop) or selection mode (mobile)
 - Keyboard shortcuts for common operations
 - Real-time updates eliminate manual refreshes
 
 ### Accessibility
-- Right-click and long-press support both desktop and mobile
+
+- Right-click (desktop) and long-press (mobile → selection mode) for note actions
 - Visual feedback for all interactions
-- Clear hover states and selection indicators
+- Clear selection states with checkboxes

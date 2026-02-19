@@ -55,36 +55,33 @@ Top-to-bottom `ListView.builder` (non-reversed) displaying both archived notes a
 
 ### Archived Note Item
 
-Reuses the existing `_buildNoteItem()` with `channelId == -1`. Behavior in archive context:
+Renders `NoteItem(note: item.note!, channelId: -1)`. Behavior in archive context:
 
-- White container with `#CE2161` border (1px)
+- `#F6F0ED` container with `#CE2161` border (1px)
 - Content: markdown text, media attachments, link previews (same as regular notes)
-- Timestamp displayed below content
-- **Restore button** (restore.svg, 24x24px) positioned 12px to the right of the note container
-- Restore button tooltip: "Restore note"
-- **Cancel button** (cancel.svg, 24x24px) positioned 8px to the right of the restore button
-- Cancel button tooltip: "Delete note"
-- Cancel button permanently deletes the note
-- **Context menu** (right-click / long-press): Copy, Restore, Delete, Select
+- **Footer** (always visible, same as regular notes but adapted for archive):
+  - No edit button (edit is disabled in archive)
+  - Copy: `PhosphorIcons.copySimple()` (20px, `#00171F` at 50%)
+  - Restore: `PhosphorIcons.arrowCounterClockwise()` (20px, `#00171F` at 50%) — restores note to original channel
+  - Share: `PhosphorIcons.shareNetwork()` (20px, `#00171F` at 50%)
+- **Context menu** (right-click desktop / long-press mobile → selection mode): Copy, Restore, Delete, Select
 
 ### Archived Channel Item
 
 Distinct visual representation for archived channels.
 
-- **Container**: White background with `#CE2161` border (1px), 12px padding all sides
+- **Container**: `#F6F0ED` background with `#CE2161` border (1px), 12px padding all sides
 - **Layout**: Horizontal row containing:
   - Channel emoji (24px font size)
   - 10px gap
   - Channel name (16px, w500 weight, `#1C1C1C` color, ellipsis overflow)
   - 10px gap
   - "Channel" badge (gray pill: `#DADDD8` background, 4px border radius, 8px horizontal / 2px vertical padding, 11px w500 `#666666` text)
-- **Restore button** (restore.svg, 24x24px) positioned 12px to the right of the container
-- Restore button tooltip: "Restore channel"
-- **Cancel button** (cancel.svg, 24x24px) positioned 8px to the right of the restore button
-- Cancel button tooltip: "Delete channel"
-- Cancel button opens confirmation dialog (does NOT immediately delete)
+- **Restore button**: `PhosphorIcon(PhosphorIcons.arrowCounterClockwise(), size: 24, color: #00171F)` positioned 8px to the right of the container
+- **Delete button**: `PhosphorIcon(PhosphorIcons.x(), size: 24, color: #00171F)` positioned 8px to the right of the restore button
+- Delete button opens confirmation dialog (does NOT immediately delete)
 - **Context menu** (right-click / long-press): Restore, Delete
-- **Outer padding**: 12px horizontal, 4px vertical
+- **Outer padding**: 14px horizontal, 6px vertical
 - Max width constraint: 600px
 
 ### Delete Channel Confirmation Dialog
@@ -138,10 +135,9 @@ Shown when permanently deleting a channel from the Archive Crate.
 
 ## Interactions
 
-### Channel Archiving (from Sidebar)
+### Channel Archiving (from TopBar Menu)
 
-- Right-click or long-press a channel in the sidebar to open context menu
-- Select "Archive" to soft-delete the channel
+- Tap the three-dot menu button in the TopBar → select "Archive Channel"
 - Channel disappears from sidebar, appears in Archive Crate
 - If the archived channel was currently selected, auto-switches to the first remaining channel
 - Success toast: "Channel archived"
@@ -149,18 +145,19 @@ Shown when permanently deleting a channel from the Archive Crate.
 
 ### Note Archiving (from Channel)
 
-- Right-click/long-press a note and select "Archive", or click the recycle.svg button to the right of the note
+- **Desktop**: Right-click a note → context menu → "Archive"
+- **Mobile**: Tap the archive icon in the note footer (always visible), or long-press to enter selection mode → use TopBar archive button for bulk archive
 - Note moves to Archive Crate (channelId set to `-1`, originalChannelId preserved)
 
 ### Restoring Items
 
-- **Notes**: Click restore.svg button, or right-click and select "Restore". Note returns to its original channel. Success toast: "Note restored". Error if original channel no longer exists.
-- **Channels**: Click restore.svg button, or right-click and select "Restore". Channel returns to sidebar with all notes intact. Pin state reset to unpinned. If a channel with the same name already exists, restored channel is renamed to "[Name] (Restored)". Success toast: "Channel restored".
+- **Notes**: Click the `arrowCounterClockwise` icon in the note footer, or right-click and select "Restore". Note returns to its original channel. Success toast: "Note restored". Error if original channel no longer exists.
+- **Channels**: Click the `arrowCounterClockwise` button to the right of the channel item, or right-click and select "Restore". Channel returns to sidebar with all notes intact. Pin state reset to unpinned. If a channel with the same name already exists, restored channel is renamed to "[Name] (Restored)". Success toast: "Channel restored".
 
 ### Permanent Deletion
 
-- **Notes**: Click cancel.svg button or right-click, select "Delete". Immediately deletes note, its media attachments, and files from disk.
-- **Channels**: Click cancel.svg button or right-click, select "Delete". Opens confirmation dialog showing note count. On confirm, cascade-deletes channel, all its notes, and all media files.
+- **Notes**: Right-click → "Delete". Immediately deletes note, its media attachments, and files from disk.
+- **Channels**: Click the `x` button to the right of the channel item, or right-click → "Delete". Opens confirmation dialog showing note count. On confirm, cascade-deletes channel, all its notes, and all media files.
 
 ### Last Channel Protection
 

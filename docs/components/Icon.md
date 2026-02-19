@@ -14,8 +14,11 @@ Phosphor offers multiple styles. Memoka uses two:
 
 | Style | Usage | Example |
 |-------|-------|---------|
-| **Duotone** | Interactive/tappable icons (buttons, actions) | Input bar camera, send, attach |
+| **Regular** | Interactive/tappable icons (buttons, actions) | Input bar camera, send, attach; TopBar buttons |
 | **Fill** | Static display icons (channel icons, sidebar, picker) | Channel icons in sidebar, icon picker grid |
+
+Regular style is accessed via function calls: `PhosphorIcons.camera()`, `PhosphorIcons.archive()`, etc.
+Fill style is accessed via static fields: `PhosphorIconsFill.chatCircle`, `PhosphorIconsFill.star`, etc.
 
 ## IconButtonStyled
 
@@ -23,9 +26,8 @@ The standard widget for any tappable Phosphor icon in the app.
 
 ### Features
 
-- Circular `InkWell` with white splash/highlight on press
-- Transparent `Material` wrapper for proper ink rendering
-- Phosphor duotone icon with configurable primary and secondary colors
+- Animated circular border on hover (desktop) and press (all platforms)
+- Regular Phosphor icon with configurable color
 - Optional tooltip (via `StyledTooltip`, shown on desktop/web only)
 - Configurable size and padding
 
@@ -33,16 +35,12 @@ The standard widget for any tappable Phosphor icon in the app.
 
 ```dart
 IconButtonStyled({
-  required PhosphorIconData icon,   // Phosphor icon to display
-  required VoidCallback onPressed,  // Tap callback
-  String? tooltip,                  // Optional hover tooltip
-  double size = 24,                 // Icon size (px)
-  double padding = 8,              // Padding inside InkWell
-  Color color = Colors.white,       // Primary icon color
-  Color duotoneSecondaryColor = Color(0xFFF9A302),  // Secondary color
-  double duotoneSecondaryOpacity = 1.0,             // Secondary opacity
-  Color splashColor = Colors.white24,   // InkWell splash
-  Color highlightColor = Colors.white24, // InkWell highlight
+  required IconData icon,          // Phosphor regular icon (e.g. PhosphorIcons.camera())
+  required VoidCallback onPressed, // Tap callback
+  String? tooltip,                 // Optional hover tooltip
+  double size = 24,                // Icon size (px)
+  double padding = 8,              // Padding inside button around icon
+  Color color = Color(0xFFCE2161), // Icon and border color (brand.primary)
 })
 ```
 
@@ -51,18 +49,17 @@ IconButtonStyled({
 ```dart
 // Basic usage
 IconButtonStyled(
-  icon: PhosphorIconsDuotone.camera,
+  icon: PhosphorIcons.camera(),
   onPressed: _capturePhoto,
   tooltip: 'Camera',
 )
 
-// Custom size and colors
+// Custom size and color
 IconButtonStyled(
-  icon: PhosphorIconsDuotone.paperPlaneRight,
+  icon: PhosphorIcons.paperPlaneRight(),
   onPressed: _submit,
-  tooltip: 'Send',
   size: 20,
-  duotoneSecondaryColor: Color(0xFFF9A302),
+  color: Color(0xFFCE2161),
 )
 ```
 
@@ -70,11 +67,14 @@ IconButtonStyled(
 
 ```
 StyledTooltip? (desktop/web only)
-  └─ Material (transparent)
-       └─ InkWell (CircleBorder)
-            └─ Padding (8px)
-                 └─ PhosphorIcon (duotone)
+  └─ MouseRegion (cursor: click)
+       └─ GestureDetector (onTap/onTapDown/onTapUp/onTapCancel)
+            └─ AnimatedContainer (circle border, 120ms)
+                 └─ Padding (8px)
+                      └─ Icon (Phosphor regular)
 ```
+
+The circular border is transparent by default, animating to `color @ 50%` on hover and `color @ 100%` on press.
 
 ## Styling
 
@@ -82,18 +82,16 @@ StyledTooltip? (desktop/web only)
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| Primary color | `#FFFFFF` | Icon primary layer |
-| Secondary color | `#F9A302` | Duotone secondary layer |
-| Secondary opacity | `1.0` | Full visibility for secondary |
-| Splash color | `Colors.white24` | InkWell press splash |
-| Highlight color | `Colors.white24` | InkWell press highlight |
+| `color` | `#CE2161` (brand.primary) | Icon color and animated border |
+| Hover border | `color @ 50%` | Circle border on hover |
+| Press border | `color @ 100%` | Circle border on press |
 
 ### Dimensions
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | Icon size | 24px | Default icon size |
-| Padding | 8px | Space inside InkWell around icon |
+| Padding | 8px | Space inside button around icon |
 | Total hit target | 40x40px | Icon (24) + padding (8×2) |
 
 ## Icon Utilities (`icon_utils.dart`)
@@ -129,12 +127,14 @@ final iconKey = await IconPicker.show(
 |----------|--------|------------|
 | Input bar (empty) | `IconButtonStyled` | `camera`, `paperclip` |
 | Input bar (text) | `IconButtonStyled` | `paperPlaneRight` |
-| Input bar (edit mode) | `IconButton` | Material `close`, `check` |
-| Top bar menu | `IconButtonStyled` | `dotsThreeCircle` |
-| Top bar popup items | `PhosphorIcon` (static) | `images` |
+| Input bar (edit mode) | `IconButtonStyled` | `xCircle` (cancel), `highlighter` (save) |
+| Top bar (standard) | `IconButtonStyled` | `pushPin`/`pushPinSlash`, `dotsThreeCircle` |
+| Top bar (detail/selection) | `IconButtonStyled` | `arrowCircleLeft`, `xCircle`, `archive` |
+| Top bar popup items | `PhosphorIcon` (static) | `pencilSimple`, `archive`, `plusCircle`, `images`, `gear` |
 | Sidebar channels | `PhosphorIcon` (static) | Per-channel Fill icon |
 | Channel modal | `PhosphorIcon` (static) | Selected Fill icon |
 | Icon picker grid | `PhosphorIcon` (static) | All Fill icons |
+| Note footer | `PhosphorIcon` (static) | `pencilSimple`, `copySimple`, `archive`/`arrowCounterClockwise`, `shareNetwork` |
 
 ## Integration
 
@@ -153,7 +153,8 @@ The icon system integrates with:
 | `lib/widgets/styled_tooltip.dart` | Tooltip wrapper (used by IconButtonStyled) |
 | `lib/utils/icon_utils.dart` | Icon name → PhosphorIconData mapping |
 | `lib/widgets/icon_picker.dart` | Channel icon selection bottom sheet |
-| `lib/widgets/input_bar.dart` | Primary consumer (camera, send, attach) |
-| `lib/widgets/channel_top_bar.dart` | Top bar menu icon |
+| `lib/widgets/input_bar.dart` | Primary consumer (camera, send, attach, edit) |
+| `lib/widgets/channel_top_bar.dart` | Top bar icon buttons |
 | `lib/widgets/sidebar.dart` | Channel icon display |
 | `lib/widgets/new_channel_modal.dart` | Channel icon selector |
+| `lib/widgets/note_item.dart` | Note footer action icons |

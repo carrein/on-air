@@ -40,6 +40,8 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, compressed badge
 - **Media Sidebar**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
 - **Archive System**: Archive Crate for soft-deleted notes, channel archiving with restore
+- **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; TopBar transforms to show count + bulk archive action
+- **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media sidebar hidden in this mode
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture

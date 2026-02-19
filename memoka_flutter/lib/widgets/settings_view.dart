@@ -13,36 +13,15 @@ class SettingsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentBackground = ref.watch(backgroundPreferenceProvider);
     return Container(
-      color: const Color(0xFFF6F0ED),
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(currentBackground.assetPath),
+          repeat: ImageRepeat.repeat,
+          scale: 1.0,
+        ),
+      ),
       child: Column(
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF00171F),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Row(
-              children: [
-                Text(
-                  'Settings',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Content
           Expanded(
             child: ListView(
               children: [

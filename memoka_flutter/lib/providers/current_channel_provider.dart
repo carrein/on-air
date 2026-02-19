@@ -9,6 +9,9 @@ part 'current_channel_provider.g.dart';
 /// Used by ChatView to animate the slide direction.
 final channelSwitchDirectionProvider = StateProvider<int>((ref) => 1);
 
+/// Stores the channel ID to return to when backing out of Archive Crate.
+final previousChannelProvider = StateProvider<int?>((ref) => null);
+
 /// Manages the currently active channel ID.
 /// Persists to shared preferences for restoration on app restart.
 @riverpod

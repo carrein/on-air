@@ -4,28 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:share_plus/share_plus.dart';
 import '../utils/icon_utils.dart';
-import '../utils/responsive_utils.dart';
 import '../main.dart' show serverUrl, client;
 import '../providers/notes_provider.dart';
 import '../providers/archive_items_provider.dart';
 import '../providers/current_channel_provider.dart';
-import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
-import '../providers/note_selection_provider.dart';
 import '../providers/scroll_to_note_provider.dart';
 import '../providers/background_provider.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
 import '../models/upload_file_data.dart';
-import 'link_preview_card.dart';
-import 'media_attachment_widget.dart';
 import 'file_upload_dialog.dart';
+import 'note_item.dart';
 import 'multi_file_upload_dialog.dart';
 
 // Cross-platform HTML imports
@@ -44,7 +37,6 @@ class _ChatViewState extends ConsumerState<ChatView>
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
   int? _highlightedNoteId;
-  int? _hoveredNoteId;
   bool _isDragOver = false;
 
   // Channel switch animation
@@ -226,7 +218,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                         ? const Color(0xFFCE2161).withValues(alpha: 0.15)
                         : Colors.transparent,
                   ),
-                  child: _buildNoteItem(note, channelId, allImageUrls),
+                  child: NoteItem(note: note, channelId: channelId, allImageUrls: allImageUrls),
                 ),
                 if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
               ],
@@ -242,8 +234,6 @@ class _ChatViewState extends ConsumerState<ChatView>
   @override
   Widget build(BuildContext context) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
-    final selection = ref.watch(noteSelectionProvider);
-    final isSelectionMode = selection.isNotEmpty;
     final currentBackground = ref.watch(backgroundPreferenceProvider);
 
     // Initialise displayed channel on first load
@@ -320,196 +310,8 @@ class _ChatViewState extends ConsumerState<ChatView>
               ),
             ),
           ),
-        // Selection action bar (on top of everything)
-        if (isSelectionMode)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Material(
-              elevation: 0,
-              color: const Color(0xFFCE2161),
-              child: SafeArea(
-                bottom: false,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white),
-                        onPressed: () {
-                          ref.read(noteSelectionProvider.notifier).clear();
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${selection.length} selected',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const Spacer(),
-                      IconButton(
-                        icon: PhosphorIcon(PhosphorIcons.archive(), size: 24, color: Colors.white),
-                        onPressed: () {
-                          final channelId = ref.read(currentChannelProvider).value;
-                          if (channelId != null) {
-                            _deleteSelectedNotes(channelId);
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
       ],
     );
-  }
-
-  Widget _buildNoteItem(Note note, int channelId, [List<String> allImageUrls = const []]) {
-    final selection = ref.watch(noteSelectionProvider);
-    final isSelectionMode = selection.isNotEmpty;
-    final isSelected = selection.contains(note.id);
-    final isHovered = _hoveredNoteId == note.id;
-    final isMobile = ResponsiveUtils.isMobile(context);
-    final showActions = isHovered || isMobile;
-
-    const borderColor = Color(0xFFCE2161);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Selection checkbox (visible in selection mode)
-          if (isSelectionMode)
-            Padding(
-              padding: const EdgeInsets.only(right: 8, top: 8),
-              child: GestureDetector(
-                onTap: () => ref.read(noteSelectionProvider.notifier).toggle(note.id!),
-                child: isSelected
-                    ? const PhosphorIcon(PhosphorIconsFill.check, size: 24, color: Color(0xFFCE2161))
-                    : const SizedBox(width: 24, height: 24),
-              ),
-            ),
-          // Note content
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                child: MouseRegion(
-                  onEnter: (_) => setState(() => _hoveredNoteId = note.id),
-                  onExit: (_) => setState(() => _hoveredNoteId = null),
-                  child: Listener(
-                    onPointerDown: (event) {
-                      if (event.buttons == 2) {
-                        _showNoteContextMenu(context, note, channelId, event.position);
-                      }
-                    },
-                    child: GestureDetector(
-                      onTap: isSelectionMode
-                          ? () => ref.read(noteSelectionProvider.notifier).toggle(note.id!)
-                          : null,
-                      onLongPress: () {
-                        if (isSelectionMode) {
-                          ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                        } else {
-                          _showNoteContextMenu(context, note, channelId, null);
-                        }
-                      },
-                      child: _isMediaOnlyNote(note)
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildNoteContent(note, allImageUrls),
-                                const SizedBox(height: 4),
-                                _buildNoteFooter(note, channelId, showActions),
-                              ],
-                            )
-                          : Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF6F0ED),
-                                border: Border.all(color: borderColor, width: 1.0),
-                              ),
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildNoteContent(note, allImageUrls),
-                                  const SizedBox(height: 8),
-                                  _buildNoteFooter(note, channelId, showActions),
-                                ],
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoteFooter(Note note, int channelId, bool showActions) {
-    final isArchive = channelId == -1;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          _formatDateTime(note.createdAt),
-          style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
-        ),
-        if (showActions)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => _copyNote(note),
-                  child: PhosphorIcon(PhosphorIcons.copySimple(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
-                ),
-              ),
-              const SizedBox(width: 14),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: isArchive ? () => _restoreNote(note) : () => _deleteNote(note, channelId),
-                  child: PhosphorIcon(
-                    isArchive ? PhosphorIcons.arrowCounterClockwise() : PhosphorIcons.archive(),
-                    size: 20,
-                    color: const Color(0xFF00171F).withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => _shareNote(note),
-                  child: PhosphorIcon(PhosphorIcons.shareNetwork(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
-                ),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-
-  void _copyNote(Note note) {
-    Clipboard.setData(ClipboardData(text: note.content));
-    ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
-  }
-
-  void _shareNote(Note note) {
-    if (note.content.isNotEmpty) Share.share(note.content);
   }
 
   Widget _buildArchiveView() {
@@ -550,7 +352,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           itemBuilder: (context, index) {
             final item = items[index];
             if (item.type == 'note' && item.note != null) {
-              return _buildNoteItem(item.note!, -1);
+              return NoteItem(note: item.note!, channelId: -1);
             } else if (item.type == 'channel' && item.channel != null) {
               return _buildArchivedChannelItem(item.channel!);
             }
@@ -687,13 +489,13 @@ class _ChatViewState extends ConsumerState<ChatView>
         overlay.size.height - position.dy,
       ),
       items: [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'restore',
           child: Row(
             children: [
-              Icon(Icons.restore, size: 18),
-              SizedBox(width: 12),
-              Text('Restore'),
+              PhosphorIcon(PhosphorIcons.arrowCounterClockwise(), size: 18),
+              const SizedBox(width: 12),
+              const Text('Restore'),
             ],
           ),
         ),
@@ -800,214 +602,6 @@ class _ChatViewState extends ConsumerState<ChatView>
     );
   }
 
-  Widget _buildNoteContent(Note note, [List<String> allImageUrls = const []]) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Show content only if not empty
-        if (note.content.isNotEmpty)
-          MarkdownBody(
-            data: note.content,
-            selectable: true,
-            onTapLink: (text, href, title) async {
-              if (href != null) {
-                final uri = Uri.tryParse(href);
-                if (uri != null && await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              }
-            },
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
-              a: const TextStyle(
-                fontSize: 16,
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-              ),
-              h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              code: const TextStyle(color: Color(0xFF00171F), backgroundColor: Color(0xFFDADDD8)),
-              blockquote: const TextStyle(color: Color(0xFF00171F)),
-            ),
-          ),
-
-        // Media attachments
-        if (note.attachments != null && note.attachments!.isNotEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              ...note.attachments!.map(
-                (attachment) {
-                  final url = FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
-                  final imageIndex = allImageUrls.indexOf(url);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: MediaAttachmentWidget(
-                      attachment: attachment,
-                      serverUrl: serverUrl,
-                      allImageUrls: allImageUrls,
-                      initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-
-        // Link preview card
-        if (note.linkPreview != null)
-          LinkPreviewCard(preview: note.linkPreview!),
-      ],
-    );
-  }
-
-  void _showNoteContextMenu(BuildContext context, Note note, int channelId, Offset? globalPosition) {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-
-    // Use provided position (right-click) or calculate from center (long-press)
-    final Offset position;
-    if (globalPosition != null) {
-      position = globalPosition;
-    } else {
-      // For long-press, use center of screen
-      position = Offset(overlay.size.width / 2, overlay.size.height / 2);
-    }
-
-    // Check if in Archive channel
-    final isArchiveChannel = channelId == -1;
-
-    showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        overlay.size.width - position.dx,
-        overlay.size.height - position.dy,
-      ),
-      items: [
-        const PopupMenuItem(
-          value: 'copy',
-          child: Row(
-            children: [
-              Icon(Icons.copy, size: 18),
-              SizedBox(width: 12),
-              Text('Copy'),
-            ],
-          ),
-        ),
-        // Edit only in regular channels
-        if (!isArchiveChannel)
-          const PopupMenuItem(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit, size: 18),
-                SizedBox(width: 12),
-                Text('Edit'),
-              ],
-            ),
-          ),
-        // Archive: show Restore + Delete; Regular: show Archive
-        if (isArchiveChannel) ...[
-          const PopupMenuItem(
-            value: 'restore',
-            child: Row(
-              children: [
-                Icon(Icons.restore, size: 18),
-                SizedBox(width: 12),
-                Text('Restore'),
-              ],
-            ),
-          ),
-          const PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete_forever, size: 18),
-                SizedBox(width: 12),
-                Text('Delete'),
-              ],
-            ),
-          ),
-        ] else
-          const PopupMenuItem(
-            value: 'archive',
-            child: Row(
-              children: [
-                Icon(Icons.archive, size: 18),
-                SizedBox(width: 12),
-                Text('Archive'),
-              ],
-            ),
-          ),
-        const PopupMenuItem(
-          value: 'select',
-          child: Row(
-            children: [
-              Icon(Icons.check_circle_outline, size: 18),
-              SizedBox(width: 12),
-              Text('Select'),
-            ],
-          ),
-        ),
-      ],
-    ).then((value) {
-      if (value == null) return;
-      switch (value) {
-        case 'copy':
-          _copyToClipboard(note.content);
-          break;
-        case 'edit':
-          _startEditing(note);
-          break;
-        case 'archive':
-        case 'delete':
-          _deleteNote(note, channelId);
-          break;
-        case 'restore':
-          _restoreNote(note);
-          break;
-        case 'select':
-          _enterSelectionMode(note.id!);
-          break;
-      }
-    });
-  }
-
-  void _copyToClipboard(String content) {
-    Clipboard.setData(ClipboardData(text: content));
-
-    // Create preview: remove markdown line breaks and truncate
-    final cleanContent = content.replaceAll('  \n', ' ').replaceAll('\n', ' ');
-    final preview = cleanContent.length > 20
-        ? '${cleanContent.substring(0, 20)}...'
-        : cleanContent;
-
-    ToastUtils.show(context, 'Copied: $preview', type: ToastType.info);
-  }
-
-  String _formatDateTime(DateTime dt) {
-    // Convert to local time
-    final localTime = dt.toLocal();
-
-    // Format as "Jan 5, 2:30 PM" or "Jan 5, 14:30" for 24h
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final month = months[localTime.month - 1];
-    final day = localTime.day;
-
-    // 12-hour format with AM/PM
-    final hour = localTime.hour > 12 ? localTime.hour - 12 : (localTime.hour == 0 ? 12 : localTime.hour);
-    final minute = localTime.minute.toString().padLeft(2, '0');
-    final period = localTime.hour >= 12 ? 'PM' : 'AM';
-
-    return '$month $day, $hour:$minute $period';
-  }
-
   bool _isSameDay(DateTime a, DateTime b) {
     final aLocal = a.toLocal();
     final bLocal = b.toLocal();
@@ -1054,59 +648,6 @@ class _ChatViewState extends ConsumerState<ChatView>
         ),
       ),
     );
-  }
-
-  bool _isMediaOnlyNote(Note note) {
-    if (note.content.isNotEmpty) return false;
-    final attachments = note.attachments;
-    if (attachments == null || attachments.isEmpty) return false;
-    return true;
-  }
-
-  void _startEditing(Note note) {
-    ref.read(editingNoteProvider.notifier).startEditing(note.id!);
-  }
-
-  void _deleteNote(Note note, int channelId) {
-    ref.read(notesProvider(channelId).notifier).deleteNote(note.id!);
-  }
-
-  void _restoreNote(Note note) async {
-    try {
-      await client.chat.restoreNote(note.id!);
-      if (mounted) {
-        ToastUtils.show(context, 'Note restored', type: ToastType.success);
-      }
-    } catch (e) {
-      if (mounted) {
-        ToastUtils.show(context, 'Failed to restore: $e', type: ToastType.error);
-      }
-    }
-  }
-
-  void _enterSelectionMode(int noteId) {
-    ref.read(noteSelectionProvider.notifier).select(noteId);
-  }
-
-  void _deleteSelectedNotes(int channelId) async {
-    final selection = ref.read(noteSelectionProvider);
-    final notifier = ref.read(notesProvider(channelId).notifier);
-
-    // Delete all selected notes
-    for (final noteId in selection) {
-      await notifier.deleteNote(noteId);
-    }
-
-    // Clear selection
-    ref.read(noteSelectionProvider.notifier).clear();
-
-    if (mounted) {
-      ToastUtils.show(
-        context,
-        'Deleted ${selection.length} note${selection.length > 1 ? 's' : ''}',
-        type: ToastType.success,
-      );
-    }
   }
 
   Future<void> _handleWebPaste(html.ClipboardEvent event) async {

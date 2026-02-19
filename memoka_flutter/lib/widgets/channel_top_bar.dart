@@ -5,6 +5,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/channels_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/note_selection_provider.dart';
+import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/settings_page_provider.dart';
 import '../utils/icon_utils.dart';
@@ -28,19 +30,63 @@ class ChannelTopBar extends ConsumerWidget {
     fontWeight: FontWeight.bold,
   );
 
-  static const _padding = EdgeInsets.only(left: 16, top: 8, bottom: 8, right: 8);
+  static const _padding = EdgeInsets.symmetric(horizontal: 8, vertical: 8);
+  static const _paddingStandard = EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
     final channelsAsync = ref.watch(channelsProvider);
+    final isShowingSettings = ref.watch(settingsVisibilityProvider);
+    final selection = ref.watch(noteSelectionProvider);
+    final isSelectionMode = selection.isNotEmpty;
+
+    if (isSelectionMode) {
+      return _buildSelectionBar(context, ref, selection);
+    }
 
     final currentChannelId = currentChannelAsync.valueOrNull;
     final channels = channelsAsync.valueOrNull ?? [];
-    final currentChannel = (currentChannelId != null && currentChannelId != -1)
+    final isArchive = currentChannelId == -1;
+    final isInDetailMode = isShowingSettings || isArchive;
+
+    final currentChannel = (!isInDetailMode && currentChannelId != null)
         ? channels.where((c) => c.id == currentChannelId).firstOrNull
         : null;
 
+    return Container(
+      padding: isInDetailMode ? _padding : _paddingStandard,
+      decoration: const BoxDecoration(
+        color: _backgroundColor,
+        border: Border(bottom: BorderSide(color: _borderColor, width: 1)),
+      ),
+      child: Row(
+        children: [
+          if (isInDetailMode)
+            IconButtonStyled(
+              icon: PhosphorIcons.arrowCircleLeft(),
+              onPressed: () => _goBack(context, ref),
+            ),
+          Expanded(child: _buildTitle(currentChannelAsync, channelsAsync, isShowingSettings)),
+          if (!isInDetailMode) ...[
+            if (currentChannel != null)
+              IconButtonStyled(
+                icon: currentChannel.pinned
+                    ? PhosphorIcons.pushPinSlash()
+                    : PhosphorIcons.pushPin(),
+                onPressed: () => _togglePin(ref, currentChannel.id!, !currentChannel.pinned),
+              ),
+            IconButtonStyled(
+              icon: PhosphorIcons.dotsThreeCircle(),
+              onPressed: () => _showTopBarMenu(context, ref),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectionBar(BuildContext context, WidgetRef ref, Set<int> selection) {
     return Container(
       padding: _padding,
       decoration: const BoxDecoration(
@@ -49,34 +95,70 @@ class ChannelTopBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _buildTitle(currentChannelAsync, channelsAsync)),
-          if (currentChannel != null)
-            IconButtonStyled(
-              icon: currentChannel.pinned
-                  ? PhosphorIcons.pushPinSlash()
-                  : PhosphorIcons.pushPin(),
-              onPressed: () => _togglePin(ref, currentChannel.id!, !currentChannel.pinned),
-            ),
           IconButtonStyled(
-            icon: PhosphorIcons.dotsThreeCircle(),
-            onPressed: () => _showTopBarMenu(context, ref),
+            icon: PhosphorIcons.xCircle(),
+            onPressed: () => ref.read(noteSelectionProvider.notifier).clear(),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '${selection.length} selected',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: _textColor,
+            ),
+          ),
+          const Spacer(),
+          IconButtonStyled(
+            icon: PhosphorIcons.archive(),
+            onPressed: () => _archiveSelected(context, ref, selection),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTitle(AsyncValue<int> currentChannelAsync, AsyncValue<List<Channel>> channelsAsync) {
+  Future<void> _archiveSelected(BuildContext context, WidgetRef ref, Set<int> selection) async {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+    final notifier = ref.read(notesProvider(channelId).notifier);
+    for (final noteId in selection) {
+      await notifier.deleteNote(noteId);
+    }
+    ref.read(noteSelectionProvider.notifier).clear();
+    if (context.mounted) {
+      ToastUtils.show(context, '${selection.length} note${selection.length == 1 ? '' : 's'} archived', type: ToastType.success);
+    }
+  }
+
+  void _goBack(BuildContext context, WidgetRef ref) {
+    if (ref.read(settingsVisibilityProvider)) {
+      ref.read(settingsVisibilityProvider.notifier).hide();
+    } else {
+      // Back from archive: restore previous channel
+      final previousId = ref.read(previousChannelProvider);
+      if (previousId != null) {
+        ref.read(currentChannelProvider.notifier).switchChannel(previousId);
+        ref.read(previousChannelProvider.notifier).state = null;
+      } else {
+        // Fallback to first available channel
+        final chs = ref.read(channelsProvider).valueOrNull ?? [];
+        final first = chs.where((c) => !c.isSystemChannel).firstOrNull;
+        if (first != null) {
+          ref.read(currentChannelProvider.notifier).switchChannel(first.id!);
+        }
+      }
+    }
+  }
+
+  Widget _buildTitle(AsyncValue<int> currentChannelAsync, AsyncValue<List<Channel>> channelsAsync, bool isShowingSettings) {
+    if (isShowingSettings) {
+      return const Text('Settings', style: _titleStyle);
+    }
     return currentChannelAsync.when(
       data: (channelId) {
         if (channelId == -1) {
-          return Row(
-            children: [
-              Icon(PhosphorIcons.archive(), color: _textColor, size: 20),
-              const SizedBox(width: 8),
-              const Text('Archive', style: _titleStyle),
-            ],
-          );
+          return const Text('Archive', style: _titleStyle);
         }
         return channelsAsync.when(
           data: (channels) {
@@ -216,6 +298,7 @@ class ChannelTopBar extends ConsumerWidget {
         );
         break;
       case 'archive_crate':
+        ref.read(previousChannelProvider.notifier).state = ref.read(currentChannelProvider).value;
         ref.read(editingNoteProvider.notifier).cancelEditing();
         ref.read(settingsVisibilityProvider.notifier).hide();
         ref.read(currentChannelProvider.notifier).switchChannel(-1);
@@ -272,6 +355,7 @@ class ChannelTopBar extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => GestureDetector(
         onTap: () => Navigator.pop(context),
