@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Release
 
 # Trigger only when a release is published
 on:
@@ -6,7 +6,59 @@ on:
     types: [published]
 
 jobs:
-  build:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Generate Serverpod code
+        run: |
+          cd memoka_server
+          dart pub get
+          dart pub global activate serverpod_cli 3.2.3
+          serverpod generate
+
+      - name: Flutter pub get
+        run: flutter pub get
+        working-directory: memoka_flutter
+
+      - name: Write keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > memoka_flutter/memoka-release.keystore
+          cat > memoka_flutter/android/key.properties <<EOF
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=../../memoka-release.keystore
+          EOF
+
+      - name: Build release APK
+        run: flutter build apk --release
+        working-directory: memoka_flutter
+
+      - name: Upload APK to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: memoka_flutter/build/app/outputs/flutter-apk/app-release.apk
+
+  build-docker:
     runs-on: ubuntu-latest
     permissions:
       contents: read
