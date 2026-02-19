@@ -1,29 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'styled_tooltip.dart';
 
-/// A styled Phosphor icon button with circular InkWell and optional tooltip.
+/// A styled Phosphor icon button with circular border feedback and optional tooltip.
 ///
 /// Provides a consistent design language for all tappable icons in the app.
-/// Uses duotone Phosphor icons with a circular ink splash on press.
+/// Uses a circular border on hover/press instead of a filled background.
 ///
 /// Features:
-/// - Circular InkWell with white splash/highlight
-/// - Phosphor duotone icon with configurable primary and secondary colors
+/// - Animated circular border on hover (desktop) and press (all platforms)
+/// - Phosphor icon with configurable color
 /// - Optional tooltip (via StyledTooltip, desktop/web only)
 /// - Configurable size and padding
 ///
 /// Usage:
 /// ```dart
 /// IconButtonStyled(
-///   icon: PhosphorIconsDuotone.camera,
+///   icon: PhosphorIcons.camera(),
 ///   onPressed: _capturePhoto,
 ///   tooltip: 'Camera',
 /// )
 /// ```
-class IconButtonStyled extends StatelessWidget {
+class IconButtonStyled extends StatefulWidget {
   /// The Phosphor icon to display.
-  final PhosphorIconData icon;
+  final IconData icon;
 
   /// Callback when the button is tapped.
   final VoidCallback onPressed;
@@ -34,23 +33,11 @@ class IconButtonStyled extends StatelessWidget {
   /// Icon size in logical pixels. Defaults to 24.
   final double size;
 
-  /// Padding inside the InkWell around the icon. Defaults to 8.
+  /// Padding inside the button around the icon. Defaults to 8.
   final double padding;
 
-  /// Primary icon color. Defaults to white.
+  /// Icon and border color. Defaults to #CE2161.
   final Color color;
-
-  /// Duotone secondary color. Defaults to #F9A302.
-  final Color duotoneSecondaryColor;
-
-  /// Duotone secondary opacity. Defaults to 1.0.
-  final double duotoneSecondaryOpacity;
-
-  /// InkWell splash color. Defaults to white24.
-  final Color splashColor;
-
-  /// InkWell highlight color. Defaults to white24.
-  final Color highlightColor;
 
   const IconButtonStyled({
     super.key,
@@ -59,37 +46,55 @@ class IconButtonStyled extends StatelessWidget {
     this.tooltip,
     this.size = 24,
     this.padding = 8,
-    this.color = Colors.white,
-    this.duotoneSecondaryColor = const Color(0xFFF9A302),
-    this.duotoneSecondaryOpacity = 1.0,
-    this.splashColor = Colors.white24,
-    this.highlightColor = Colors.white24,
+    this.color = const Color(0xFFCE2161),
   });
 
   @override
+  State<IconButtonStyled> createState() => _IconButtonStyledState();
+}
+
+class _IconButtonStyledState extends State<IconButtonStyled> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    Widget button = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        splashColor: splashColor,
-        highlightColor: highlightColor,
-        child: Padding(
-          padding: EdgeInsets.all(padding),
-          child: PhosphorIcon(
-            icon,
-            color: color,
-            duotoneSecondaryColor: duotoneSecondaryColor,
-            duotoneSecondaryOpacity: duotoneSecondaryOpacity,
-            size: size,
+    final active = _isHovered || _isPressed;
+
+    Widget button = MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onPressed,
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) => setState(() => _isPressed = false),
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: active
+                  ? widget.color.withValues(alpha: _isPressed ? 1.0 : 0.5)
+                  : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(widget.padding),
+            child: Icon(
+              widget.icon,
+              color: widget.color,
+              size: widget.size,
+            ),
           ),
         ),
       ),
     );
 
-    if (tooltip != null) {
-      return StyledTooltip(message: tooltip!, child: button);
+    if (widget.tooltip != null) {
+      return StyledTooltip(message: widget.tooltip!, child: button);
     }
 
     return button;

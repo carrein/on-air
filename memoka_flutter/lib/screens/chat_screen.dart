@@ -18,11 +18,77 @@ import '../providers/share_intent_provider.dart';
 import '../utils/responsive_utils.dart';
 
 /// Main chat screen with sidebar, chat view, and input bar.
-class ChatScreen extends ConsumerWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends ConsumerState<ChatScreen> {
+  static const _swipeVelocityThreshold = 300.0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      HardwareKeyboard.instance.addHandler(_handleHardwareKey);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (kIsWeb) {
+      HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
+    }
+    super.dispose();
+  }
+
+  /// Returns true if a text field currently holds keyboard focus.
+  bool _isTextFieldFocused() {
+    final focus = FocusManager.instance.primaryFocus;
+    return focus?.context?.widget is EditableText;
+  }
+
+  /// Global hardware key handler for web arrow-key channel cycling.
+  bool _handleHardwareKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (_isTextFieldFocused()) return false;
+
+    if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _cycleChannel(-1);
+      return true;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _cycleChannel(1);
+      return true;
+    }
+    return false;
+  }
+
+  /// Cycles to the next (+1) or previous (-1) channel in the list.
+  void _cycleChannel(int delta) {
+    final channelsAsync = ref.read(channelsProvider);
+    final currentAsync = ref.read(currentChannelProvider);
+
+    channelsAsync.whenData((channels) {
+      currentAsync.whenData((currentId) {
+        // Don't cycle when in Archive
+        if (currentId == -1) return;
+        if (channels.length <= 1) return;
+
+        final currentIndex = channels.indexWhere((c) => c.id == currentId);
+        if (currentIndex == -1) return;
+
+        ref.read(channelSwitchDirectionProvider.notifier).state = delta;
+        final nextIndex = (currentIndex + delta + channels.length) % channels.length;
+        ref.read(currentChannelProvider.notifier).switchChannel(channels[nextIndex].id!);
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final showMediaSidebar = ResponsiveUtils.shouldShowMediaSidebar(context);
     final isShowingSettings = ref.watch(settingsVisibilityProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
@@ -64,12 +130,45 @@ class ChatScreen extends ConsumerWidget {
       orElse: () => false,
     );
 
+    final isMobile = ResponsiveUtils.isMobile(context);
+
     Widget getMainContent() {
       if (isShowingSettings) {
         return const Expanded(child: SettingsView());
-      } else {
-        return const Expanded(child: ChatView());
       }
+      return const Expanded(child: ChatView());
+    }
+
+    // Returns the inner column content (without Expanded).
+    Widget buildContentInner() {
+      final mainContent = getMainContent();
+      if (!isMobile && !isArchive && !isShowingSettings) {
+        return Column(children: [mainContent, const InputBar()]);
+      }
+      return Column(children: [mainContent]);
+    }
+
+    // On mobile: wrap only the content area (not sidebar) in a GestureDetector
+    // so swipes on notes cycle channels.
+    Widget buildContentColumn() {
+      final inner = buildContentInner();
+      if (isMobile) {
+        return Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: (details) {
+              final v = details.primaryVelocity ?? 0;
+              if (v < -_swipeVelocityThreshold) {
+                _cycleChannel(1);  // swipe left → next
+              } else if (v > _swipeVelocityThreshold) {
+                _cycleChannel(-1); // swipe right → previous
+              }
+            },
+            child: inner,
+          ),
+        );
+      }
+      return Expanded(child: inner);
     }
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -79,24 +178,25 @@ class ChatScreen extends ConsumerWidget {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-      body: SafeArea(
-        child: Column(
-        children: [
-          const OfflineBanner(),
-          if (!isShowingSettings) const ChannelTopBar(),
-          Expanded(
-            child: Row(
-              children: [
-                const Sidebar(),
-                Expanded(child: Column(children: [getMainContent()])),
-                if (showMediaSidebar && !isShowingSettings) const MediaSidebar(),
-              ],
-            ),
+        backgroundColor: const Color(0xFFF6F0ED),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const OfflineBanner(),
+              if (!isShowingSettings) const ChannelTopBar(),
+              Expanded(
+                child: Row(
+                  children: [
+                    const Sidebar(),
+                    buildContentColumn(),
+                    if (showMediaSidebar && !isShowingSettings) const MediaSidebar(),
+                  ],
+                ),
+              ),
+              if (isMobile && !isArchive && !isShowingSettings) const InputBar(),
+            ],
           ),
-          if (!isArchive && !isShowingSettings) const InputBar(),
-        ],
-      ),
-      ),
+        ),
       ),
     );
   }

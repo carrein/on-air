@@ -1,6 +1,7 @@
 import 'package:memoka_client/memoka_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
@@ -67,6 +68,10 @@ Future<void> setServerUrl(String url) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
 
   serverUrl = await getServerUrl();
 

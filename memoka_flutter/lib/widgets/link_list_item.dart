@@ -18,9 +18,9 @@ class LinkListItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFF6F0ED),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(color: const Color(0xFFCE2161)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -36,14 +36,14 @@ class LinkListItem extends StatelessWidget {
                       width: 16,
                       height: 16,
                       errorBuilder: (context, error, stackTrace) {
-                        return Icon(Icons.language, size: 16, color: Colors.grey[600]);
+                        return Icon(Icons.language, size: 16, color: Color(0xFF00171F).withValues(alpha: 0.5));
                       },
                     ),
                     const SizedBox(width: 8),
                   ] else
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: Icon(Icons.language, size: 16, color: Colors.grey[600]),
+                      child: Icon(Icons.language, size: 16, color: Color(0xFF00171F).withValues(alpha: 0.5)),
                     ),
                   Expanded(
                     child: Text(
@@ -53,12 +53,12 @@ class LinkListItem extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        color: Color(0xFF00171F),
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(Icons.open_in_new, size: 14, color: Colors.grey[500]),
+                  Icon(Icons.open_in_new, size: 14, color: Color(0xFF00171F).withValues(alpha: 0.5)),
                 ],
               ),
 
@@ -71,7 +71,7 @@ class LinkListItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey[700],
+                    color: Color(0xFF00171F).withValues(alpha: 0.7),
                   ),
                 ),
               ] else if (!link.hasFullPreview) ...[
@@ -83,7 +83,7 @@ class LinkListItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey[600],
+                    color: Color(0xFF00171F).withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -95,9 +95,9 @@ class LinkListItem extends StatelessWidget {
                   _formatUrl(link.url),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
-                    color: Colors.blue[700],
+                    color: Color(0xFFCE2161),
                   ),
                 ),
               ],
@@ -108,7 +108,7 @@ class LinkListItem extends StatelessWidget {
                 _formatDate(link.createdAt),
                 style: TextStyle(
                   fontSize: 10,
-                  color: Colors.grey[500],
+                  color: Color(0xFF00171F).withValues(alpha: 0.5),
                 ),
               ),
             ],

@@ -22,7 +22,7 @@ class ShareIntentDialog extends ConsumerStatefulWidget {
 }
 
 class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
-  static const _accent = Color(0xFFFF52A1);
+  static const _accent = Color(0xFFCE2161);
   static const _bgDark = Color(0xFF00171F);
 
   int? _selectedChannelId;
@@ -106,7 +106,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
     final channelsAsync = ref.watch(channelsProvider);
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF6F0ED),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
@@ -151,7 +151,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                                   PhosphorIcon(
                                     getChannelIcon(c.emoji),
                                     size: 18,
-                                    color: const Color(0xFF1C1C1C),
+                                    color: const Color(0xFF00171F),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(

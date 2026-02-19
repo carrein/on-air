@@ -13,14 +13,14 @@ class SettingsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentBackground = ref.watch(backgroundPreferenceProvider);
     return Container(
-      color: Colors.white,
+      color: const Color(0xFFF6F0ED),
       child: Column(
         children: [
           // Header
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF1C1C1C),
+              color: const Color(0xFF00171F),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -69,7 +69,7 @@ class SettingsView extends ConsumerWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1C1C1C),
+              color: Color(0xFF00171F),
             ),
           ),
         ),
@@ -77,7 +77,7 @@ class SettingsView extends ConsumerWidget {
           title: const Text('Server URL', style: TextStyle(fontSize: 14)),
           subtitle: Text(
             serverUrl,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
+            style: TextStyle(fontSize: 12, color: Color(0xFF00171F).withValues(alpha: 0.5)),
             overflow: TextOverflow.ellipsis,
           ),
           trailing: TextButton(
@@ -90,7 +90,7 @@ class SettingsView extends ConsumerWidget {
             },
             child: const Text(
               'Change',
-              style: TextStyle(color: Color(0xFFFF52A1)),
+              style: TextStyle(color: Color(0xFFCE2161)),
             ),
           ),
         ),
@@ -110,7 +110,7 @@ class SettingsView extends ConsumerWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF1C1C1C),
+              color: Color(0xFF00171F),
             ),
           ),
         ),
@@ -162,8 +162,8 @@ class SettingsView extends ConsumerWidget {
                   right: 8,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[700],
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFCE2161),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

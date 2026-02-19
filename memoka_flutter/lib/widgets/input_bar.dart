@@ -27,12 +27,13 @@ class InputBar extends ConsumerStatefulWidget {
 
 class _InputBarState extends ConsumerState<InputBar> {
   // -- Colors (from Theme.md) --
-  static const _barBackground = Color(0xFF191C2F);
+  static const _barBackground = Color(0xFFF6F0ED);
   static const _fieldFill = Colors.transparent;
-  static const _iconColor = Color(0xFFFF52A1);        // brand.accent
+  static const _borderColor = Color(0xFFCE2161);
+  static const _iconColor = Color(0xFFCE2161);
   static const _iconDisabledAlpha = 0.4;
-  static const _hintTextColor = Color(0xFFFF52A1);    // brand.accent
-  static const _hintTextAlpha = 0.8;
+  static const _hintTextColor = Color(0xFF00171F);
+  static const _hintTextAlpha = 0.4;
 
   // -- Layout --
   static const _barPadding = EdgeInsets.only(left: 10, top: 8, bottom: 8, right: 6);
@@ -90,12 +91,22 @@ class _InputBarState extends ConsumerState<InputBar> {
     ref.listen(editingNoteProvider, (prev, next) {
       if (next != null && prev != next) {
         _populateEditingNote(next);
+      } else if (next == null && prev != null) {
+        // Edit mode cancelled externally (e.g. sidebar switching channels).
+        // Clear the field so stale note content doesn't bleed into the new channel.
+        setState(() {
+          _controller.clear();
+          _previewUrl = null;
+          _showPreview = true;
+        });
       }
     });
 
     // Listen for channel changes to save/load drafts
     ref.listen(currentChannelProvider, (prev, next) {
-      if (isEditMode) return; // Don't save/load drafts while editing
+      // Read current editing state directly — the closure captures a stale value
+      // when cancelEditing() and switchChannel() are called back-to-back.
+      if (ref.read(editingNoteProvider) != null) return;
 
       next.whenData((nextChannelId) {
         // Get previous channel ID
@@ -129,6 +140,7 @@ class _InputBarState extends ConsumerState<InputBar> {
           padding: _barPadding,
           decoration: const BoxDecoration(
             color: _barBackground,
+            border: Border(top: BorderSide(color: _borderColor, width: 1)),
           ),
           child: Row(
             children: [
@@ -157,7 +169,7 @@ class _InputBarState extends ConsumerState<InputBar> {
                       minLines: 1,
                       maxLines: 8,
                       keyboardType: TextInputType.multiline,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: Color(0xFF00171F)),
                       cursorColor: _iconColor,
                       decoration: InputDecoration(
                         isDense: true,
@@ -171,6 +183,7 @@ class _InputBarState extends ConsumerState<InputBar> {
                         ),
                         filled: true,
                         fillColor: _fieldFill,
+                        hoverColor: Colors.transparent,
                         contentPadding: _fieldContentPadding,
                       ),
                       onChanged: _onTextChanged,
@@ -238,7 +251,6 @@ class _InputBarState extends ConsumerState<InputBar> {
 
   static const _animDuration = Duration(milliseconds: 250);
   static const _animCurve = Curves.easeInOut;
-  static const _duotoneColor = Color(0xFFF9A302);
 
   Widget _buildActionIcons() {
     final hasText = _controller.text.trim().isNotEmpty;
@@ -258,11 +270,10 @@ class _InputBarState extends ConsumerState<InputBar> {
               child: hasText
                   ? const SizedBox.shrink()
                   : IconButtonStyled(
-                      icon: PhosphorIconsDuotone.camera,
+                      icon: PhosphorIcons.camera(),
                       onPressed: _capturePhoto,
 
                       size: _iconSize,
-                      duotoneSecondaryColor: _duotoneColor,
                     ),
             ),
           ),
@@ -285,19 +296,17 @@ class _InputBarState extends ConsumerState<InputBar> {
           child: hasText
               ? IconButtonStyled(
                   key: const ValueKey('send'),
-                  icon: PhosphorIconsDuotone.paperPlaneRight,
+                  icon: PhosphorIcons.paperPlaneRight(),
                   onPressed: _submit,
 
                   size: _iconSize,
-                  duotoneSecondaryColor: _duotoneColor,
                 )
               : IconButtonStyled(
                   key: const ValueKey('attach'),
-                  icon: PhosphorIconsDuotone.paperclip,
+                  icon: PhosphorIcons.paperclip(),
                   onPressed: _pickFile,
 
                   size: _iconSize,
-                  duotoneSecondaryColor: _duotoneColor,
                 ),
         ),
       ],

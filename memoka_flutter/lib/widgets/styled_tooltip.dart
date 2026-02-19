@@ -54,7 +54,7 @@ class StyledTooltip extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(
-          color: const Color(0xFFFF52A1), // brand.accent
+          color: const Color(0xFFCE2161), // brand.primary
           width: 1.0,
         ),
       ),

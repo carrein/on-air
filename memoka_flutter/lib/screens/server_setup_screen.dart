@@ -19,7 +19,7 @@ class ServerSetupScreen extends StatefulWidget {
 
 class _ServerSetupScreenState extends State<ServerSetupScreen> {
   static const _bgColor = Color(0xFF00171F);
-  static const _accent = Color(0xFFFF52A1);
+  static const _accent = Color(0xFFCE2161);
 
   final _controller = TextEditingController();
   bool _testing = false;
@@ -128,11 +128,11 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                   enabled: !_testing,
                   autocorrect: false,
                   keyboardType: TextInputType.url,
-                  style: GoogleFonts.spaceGrotesk(color: Colors.black87),
+                  style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00171F)),
                   decoration: InputDecoration(
                     hintText: 'https://memoka.example.com',
                     hintStyle: GoogleFonts.spaceGrotesk(
-                      color: Colors.black38,
+                      color: Color(0xFF00171F).withValues(alpha: 0.38),
                     ),
                     filled: true,
                     fillColor: Colors.white,

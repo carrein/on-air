@@ -34,13 +34,13 @@ class LinkList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.link_off, size: 64, color: Colors.grey[400]),
+            Icon(Icons.link_off, size: 64, color: Color(0xFF00171F).withValues(alpha: 0.4)),
             const SizedBox(height: 16),
             Text(
               'No links in this channel yet',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: Color(0xFF00171F).withValues(alpha: 0.5),
               ),
               textAlign: TextAlign.center,
             ),

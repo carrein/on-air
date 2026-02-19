@@ -2,7 +2,7 @@
 
 ## Overview
 
-The TopBar is the channel title bar displayed at the top of the screen. It shows the current channel name and, on mobile/tablet, a three-dot menu button for accessing media.
+The TopBar is the channel title bar displayed at the top of the screen. It shows the current channel icon and name, and a three-dot menu button giving access to channel actions and global app actions.
 
 **File**: `memoka_flutter/lib/widgets/channel_top_bar.dart`
 **Widget**: `ChannelTopBar` (ConsumerWidget)
@@ -13,107 +13,128 @@ The TopBar is the channel title bar displayed at the top of the screen. It shows
 
 The outer container spanning full width.
 
-- Background: `#00171F`
+- Background: `core.surface` (`#F6F0ED`)
+- Bottom border: 1px `brand.primary` (`#CE2161`)
 - Padding: left 16px, top 8px, bottom 8px, right 8px
-- Height driven by children (icon button = 40px tall, so bar = 56px with padding)
+- Height driven by children (icon button = 40px tall, so bar ≈ 56px with padding)
 
 ### Channel Title
 
-Left-aligned text showing the current channel name.
+Left-aligned icon + text showing the current channel.
 
-- Font size: 20px, normal weight, white
-- Shows "Archive" when viewing the Archive channel
+- Phosphor icon (20px) + channel name at 20px bold, `core.text` (`#00171F`)
+- Shows archive icon + "Archive" when viewing the Archive Crate
 - Ellipsis overflow for long names
 
-### Menu Button (mobile/tablet only)
+### Menu Button
 
-Right-aligned three-dot icon using `IconButtonStyled`.
+Right-aligned three-dot button using `IconButtonStyled`.
 
-- Icon: `PhosphorIconsDuotone.dotsThreeCircle`
-- Only shown when the media sidebar is NOT visible (mobile/tablet breakpoints)
+- Icon: `PhosphorIcons.dotsThreeCircle()`
+- Always visible
 - Opens a popup menu on tap
 
 ### Popup Menu
 
-Dark popup menu triggered by the menu button.
+Light popup menu anchored to the top-right corner.
 
-- Background: `#00171F`
-- Single item: "Media" with `PhosphorIconsDuotone.images` icon (20px) + white text
-- Selecting "Media" opens the media bottom sheet
+- Background: `core.surface` (`#F6F0ED`)
+- Text/icons: `core.text` (`#00171F`)
+
+**Channel actions** (shown only when a real channel is active, not Archive):
+
+| Item | Icon | Action |
+|------|------|--------|
+| Edit Channel | `pencilSimple` | Opens `NewChannelModal` in edit mode |
+| Pin / Unpin | `pushPin` / `pushPinSlash` | Toggles pinned state |
+| Archive Channel | `archive` | Soft-deletes channel, switches away with toast |
+| — divider — | | |
+
+**Global actions** (always shown):
+
+| Item | Icon | Action |
+|------|------|--------|
+| New Channel | `plusCircle` | Opens `NewChannelModal` in create mode |
+| Archive Crate | `archive` | Navigates to the Archive channel (`-1`) |
+| Media | `images` | Opens media bottom sheet (mobile/tablet only) |
+| Settings | `gear` | Opens settings view |
 
 ### Media Bottom Sheet
 
-Draggable modal bottom sheet showing `MediaSidebar`.
+Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
 
-- Initial size: 90% of screen height
-- Min size: 50%, max size: 95%
-- White background with 20px top border radius
-- Handle bar: 40x4px grey rounded bar at top
+- Initial size: 90% of screen height; min 50%, max 95%
+- Background: `core.surface` (`#F6F0ED`), 20px top border radius
+- Handle bar: 40×4px rounded bar, `core.text` at 15% opacity
 - Contains `MediaSidebar(fixedWidth: false)` for full-width tab content
 
 ## Styling
 
 ### Color Palette
 
-| Token              | Value     | Usage                           |
-|--------------------|-----------|---------------------------------|
-| `_backgroundColor` | `#00171F` | Bar background, popup menu      |
-| Title text         | `#FFFFFF` | Channel name text               |
-| Menu icon          | `#FFFFFF` | Three-dot icon primary color    |
-| Menu icon secondary| `#F9A302` | Three-dot icon duotone color    |
+| Token              | Value     | Usage                              |
+|--------------------|-----------|------------------------------------|
+| `_backgroundColor` | `#F6F0ED` | Bar background, popup, bottom sheet|
+| `_borderColor`     | `#CE2161` | Bottom border                      |
+| `_textColor`       | `#00171F` | Title text, menu items, icons      |
 
 ### Typography
 
-| Element       | Font   | Size | Weight | Color  |
-|---------------|--------|------|--------|--------|
-| Channel title | System | 20px | Normal | White  |
-| Menu item     | System | 14px | Normal | White  |
+| Element       | Size  | Weight | Color      |
+|---------------|-------|--------|------------|
+| Channel title | 20px  | Bold   | `#00171F`  |
+| Menu items    | 14px  | Normal | `#00171F`  |
 
 ### Dimensions
 
-| Token         | Value                          | Usage                    |
-|---------------|--------------------------------|--------------------------|
-| `_padding`    | L: 16, T: 8, B: 8, R: 8      | Bar container padding    |
-| Icon size     | 24px (default from IconButtonStyled) | Menu button icon   |
-| Icon padding  | 8px (default from IconButtonStyled)  | Menu button tap area |
-| Total height  | 56px (8 + 40 + 8)             | Bar height with icon     |
+| Token      | Value                     | Usage                   |
+|------------|---------------------------|-------------------------|
+| `_padding` | L: 16, T: 8, B: 8, R: 8 | Bar container padding   |
 
 ## Interactions
 
 ### Menu Button
 
 - Tap opens a popup menu anchored to the top-right
-- Menu items: "Media" (opens media bottom sheet)
-- Only visible on mobile/tablet (when `shouldShowMediaSidebar` returns false)
+- Channel actions (Edit/Pin/Archive) only appear when the active channel is a real channel (not Archive Crate)
+- Dismissing without selecting does nothing
+
+### Archive Channel
+
+- If archiving the currently viewed channel, automatically switches to the next available channel
+- Shows a success toast on completion, error toast on failure
 
 ### Media Bottom Sheet
 
-- Draggable to resize between 50-95% of screen height
+- Draggable to resize between 50–95% of screen height
 - Tap outside the sheet to dismiss
-- Contains the same `MediaSidebar` widget used on desktop, but with `fixedWidth: false`
+- Contains the same `MediaSidebar` widget used on desktop, with `fixedWidth: false`
+- Only accessible from the menu on mobile/tablet (when `shouldShowMediaSidebar` returns false)
 
 ## State Management
 
 ### Providers Watched (reactive)
 
-| Provider                | Type                       | Purpose                     |
-|-------------------------|----------------------------|-----------------------------|
-| `currentChannelProvider`| `AsyncValue<int>`          | Current channel ID          |
-| `channelsProvider`      | `AsyncValue<List<Channel>>`| Channel list for name lookup|
+| Provider                | Type                        | Purpose                      |
+|-------------------------|-----------------------------|------------------------------|
+| `currentChannelProvider`| `AsyncValue<int>`           | Current channel ID           |
+| `channelsProvider`      | `AsyncValue<List<Channel>>` | Channel list for name lookup |
 
-### Responsive Behavior
+### Providers Read (on interaction)
 
-| Breakpoint      | Menu Button | Media Access              |
-|-----------------|-------------|---------------------------|
-| Mobile (<768px) | Shown       | Via menu → bottom sheet   |
-| Tablet (768-1199px) | Shown   | Via menu → bottom sheet   |
-| Desktop (1200px+)| Hidden     | Permanent MediaSidebar    |
+| Provider                               | Usage                                      |
+|----------------------------------------|--------------------------------------------|
+| `currentChannelProvider` (read)        | Get active channel ID for menu setup       |
+| `channelsProvider` (read/future)       | Channel lookup, post-archive refetch       |
+| `channelsProvider.notifier`            | Update (pin) or archive channel            |
+| `currentChannelProvider.notifier`      | Switch channel after archive / new channel |
+| `editingNoteProvider.notifier`         | Cancel editing on archive crate switch     |
+| `settingsVisibilityProvider.notifier`  | Show/hide settings                         |
+| `currentSettingsPageProvider.notifier` | Navigate to main settings page             |
 
 ## Integration
 
 The `ChannelTopBar` is placed in the `ChatScreen` column above the main `Row` layout. It spans full width across both the sidebar and content area. It is hidden when the settings view is open.
-
-Previously, media access on mobile was via a `FloatingActionButton` in `ChatView`. This was replaced with the top bar menu for a cleaner UI.
 
 ## Related Files
 
@@ -122,7 +143,9 @@ Previously, media access on mobile was via a `FloatingActionButton` in `ChatView
 | `lib/widgets/channel_top_bar.dart` | This component |
 | `lib/widgets/icon_button_styled.dart` | Menu button widget |
 | `lib/widgets/media_sidebar.dart` | Media content in bottom sheet |
-| `lib/screens/chat_screen.dart` | Parent layout that hosts the top bar |
+| `lib/widgets/new_channel_modal.dart` | Channel create/edit dialog |
+| `lib/screens/chat_screen.dart` | Parent layout |
 | `lib/providers/current_channel_provider.dart` | Active channel ID |
-| `lib/providers/channels_provider.dart` | Channel list data |
-| `lib/utils/responsive_utils.dart` | Breakpoint detection |
+| `lib/providers/channels_provider.dart` | Channel list data and mutations |
+| `lib/utils/responsive_utils.dart` | Breakpoint detection for Media item |
+| `lib/utils/toast_utils.dart` | Archive success/error toasts |

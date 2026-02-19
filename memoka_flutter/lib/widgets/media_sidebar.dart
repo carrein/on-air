@@ -51,13 +51,13 @@ class _MediaSidebarState extends ConsumerState<MediaSidebar> with SingleTickerPr
                 color: const Color(0xFF00171F),
                 child: TabBar(
                   controller: _tabController,
-                  labelColor: const Color(0xFFFF52A1),
+                  labelColor: const Color(0xFFCE2161),
                   unselectedLabelColor: Colors.grey[500],
-                  indicatorColor: const Color(0xFFFF52A1),
+                  indicatorColor: const Color(0xFFCE2161),
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: const UnderlineTabIndicator(
                     borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Color(0xFFFF52A1), width: 3),
+                    borderSide: BorderSide(color: Color(0xFFCE2161), width: 3),
                   ),
                   dividerHeight: 0,
                   labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),

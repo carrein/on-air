@@ -343,7 +343,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
                   _controller,
                   allowScrubbing: true,
                   colors: VideoProgressColors(
-                    playedColor: const Color(0xFFFF52A1),
+                    playedColor: const Color(0xFFCE2161),
                     bufferedColor: Colors.grey[600]!,
                     backgroundColor: Colors.grey[800]!,
                   ),

@@ -1,8 +1,13 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 
 part 'current_channel_provider.g.dart';
+
+/// Direction of the most recent channel switch: -1 = previous, 1 = next.
+/// Used by ChatView to animate the slide direction.
+final channelSwitchDirectionProvider = StateProvider<int>((ref) => 1);
 
 /// Manages the currently active channel ID.
 /// Persists to shared preferences for restoration on app restart.

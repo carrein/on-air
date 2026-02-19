@@ -38,19 +38,53 @@ class ChatView extends ConsumerStatefulWidget {
   ConsumerState<ChatView> createState() => _ChatViewState();
 }
 
-class _ChatViewState extends ConsumerState<ChatView> {
+class _ChatViewState extends ConsumerState<ChatView>
+    with SingleTickerProviderStateMixin {
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
   int? _highlightedNoteId;
   bool _isDragOver = false;
 
+  // Channel switch animation
+  late final AnimationController _fadeController;
+  int? _displayedChannelId;
+  bool _isAnimating = false;
+  bool _isAnimatingIn = true;
+
   @override
   void initState() {
     super.initState();
     _itemPositionsListener.itemPositions.addListener(_onScroll);
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+      value: 1.0,
+    );
     if (kIsWeb) {
       _setupWebEventListeners();
     }
+  }
+
+  Future<void> _animateChannelSwitch(int newChannelId) async {
+    if (_isAnimating) {
+      // Rapid switch: snap immediately
+      if (mounted) setState(() => _displayedChannelId = newChannelId);
+      _fadeController.value = 1.0;
+      return;
+    }
+    _isAnimating = true;
+
+    setState(() => _isAnimatingIn = false);
+    await _fadeController.animateTo(0.0, curve: Curves.easeIn);
+    if (!mounted) { _isAnimating = false; return; }
+
+    setState(() {
+      _displayedChannelId = newChannelId;
+      _isAnimatingIn = true;
+    });
+
+    await _fadeController.animateTo(1.0, curve: Curves.easeOut);
+    if (mounted) _isAnimating = false;
   }
 
   void _setupWebEventListeners() {
@@ -91,8 +125,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
     if (positions.isEmpty) return;
 
     final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
-    final channelId = ref.read(currentChannelProvider).value;
-    if (channelId == null) return;
+    final channelId = _displayedChannelId;
+    if (channelId == null || channelId == -1) return;
 
     final notes = ref.read(notesProvider(channelId)).value;
     if (notes == null) return;
@@ -127,6 +161,82 @@ class _ChatViewState extends ConsumerState<ChatView> {
     });
   }
 
+  Widget _buildDisplayedContent() {
+    final channelId = _displayedChannelId;
+    if (channelId == null) return const Center(child: CircularProgressIndicator());
+    if (channelId == -1) return _buildArchiveView();
+
+    final notesAsync = ref.watch(notesProvider(channelId));
+    return notesAsync.when(
+      data: (notes) {
+        if (notes.isEmpty) {
+          return Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6F0ED),
+                border: Border.all(color: const Color(0xFFCE2161), width: 1.0),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SvgPicture.asset('assets/images/labs.svg', width: 48, height: 48),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'It\'s quiet in here...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF00171F),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final allImageUrls = notes.reversed
+            .expand((n) => (n.attachments ?? [])
+                .where((a) => a.mimeType.toLowerCase().startsWith('image/'))
+                .map((a) => FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash)))
+            .toList();
+
+        return ScrollablePositionedList.builder(
+          itemScrollController: _itemScrollController,
+          itemPositionsListener: _itemPositionsListener,
+          physics: const ClampingScrollPhysics(),
+          reverse: true,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: notes.length,
+          itemBuilder: (context, index) {
+            final note = notes[index];
+            final previousNote = index > 0 ? notes[index - 1] : null;
+            final needsSeparator = previousNote != null &&
+                !_isSameDay(note.createdAt, previousNote.createdAt);
+            final isHighlighted = _highlightedNoteId == note.id;
+            return Column(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 500),
+                  decoration: BoxDecoration(
+                    color: isHighlighted
+                        ? const Color(0xFFCE2161).withValues(alpha: 0.15)
+                        : Colors.transparent,
+                  ),
+                  child: _buildNoteItem(note, channelId, allImageUrls),
+                ),
+                if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
+              ],
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
@@ -134,115 +244,57 @@ class _ChatViewState extends ConsumerState<ChatView> {
     final isSelectionMode = selection.isNotEmpty;
     final currentBackground = ref.watch(backgroundPreferenceProvider);
 
+    // Initialise displayed channel on first load
+    if (_displayedChannelId == null && currentChannelAsync.valueOrNull != null) {
+      _displayedChannelId = currentChannelAsync.valueOrNull;
+    }
+
+    // Animate when the active channel changes
+    ref.listen(currentChannelProvider, (prev, next) {
+      next.whenData((newId) {
+        if (newId != _displayedChannelId) _animateChannelSwitch(newId);
+      });
+    });
+
     // Listen for scroll-to-note requests from media sidebar
     ref.listen(scrollToNoteProvider, (prev, noteId) {
       if (noteId != null) {
         _scrollToNote(noteId);
-        // Reset after handling
         Future.microtask(() => ref.read(scrollToNoteProvider.notifier).state = null);
       }
     });
 
     return Stack(
       children: [
-        Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage(currentBackground.assetPath),
-              repeat: ImageRepeat.repeat,
-              scale: 1.0, // Original tile size
+        // Static background — never animates
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(currentBackground.assetPath),
+                repeat: ImageRepeat.repeat,
+                scale: 1.0,
+              ),
             ),
           ),
-          child: currentChannelAsync.when(
-      data: (channelId) {
-        // Use archive items provider for Archive Crate
-        if (channelId == -1) {
-          return _buildArchiveView();
-        }
-
-        final notesAsync = ref.watch(notesProvider(channelId));
-
-        return notesAsync.when(
-          data: (notes) {
-            if (notes.isEmpty) {
-              return Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: const Color(0xFFFF52A1), width: 1.0),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SvgPicture.asset(
-                        'assets/images/labs.svg',
-                        width: 48,
-                        height: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'It\'s quiet in here...',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF1C1C1C),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            // Collect all image URLs across notes (chronological order)
-            final allImageUrls = notes.reversed
-                .expand((n) => (n.attachments ?? [])
-                    .where((a) => a.mimeType.toLowerCase().startsWith('image/'))
-                    .map((a) => FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash)))
-                .toList();
-
-            return ScrollablePositionedList.builder(
-              itemScrollController: _itemScrollController,
-              itemPositionsListener: _itemPositionsListener,
-              physics: const ClampingScrollPhysics(),
-              reverse: true,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: notes.length,
-              itemBuilder: (context, index) {
-                final note = notes[index];
-                final previousNote = index > 0 ? notes[index - 1] : null;
-
-                // Check if we need a date separator
-                final needsSeparator = previousNote != null &&
-                    !_isSameDay(note.createdAt, previousNote.createdAt);
-
-                final isHighlighted = _highlightedNoteId == note.id;
-
-                return Column(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 500),
-                      decoration: BoxDecoration(
-                        color: isHighlighted
-                            ? const Color(0xFFFF52A1).withValues(alpha: 0.15)
-                            : Colors.transparent,
-                      ),
-                      child: _buildNoteItem(note, channelId, allImageUrls),
-                    ),
-                    if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
-                  ],
-                );
-              },
+        ),
+        // Animated notes layer
+        AnimatedBuilder(
+          animation: _fadeController,
+          builder: (context, child) {
+            final direction = ref.read(channelSwitchDirectionProvider);
+            final t = _fadeController.value;
+            final xOffset = _isAnimatingIn
+                ? (1.0 - t) * direction * 40.0
+                : (1.0 - t) * -direction * 40.0;
+            return ClipRect(
+              child: Transform.translate(
+                offset: Offset(xOffset, 0),
+                child: Opacity(opacity: t, child: child),
+              ),
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error: $err')),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
-          ),
+          child: _buildDisplayedContent(),
         ),
         // Drag-over indicator
         if (_isDragOver)
@@ -274,7 +326,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
             right: 0,
             child: Material(
               elevation: 0,
-              color: const Color(0xFFFF52A1),
+              color: const Color(0xFFCE2161),
               child: SafeArea(
                 bottom: false,
                 child: Container(
@@ -389,13 +441,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                 const SizedBox(height: 4),
                                 Text(
                                   _formatDateTime(note.createdAt),
-                                  style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                                  style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
                                 ),
                               ],
                             )
                           : Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: const Color(0xFFF6F0ED),
                                 border: Border.all(
                                   color: borderColor,
                                   width: 1.0,
@@ -411,7 +463,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                   // Timestamp
                                   Text(
                                     _formatDateTime(note.createdAt),
-                                    style: TextStyle(fontSize: 12, color: const Color(0xFF1C1C1C).withValues(alpha: 0.5)),
+                                    style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
                                   ),
                                 ],
                               ),
@@ -482,8 +534,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFFF52A1), width: 1.0),
+                color: const Color(0xFFF6F0ED),
+                border: Border.all(color: const Color(0xFFCE2161), width: 1.0),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -499,7 +551,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF1C1C1C),
+                      color: Color(0xFF00171F),
                     ),
                   ),
                 ],
@@ -557,7 +609,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                         },
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: const Color(0xFFF6F0ED),
                             border: Border.all(
                               color: borderColor,
                               width: 1.0,
@@ -570,7 +622,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                               PhosphorIcon(
                                 getChannelIcon(channel.emoji),
                                 size: 24,
-                                color: const Color(0xFF1C1C1C),
+                                color: const Color(0xFF00171F),
                               ),
                               const SizedBox(width: 10),
                               Flexible(
@@ -580,7 +632,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF1C1C1C),
+                                    color: Color(0xFF00171F),
                                   ),
                                 ),
                               ),
@@ -591,12 +643,12 @@ class _ChatViewState extends ConsumerState<ChatView> {
                                   color: const Color(0xFFDADDD8),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'Channel',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
-                                    color: Color(0xFF666666),
+                                    color: Color(0xFF00171F).withValues(alpha: 0.5),
                                   ),
                                 ),
                               ),
@@ -790,20 +842,20 @@ class _ChatViewState extends ConsumerState<ChatView> {
               }
             },
             styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: const TextStyle(fontSize: 16, color: Color(0xFF1C1C1C)),
+              p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
               a: const TextStyle(
                 fontSize: 16,
                 color: Colors.blue,
                 decoration: TextDecoration.underline,
               ),
-              h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
-              h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
-              h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
-              h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
-              h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
-              h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF1C1C1C)),
-              code: const TextStyle(color: Color(0xFF1C1C1C), backgroundColor: Color(0xFFDADDD8)),
-              blockquote: const TextStyle(color: Color(0xFF1C1C1C)),
+              h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+              h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+              h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+              h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+              h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+              h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+              code: const TextStyle(color: Color(0xFF00171F), backgroundColor: Color(0xFFDADDD8)),
+              blockquote: const TextStyle(color: Color(0xFF00171F)),
             ),
           ),
 
@@ -1021,7 +1073,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF1C1C1C),
+            color: Color(0xFF00171F),
           ),
         ),
       ),
@@ -1310,6 +1362,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
   @override
   void dispose() {
     _itemPositionsListener.itemPositions.removeListener(_onScroll);
+    _fadeController.dispose();
     super.dispose();
   }
 }

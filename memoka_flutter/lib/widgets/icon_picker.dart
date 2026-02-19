@@ -29,7 +29,7 @@ class IconPicker extends StatefulWidget {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF6F0ED),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -170,7 +170,7 @@ class _IconPickerState extends State<IconPicker> {
                             size: _iconSize,
                             color: isSelected
                                 ? _selectedBg
-                                : const Color(0xFF1C1C1C),
+                                : const Color(0xFF00171F),
                           ),
                         ),
                       ),
