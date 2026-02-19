@@ -26,6 +26,14 @@ Left-aligned icon + text showing the current channel.
 - Shows archive icon + "Archive" when viewing the Archive Crate
 - Ellipsis overflow for long names
 
+### Pin Button
+
+Inline icon button shown to the left of the three-dot button, using `IconButtonStyled`.
+
+- Icon: `PhosphorIcons.pushPin()` when unpinned; `PhosphorIcons.pushPinSlash()` when pinned
+- Visible only when a real channel is active (hidden on Archive Crate)
+- Tap immediately toggles the pinned state via `channelsProvider.notifier.updateChannel`
+
 ### Menu Button
 
 Right-aligned three-dot button using `IconButtonStyled`.
@@ -46,7 +54,6 @@ Light popup menu anchored to the top-right corner.
 | Item | Icon | Action |
 |------|------|--------|
 | Edit Channel | `pencilSimple` | Opens `NewChannelModal` in edit mode |
-| Pin / Unpin | `pushPin` / `pushPinSlash` | Toggles pinned state |
 | Archive Channel | `archive` | Soft-deletes channel, switches away with toast |
 | — divider — | | |
 

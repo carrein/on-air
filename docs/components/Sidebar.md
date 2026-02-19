@@ -21,7 +21,6 @@ Scrollable, drag-to-reorder list of all channels, sorted with pinned channels fi
   - Order is persisted via `sortOrder` field and `reorderChannels` endpoint
   - Uses `ReorderableDelayedDragStartListener` on every item (compact and non-compact)
 - Scrollbar hidden via `ScrollConfiguration`
-- A 1px `brand.primary` divider appears between the last pinned channel and first unpinned channel
 - Fade gradients (60px tall) appear at top/bottom edges when content is scrollable beyond view
 - Fade gradients use the sidebar background color transitioning to transparent
 
@@ -39,6 +38,8 @@ Individual channel row within the channel list.
 
 **Compact (mobile — 64px sidebar):**
 - Channel icon only (22px), vertically centred, no text or preview
+- **Pinned indicator**: icon shown inside a 32×32px `brand.primary` circle when the channel is pinned but not selected
+- Selected state overrides the circle: full-row `brand.primary` background with white icon as normal
 
 **States:**
 - **Default**: transparent background, `core.text` icon/text
@@ -58,7 +59,6 @@ Individual channel row within the channel list.
 | `_backgroundColor`  | `#F6F0ED`   | Sidebar background, fade gradients           |
 | `_selectedColor`    | `#CE2161`   | Selected channel item background             |
 | `_borderColor`      | `#CE2161`   | Right border, drag-active item border        |
-| `_dividerColor`     | `#CE2161`   | Pinned/unpinned group divider line           |
 | `_textColor`        | `#00171F`   | Channel names, preview text (unselected)     |
 | `_previewTextAlpha` | `0.7`       | Preview text opacity                         |
 
@@ -83,7 +83,6 @@ Individual channel row within the channel list.
 | `_pinIconRotation`     | 15 degrees (0.2618 rad)         | Star icon tilt           |
 | `_pinIconGap`          | 12px                            | Gap before pin icon      |
 | `_fadeGradientHeight`  | 60px                            | Top/bottom scroll fades  |
-| `_dividerHeight`       | 1px                             | Pinned/unpinned divider  |
 | `_scrollThreshold`     | 10px                            | Scroll edge detection    |
 
 ## Interactions

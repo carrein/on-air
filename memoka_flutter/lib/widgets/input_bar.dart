@@ -9,7 +9,6 @@ import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/media_provider.dart';
-import '../providers/drafts_provider.dart';
 import '../utils/toast_utils.dart';
 import '../models/upload_file_data.dart';
 import 'input_link_preview.dart';
@@ -102,29 +101,6 @@ class _InputBarState extends ConsumerState<InputBar> {
       }
     });
 
-    // Listen for channel changes to save/load drafts
-    ref.listen(currentChannelProvider, (prev, next) {
-      // Read current editing state directly — the closure captures a stale value
-      // when cancelEditing() and switchChannel() are called back-to-back.
-      if (ref.read(editingNoteProvider) != null) return;
-
-      next.whenData((nextChannelId) {
-        // Get previous channel ID
-        final prevChannelId = prev?.valueOrNull;
-
-        // Save draft for previous channel if switching
-        if (prevChannelId != null && prevChannelId != nextChannelId) {
-          final currentText = _controller.text;
-          ref.read(draftsProvider.notifier).saveDraft(prevChannelId, currentText);
-        }
-
-        // Load draft for new channel
-        if (nextChannelId != prevChannelId) {
-          final draft = ref.read(draftsProvider.notifier).getDraft(nextChannelId);
-          _controller.text = draft;
-        }
-      });
-    });
 
     return Column(
         children: [
@@ -234,8 +210,6 @@ class _InputBarState extends ConsumerState<InputBar> {
     } else {
       // Create new note
       ref.read(notesProvider(channelId).notifier).createNote(content);
-      // Clear draft after sending
-      ref.read(draftsProvider.notifier).clearDraft(channelId);
     }
 
     // Reset preview state and clear text field

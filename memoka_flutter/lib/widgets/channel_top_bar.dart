@@ -35,6 +35,12 @@ class ChannelTopBar extends ConsumerWidget {
     final currentChannelAsync = ref.watch(currentChannelProvider);
     final channelsAsync = ref.watch(channelsProvider);
 
+    final currentChannelId = currentChannelAsync.valueOrNull;
+    final channels = channelsAsync.valueOrNull ?? [];
+    final currentChannel = (currentChannelId != null && currentChannelId != -1)
+        ? channels.where((c) => c.id == currentChannelId).firstOrNull
+        : null;
+
     return Container(
       padding: _padding,
       decoration: const BoxDecoration(
@@ -44,6 +50,13 @@ class ChannelTopBar extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(child: _buildTitle(currentChannelAsync, channelsAsync)),
+          if (currentChannel != null)
+            IconButtonStyled(
+              icon: currentChannel.pinned
+                  ? PhosphorIcons.pushPinSlash()
+                  : PhosphorIcons.pushPin(),
+              onPressed: () => _togglePin(ref, currentChannel.id!, !currentChannel.pinned),
+            ),
           IconButtonStyled(
             icon: PhosphorIcons.dotsThreeCircle(),
             onPressed: () => _showTopBarMenu(context, ref),
@@ -125,23 +138,6 @@ class ChannelTopBar extends ConsumerWidget {
             ),
           ),
           PopupMenuItem(
-            value: channel.pinned ? 'unpin_channel' : 'pin_channel',
-            child: Row(
-              children: [
-                Icon(
-                  channel.pinned ? PhosphorIcons.pushPinSlash() : PhosphorIcons.pushPin(),
-                  color: _textColor,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  channel.pinned ? 'Unpin' : 'Pin',
-                  style: const TextStyle(color: _textColor),
-                ),
-              ],
-            ),
-          ),
-          PopupMenuItem(
             value: 'archive_channel',
             child: Row(
               children: [
@@ -203,12 +199,6 @@ class ChannelTopBar extends ConsumerWidget {
     switch (result) {
       case 'edit_channel':
         if (channel != null) _showEditChannelDialog(context, ref, channel);
-        break;
-      case 'pin_channel':
-        if (channel != null) _togglePin(ref, channel.id!, true);
-        break;
-      case 'unpin_channel':
-        if (channel != null) _togglePin(ref, channel.id!, false);
         break;
       case 'archive_channel':
         if (channel != null && context.mounted) _archiveChannel(context, ref, channel.id!);

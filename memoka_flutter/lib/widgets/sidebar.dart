@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/channels_provider.dart';
@@ -25,7 +24,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
   static const _backgroundColor = Color(0xFFF6F0ED);
   static const _selectedColor = Color(0xFFCE2161);
   static const _borderColor = Color(0xFFCE2161);
-  static const _dividerColor = Color(0xFFCE2161);
   static const _textColor = Color(0xFF00171F);
   static const _previewTextAlpha = 0.7;
 
@@ -42,7 +40,6 @@ class _SidebarState extends ConsumerState<Sidebar> {
   static const _pinIconRotation = 15 * 3.14159 / 180;
   static const _pinIconGap = 12.0;
   static const _fadeGradientHeight = 60.0;
-  static const _dividerHeight = 1.0;
 
   // -- Scroll --
   static const _scrollThreshold = 10.0;
@@ -104,11 +101,7 @@ class _SidebarState extends ConsumerState<Sidebar> {
                         final pinned = regularChannels.where((c) => c.pinned).toList();
                         final unpinned = regularChannels.where((c) => !c.pinned).toList();
 
-                        // Build flat list: pinned items + optional divider + unpinned items
-                        // Divider is at index pinned.length (if both groups non-empty)
-                        final hasDivider = pinned.isNotEmpty && unpinned.isNotEmpty;
-                        final dividerIndex = pinned.length;
-                        final totalCount = pinned.length + unpinned.length + (hasDivider ? 1 : 0);
+                        final totalCount = pinned.length + unpinned.length;
 
                         return ScrollConfiguration(
                           behavior: ScrollConfiguration.of(context).copyWith(
@@ -149,26 +142,14 @@ class _SidebarState extends ConsumerState<Sidebar> {
                               newIndex,
                               pinned,
                               unpinned,
-                              hasDivider,
-                              dividerIndex,
                             ),
                             itemBuilder: (context, index) {
-                              // Divider row
-                              if (hasDivider && index == dividerIndex) {
-                                return Container(
-                                  key: const ValueKey('pinned-divider'),
-                                  height: _dividerHeight,
-                                  color: _dividerColor,
-                                );
-                              }
-
                               // Determine which channel this index maps to
                               final Channel channel;
                               if (index < pinned.length) {
                                 channel = pinned[index];
                               } else {
-                                final unpinnedIdx = index - pinned.length - (hasDivider ? 1 : 0);
-                                channel = unpinned[unpinnedIdx];
+                                channel = unpinned[index - pinned.length];
                               }
 
                               final isSelected = currentChannelAsync.value == channel.id;
@@ -247,13 +228,11 @@ class _SidebarState extends ConsumerState<Sidebar> {
     int newIndex,
     List<Channel> pinned,
     List<Channel> unpinned,
-    bool hasDivider,
-    int dividerIndex,
   ) {
     // Determine which group the old index belongs to
     final oldInPinned = oldIndex < pinned.length;
     final pinnedEnd = pinned.length;
-    final unpinnedStart = pinnedEnd + (hasDivider ? 1 : 0);
+    final unpinnedStart = pinnedEnd;
 
     // Clamp destination to stay within the same group
     if (oldInPinned) {
@@ -311,11 +290,30 @@ class _SidebarState extends ConsumerState<Sidebar> {
                   width: _emojiContainerSize,
                   height: _emojiContainerSize,
                   child: Center(
-                    child: PhosphorIcon(
-                      getChannelIcon(channel.emoji),
-                      size: 22,
-                      color: isSelected ? Colors.white : _textColor,
-                    ),
+                    child: channel.pinned
+                        ? Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected ? Colors.white : _textColor,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Center(
+                              child: PhosphorIcon(
+                                getChannelIcon(channel.emoji),
+                                size: 20,
+                                color: isSelected ? Colors.white : _textColor,
+                              ),
+                            ),
+                          )
+                        : PhosphorIcon(
+                            getChannelIcon(channel.emoji),
+                            size: 22,
+                            color: isSelected ? Colors.white : _textColor,
+                          ),
                   ),
                 ),
               )
@@ -372,10 +370,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
                       const SizedBox(width: _pinIconGap),
                       Transform.rotate(
                         angle: _pinIconRotation,
-                        child: SvgPicture.asset(
-                          'assets/images/star.svg',
-                          width: _pinIconSize,
-                          height: _pinIconSize,
+                        child: PhosphorIcon(
+                          PhosphorIconsFill.star,
+                          size: _pinIconSize,
+                          color: isSelected ? Colors.white : _textColor,
                         ),
                       ),
                     ],

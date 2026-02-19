@@ -5,11 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../utils/icon_utils.dart';
+import '../utils/responsive_utils.dart';
 import '../main.dart' show serverUrl, client;
 import '../providers/notes_provider.dart';
 import '../providers/archive_items_provider.dart';
@@ -43,6 +44,7 @@ class _ChatViewState extends ConsumerState<ChatView>
   final ItemScrollController _itemScrollController = ItemScrollController();
   final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
   int? _highlightedNoteId;
+  int? _hoveredNoteId;
   bool _isDragOver = false;
 
   // Channel switch animation
@@ -180,7 +182,7 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SvgPicture.asset('assets/images/labs.svg', width: 48, height: 48),
+                  PhosphorIcon(PhosphorIcons.flask(), size: 48, color: Color(0xFF00171F)),
                   const SizedBox(height: 16),
                   const Text(
                     'It\'s quiet in here...',
@@ -350,11 +352,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                       ),
                       const Spacer(),
                       IconButton(
-                        icon: SvgPicture.asset(
-                          'assets/images/recycle.svg',
-                          width: 24,
-                          height: 24,
-                        ),
+                        icon: PhosphorIcon(PhosphorIcons.archive(), size: 24, color: Colors.white),
                         onPressed: () {
                           final channelId = ref.read(currentChannelProvider).value;
                           if (channelId != null) {
@@ -376,12 +374,14 @@ class _ChatViewState extends ConsumerState<ChatView>
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
     final isSelected = selection.contains(note.id);
+    final isHovered = _hoveredNoteId == note.id;
+    final isMobile = ResponsiveUtils.isMobile(context);
+    final showActions = isHovered || isMobile;
 
-    // Border color: consistent pink for all notes
     const borderColor = Color(0xFFCE2161);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -390,15 +390,9 @@ class _ChatViewState extends ConsumerState<ChatView>
             Padding(
               padding: const EdgeInsets.only(right: 8, top: 8),
               child: GestureDetector(
-                onTap: () {
-                  ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                },
+                onTap: () => ref.read(noteSelectionProvider.notifier).toggle(note.id!),
                 child: isSelected
-                    ? SvgPicture.asset(
-                        'assets/images/checkmark.svg',
-                        width: 24,
-                        height: 24,
-                      )
+                    ? const PhosphorIcon(PhosphorIconsFill.check, size: 24, color: Color(0xFFCE2161))
                     : const SizedBox(width: 24, height: 24),
               ),
             ),
@@ -406,122 +400,116 @@ class _ChatViewState extends ConsumerState<ChatView>
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                    child: Listener(
-                      onPointerDown: (event) {
-                        // Check for secondary button (right-click)
-                        if (event.buttons == 2) {
-                          _showNoteContextMenu(context, note, channelId, event.position);
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                child: MouseRegion(
+                  onEnter: (_) => setState(() => _hoveredNoteId = note.id),
+                  onExit: (_) => setState(() => _hoveredNoteId = null),
+                  child: Listener(
+                    onPointerDown: (event) {
+                      if (event.buttons == 2) {
+                        _showNoteContextMenu(context, note, channelId, event.position);
+                      }
+                    },
+                    child: GestureDetector(
+                      onTap: isSelectionMode
+                          ? () => ref.read(noteSelectionProvider.notifier).toggle(note.id!)
+                          : null,
+                      onLongPress: () {
+                        if (isSelectionMode) {
+                          ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+                        } else {
+                          _showNoteContextMenu(context, note, channelId, null);
                         }
                       },
-                      child: GestureDetector(
-                        onTap: isSelectionMode
-                            ? () {
-                                ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                              }
-                            : null,
-                        onLongPress: () {
-                          if (isSelectionMode) {
-                            ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                          } else {
-                            _showNoteContextMenu(context, note, channelId, null);
-                          }
-                        },
-                        child: _isMediaOnlyNote(note)
+                      child: _isMediaOnlyNote(note)
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildNoteContent(note, allImageUrls),
                                 const SizedBox(height: 4),
-                                Text(
-                                  _formatDateTime(note.createdAt),
-                                  style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
-                                ),
+                                _buildNoteFooter(note, channelId, showActions),
                               ],
                             )
                           : Container(
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF6F0ED),
-                                border: Border.all(
-                                  color: borderColor,
-                                  width: 1.0,
-                                ),
+                                border: Border.all(color: borderColor, width: 1.0),
                               ),
                               padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Note content
                                   _buildNoteContent(note, allImageUrls),
                                   const SizedBox(height: 8),
-                                  // Timestamp
-                                  Text(
-                                    _formatDateTime(note.createdAt),
-                                    style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
-                                  ),
+                                  _buildNoteFooter(note, channelId, showActions),
                                 ],
                               ),
                             ),
-                      ),
                     ),
                   ),
-                  ),
-                  // Action buttons outside the note container
-                  if (channelId == -1) ...[
-                    // Restore button for Archive
-                    const SizedBox(width: 12),
-                    MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () => _restoreNote(note),
-                        child: SvgPicture.asset(
-                          'assets/images/restore.svg',
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                    ),
-                    // Delete button for Archive
-                    const SizedBox(width: 8),
-                    MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () => _deleteNote(note, channelId),
-                        child: SvgPicture.asset(
-                          'assets/images/cancel.svg',
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                    ),
-                  ] else ...[
-                    // Archive button for regular channels
-                    const SizedBox(width: 12),
-                    MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () => _deleteNote(note, channelId),
-                        child: SvgPicture.asset(
-                          'assets/images/recycle.svg',
-                          width: 24,
-                          height: 24,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildNoteFooter(Note note, int channelId, bool showActions) {
+    final isArchive = channelId == -1;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          _formatDateTime(note.createdAt),
+          style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+        ),
+        if (showActions)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => _copyNote(note),
+                  child: PhosphorIcon(PhosphorIcons.copySimple(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+                ),
+              ),
+              const SizedBox(width: 14),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: isArchive ? () => _restoreNote(note) : () => _deleteNote(note, channelId),
+                  child: PhosphorIcon(
+                    isArchive ? PhosphorIcons.arrowCounterClockwise() : PhosphorIcons.archive(),
+                    size: 20,
+                    color: const Color(0xFF00171F).withValues(alpha: 0.5),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => _shareNote(note),
+                  child: PhosphorIcon(PhosphorIcons.shareNetwork(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  void _copyNote(Note note) {
+    Clipboard.setData(ClipboardData(text: note.content));
+    ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
+  }
+
+  void _shareNote(Note note) {
+    if (note.content.isNotEmpty) Share.share(note.content);
   }
 
   Widget _buildArchiveView() {
@@ -540,11 +528,7 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SvgPicture.asset(
-                    'assets/images/labs.svg',
-                    width: 48,
-                    height: 48,
-                  ),
+                  PhosphorIcon(PhosphorIcons.flask(), size: 48, color: Color(0xFF00171F)),
                   const SizedBox(height: 16),
                   const Text(
                     'It\'s quiet in here...',
@@ -583,7 +567,7 @@ class _ChatViewState extends ConsumerState<ChatView>
     const borderColor = Color(0xFFCE2161);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -664,11 +648,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
                       onTap: () => _restoreChannel(channel),
-                      child: SvgPicture.asset(
-                        'assets/images/restore.svg',
-                        width: 24,
-                        height: 24,
-                      ),
+                      child: PhosphorIcon(PhosphorIcons.arrowCounterClockwise(), size: 24, color: Color(0xFF00171F)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -676,11 +656,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
                       onTap: () => _showDeleteChannelConfirmation(channel),
-                      child: SvgPicture.asset(
-                        'assets/images/cancel.svg',
-                        width: 24,
-                        height: 24,
-                      ),
+                      child: PhosphorIcon(PhosphorIcons.x(), size: 24, color: Color(0xFF00171F)),
                     ),
                   ),
                 ],
