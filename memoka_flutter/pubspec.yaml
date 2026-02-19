@@ -1,3 +1,15 @@
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo.svg"
+  adaptive_icon_background: "#F6F0ED"
+  adaptive_icon_foreground: "assets/logo.svg"
+  web:
+    generate: true
+    image_path: "assets/logo.svg"
+    background_color: "#F6F0ED"
+    theme_color: "#CE2161"
+
 name: memoka_flutter
 description: A new Flutter project with Serverpod.
 
@@ -82,6 +94,7 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    - assets/logo.svg
     - assets/images/
     - assets/images/backgrounds/
 
