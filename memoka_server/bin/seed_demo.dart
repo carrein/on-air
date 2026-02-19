@@ -112,15 +112,15 @@ void main(List<String> args) async {
       // Read PNG dimensions from header (bytes 16-19 = width, 20-23 = height)
       int? width;
       int? height;
-      if (bytes.length > 24 &&
-          bytes[0] == 0x89 &&
-          bytes[1] == 0x50) {
+      if (bytes.length > 24 && bytes[0] == 0x89 && bytes[1] == 0x50) {
         // PNG signature confirmed
-        width = (bytes[16] << 24) |
+        width =
+            (bytes[16] << 24) |
             (bytes[17] << 16) |
             (bytes[18] << 8) |
             bytes[19];
-        height = (bytes[20] << 24) |
+        height =
+            (bytes[20] << 24) |
             (bytes[21] << 16) |
             (bytes[22] << 8) |
             bytes[23];
@@ -169,22 +169,22 @@ void main(List<String> args) async {
     await addNote(
       general.id!,
       'Welcome to Memoka! 🎉\n\nThis is your personal notes space. '
-          'Create channels to organize different topics, and jot down '
-          'thoughts as they come.',
+      'Create channels to organize different topics, and jot down '
+      'thoughts as they come.',
       minutesAgo: 1440, // 1 day ago
     );
 
     await addNote(
       general.id!,
       'Serverpod is the backend framework powering this app. '
-          'Check it out: https://serverpod.dev',
+      'Check it out: https://serverpod.dev',
       minutesAgo: 1380,
     );
 
     await addNote(
       general.id!,
       'Built with Flutter — one codebase for web, Android, and iOS.\n\n'
-          'https://flutter.dev',
+      'https://flutter.dev',
       minutesAgo: 1200,
     );
 
@@ -197,20 +197,20 @@ void main(List<String> args) async {
     await addNote(
       general.id!,
       '## Meeting Notes — Project Kickoff\n\n'
-          '**Date:** Monday morning\n'
-          '**Attendees:** Alex, Jordan, Sam\n\n'
-          '### Key Decisions\n'
-          '- Use Serverpod for the backend (Dart everywhere)\n'
-          '- Flutter web as the primary client, Android as secondary\n'
-          '- PostgreSQL for persistence, Redis for real-time events\n\n'
-          '### Action Items\n'
-          '1. Set up CI/CD pipeline\n'
-          '2. Design the channel data model\n'
-          '3. Prototype the chat UI\n\n'
-          '### Open Questions\n'
-          '- How do we handle offline sync?\n'
-          '- What\'s our media storage strategy for production?\n'
-          '- Do we need end-to-end encryption?',
+      '**Date:** Monday morning\n'
+      '**Attendees:** Alex, Jordan, Sam\n\n'
+      '### Key Decisions\n'
+      '- Use Serverpod for the backend (Dart everywhere)\n'
+      '- Flutter web as the primary client, Android as secondary\n'
+      '- PostgreSQL for persistence, Redis for real-time events\n\n'
+      '### Action Items\n'
+      '1. Set up CI/CD pipeline\n'
+      '2. Design the channel data model\n'
+      '3. Prototype the chat UI\n\n'
+      '### Open Questions\n'
+      '- How do we handle offline sync?\n'
+      '- What\'s our media storage strategy for production?\n'
+      '- Do we need end-to-end encryption?',
       minutesAgo: 960,
     );
 
@@ -224,7 +224,7 @@ void main(List<String> args) async {
     await addNote(
       general.id!,
       'Found a great article on Dart isolates and concurrency:\n\n'
-          'https://dart.dev/language/concurrency',
+      'https://dart.dev/language/concurrency',
       minutesAgo: 720,
     );
 
@@ -238,7 +238,7 @@ void main(List<String> args) async {
     await addNote(
       general.id!,
       'Reminder: the WebSocket connection auto-reconnects if the server '
-          'restarts. No need to refresh the page manually.',
+      'restarts. No need to refresh the page manually.',
       minutesAgo: 480,
     );
 
@@ -252,12 +252,12 @@ void main(List<String> args) async {
     await addNote(
       general.id!,
       '```dart\n'
-          'Future<void> main() async {\n'
-          '  final pod = Serverpod(args, Protocol(), Endpoints());\n'
-          '  await pod.start();\n'
-          '}\n'
-          '```\n\n'
-          'That\'s literally all you need to start a Serverpod server.',
+      'Future<void> main() async {\n'
+      '  final pod = Serverpod(args, Protocol(), Endpoints());\n'
+      '  await pod.start();\n'
+      '}\n'
+      '```\n\n'
+      'That\'s literally all you need to start a Serverpod server.',
       minutesAgo: 300,
     );
 
@@ -271,7 +271,7 @@ void main(List<String> args) async {
     await addNote(
       general.id!,
       'Interesting comparison of state management approaches in Flutter:\n\n'
-          'https://docs.flutter.dev/data-and-backend/state-mgmt/options',
+      'https://docs.flutter.dev/data-and-backend/state-mgmt/options',
       minutesAgo: 180,
     );
 
@@ -311,14 +311,14 @@ void main(List<String> args) async {
     await addNote(
       ideas.id!,
       'What if channels could have sub-channels? Like folders inside folders. '
-          'Might get complex but could be useful for large projects.',
+      'Might get complex but could be useful for large projects.',
       minutesAgo: 1500,
     );
 
     await addNote(
       ideas.id!,
       'Markdown preview toggle — sometimes you want to see the raw text, '
-          'sometimes the rendered version.',
+      'sometimes the rendered version.',
       minutesAgo: 800,
     );
 
@@ -331,7 +331,7 @@ void main(List<String> args) async {
     await addNote(
       ideas.id!,
       'Dark/light theme toggle. The dark theme is great but some people '
-          'prefer light mode during the day.',
+      'prefer light mode during the day.',
       minutesAgo: 100,
     );
 
