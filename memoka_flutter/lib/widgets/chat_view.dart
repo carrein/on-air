@@ -7,7 +7,9 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:memoka_client/memoka_client.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../utils/icon_utils.dart';
 import '../main.dart' show serverUrl, client;
 import '../providers/notes_provider.dart';
 import '../providers/archive_items_provider.dart';
@@ -19,14 +21,11 @@ import '../providers/scroll_to_note_provider.dart';
 import '../providers/background_provider.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
-import '../utils/responsive_utils.dart';
 import '../models/upload_file_data.dart';
 import 'link_preview_card.dart';
 import 'media_attachment_widget.dart';
 import 'file_upload_dialog.dart';
 import 'multi_file_upload_dialog.dart';
-import 'media_sidebar.dart';
-import 'styled_tooltip.dart';
 
 // Cross-platform HTML imports
 import 'package:universal_html/html.dart' as html;
@@ -267,17 +266,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
               ),
             ),
           ),
-        // Media sidebar button (mobile/tablet only)
-        if (!ResponsiveUtils.isDesktop(context))
-          Positioned(
-            top: 16,
-            right: 16,
-            child: FloatingActionButton.small(
-              onPressed: () => _showMediaSidebarBottomSheet(context),
-              backgroundColor: Colors.blue[700],
-              child: const Icon(Icons.photo_library, color: Colors.white),
-            ),
-          ),
         // Selection action bar (on top of everything)
         if (isSelectionMode)
           Positioned(
@@ -332,50 +320,6 @@ class _ChatViewState extends ConsumerState<ChatView> {
     );
   }
 
-  void _showMediaSidebarBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => GestureDetector(
-        onTap: () => Navigator.pop(context),
-        behavior: HitTestBehavior.opaque,
-        child: GestureDetector(
-          onTap: () {}, // Absorb taps on the sheet itself
-          child: DraggableScrollableSheet(
-            initialChildSize: 0.9,
-            minChildSize: 0.5,
-            maxChildSize: 0.95,
-            builder: (context, scrollController) => Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Column(
-                children: [
-                  // Handle bar
-                  Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 16),
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  // Media sidebar content with tabs
-                  const Expanded(
-                    child: MediaSidebar(fixedWidth: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildNoteItem(Note note, int channelId, [List<String> allImageUrls = const []]) {
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
@@ -414,7 +358,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ConstrainedBox(
+                  Flexible(
+                    child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                     child: Listener(
                       onPointerDown: (event) {
@@ -474,54 +419,46 @@ class _ChatViewState extends ConsumerState<ChatView> {
                       ),
                     ),
                   ),
+                  ),
                   // Action buttons outside the note container
                   if (channelId == -1) ...[
                     // Restore button for Archive
                     const SizedBox(width: 12),
-                    StyledTooltip(
-                      message: 'Restore note',
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => _restoreNote(note),
-                          child: SvgPicture.asset(
-                            'assets/images/restore.svg',
-                            width: 24,
-                            height: 24,
-                          ),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => _restoreNote(note),
+                        child: SvgPicture.asset(
+                          'assets/images/restore.svg',
+                          width: 24,
+                          height: 24,
                         ),
                       ),
                     ),
                     // Delete button for Archive
                     const SizedBox(width: 8),
-                    StyledTooltip(
-                      message: 'Delete note',
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => _deleteNote(note, channelId),
-                          child: SvgPicture.asset(
-                            'assets/images/cancel.svg',
-                            width: 24,
-                            height: 24,
-                          ),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => _deleteNote(note, channelId),
+                        child: SvgPicture.asset(
+                          'assets/images/cancel.svg',
+                          width: 24,
+                          height: 24,
                         ),
                       ),
                     ),
                   ] else ...[
                     // Archive button for regular channels
                     const SizedBox(width: 12),
-                    StyledTooltip(
-                      message: 'Archive note',
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => _deleteNote(note, channelId),
-                          child: SvgPicture.asset(
-                            'assets/images/recycle.svg',
-                            width: 24,
-                            height: 24,
-                          ),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => _deleteNote(note, channelId),
+                        child: SvgPicture.asset(
+                          'assets/images/recycle.svg',
+                          width: 24,
+                          height: 24,
                         ),
                       ),
                     ),
@@ -605,7 +542,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  ConstrainedBox(
+                  Flexible(
+                    child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
                     child: Listener(
                       onPointerDown: (event) {
@@ -629,9 +567,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                channel.emoji,
-                                style: const TextStyle(fontSize: 24),
+                              PhosphorIcon(
+                                getChannelIcon(channel.emoji),
+                                size: 24,
+                                color: const Color(0xFF1C1C1C),
                               ),
                               const SizedBox(width: 10),
                               Flexible(
@@ -667,33 +606,28 @@ class _ChatViewState extends ConsumerState<ChatView> {
                       ),
                     ),
                   ),
+                  ),
                   const SizedBox(width: 12),
-                  StyledTooltip(
-                    message: 'Restore channel',
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () => _restoreChannel(channel),
-                        child: SvgPicture.asset(
-                          'assets/images/restore.svg',
-                          width: 24,
-                          height: 24,
-                        ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => _restoreChannel(channel),
+                      child: SvgPicture.asset(
+                        'assets/images/restore.svg',
+                        width: 24,
+                        height: 24,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  StyledTooltip(
-                    message: 'Delete channel',
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
-                      child: GestureDetector(
-                        onTap: () => _showDeleteChannelConfirmation(channel),
-                        child: SvgPicture.asset(
-                          'assets/images/cancel.svg',
-                          width: 24,
-                          height: 24,
-                        ),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => _showDeleteChannelConfirmation(channel),
+                      child: SvgPicture.asset(
+                        'assets/images/cancel.svg',
+                        width: 24,
+                        height: 24,
                       ),
                     ),
                   ),
@@ -798,7 +732,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
             style: TextStyle(color: Colors.white),
           ),
           content: Text(
-            'Delete ${channel.emoji} ${channel.name} and $noteCount note${noteCount == 1 ? '' : 's'} permanently?',
+            'Delete ${channel.name} and $noteCount note${noteCount == 1 ? '' : 's'} permanently?',
             style: const TextStyle(color: Colors.white),
           ),
           actions: [

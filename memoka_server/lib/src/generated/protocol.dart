@@ -60,7 +60,7 @@ class Protocol extends _i1.SerializationManagerServer {
           columnType: _i2.ColumnType.text,
           isNullable: false,
           dartType: 'String',
-          columnDefault: '\'💬\'::text',
+          columnDefault: '\'chatCircle\'::text',
         ),
         _i2.ColumnDefinition(
           name: 'pinned',

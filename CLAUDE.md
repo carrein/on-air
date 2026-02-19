@@ -1,4 +1,5 @@
 u/docs/Android.md
+u/docs/Emulator.md
 u/docs/channel.md
 u/docs/link.md
 u/docs/media.md
@@ -8,9 +9,11 @@ u/docs/security.md
 u/docs/ux.md
 u/docs/components/Sidebar.md
 u/docs/components/InputBar.md
+u/docs/components/TopBar.md
 u/docs/components/ArchiveCrate.md
 u/docs/components/NewChannelModal.md
 u/docs/components/Tooltip.md
+u/docs/components/Icon.md
 u/docs/components/MediaSidebar.md
 
 # CLAUDE.md
@@ -271,9 +274,11 @@ interactions, state management, and integration details.
 
 - **Sidebar**: `docs/components/Sidebar.md`
 - **InputBar**: `docs/components/InputBar.md`
+- **TopBar**: `docs/components/TopBar.md`
 - **ArchiveCrate**: `docs/components/ArchiveCrate.md`
 - **NewChannelModal**: `docs/components/NewChannelModal.md`
 - **Tooltip**: `docs/components/Tooltip.md`
+- **Icon**: `docs/components/Icon.md`
 - **MediaSidebar**: `docs/components/MediaSidebar.md`
 
 ## Platform Guides

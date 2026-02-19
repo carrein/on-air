@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart' as emoji;
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:memoka_client/memoka_client.dart';
+import '../utils/icon_utils.dart';
+import 'icon_picker.dart';
 
 /// Modal dialog for creating or editing a channel.
 ///
@@ -48,16 +50,12 @@ class _NewChannelModalState extends State<NewChannelModal> {
 
   // -- Dimensions --
   static const _dialogWidth = 350.0;
-  static const _emojiCircleSize = 64.0;
-  static const _emojiFontSize = 28.0;
-  static const _emojiToFieldGap = 20.0;
-  static const _emojiPickerHeight = 300.0;
-  static const _emojiPickerGridHeight = 256.0;
-  static const _emojiGridColumns = 7;
-  static const _emojiGridMaxSize = 28.0;
+  static const _iconCircleSize = 64.0;
+  static const _iconDisplaySize = 28.0;
+  static const _iconToFieldGap = 20.0;
 
   late final TextEditingController _nameController;
-  late String _selectedEmoji;
+  late String _selectedIconKey;
 
   bool get _isEditMode => widget.channel != null;
 
@@ -65,7 +63,7 @@ class _NewChannelModalState extends State<NewChannelModal> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.channel?.name ?? '');
-    _selectedEmoji = widget.channel?.emoji ?? '🍉';
+    _selectedIconKey = widget.channel?.emoji ?? kDefaultChannelIcon;
   }
 
   @override
@@ -102,28 +100,29 @@ class _NewChannelModalState extends State<NewChannelModal> {
                 ),
               ),
               const SizedBox(height: 24),
-              // Emoji selector (circle, centered)
+              // Icon selector (circle, centered)
               GestureDetector(
-                onTap: () => _showEmojiPicker(context),
+                onTap: () => _showIconPicker(context),
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: Container(
-                    width: _emojiCircleSize,
-                    height: _emojiCircleSize,
+                    width: _iconCircleSize,
+                    height: _iconCircleSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: _borderColor, width: 1.0),
                     ),
                     child: Center(
-                      child: Text(
-                        _selectedEmoji,
-                        style: const TextStyle(fontSize: _emojiFontSize),
+                      child: PhosphorIcon(
+                        getChannelIcon(_selectedIconKey),
+                        size: _iconDisplaySize,
+                        color: _darkColor,
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: _emojiToFieldGap),
+              const SizedBox(height: _iconToFieldGap),
               // Channel name text field
               TextField(
                 controller: _nameController,
@@ -185,31 +184,18 @@ class _NewChannelModalState extends State<NewChannelModal> {
   void _onConfirm() async {
     final name = _nameController.text.trim();
     if (name.isNotEmpty) {
-      await widget.onConfirm(name, _selectedEmoji);
+      await widget.onConfirm(name, _selectedIconKey);
       if (mounted) Navigator.pop(context);
     }
   }
 
-  void _showEmojiPicker(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SizedBox(
-        height: _emojiPickerHeight,
-        child: emoji.EmojiPicker(
-          onEmojiSelected: (category, emojiData) {
-            setState(() => _selectedEmoji = emojiData.emoji);
-            Navigator.pop(ctx);
-          },
-          config: const emoji.Config(
-            height: _emojiPickerGridHeight,
-            checkPlatformCompatibility: true,
-            emojiViewConfig: emoji.EmojiViewConfig(
-              emojiSizeMax: _emojiGridMaxSize,
-              columns: _emojiGridColumns,
-            ),
-          ),
-        ),
-      ),
+  void _showIconPicker(BuildContext context) async {
+    final key = await IconPicker.show(
+      context,
+      selectedKey: _selectedIconKey,
     );
+    if (key != null) {
+      setState(() => _selectedIconKey = key);
+    }
   }
 }

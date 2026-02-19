@@ -25,7 +25,7 @@ abstract class Channel implements _i1.SerializableModel {
     int? sortOrder,
     bool? archived,
     this.archivedAt,
-  }) : emoji = emoji ?? '💬',
+  }) : emoji = emoji ?? 'chatCircle',
        pinned = pinned ?? false,
        isSystemChannel = isSystemChannel ?? false,
        createdAt = createdAt ?? DateTime.now(),
@@ -75,7 +75,7 @@ abstract class Channel implements _i1.SerializableModel {
   /// The name of the channel.
   String name;
 
-  /// Emoji display picture for the channel.
+  /// Phosphor icon key for the channel (e.g. 'chatCircle', 'bookOpen').
   String emoji;
 
   /// Whether the channel is pinned.

@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
@@ -15,7 +15,7 @@ import '../models/upload_file_data.dart';
 import 'input_link_preview.dart';
 import 'file_upload_dialog.dart';
 import 'multi_file_upload_dialog.dart';
-import 'styled_tooltip.dart';
+import 'icon_button_styled.dart';
 
 /// Input bar for creating and editing notes.
 class InputBar extends ConsumerStatefulWidget {
@@ -27,19 +27,19 @@ class InputBar extends ConsumerStatefulWidget {
 
 class _InputBarState extends ConsumerState<InputBar> {
   // -- Colors (from Theme.md) --
-  static const _barBackground = Color(0xFF00171F);
-  static const _fieldFill = Colors.white;             // core.surface
+  static const _barBackground = Color(0xFF191C2F);
+  static const _fieldFill = Colors.transparent;
   static const _iconColor = Color(0xFFFF52A1);        // brand.accent
   static const _iconDisabledAlpha = 0.4;
   static const _hintTextColor = Color(0xFFFF52A1);    // brand.accent
-  static const _hintTextAlpha = 1.0;
+  static const _hintTextAlpha = 0.8;
 
   // -- Layout --
-  static const _barPadding = EdgeInsets.all(12);
-  static const _fieldContentPadding = EdgeInsets.all(12);
-  static const _iconGap = 8.0;                        // space.sm
+  static const _barPadding = EdgeInsets.only(left: 10, top: 8, bottom: 8, right: 6);
+  static const _fieldContentPadding = EdgeInsets.zero;
+  static const _iconGap = 2.0;
   static const _fieldBorderRadius = 0.0;              // no border radius
-  static const _iconSize = 28.0;
+  static const _iconSize = 24.0;
 
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -129,26 +129,13 @@ class _InputBarState extends ConsumerState<InputBar> {
           padding: _barPadding,
           decoration: const BoxDecoration(
             color: _barBackground,
-            border: Border(
-              left: BorderSide(
-                color: _iconColor,
-                width: 1.0,
-              ),
-              right: BorderSide(
-                color: _iconColor,
-                width: 1.0,
-              ),
-            ),
           ),
           child: Row(
             children: [
               if (isEditMode)
-                StyledTooltip(
-                  message: 'Cancel',
-                  child: IconButton(
-                    icon: Icon(Icons.close, color: _iconColor),
-                    onPressed: _cancelEditing,
-                  ),
+                IconButton(
+                  icon: Icon(Icons.close, color: _iconColor),
+                  onPressed: _cancelEditing,
                 ),
               Expanded(
                 child: Shortcuts(
@@ -170,7 +157,10 @@ class _InputBarState extends ConsumerState<InputBar> {
                       minLines: 1,
                       maxLines: 8,
                       keyboardType: TextInputType.multiline,
+                      style: const TextStyle(color: Colors.white),
+                      cursorColor: _iconColor,
                       decoration: InputDecoration(
+                        isDense: true,
                         hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Keyboard goes brrrr...',
                         hintStyle: TextStyle(
                           color: _hintTextColor.withValues(alpha: _hintTextAlpha),
@@ -189,48 +179,19 @@ class _InputBarState extends ConsumerState<InputBar> {
                 ),
               ),
               const SizedBox(width: _iconGap),
-              if (!isEditMode) ...[
-                if (!kIsWeb)
-                  StyledTooltip(
-                    message: 'Camera',
-                    child: IconButton(
-                      icon: Icon(Icons.camera_alt, color: _iconColor, size: _iconSize),
-                      onPressed: _capturePhoto,
-                    ),
+              if (isEditMode) ...[
+                IconButton(
+                  icon: Icon(
+                    Icons.check,
+                    color: _controller.text.trim().isEmpty
+                        ? _iconColor.withValues(alpha: _iconDisabledAlpha)
+                        : _iconColor,
                   ),
-                StyledTooltip(
-                  message: 'Upload file',
-                  child: IconButton(
-                    icon: SvgPicture.asset(
-                      'assets/images/attachment.svg',
-                      width: _iconSize,
-                      height: _iconSize,
-                    ),
-                    onPressed: _pickFile,
-                  ),
-                ),
-              ],
-              StyledTooltip(
-                message: isEditMode ? 'Save' : 'Send',
-                child: IconButton(
-                  icon: isEditMode
-                      ? Icon(
-                          Icons.check,
-                          color: _controller.text.trim().isEmpty
-                              ? _iconColor.withValues(alpha: _iconDisabledAlpha)
-                              : _iconColor,
-                        )
-                      : Opacity(
-                          opacity: _controller.text.trim().isEmpty ? _iconDisabledAlpha : 1.0,
-                          child: SvgPicture.asset(
-                            'assets/images/right-arrow.svg',
-                            width: _iconSize,
-                            height: _iconSize,
-                          ),
-                        ),
                   onPressed: _controller.text.trim().isEmpty ? null : _submit,
                 ),
-              ),
+              ] else ...[
+                _buildActionIcons(),
+              ],
             ],
             ),
           ),
@@ -273,6 +234,74 @@ class _InputBarState extends ConsumerState<InputBar> {
 
     // Refocus after clearing
     _focusNode.requestFocus();
+  }
+
+  static const _animDuration = Duration(milliseconds: 250);
+  static const _animCurve = Curves.easeInOut;
+  static const _duotoneColor = Color(0xFFF9A302);
+
+  Widget _buildActionIcons() {
+    final hasText = _controller.text.trim().isNotEmpty;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Camera — fades in/out
+        if (!kIsWeb)
+          AnimatedOpacity(
+            opacity: hasText ? 0.0 : 1.0,
+            duration: _animDuration,
+            curve: _animCurve,
+            child: AnimatedSize(
+              duration: _animDuration,
+              curve: _animCurve,
+              child: hasText
+                  ? const SizedBox.shrink()
+                  : IconButtonStyled(
+                      icon: PhosphorIconsDuotone.camera,
+                      onPressed: _capturePhoto,
+
+                      size: _iconSize,
+                      duotoneSecondaryColor: _duotoneColor,
+                    ),
+            ),
+          ),
+        // Gap between camera and attachment/send
+        if (!kIsWeb)
+          AnimatedSize(
+            duration: _animDuration,
+            curve: _animCurve,
+            child: hasText ? const SizedBox.shrink() : const SizedBox(width: 2),
+          ),
+        // Attachment zooms out / Send zooms in (shared slot)
+        AnimatedSwitcher(
+          duration: _animDuration,
+          switchInCurve: _animCurve,
+          switchOutCurve: _animCurve,
+          transitionBuilder: (child, animation) => ScaleTransition(
+            scale: animation,
+            child: child,
+          ),
+          child: hasText
+              ? IconButtonStyled(
+                  key: const ValueKey('send'),
+                  icon: PhosphorIconsDuotone.paperPlaneRight,
+                  onPressed: _submit,
+
+                  size: _iconSize,
+                  duotoneSecondaryColor: _duotoneColor,
+                )
+              : IconButtonStyled(
+                  key: const ValueKey('attach'),
+                  icon: PhosphorIconsDuotone.paperclip,
+                  onPressed: _pickFile,
+
+                  size: _iconSize,
+                  duotoneSecondaryColor: _duotoneColor,
+                ),
+        ),
+      ],
+    );
   }
 
   void _cancelEditing() {

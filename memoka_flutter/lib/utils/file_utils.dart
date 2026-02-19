@@ -72,15 +72,12 @@ class FileUtils {
       final origin = Uri.base;
       base = '${origin.scheme}://${origin.host}:${origin.port}';
     } else {
-      // Native: dev server (localhost/10.0.2.2 on port 8080) uses separate
-      // web server on 8082. Production servers (everything else, e.g. Tailscale)
+      // Native: Serverpod runs API on port 8080 and web server (which serves
+      // /media) on port 8082. If the server URL uses port 8080, swap to 8082.
+      // Production servers behind a reverse proxy (no explicit port or 80/443)
       // serve media from the same base URL.
       final uri = Uri.parse(serverUrl);
-      final isDevServer = (uri.host == 'localhost' ||
-              uri.host == '127.0.0.1' ||
-              uri.host == '10.0.2.2') &&
-          uri.port == 8080;
-      if (isDevServer) {
+      if (uri.port == 8080) {
         base = '${uri.scheme}://${uri.host}:8082';
       } else {
         base = '${uri.scheme}://${uri.host}${uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';

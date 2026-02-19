@@ -5,8 +5,8 @@ table: channels
 fields:
   ### The name of the channel.
   name: String
-  ### Emoji display picture for the channel.
-  emoji: String, default='💬'
+  ### Phosphor icon key for the channel (e.g. 'chatCircle', 'bookOpen').
+  emoji: String, default='chatCircle'
   ### Whether the channel is pinned.
   pinned: bool, default=false
   ### Whether this is a system channel (cannot be deleted/renamed by users).

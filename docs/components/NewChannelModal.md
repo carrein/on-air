@@ -26,14 +26,14 @@ Left-aligned text at the top of the dialog.
 - "New Channel" (create mode) or "Edit Channel" (edit mode)
 - Font size: 20px, weight: w600, color: `#00171F`
 
-### Emoji Selector
+### Icon Selector
 
-Centered circular button that opens the emoji picker.
+Centered circular button that opens the Phosphor icon picker.
 
 - **Shape**: Circle (64x64px)
 - **Border**: 1px solid `#FF52A1`
-- **Emoji font size**: 28px
-- **Default emoji**: watermelon (create mode) or existing emoji (edit mode)
+- **Icon size**: 28px, `PhosphorIconsFill` style
+- **Default icon**: `chatCircle` (create mode) or existing icon key (edit mode)
 - **Cursor**: Click pointer on hover
 - **Position**: Centered, above the channel name field
 - **Gap to field**: 20px below
@@ -61,14 +61,15 @@ Right-aligned row with Cancel and Create/Save buttons.
 - **Gap between buttons**: 12px
 - **Gap above buttons**: 24px
 
-### Emoji Picker
+### Icon Picker
 
-Modal bottom sheet triggered by tapping the emoji selector.
+Modal bottom sheet triggered by tapping the icon selector. Implemented in `icon_picker.dart`.
 
-- **Height**: 300px total, 256px grid area
-- **Grid**: 7 columns, 28px max emoji size
-- **Platform compatibility check**: Enabled
-- Selecting an emoji closes the picker and updates the selector
+- **Search field** at top with hint text "Search icons..."
+- **Grid**: 6 columns, scrollable, showing all ~1500 Phosphor fill icons
+- Typing filters the grid in real-time by icon name (camelCase converted to words)
+- Selected icon gets pink border/highlight
+- Tapping an icon selects it and closes the picker
 
 ## Styling
 
@@ -87,7 +88,7 @@ Modal bottom sheet triggered by tapping the emoji selector.
 | Element         | Font   | Size | Weight | Color               |
 |-----------------|--------|------|--------|---------------------|
 | Title           | System | 20px | w600   | `#00171F`           |
-| Emoji           | System | 28px | Normal | N/A                 |
+| Icon            | Phosphor | 28px | Fill | `#00171F`           |
 | Input text      | System | —    | Normal | `#00171F`           |
 | Hint text       | System | —    | Normal | `#00171F` @ 40%     |
 | Button text     | System | —    | Normal | Varies by button    |
@@ -98,8 +99,8 @@ Modal bottom sheet triggered by tapping the emoji selector.
 |-------------------------|-----------------|-------------------------------|
 | Dialog width            | 350px           | Fixed dialog content width    |
 | Dialog padding          | 24px all sides  | Inner padding                 |
-| Emoji circle size       | 64x64px         | Emoji selector dimensions     |
-| Emoji to field gap      | 20px            | Space between emoji and input |
+| Icon circle size        | 64x64px         | Icon selector dimensions      |
+| Icon to field gap       | 20px            | Space between icon and input  |
 | Input content padding   | H: 16px, V: 14px | TextField inner padding     |
 | Button gap              | 12px            | Space between Cancel and Create/Save |
 | Section gap             | 24px            | Title to emoji, input to buttons |
@@ -111,21 +112,21 @@ Modal bottom sheet triggered by tapping the emoji selector.
 1. User clicks "New Channel" in sidebar
 2. Modal opens with empty name, default speech bubble emoji
 3. Name field is auto-focused
-4. User optionally taps emoji circle to open picker, selects emoji
+4. User optionally taps icon circle to open picker, selects icon
 5. User types channel name
 6. User clicks "Create" or presses Enter
-7. `onConfirm` callback fires with name and emoji
+7. `onConfirm` callback fires with name and icon key
 8. Modal closes automatically after callback completes
 9. Sidebar switches to the newly created channel
 
 ### Edit Flow
 
 1. User right-clicks a channel, selects "Edit"
-2. Modal opens pre-populated with channel's current name and emoji
+2. Modal opens pre-populated with channel's current name and icon
 3. Name field is auto-focused
-4. User modifies name and/or emoji
+4. User modifies name and/or icon
 5. User clicks "Save" or presses Enter
-6. `onConfirm` callback fires with updated name and emoji
+6. `onConfirm` callback fires with updated name and icon key
 7. Modal closes automatically
 
 ### Validation
@@ -161,7 +162,7 @@ static Future<void> show(
 | Field              | Type                   | Purpose                          |
 |--------------------|------------------------|----------------------------------|
 | `_nameController`  | `TextEditingController`| Channel name input               |
-| `_selectedEmoji`   | `String`               | Currently selected emoji         |
+| `_selectedIconKey` | `String`               | Currently selected icon key      |
 
 The modal is a pure stateful widget with no provider dependencies. All side effects (creating/updating channels, switching channels) are handled by the `onConfirm` callback provided by the caller.
 
@@ -171,6 +172,9 @@ The sidebar imports `NewChannelModal` and calls `NewChannelModal.show()` from tw
 
 - `_showCreateChannelDialog()` — passes `onConfirm` that creates a channel and switches to it
 - `_showEditChannelDialog()` — passes the existing `Channel` and `onConfirm` that updates it
+
+| `lib/widgets/icon_picker.dart` | Icon picker bottom sheet |
+| `lib/utils/icon_utils.dart` | Icon name ↔ PhosphorIconData lookup |
 
 ## Related Files
 

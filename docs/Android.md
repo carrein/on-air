@@ -29,25 +29,7 @@ flutter run --dart-define=SERVER_URL=https://memoka.example.com/
 
 ## Emulator Setup
 
-The Android emulator requires ADB reverse port forwarding to reach the host's Serverpod server. Serverpod binds to IPv6 (`::1`) by default, but the emulator connects via IPv4, so direct `10.0.2.2` access does not work.
-
-```bash
-# Forward emulator's localhost ports to the host machine
-adb reverse tcp:8080 tcp:8080   # API server
-adb reverse tcp:8082 tcp:8082   # Web server (media)
-```
-
-If Serverpod only listens on IPv6 (common on macOS), you also need an IPv4→IPv6 proxy. Install `socat` and run:
-
-```bash
-socat TCP4-LISTEN:18080,fork,reuseaddr TCP6:[::1]:8080 &
-socat TCP4-LISTEN:18082,fork,reuseaddr TCP6:[::1]:8082 &
-
-adb reverse tcp:8080 tcp:18080
-adb reverse tcp:8082 tcp:18082
-```
-
-**Note:** ADB reverse is reset when the app is reinstalled. Re-run the commands after each install.
+See [Emulator.md](Emulator.md) for full setup instructions including socat proxy configuration, VS Code port conflict workaround, and troubleshooting.
 
 ## Server URL Configuration
 

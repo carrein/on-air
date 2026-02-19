@@ -27,7 +27,7 @@ class Channels extends _$Channels {
     return client.chat.getChannels();
   }
 
-  Future<Channel> createChannel(String name, {String emoji = '💬'}) async {
+  Future<Channel> createChannel(String name, {String emoji = 'chatCircle'}) async {
     final channel = await client.chat.createChannel(name, emoji: emoji);
     // WebSocket broadcast will trigger refetch via listener above
     return channel;

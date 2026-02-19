@@ -2,7 +2,7 @@
 
 ## Overview
 
-The InputBar is the note composition component at the bottom of the chat view. It handles creating new notes, editing existing notes, link preview detection, per-channel draft persistence, and file uploads (single and multi-file).
+The InputBar is the note composition component pinned to the bottom of the screen. It handles creating new notes, editing existing notes, link preview detection, per-channel draft persistence, and file uploads (single and multi-file).
 
 **File**: `memoka_flutter/lib/widgets/input_bar.dart`
 **Widget**: `InputBar` (ConsumerStatefulWidget)
@@ -14,47 +14,50 @@ The InputBar is the note composition component at the bottom of the chat view. I
 
 The outer dark container holding the text field and action icons.
 
-- Background: `core.background` (#00171F)
-- Padding: 12px uniform
-- Border: 1px `brand.accent` (#FF52A1) on left and right sides
-- Full-width, pinned to the bottom of the chat view
+- Background: `#191C2F`
+- Padding: left 10px, top 8px, bottom 8px, right 6px
+- Full-width, spans below both the sidebar and content area
 
 ### Text Field
 
 The main text input area.
 
-- Fill: `core.surface` (white)
+- Fill: transparent (blends with bar background)
+- Border: none
 - Border radius: 0px (sharp corners)
-- Content padding: 12px uniform
+- Content padding: zero
+- Dense mode enabled (`isDense: true`)
 - Starts at 1 line (`minLines: 1`), expands up to 8 lines (`maxLines: 8`)
-- Placeholder text: "Keyboard goes brrrr..." in `brand.accent` (#FF52A1) at full opacity
+- Text color: white
+- Cursor color: `#FF52A1` (brand.accent)
+- Placeholder text: "Keyboard goes brrrr..." in `#FF52A1` at 80% opacity
 - Edit mode placeholder: "Edit note... (Shift+Enter for new line)"
-- Uses `TextInputAction.none` to disable default Enter behavior
 
-### Attachment Button
+### Action Icons (normal mode)
 
-File upload trigger (hidden in edit mode).
+Tappable icons using `IconButtonStyled` with Phosphor duotone icons.
 
-- Custom SVG icon (`attachment.svg`) at 28px
-- Uses original SVG colors (no recoloring)
-- Opens system file picker on tap
-- Supports multiple file selection
+- **Camera** (mobile only): `PhosphorIconsDuotone.camera` — opens device camera
+  - Fades out with `AnimatedOpacity` + collapses with `AnimatedSize` when text is entered
+- **Attachment**: `PhosphorIconsDuotone.paperclip` — opens file picker
+  - Zooms out via `AnimatedSwitcher` + `ScaleTransition` when text is entered
+- **Send**: `PhosphorIconsDuotone.paperPlaneRight` — submits note
+  - Zooms in via `AnimatedSwitcher` + `ScaleTransition` when text is entered
+  - Replaces the attachment icon in the same slot
 
-### Send Button
+All icons: 24px, white primary color, `#F9A302` duotone secondary color at 100% opacity.
 
-Submit trigger for creating/updating notes.
+### Action Icons (edit mode)
 
-- **Normal mode**: Custom SVG icon (`send.svg`) at 28px, original colors
-- **Edit mode**: Material `Icons.check` in `brand.accent` (#FF52A1)
-- **Disabled state**: 40% opacity when text field is empty
-- Disabled when text is empty (onPressed: null)
+- **Cancel**: Material `Icons.close` in `#FF52A1`
+- **Save**: Material `Icons.check` in `#FF52A1`, disabled at 40% opacity when empty
 
-### Cancel Button (edit mode only)
+### Animation
 
-Shown when editing an existing note.
-
-- Material `Icons.close` in `brand.accent` at full color (no opacity reduction)
-- Cancels edit mode and clears the field
+Icon transitions use 250ms `easeInOut` curves:
+- Camera: `AnimatedOpacity` (fade) + `AnimatedSize` (collapse) — disappears when text is entered
+- 2px animated gap between camera and attachment collapses with camera
+- Attachment/Send: `AnimatedSwitcher` with `ScaleTransition` (zoom swap)
 
 ### Link Preview
 
@@ -64,17 +67,6 @@ Appears above the input bar when a URL is detected in the text.
 - Detects first URL via regex matching
 - Dismissible by the user
 - Hidden in edit mode
-
-### Tooltips
-
-Custom-styled tooltips on all icon buttons.
-
-- Background: white
-- Text: `core.background` (#00171F) in Space Grotesk at 12px
-- Border: 1px `brand.accent` (#FF52A1)
-- Border radius: 0 (sharp corners)
-- Padding: 8px vertical, 12px horizontal
-- Labels: "Upload file", "Send", "Save", "Cancel"
 
 ### Dialogs (File Upload, Multi-File Upload)
 
@@ -86,43 +78,49 @@ Custom-styled tooltips on all icon buttons.
 
 ### Color Palette
 
-| Token                | Value       | Theme Token        | Usage                          |
-|----------------------|-------------|--------------------|--------------------------------|
-| `_barBackground`     | `#00171F`   | `core.background`  | Bar container background       |
-| `_fieldFill`         | `#FFFFFF`   | `core.surface`     | Text field fill                |
-| `_iconColor`         | `#FF52A1`   | `brand.accent`     | Icons, borders, hint text      |
-| `_iconDisabledAlpha` | `0.4`       | —                  | Disabled icon/send opacity     |
-| `_hintTextColor`     | `#FF52A1`   | `brand.accent`     | Placeholder text color         |
-| `_tooltipBackground` | `#00171F`   | `core.background`  | Tooltip text color             |
+| Token                | Value       | Usage                          |
+|----------------------|-------------|--------------------------------|
+| `_barBackground`     | `#191C2F`   | Bar container background       |
+| `_fieldFill`         | transparent | Text field fill (blends with bar) |
+| `_iconColor`         | `#FF52A1`   | Edit mode icons, cursor, hints |
+| `_iconDisabledAlpha` | `0.4`       | Disabled save icon opacity     |
+| `_hintTextColor`     | `#FF52A1`   | Placeholder text color         |
+| `_hintTextAlpha`     | `0.8`       | Placeholder text opacity       |
+| `_duotoneColor`      | `#F9A302`   | Icon duotone secondary color   |
 
 ### Typography
 
-| Element          | Font           | Size  | Weight  | Color                   |
-|------------------|----------------|-------|---------|-------------------------|
-| Input text       | Space Grotesk  | 14px  | Normal  | Default (dark on white) |
-| Hint text        | Space Grotesk  | 14px  | Normal  | `#FF52A1` @ 100%        |
-| Tooltip text     | Space Grotesk  | 12px  | Normal  | `#00171F`               |
+| Element    | Size  | Weight | Color                  |
+|------------|-------|--------|------------------------|
+| Input text | —     | Normal | White                  |
+| Hint text  | —     | Normal | `#FF52A1` @ 80%        |
 
 ### Dimensions
 
-| Token                  | Value          | Usage                      |
-|------------------------|----------------|----------------------------|
-| `_barPadding`          | 12px uniform   | Bar container padding      |
-| `_fieldContentPadding` | 12px uniform   | Text field inner padding   |
-| `_iconGap`             | 8px            | Gap between field and icons|
-| `_fieldBorderRadius`   | 0px            | Text field corners         |
-| `_iconSize`            | 28px           | Attachment/send SVG size   |
+| Token                  | Value                          | Usage                      |
+|------------------------|--------------------------------|----------------------------|
+| `_barPadding`          | L: 10, T: 8, B: 8, R: 6      | Bar container padding      |
+| `_fieldContentPadding` | zero                           | Text field inner padding   |
+| `_iconGap`             | 2px                            | Gap between field and icons|
+| `_fieldBorderRadius`   | 0px                            | Text field corners         |
+| `_iconSize`            | 24px                           | Phosphor icon size         |
+| Camera-attach gap      | 2px (animated)                 | Gap between camera and attachment |
 
 ## Interactions
 
 ### Text Input & Submission
 
 - **Enter**: Submits the note (via `Shortcuts`/`Actions` with `SingleActivator(LogicalKeyboardKey.enter)` → `_SubmitIntent`)
-- **Shift+Enter**: Inserts a newline naturally (TextField's default multiline behavior; not manually intercepted)
-- **Enter in FileUploadDialog**: Also submits via `Shortcuts`/`Actions` pattern (disabled while uploading)
+- **Shift+Enter**: Inserts a newline naturally (TextField's default multiline behavior)
 - Focus is retained after submission for continuous typing
 - Text is cleared after successful submit
 - Newlines are converted to markdown line breaks (`\n` → `  \n`) on submit
+
+### Icon State Transitions
+
+- **Empty field**: Camera + attachment icons visible, send hidden
+- **Text entered**: Camera fades + collapses, attachment zooms out, send zooms in
+- **Text cleared**: Reverse animation — send zooms out, attachment zooms in, camera fades in + expands
 
 ### Edit Mode
 
@@ -149,6 +147,7 @@ Custom-styled tooltips on all icon buttons.
 ### File Upload
 
 - File picker supports: images (jpg, png, gif, webp, heic), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip)
+- Camera capture on mobile (via `image_picker`)
 - Single file: opens `FileUploadDialog` with compression option
 - Multiple files: opens `MultiFileUploadDialog` for batch upload
 - Current text field content is attached as note text for single file uploads
@@ -158,16 +157,16 @@ Custom-styled tooltips on all icon buttons.
 
 ### Providers Watched (reactive)
 
-| Provider              | Type                | Purpose                              |
-|-----------------------|---------------------|--------------------------------------|
-| `editingNoteProvider` | `int?`              | Note ID being edited (null = create) |
+| Provider              | Type   | Purpose                              |
+|-----------------------|--------|--------------------------------------|
+| `editingNoteProvider` | `int?` | Note ID being edited (null = create) |
 
 ### Providers Listened (side effects)
 
-| Provider                | Purpose                                      |
-|-------------------------|----------------------------------------------|
-| `editingNoteProvider`   | Populate field when entering edit mode        |
-| `currentChannelProvider`| Save/load drafts on channel switch            |
+| Provider                | Purpose                                |
+|-------------------------|----------------------------------------|
+| `editingNoteProvider`   | Populate field when entering edit mode |
+| `currentChannelProvider`| Save/load drafts on channel switch     |
 
 ### Providers Read (on interaction)
 
@@ -190,17 +189,18 @@ Custom-styled tooltips on all icon buttons.
 
 ## Integration
 
-The InputBar is placed at the bottom of the `ChatView` column, below the scrollable note list. It communicates exclusively through Riverpod providers. The `Shortcuts`/`Actions` widgets wrapping the `TextField` intercept Enter to submit; Shift+Enter inserts a newline via the TextField's natural multiline behavior.
+The InputBar is placed at the bottom of the `ChatScreen` column, below the main `Row` containing the sidebar, chat view, and media sidebar. It spans the full width of the screen. It is hidden when viewing the Archive channel or when settings is open.
 
 ## Related Files
 
 | File | Relationship |
 |------|-------------|
 | `lib/widgets/input_bar.dart` | This component |
+| `lib/widgets/icon_button_styled.dart` | Reusable icon button (camera, send, attach) |
 | `lib/widgets/input_link_preview.dart` | Link preview widget shown above bar |
 | `lib/widgets/file_upload_dialog.dart` | Single file upload dialog |
 | `lib/widgets/multi_file_upload_dialog.dart` | Multi-file upload dialog |
-| `lib/widgets/chat_view.dart` | Parent widget that hosts the input bar |
+| `lib/screens/chat_screen.dart` | Parent layout that hosts the input bar |
 | `lib/providers/notes_provider.dart` | Note CRUD operations |
 | `lib/providers/current_channel_provider.dart` | Active channel for submissions |
 | `lib/providers/editing_note_provider.dart` | Edit mode state |

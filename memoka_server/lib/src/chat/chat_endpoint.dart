@@ -96,7 +96,7 @@ class ChatEndpoint extends Endpoint {
   Future<Channel> createChannel(
     Session session,
     String name, {
-    String emoji = '💬',
+    String emoji = 'chatCircle',
   }) async {
     // Input validation
     if (name.trim().isEmpty) {
@@ -105,8 +105,8 @@ class ChatEndpoint extends Endpoint {
     if (name.length > 100) {
       throw Exception('Channel name too long (max 100 characters)');
     }
-    if (emoji.length > 10) {
-      throw Exception('Emoji too long (max 10 characters)');
+    if (emoji.length > 30) {
+      throw Exception('Icon key too long (max 30 characters)');
     }
 
     // Assign sortOrder as max + 1 so new channels appear at the bottom

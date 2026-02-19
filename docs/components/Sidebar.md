@@ -38,7 +38,7 @@ Scrollable list of all channels, sorted with pinned channels first.
 
 Individual channel row within the channel list.
 
-- **Emoji container**: 40x40px centered box with emoji at 18px font size
+- **Icon container**: 40x40px centered box with Phosphor fill icon at 18px, white
 - **Text column**: Channel name (14px, white, normal weight) with optional preview line below
 - **Preview text**: 10px, white at 70% opacity, single line with ellipsis overflow
 - **Pin icon**: Star SVG (20px) rotated 15 degrees, shown after a 12px gap for pinned channels
@@ -108,9 +108,9 @@ Right-click or long-press menu on channel items with three options:
 | `_logoIconSize`        | 44px                                 | Logo SVG width/height    |
 | `_logoPadding`         | H: 20px, V: 14px                    | Logo container padding   |
 | `_logoTextGap`         | 16px                                 | Gap between logo and text|
-| `_emojiContainerSize`  | 40px                                 | Emoji box width/height   |
+| `_emojiContainerSize`  | 40px                                 | Icon box width/height    |
 | `_channelItemPadding`  | L: 8, R: 18, T: 10, B: 10          | Channel item padding     |
-| `_emojiToTextGap`      | 8px                                  | Gap emoji to text column |
+| `_emojiToTextGap`      | 8px                                  | Gap icon to text column  |
 | `_pinIconSize`         | 20px                                 | Pin star SVG size        |
 | `_pinIconRotation`     | 15 degrees (0.2618 rad)              | Star icon tilt           |
 | `_pinIconGap`          | 12px                                 | Gap before pin icon      |
@@ -138,8 +138,8 @@ Right-click or long-press menu on channel items with three options:
 
 ### Channel CRUD
 
-- **Create**: "New Channel" button opens `NewChannelModal`. Default emoji is speech bubble. On create, auto-switches to the new channel.
-- **Edit**: Context menu "Edit" opens `NewChannelModal` pre-filled with current name and emoji.
+- **Create**: "New Channel" button opens `NewChannelModal`. Default icon is `chatCircle`. On create, auto-switches to the new channel.
+- **Edit**: Context menu "Edit" opens `NewChannelModal` pre-filled with current name and icon.
 - **Archive**: Context menu "Archive" soft-deletes channel to Archive Crate. Shows error toast on failure.
 - **Pin/Unpin**: Context menu toggle. Pinned channels sort to the top of the list.
 

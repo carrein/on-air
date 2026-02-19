@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/channels_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/settings_page_provider.dart';
+import '../utils/icon_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../utils/toast_utils.dart';
 import 'new_channel_modal.dart';
@@ -100,40 +102,40 @@ class _SidebarState extends ConsumerState<Sidebar> {
           ),
           child: Column(
             children: [
-              // Logo and app name
-              Container(
-                padding: compact
-                    ? const EdgeInsets.symmetric(vertical: 14)
-                    : _logoPadding,
-                child: compact
-                    ? Center(
-                        child: SvgPicture.asset(
-                          'assets/images/icon.svg',
-                          width: 32,
-                          height: 32,
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/images/icon.svg',
-                            width: _logoIconSize,
-                            height: _logoIconSize,
-                          ),
-                          const SizedBox(width: _logoTextGap),
-                          Text(
-                            'memoka',
-                            style: GoogleFonts.combo(
-                              fontSize: _logoFontSize,
-                              fontWeight: FontWeight.normal,
-                              color: _textColor,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-              Container(height: _dividerHeight, color: _dividerColor),
+              // Logo and app name (hidden — kept for reuse elsewhere)
+              // Container(
+              //   padding: compact
+              //       ? const EdgeInsets.symmetric(vertical: 14)
+              //       : _logoPadding,
+              //   child: compact
+              //       ? Center(
+              //           child: SvgPicture.asset(
+              //             'assets/images/icon.svg',
+              //             width: 32,
+              //             height: 32,
+              //           ),
+              //         )
+              //       : Row(
+              //           mainAxisAlignment: MainAxisAlignment.start,
+              //           children: [
+              //             SvgPicture.asset(
+              //               'assets/images/icon.svg',
+              //               width: _logoIconSize,
+              //               height: _logoIconSize,
+              //             ),
+              //             const SizedBox(width: _logoTextGap),
+              //             Text(
+              //               'memoka',
+              //               style: GoogleFonts.combo(
+              //                 fontSize: _logoFontSize,
+              //                 fontWeight: FontWeight.normal,
+              //                 color: _textColor,
+              //               ),
+              //             ),
+              //           ],
+              //         ),
+              // ),
+              // Container(height: _dividerHeight, color: _dividerColor),
               // Channels list
               Expanded(
                 child: Stack(
@@ -356,9 +358,10 @@ class _SidebarState extends ConsumerState<Sidebar> {
             ? Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Center(
-                  child: Text(
-                    channel.emoji,
-                    style: const TextStyle(fontSize: 22),
+                  child: PhosphorIcon(
+                    getChannelIcon(channel.emoji),
+                    size: 22,
+                    color: _textColor,
                   ),
                 ),
               )
@@ -367,14 +370,15 @@ class _SidebarState extends ConsumerState<Sidebar> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // Emoji avatar (no background)
+                    // Icon avatar (no background)
                     SizedBox(
                       width: _emojiContainerSize,
                       height: _emojiContainerSize,
                       child: Center(
-                        child: Text(
-                          channel.emoji,
-                          style: const TextStyle(fontSize: _emojiFontSize),
+                        child: PhosphorIcon(
+                          getChannelIcon(channel.emoji),
+                          size: _emojiFontSize,
+                          color: _textColor,
                         ),
                       ),
                     ),

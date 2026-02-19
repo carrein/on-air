@@ -59,40 +59,40 @@ void main(List<String> args) async {
 
     // Create sample channels
     final channels = [
-      Channel(name: 'General', emoji: '💬', pinned: true),
-      Channel(name: 'Ideas', emoji: '💡'),
-      Channel(name: 'Tasks', emoji: '✅'),
-      Channel(name: 'Notes', emoji: '📝'),
-      Channel(name: 'Links', emoji: '🔗'),
-      Channel(name: 'Load Test', emoji: '🧪'),
+      Channel(name: 'General', emoji: 'chatCircle', pinned: true),
+      Channel(name: 'Ideas', emoji: 'lightbulb'),
+      Channel(name: 'Tasks', emoji: 'checkSquare'),
+      Channel(name: 'Notes', emoji: 'notepad'),
+      Channel(name: 'Links', emoji: 'link'),
+      Channel(name: 'Load Test', emoji: 'flask'),
       // Additional channels for scrolling test
-      Channel(name: 'Project Alpha', emoji: '🚀'),
-      Channel(name: 'Resources', emoji: '📚'),
-      Channel(name: 'Design', emoji: '🎨'),
-      Channel(name: 'Development', emoji: '💻'),
-      Channel(name: 'Marketing', emoji: '📢'),
-      Channel(name: 'Sales', emoji: '💰'),
-      Channel(name: 'Support', emoji: '🛟'),
-      Channel(name: 'Feedback', emoji: '💬'),
-      Channel(name: 'Archive', emoji: '📦'),
-      Channel(name: 'Personal', emoji: '👤'),
-      Channel(name: 'Team Chat', emoji: '👥'),
-      Channel(name: 'Announcements', emoji: '📣'),
-      Channel(name: 'Random', emoji: '🎲'),
-      Channel(name: 'Water Cooler', emoji: '☕'),
-      Channel(name: 'Meetings', emoji: '📅'),
-      Channel(name: 'Goals', emoji: '🎯'),
-      Channel(name: 'Wins', emoji: '🏆'),
-      Channel(name: 'Questions', emoji: '❓'),
-      Channel(name: 'Bugs', emoji: '🐛'),
-      Channel(name: 'Features', emoji: '✨'),
+      Channel(name: 'Project Alpha', emoji: 'rocketLaunch'),
+      Channel(name: 'Resources', emoji: 'books'),
+      Channel(name: 'Design', emoji: 'palette'),
+      Channel(name: 'Development', emoji: 'code'),
+      Channel(name: 'Marketing', emoji: 'megaphone'),
+      Channel(name: 'Sales', emoji: 'currencyCircleDollar'),
+      Channel(name: 'Support', emoji: 'lifebuoy'),
+      Channel(name: 'Feedback', emoji: 'chatTeardropDots'),
+      Channel(name: 'Archive', emoji: 'archive'),
+      Channel(name: 'Personal', emoji: 'user'),
+      Channel(name: 'Team Chat', emoji: 'users'),
+      Channel(name: 'Announcements', emoji: 'speakerHigh'),
+      Channel(name: 'Random', emoji: 'diceFive'),
+      Channel(name: 'Water Cooler', emoji: 'coffee'),
+      Channel(name: 'Meetings', emoji: 'calendarBlank'),
+      Channel(name: 'Goals', emoji: 'target'),
+      Channel(name: 'Wins', emoji: 'trophy'),
+      Channel(name: 'Questions', emoji: 'question'),
+      Channel(name: 'Bugs', emoji: 'bug'),
+      Channel(name: 'Features', emoji: 'sparkle'),
     ];
 
     final createdChannels = <Channel>[];
     for (final channel in channels) {
       final saved = await Channel.db.insertRow(session, channel);
       createdChannels.add(saved);
-      print('   ✓ Created channel: ${saved.emoji} ${saved.name}');
+      print('   ✓ Created channel: ${saved.name} (${saved.emoji})');
     }
 
     // Sample note templates
@@ -135,7 +135,7 @@ void main(List<String> args) async {
       for (var j = 0; j < noteCount; j++) {
         final template = noteTemplates[j % noteTemplates.length];
         final content = j == 0
-            ? 'Welcome to ${channel.emoji} ${channel.name}!'
+            ? 'Welcome to ${channel.name}!'
             : '$template (#${j + 1})';
 
         // Spread notes across last 10 years (oldest first)
@@ -164,7 +164,7 @@ void main(List<String> args) async {
 
       if (channel.name == 'Load Test') {
         print(
-          '   ✓ Created $noteCount notes in ${channel.emoji} ${channel.name} (for pagination testing)',
+          '   ✓ Created $noteCount notes in ${channel.name} (for pagination testing)',
         );
       }
     }

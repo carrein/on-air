@@ -87,7 +87,6 @@ class DocumentAttachmentWidget extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.download),
                   onPressed: _handleDownload,
-                  tooltip: 'Download',
                   iconSize: 20,
                 ),
               ],

@@ -26,7 +26,7 @@ abstract class Channel
     int? sortOrder,
     bool? archived,
     this.archivedAt,
-  }) : emoji = emoji ?? '💬',
+  }) : emoji = emoji ?? 'chatCircle',
        pinned = pinned ?? false,
        isSystemChannel = isSystemChannel ?? false,
        createdAt = createdAt ?? DateTime.now(),
@@ -78,7 +78,7 @@ abstract class Channel
   /// The name of the channel.
   String name;
 
-  /// Emoji display picture for the channel.
+  /// Phosphor icon key for the channel (e.g. 'chatCircle', 'bookOpen').
   String emoji;
 
   /// Whether the channel is pinned.
@@ -347,7 +347,7 @@ class ChannelTable extends _i1.Table<int?> {
   /// The name of the channel.
   late final _i1.ColumnString name;
 
-  /// Emoji display picture for the channel.
+  /// Phosphor icon key for the channel (e.g. 'chatCircle', 'bookOpen').
   late final _i1.ColumnString emoji;
 
   /// Whether the channel is pinned.

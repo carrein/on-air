@@ -58,21 +58,21 @@ void main(List<String> args) async {
 
     final general = await Channel.db.insertRow(
       session,
-      Channel(name: 'General', emoji: '💬', pinned: true, sortOrder: 0),
+      Channel(name: 'General', emoji: 'chatCircle', pinned: true, sortOrder: 0),
     );
-    print('   ✓ ${general.emoji} ${general.name}');
+    print('   ✓ ${general.name}');
 
     final ideas = await Channel.db.insertRow(
       session,
-      Channel(name: 'Ideas', emoji: '💡', sortOrder: 1),
+      Channel(name: 'Ideas', emoji: 'lightbulb', sortOrder: 1),
     );
-    print('   ✓ ${ideas.emoji} ${ideas.name}');
+    print('   ✓ ${ideas.name}');
 
     final todos = await Channel.db.insertRow(
       session,
-      Channel(name: 'Todos', emoji: '✅', sortOrder: 2),
+      Channel(name: 'Todos', emoji: 'checkSquare', sortOrder: 2),
     );
-    print('   ✓ ${todos.emoji} ${todos.name}');
+    print('   ✓ ${todos.name}');
 
     // ── Helper to insert a note at a specific time ───────────────
     final now = DateTime.now();
@@ -164,7 +164,7 @@ void main(List<String> args) async {
     }
 
     // ── General channel ──────────────────────────────────────────
-    print('\n📝 Populating 💬 General...');
+    print('\n📝 Populating General...');
 
     await addNote(
       general.id!,
@@ -300,7 +300,7 @@ void main(List<String> args) async {
     print('   ✓ 17 notes (6 with images)');
 
     // ── Ideas channel ────────────────────────────────────────────
-    print('📝 Populating 💡 Ideas...');
+    print('📝 Populating Ideas...');
 
     await addNote(
       ideas.id!,
@@ -340,7 +340,7 @@ void main(List<String> args) async {
     print('   ✓ 5 notes');
 
     // ── Todos channel ────────────────────────────────────────────
-    print('📝 Populating ✅ Todos...');
+    print('📝 Populating Todos...');
 
     await addNote(
       todos.id!,

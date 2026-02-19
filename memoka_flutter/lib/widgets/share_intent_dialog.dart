@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../providers/channels_provider.dart';
 import '../providers/media_provider.dart';
 import '../providers/notes_provider.dart';
+import '../utils/icon_utils.dart';
 import '../utils/toast_utils.dart';
 
 /// Dialog shown when content is shared to Memoka from another app.
@@ -143,9 +145,20 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                     items: channels
                         .map((c) => DropdownMenuItem(
                               value: c.id,
-                              child: Text(
-                                '${c.emoji} ${c.name}',
-                                style: GoogleFonts.spaceGrotesk(),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PhosphorIcon(
+                                    getChannelIcon(c.emoji),
+                                    size: 18,
+                                    color: const Color(0xFF1C1C1C),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    c.name,
+                                    style: GoogleFonts.spaceGrotesk(),
+                                  ),
+                                ],
                               ),
                             ))
                         .toList(),
