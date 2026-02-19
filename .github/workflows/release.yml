@@ -41,7 +41,12 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          printf '%s' "$KEYSTORE_BASE64" | tr -d '[:space:]' | base64 -d > memoka_flutter/memoka-release.keystore
+          python3 -c "
+          import base64, os
+          raw = ''.join(os.environ['KEYSTORE_BASE64'].split())
+          data = base64.b64decode(raw)
+          open('memoka_flutter/memoka-release.keystore', 'wb').write(data)
+          "
           printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' \
             "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" "../../memoka-release.keystore" \
             > memoka_flutter/android/key.properties
