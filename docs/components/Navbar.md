@@ -39,7 +39,6 @@ Icon button between the pin button and three-dot menu, visible only on desktop.
 
 - Icon: `PhosphorIcons.sidebar()` (rotated 180°) when panel is hidden; `PhosphorIconsFill.sidebar` (rotated 180°) when visible
 - Tap toggles `mediaPanelVisibleProvider`; panel defaults to hidden on startup
-- Tooltip: "Show media panel" / "Hide media panel"
 - Hidden on mobile (media accessible via bottom sheet in the menu instead)
 
 #### Menu Button

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'styled_tooltip.dart';
 
-/// A styled Phosphor icon button with circular border feedback and optional tooltip.
+/// A styled Phosphor icon button with circular border feedback.
 ///
 /// Provides a consistent design language for all tappable icons in the app.
 /// Uses a circular border on hover/press instead of a filled background.
@@ -9,7 +8,6 @@ import 'styled_tooltip.dart';
 /// Features:
 /// - Animated circular border on hover (desktop) and press (all platforms)
 /// - Phosphor icon with configurable color
-/// - Optional tooltip (via StyledTooltip, desktop/web only)
 /// - Configurable size and padding
 ///
 /// Usage:
@@ -17,7 +15,6 @@ import 'styled_tooltip.dart';
 /// IconButtonStyled(
 ///   icon: PhosphorIcons.camera(),
 ///   onPressed: _capturePhoto,
-///   tooltip: 'Camera',
 /// )
 /// ```
 class IconButtonStyled extends StatefulWidget {
@@ -26,9 +23,6 @@ class IconButtonStyled extends StatefulWidget {
 
   /// Callback when the button is tapped.
   final VoidCallback onPressed;
-
-  /// Optional tooltip message (shown on hover, desktop/web only).
-  final String? tooltip;
 
   /// Icon size in logical pixels. Defaults to 24.
   final double size;
@@ -43,7 +37,6 @@ class IconButtonStyled extends StatefulWidget {
     super.key,
     required this.icon,
     required this.onPressed,
-    this.tooltip,
     this.size = 24,
     this.padding = 8,
     this.color = const Color(0xFFCE2161),
@@ -61,7 +54,7 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
   Widget build(BuildContext context) {
     final active = _isHovered || _isPressed;
 
-    Widget button = MouseRegion(
+    return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       cursor: SystemMouseCursors.click,
@@ -92,11 +85,5 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
         ),
       ),
     );
-
-    if (widget.tooltip != null) {
-      return StyledTooltip(message: widget.tooltip!, child: button);
-    }
-
-    return button;
   }
 }

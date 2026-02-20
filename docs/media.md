@@ -1041,7 +1041,6 @@ Implemented features:
    - Replace `_pickImage()` with `_pickFile()` using `file_picker` package
    - Support all file extensions: jpg, png, pdf, txt, md, doc, docx, xls, xlsx, zip
    - Change button icon from `Icons.image` to `Icons.attach_file`
-   - Update tooltip from "Upload image" to "Upload file"
 
 2. **Create Generic Upload Dialog** (`lib/widgets/file_upload_dialog.dart`):
    - Detect file type (image vs document)

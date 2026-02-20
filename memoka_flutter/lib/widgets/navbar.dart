@@ -72,30 +72,37 @@ class Navbar extends ConsumerWidget {
               onPressed: () => _goBack(context, ref),
             ),
           Expanded(child: _buildTitle(currentChannelAsync, channelsAsync, isShowingSettings)),
-          if (!isInDetailMode) ...[
-            if (currentChannel != null)
-              IconButtonStyled(
-                icon: currentChannel.pinned
-                    ? PhosphorIcons.pushPinSlash()
-                    : PhosphorIcons.pushPin(),
-                onPressed: () => _togglePin(ref, currentChannel.id!, !currentChannel.pinned),
-              ),
-            if (isDesktop)
-              Transform.rotate(
-                angle: math.pi,
-                child: IconButtonStyled(
-                  icon: mediaPanelVisible
-                      ? PhosphorIconsFill.sidebar
-                      : PhosphorIcons.sidebar(),
-                  onPressed: () => ref.read(mediaPanelVisibleProvider.notifier).toggle(),
-                  tooltip: mediaPanelVisible ? 'Hide media panel' : 'Show media panel',
+          if (!isInDetailMode)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (currentChannel != null) ...[
+                  IconButtonStyled(
+                    icon: currentChannel.pinned
+                        ? PhosphorIcons.pushPinSlash()
+                        : PhosphorIcons.pushPin(),
+                    onPressed: () => _togglePin(ref, currentChannel.id!, !currentChannel.pinned),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                if (isDesktop) ...[
+                  Transform.rotate(
+                    angle: math.pi,
+                    child: IconButtonStyled(
+                      icon: mediaPanelVisible
+                          ? PhosphorIconsFill.sidebar
+                          : PhosphorIcons.sidebar(),
+                      onPressed: () => ref.read(mediaPanelVisibleProvider.notifier).toggle(),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                IconButtonStyled(
+                  icon: PhosphorIcons.dotsThreeCircle(),
+                  onPressed: () => _showNavbarMenu(context, ref),
                 ),
-              ),
-            IconButtonStyled(
-              icon: PhosphorIcons.dotsThreeCircle(),
-              onPressed: () => _showNavbarMenu(context, ref),
+              ],
             ),
-          ],
         ],
       ),
     );

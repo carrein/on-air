@@ -11,7 +11,6 @@ u/docs/components/Input.md
 u/docs/components/Navbar.md
 u/docs/components/Archive.md
 u/docs/components/NewChannelModal.md
-u/docs/components/Tooltip.md
 u/docs/components/Icon.md
 u/docs/components/MediaPanel.md
 u/docs/components/Note.md
@@ -280,7 +279,6 @@ interactions, state management, and integration details.
 - **Navbar**: `docs/components/Navbar.md`
 - **Archive**: `docs/components/Archive.md`
 - **NewChannelModal**: `docs/components/NewChannelModal.md`
-- **Tooltip**: `docs/components/Tooltip.md`
 - **Icon**: `docs/components/Icon.md`
 - **MediaPanel**: `docs/components/MediaPanel.md`
 - **Note** (NoteItem): `docs/components/Note.md`

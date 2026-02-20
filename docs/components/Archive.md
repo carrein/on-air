@@ -220,7 +220,6 @@ The Archive is accessed via the sidebar button (channelId `-1`). When selected, 
 | `lib/widgets/channel_list.dart` | Archive button and channel context menu (Archive action) |
 | `lib/providers/current_channel_provider.dart` | Channel switching after archive |
 | `lib/utils/toast_utils.dart` | Success/error toast display |
-| `lib/widgets/styled_tooltip.dart` | Tooltip on cancel buttons |
 | `memoka_server/lib/src/chat/chat_endpoint.dart` | Server endpoints for archive operations |
 | `memoka_server/lib/src/chat/archive_item.spy.yaml` | ArchiveItem protocol model definition |
 | `memoka_server/lib/src/chat/channel.spy.yaml` | Channel model with archived/archivedAt fields |

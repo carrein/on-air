@@ -28,7 +28,6 @@ The standard widget for any tappable Phosphor icon in the app.
 
 - Animated circular border on hover (desktop) and press (all platforms)
 - Regular Phosphor icon with configurable color
-- Optional tooltip (via `StyledTooltip`, shown on desktop/web only)
 - Configurable size and padding
 
 ### API
@@ -37,7 +36,6 @@ The standard widget for any tappable Phosphor icon in the app.
 IconButtonStyled({
   required IconData icon,          // Phosphor regular icon (e.g. PhosphorIcons.camera())
   required VoidCallback onPressed, // Tap callback
-  String? tooltip,                 // Optional hover tooltip
   double size = 24,                // Icon size (px)
   double padding = 8,              // Padding inside button around icon
   Color color = Color(0xFFCE2161), // Icon and border color (brand.primary)
@@ -51,7 +49,6 @@ IconButtonStyled({
 IconButtonStyled(
   icon: PhosphorIcons.camera(),
   onPressed: _capturePhoto,
-  tooltip: 'Camera',
 )
 
 // Custom size and color
@@ -66,12 +63,11 @@ IconButtonStyled(
 ### Widget Tree
 
 ```
-StyledTooltip? (desktop/web only)
-  └─ MouseRegion (cursor: click)
-       └─ GestureDetector (onTap/onTapDown/onTapUp/onTapCancel)
-            └─ AnimatedContainer (circle border, 120ms)
-                 └─ Padding (8px)
-                      └─ Icon (Phosphor regular)
+MouseRegion (cursor: click)
+  └─ GestureDetector (onTap/onTapDown/onTapUp/onTapCancel)
+       └─ AnimatedContainer (circle border, 120ms)
+            └─ Padding (8px)
+                 └─ Icon (Phosphor regular)
 ```
 
 The circular border is transparent by default, animating to `color @ 50%` on hover and `color @ 100%` on press.
@@ -150,7 +146,6 @@ The icon system integrates with:
 | File | Relationship |
 |------|-------------|
 | `lib/widgets/icon_button_styled.dart` | Reusable tappable icon widget |
-| `lib/widgets/styled_tooltip.dart` | Tooltip wrapper (used by IconButtonStyled) |
 | `lib/utils/icon_utils.dart` | Icon name → PhosphorIconData mapping |
 | `lib/widgets/icon_picker.dart` | Channel icon selection bottom sheet |
 | `lib/widgets/note_input.dart` | Primary consumer (camera, send, attach, edit) |
