@@ -11,12 +11,11 @@ Individual note card widget that renders note content, footer actions, context m
 `NoteItem` is a `ConsumerWidget` that displays a single note in the chat view. It handles:
 
 - Markdown-formatted text content
-- Media attachments (images, videos, documents)
+- Media attachments (images, videos, audio, documents)
 - Link preview cards
 - Footer action icons (copy, edit, archive/restore, share)
 - Right-click / long-press context menu
 - Selection mode (checkbox toggle)
-- Media-only notes (no card wrapper)
 
 ---
 
@@ -33,20 +32,23 @@ Individual note card widget that renders note content, footer actions, context m
 ## Layout Structure
 
 ```
-[Padding 14px horizontal, 6px vertical]
+[Padding 14px all sides]
   Row:
     [Checkbox?]  ← visible in selection mode only
-    Expanded:
-      Align(left):
-        ConstrainedBox(maxWidth: 680px):
+    Align(left):
+      IntrinsicWidth:
+        ConstrainedBox(minWidth: 300px, maxWidth: 600px):
           [Context Menu Wrapper]
-            [Media-only: bare content, no card]
-            [Regular: Card with border]
+            [Card with border — always]
               Column:
-                [Text content (Markdown)]
-                [MediaAttachmentWidget(s)]
+                [Text content (Markdown)?]
+                [12px gap if next section present]
+                [MediaAttachmentWidget(s)?]
+                [12px gap between attachments]
+                [12px gap if next section present]
                 [LinkPreviewCard?]
-            [Note Footer]
+                [12px gap]
+                [Note Footer]
 ```
 
 ---
@@ -61,26 +63,15 @@ All values follow `docs/DesignSystem.md` tokens.
 | Card border | 1px `#CE2161` (brand.primary) |
 | Card border radius | 0px |
 | Card padding | 12px all sides |
-| Outer horizontal padding | 14px |
-| Outer vertical padding | 6px between cards |
-| Max width | 680px (fixed) |
+| Gap between content sections | 12px |
+| Gap between footer and content | 12px |
+| Outer padding | 14px all sides |
+| Min width | 300px |
+| Max width | 600px |
 | Footer icon size | 20px |
 | Footer icon color | `#00171F` at 50% opacity |
 
 ---
-
-## Media-Only Notes
-
-If a note has **attachments but no text content**, `isMediaOnly()` returns `true` and the card border/background is omitted — the media and footer render without a container, floating directly in the chat background.
-
-```dart
-static bool isMediaOnly(Note note) {
-  if (note.content.isNotEmpty) return false;
-  final attachments = note.attachments;
-  if (attachments == null || attachments.isEmpty) return false;
-  return true;
-}
-```
 
 ---
 

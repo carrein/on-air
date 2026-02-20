@@ -15,14 +15,14 @@ Shown when viewing a real channel (not archive, not settings).
 
 - **Background**: `core.surface` (`#F6F0ED`)
 - **Bottom border**: 1px `brand.primary` (`#CE2161`)
-- **Padding**: `_paddingStandard` — left 16px, right 8px, top 8px, bottom 8px
+- **Padding**: `_padding` — horizontal 16px, vertical 8px (uniform across all modes)
 - **Layout**: `[channel icon + name (Expanded)]` + `[pin button?]` + `[media panel toggle? desktop only]` + `[menu button]`
 
 #### Channel Title
 
 Left-aligned icon + text showing the current channel.
 
-- Phosphor Fill icon (20px) + channel name at 20px bold, `core.text` (`#00171F`)
+- Phosphor Fill icon (22px) + channel name at 20px bold, `core.text` (`#00171F`)
 - Ellipsis overflow for long names
 
 #### Pin Button
@@ -76,7 +76,7 @@ Light popup menu anchored to the top-right corner.
 
 Shown when `isShowingSettings == true` or `currentChannelId == -1` (Archive).
 
-- **Padding**: `_padding` — horizontal 8px, vertical 8px (same as selection mode)
+- **Padding**: `_padding` — horizontal 16px, vertical 8px
 - **Layout**: `[back button]` + `[plain title (Expanded)]`
 - **Back button**: `PhosphorIcons.arrowCircleLeft()` via `IconButtonStyled` on the left
 - **Title**: plain `Text('Settings')` or `Text('Archive')` — no channel icon
@@ -87,14 +87,16 @@ Shown when `isShowingSettings == true` or `currentChannelId == -1` (Archive).
 
 Shown when `noteSelectionProvider` is non-empty (user has selected notes). Replaces the other modes entirely.
 
-- **Padding**: `_padding` — horizontal 8px, vertical 8px
-- **Layout**: `[xCircle cancel]` + `[N selected text]` (Spacer) + `[archive button]`
-- **Cancel**: `IconButtonStyled(icon: PhosphorIcons.xCircle())` — clears selection
-- **Count text**: "N selected", 16px, w500, `#00171F`
+- **Padding**: `_padding` — horizontal 16px, vertical 8px
+- **Layout**: `[N selected text (Expanded)]` + `[archive button]` + `[4px]` + `[xCircle cancel]`
+- **Count text**: "**N** selected" — the number is bold (`FontWeight.w700`), 16px, `#00171F`
 - **Archive**: `IconButtonStyled(icon: PhosphorIcons.archive())` — archives all selected notes
   - Calls `notesProvider(channelId).notifier.deleteNote(noteId)` for each selected ID
   - Clears selection after completion
   - Shows toast: "N note(s) archived"
+- **Cancel**: `IconButtonStyled(icon: PhosphorIcons.xCircle())` — clears selection; sits 4px to the right of the archive button
+
+**Keyboard shortcut**: pressing `Escape` on desktop/web clears selection (same as tapping cancel).
 
 ### Media Bottom Sheet
 
@@ -127,8 +129,7 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 
 | Token              | Value                          | Usage                        |
 |--------------------|--------------------------------|------------------------------|
-| `_padding`         | H: 8, V: 8                    | Detail mode and selection mode |
-| `_paddingStandard` | L: 16, T: 8, B: 8, R: 8      | Standard channel view        |
+| `_padding` | H: 16, V: 8 | All modes (uniform) |
 
 ## Interactions
 

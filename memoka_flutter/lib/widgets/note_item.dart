@@ -88,7 +88,7 @@ class NoteItem extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildContent(context, ref),
-                                const SizedBox(height: 14),
+                                const SizedBox(height: 12),
                                 _NoteFooter(note: note, channelId: channelId, ref: ref),
                               ],
                             ),
@@ -105,65 +105,63 @@ class NoteItem extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, WidgetRef ref) {
+    final parts = <Widget>[];
+
+    if (note.content.isNotEmpty) {
+      parts.add(MarkdownBody(
+        data: note.content,
+        selectable: true,
+        onTapLink: (text, href, title) async {
+          if (href != null) {
+            final uri = Uri.tryParse(href);
+            if (uri != null && await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          }
+        },
+        styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+          p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
+          a: const TextStyle(
+            fontSize: 16,
+            color: Colors.blue,
+            decoration: TextDecoration.underline,
+          ),
+          h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+          h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+          h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+          h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+          h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+          h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
+          code: const TextStyle(color: Color(0xFF00171F), backgroundColor: Color(0xFFDADDD8)),
+          blockquote: const TextStyle(color: Color(0xFF00171F)),
+        ),
+      ));
+    }
+
+    if (note.attachments != null && note.attachments!.isNotEmpty) {
+      final attachments = note.attachments!;
+      for (var i = 0; i < attachments.length; i++) {
+        if (parts.isNotEmpty || i > 0) parts.add(const SizedBox(height: 12));
+        final attachment = attachments[i];
+        final url = FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
+        final imageIndex = allImageUrls.indexOf(url);
+        parts.add(MediaAttachmentWidget(
+          attachment: attachment,
+          serverUrl: serverUrl,
+          allImageUrls: allImageUrls,
+          initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
+        ));
+      }
+    }
+
+    if (note.linkPreview != null) {
+      if (parts.isNotEmpty) parts.add(const SizedBox(height: 12));
+      parts.add(LinkPreviewCard(preview: note.linkPreview!));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (note.content.isNotEmpty)
-          MarkdownBody(
-            data: note.content,
-            selectable: true,
-            onTapLink: (text, href, title) async {
-              if (href != null) {
-                final uri = Uri.tryParse(href);
-                if (uri != null && await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              }
-            },
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
-              a: const TextStyle(
-                fontSize: 16,
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
-              ),
-              h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-              code: const TextStyle(color: Color(0xFF00171F), backgroundColor: Color(0xFFDADDD8)),
-              blockquote: const TextStyle(color: Color(0xFF00171F)),
-            ),
-          ),
-
-        if (note.attachments != null && note.attachments!.isNotEmpty)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              ...note.attachments!.map(
-                (attachment) {
-                  final url = FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
-                  final imageIndex = allImageUrls.indexOf(url);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: MediaAttachmentWidget(
-                      attachment: attachment,
-                      serverUrl: serverUrl,
-                      allImageUrls: allImageUrls,
-                      initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-
-        if (note.linkPreview != null)
-          LinkPreviewCard(preview: note.linkPreview!),
-      ],
+      children: parts,
     );
   }
 

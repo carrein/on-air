@@ -9,7 +9,7 @@ Inline audio playback for audio file attachments within note cards.
 - **Platforms**: Web + Android
 - **Trigger**: Explicit play only (no auto-play)
 - **Concurrency**: Exclusive — playing one track pauses any other
-- **Scrubber**: Plain progress bar (Slider)
+- **Scrubber**: Flutter `Slider` progress bar
 - **On complete**: Reset to start, show play button
 - **Lifecycle**: Stop on navigation (player disposes with the widget)
 
@@ -17,134 +17,132 @@ Inline audio playback for audio file attachments within note cards.
 
 ## Visual Design
 
-Replaces the `DocumentAttachmentWidget` row for audio files. Renders inline inside the existing note card.
+Renders inline inside the existing note card, sharing the same layout pattern as `DocumentAttachmentWidget`.
 
 ```
-[▶]  ━━━━●━━━━━━━━━━━━━━━  1:23 / 3:45   [↓]
+[🎵]  filename.mp3
+      [▶] [━━━━●━━━━━━━━━━━━━] 1:23 / 3:45  [👁] [↓]
 ```
 
 | Element | Detail |
 |---|---|
-| Play/pause button | `IconButtonStyled` — `PhosphorIcons.play()` / `PhosphorIcons.pause()` |
-| Filename | Bold, `14px`, `#00171F`, same as document widget |
-| Scrubber | Flutter `Slider`, `#CE2161` active track, thumb, no label |
-| Time display | `elapsed / duration`, `12px`, `#00171F` @ 50% opacity |
-| Download button | `IconButtonStyled(downloadSimple)` — same as document widget |
+| File icon | `PhosphorIcons.fileAudio()` — 32px, `#00171F`, left-aligned |
+| Filename | Bold, `14px`, `#00171F`, above controls row |
+| Play/pause | `IconButtonStyled` — `PhosphorIcons.play()` / `PhosphorIcons.pause()`, 22px |
+| Scrubber | Flutter `Slider`, `#CE2161` active track + thumb |
+| Time display | `elapsed / duration`, `11px`, `#00171F` @ 50% opacity; `--:-- / --:--` before duration loads |
+| Preview button | `IconButtonStyled(handEye)` — opens file URL in browser/external app, 20px |
+| Download button | `IconButtonStyled(downloadSimple)` — triggers actual file download, 20px |
 
-Layout (single row):
+Layout:
+
 ```
-[▶/⏸]  [filename + scrubber + time]  [↓]
+Row:
+  [fileAudio 32px]  12px  Expanded:
+                            Column:
+                              [filename bold 14px]
+                              8px
+                              Row: [▶/⏸] [Slider Expanded] 6px [time] 16px [👁] 4px [↓]
 ```
 
-The filename sits above the scrubber row, file size replaced by `elapsed / duration` once loaded, showing `--:-- / --:--` before duration is known.
+Spacing: 8px between filename and controls row, 16px between time and preview button, 4px between preview and download.
 
 ### States
 
 | State | Play icon | Scrubber | Time |
 |---|---|---|---|
-| Idle (not loaded) | `play` (dimmed) | inactive | `--:-- / --:--` |
-| Ready | `play` | at 0 | `0:00 / 3:45` |
+| Idle / not yet played | `play` | inactive | `--:-- / --:--` |
+| Ready (duration loaded) | `play` | at 0 | `0:00 / 3:45` |
 | Playing | `pause` | advancing | `1:23 / 3:45` |
 | Paused | `play` | at position | `1:23 / 3:45` |
 | Completed | `play` | reset to 0 | `0:00 / 3:45` |
-| Error | `play` (disabled) | inactive | error text |
+| Error | `play` | inactive | red error text above filename |
 
 ---
 
-## Package
+## Implementation
 
-**`audioplayers: ^6.x`** — chosen over `just_audio` for:
-- Single package covers web + Android with no platform-specific extras
-- Simpler API for URL streaming
-- Smaller setup overhead
+### Platform split
 
----
+`audioplayers` does not register a web plugin channel on this project's setup. The widget uses a platform-conditional implementation:
 
-## Implementation Plan
+| Platform | Backend | API |
+|---|---|---|
+| Web (`kIsWeb`) | `universal_html` `AudioElement` | Native browser HTML Audio API |
+| Android | `audioplayers` + ExoPlayer | `AudioPlayer.play(UrlSource(...))` / `resume()` / `pause()` |
 
-### 1. `pubspec.yaml`
-Add `audioplayers: ^6.x` dependency.
-
-### 2. Global audio coordinator — `providers/audio_player_provider.dart`
 ```dart
-// Tracks the currently playing widget's ID so we can pause it
-// when a new one starts.
-final activeAudioIdProvider = StateProvider<String?>((ref) => null);
-```
-- Each `AudioAttachmentWidget` has a unique ID (its `attachment.filePath`)
-- When play is tapped, widget sets itself as active; any widget watching sees it's no longer active and pauses
-
-### 3. `widgets/audio_attachment_widget.dart` (new)
-`StatefulWidget` + `ConsumerStatefulWidget`.
-
-**State:**
-```dart
-late AudioPlayer _player;
-PlayerState _playerState = PlayerState.stopped;
-Duration _position = Duration.zero;
-Duration _duration = Duration.zero;
-bool _loading = false;
-```
-
-**Lifecycle:**
-- `initState`: create `AudioPlayer`, attach listeners for position/duration/state
-- `dispose`: `_player.dispose()`
-- Watch `activeAudioIdProvider` — if active ID changes away from self, call `_player.pause()`
-
-**Play/pause logic:**
-```dart
-void _togglePlay() async {
-  if (_playerState == PlayerState.playing) {
-    await _player.pause();
-  } else {
-    ref.read(activeAudioIdProvider.notifier).state = attachment.filePath;
-    if (_playerState == PlayerState.completed || _position == Duration.zero) {
-      await _player.play(UrlSource(audioUrl));
-    } else {
-      await _player.resume();
-    }
-  }
+if (kIsWeb) {
+  _webAudio = html.AudioElement()
+    ..src = _audioUrl
+    ..preload = 'metadata';   // loads duration without full download
+} else {
+  _mobilePlayer = AudioPlayer();
 }
 ```
 
-**On complete:** listen for `PlayerState.completed` → `_player.seek(Duration.zero)`, reset state to stopped.
+### Web listeners
 
-### 4. `utils/file_utils.dart`
-Add `isAudio(String ext)` helper:
-```dart
-static bool isAudio(String ext) =>
-    ['mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a', 'opus'].contains(ext.toLowerCase());
-```
-
-### 5. `widgets/media_attachment_widget.dart`
-In the attachment routing logic, add audio check before falling through to `DocumentAttachmentWidget`:
-```dart
-if (FileUtils.isAudio(extension)) {
-  return AudioAttachmentWidget(attachment: attachment, serverUrl: serverUrl);
-}
-```
-
-### 6. `widgets/document_attachment_widget.dart`
-No changes needed — audio files are intercepted before reaching it.
-
----
-
-## File Changes Summary
-
-| File | Change |
+| Event | Action |
 |---|---|
-| `pubspec.yaml` | Add `audioplayers` |
-| `providers/audio_player_provider.dart` | New — active audio ID state |
-| `widgets/audio_attachment_widget.dart` | New — player widget |
-| `utils/file_utils.dart` | Add `isAudio()` helper |
-| `widgets/media_attachment_widget.dart` | Route audio to new widget |
+| `onPlay` | `_isPlaying = true` |
+| `onPause` | `_isPlaying = false` |
+| `onTimeUpdate` | update `_position` (skipped while `_seeking`) |
+| `onDurationChange` | update `_duration` |
+| `onEnded` | `_isPlaying = false`, reset `currentTime = 0`, `_position = zero` |
+
+### Android listeners
+
+| Stream | Action |
+|---|---|
+| `onPlayerStateChanged` | update `_isPlaying`; on `completed` → seek to zero |
+| `onPositionChanged` | update `_position` (skipped while `_seeking`) |
+| `onDurationChanged` | update `_duration` |
+
+### Preview vs Download
+
+- **Preview** (`handEye`): `launchUrl(uri, mode: LaunchMode.externalApplication)` — opens in browser/OS viewer
+- **Download** (`downloadSimple`):
+  - Web: `html.AnchorElement()..href = url..setAttribute('download', filename)..click()` — browser native download
+  - Mobile: `launchUrl(uri, mode: LaunchMode.externalApplication)`
+
+### Exclusive playback
+
+```dart
+// On play:
+ref.read(activeAudioIdProvider.notifier).state = _audioId;  // _audioId = attachment.filePath
+
+// In build:
+ref.listen<String?>(activeAudioIdProvider, (prev, next) {
+  if (next != _audioId && _isPlaying) _pause();
+});
+```
+
+### Error handling
+
+`_togglePlay` is wrapped in `try/catch`. Any exception sets `_error` which renders as a small red text above the filename, replacing silent failure.
+
+### CORS (server-side)
+
+The Serverpod media server (`port 8082`) needs `Access-Control-Allow-Origin: *` so browsers loading audio cross-origin (Flutter dev server port ≠ 8082) can decode it. See `memoka_server/lib/src/web/routes/cors_media_route.dart`.
+
+---
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `memoka_flutter/lib/widgets/audio_attachment_widget.dart` | Player widget |
+| `memoka_flutter/lib/providers/audio_player_provider.dart` | `activeAudioIdProvider` — exclusive playback coordination |
+| `memoka_flutter/lib/widgets/media_attachment_widget.dart` | Routes audio MIME types / extensions to this widget |
+| `memoka_flutter/lib/utils/file_utils.dart` | `isAudio()` helper |
+| `memoka_server/lib/src/web/routes/cors_media_route.dart` | CORS wrapper for `/media` static route |
 
 ---
 
 ## Out of Scope
 
 - Waveform visualisation
-- iOS / desktop support (can be added later — `audioplayers` already supports both)
+- iOS / desktop support (can be added later)
 - Background playback across channel navigation
 - Playback speed control
-- Sleep timer

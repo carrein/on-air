@@ -170,6 +170,9 @@ Config is in `flutter_launcher_icons.yaml`. Adaptive icon uses `#00171F` backgro
 | `CAMERA` | Capture photos from NoteInput |
 | `READ_MEDIA_IMAGES` | Access shared images (Android 13+) |
 | `READ_MEDIA_VIDEO` | Access shared videos (Android 13+) |
+| `usesCleartextTraffic` | Allows ExoPlayer (audio/video) to stream over HTTP from dev server |
+
+> **Note**: Dart's HTTP client bypasses Android's network security policy and can reach HTTP servers regardless of `usesCleartextTraffic`. However, ExoPlayer (used by `audioplayers` for audio playback) uses Android's native networking stack and is blocked by default on API 28+. The `android:usesCleartextTraffic="true"` attribute on `<application>` is required for audio streaming to work against a development HTTP server.
 
 ## Media URL Resolution
 

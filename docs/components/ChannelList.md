@@ -15,11 +15,12 @@ ChannelList is the primary navigation component of the Memoka app. It displays a
 Scrollable, drag-to-reorder list of all channels, sorted with pinned channels first.
 
 - Uses `ReorderableListView` inside a `Stack` (for fade gradients)
-- **Drag-to-reorder**: Long-press a channel item to enter drag mode and reorder
+- **Drag-to-reorder**: Drag a channel item to reorder
   - Pinned channels can only be reordered among pinned channels
   - Unpinned channels can only be reordered among unpinned channels
   - Order is persisted via `sortOrder` field and `reorderChannels` endpoint
-  - Uses `ReorderableDelayedDragStartListener` on every item (compact and non-compact)
+  - **Desktop/web**: `ReorderableDragStartListener` — drag starts immediately on pointer down
+  - **Mobile**: `ReorderableDelayedDragStartListener` — requires a long-press to avoid conflicting with tap-to-select
 - Scrollbar hidden via `ScrollConfiguration`
 - Fade gradients (60px tall) appear at top/bottom edges when content is scrollable beyond view
 - Fade gradients use the sidebar background color transitioning to transparent
@@ -94,7 +95,8 @@ Individual channel row within the channel list.
 
 ### Drag-to-Reorder
 
-- Long-press any channel item to begin dragging (via `ReorderableDelayedDragStartListener`)
+- **Desktop/web**: Drag begins immediately on pointer down (`ReorderableDragStartListener`)
+- **Mobile**: Long-press to begin drag (`ReorderableDelayedDragStartListener`) — avoids conflict with tap
 - Dragging is constrained to the item's group (pinned stays with pinned, unpinned stays with unpinned)
 - While dragging, the item shows a scale/border/shadow animation via `proxyDecorator`
 - Channel order is persisted immediately on drop via `reorderChannels`

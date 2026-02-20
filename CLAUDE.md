@@ -15,6 +15,7 @@ u/docs/components/Icon.md
 u/docs/components/MediaPanel.md
 u/docs/components/Note.md
 u/docs/components/Preview.md
+u/docs/components/Audio.md
 
 # CLAUDE.md
 
@@ -38,9 +39,10 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
 - **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, compression, thumbnail generation, EXIF stripping
 - **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, compressed badge
+- **Audio Playback**: Inline audio player for audio attachments — HTML Audio API on web, ExoPlayer on Android; scrubber, preview + download buttons
 - **Media Panel**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
 - **Archive System**: Archive for soft-deleted notes, channel archiving with restore
-- **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action
+- **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
@@ -233,6 +235,7 @@ Server serves:
 - Static files from `web/static/` at root
 - Flutter web app from `web/app/` at `/app` (if built)
 - App config at `/app/assets/assets/config.json` (dynamically generated from server config)
+- Media files at `/media` via `CorsMediaRoute` (adds `Access-Control-Allow-Origin: *` so Flutter web dev server can load audio/media cross-origin)
 
 ### Current Endpoints
 
@@ -283,6 +286,7 @@ interactions, state management, and integration details.
 - **MediaPanel**: `docs/components/MediaPanel.md`
 - **Note** (NoteItem): `docs/components/Note.md`
 - **Preview** (link previews): `docs/components/Preview.md`
+- **Audio** (audio player): `docs/components/Audio.md`
 
 ## Platform Guides
 
