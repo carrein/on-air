@@ -1,6 +1,6 @@
 # Media Upload and Storage
 
-Plan for supporting media uploads (images, future: videos, files) in the chat application.
+Covers media upload, storage, and display for images, videos, and documents in the chat application.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Plan for supporting media uploads (images, future: videos, files) in the chat ap
 - 100MB file size limit (increased from 50MB)
 - Public access (no authentication required)
 
-### Phase 2 (Current): Multi-File Upload
+### Phase 2 (Completed): Multi-File Upload & Documents & Video
 - **Multiple file selection** via file picker (`allowMultiple: true`)
 - **Drag-drop multiple files** at once
 - **Paste multiple files** from clipboard
@@ -22,13 +22,22 @@ Plan for supporting media uploads (images, future: videos, files) in the chat ap
 - **Sequential upload**: Files uploaded one-by-one to avoid overwhelming server
 - **Progress indicator**: Shows "Uploading X of Y..." with progress bar
 - **Document support**: PDF, Text, Word, Excel, Zip file support
+- **Video support**: MP4, MOV, WebM, AVI, MKV with thumbnail generation and optional 720p compression
 - **File picker UI**: `FilePicker` with custom file type extensions
 
 ### Future Phases
-- Resumable uploads (Phase 3)
-- Media gallery tab per channel
-- Search and filter by date/type
-- Video support
+
+**Enhanced Media**
+- Resumable uploads (chunked protocol)
+- Image editing (crop, rotate)
+
+**Media Gallery**
+- Date range filtering
+- Media type filtering
+
+**Advanced Features**
+- Storage analytics dashboard
+- Content-based image search
 
 ---
 
@@ -162,7 +171,7 @@ LIMIT 50;
 
 **Paste Detection:**
 ```dart
-// In ChatView or InputBar
+// In ChatView or NoteInput
 onKeyEvent: (event) {
   if (event is KeyDownEvent && 
       event.logicalKey == LogicalKeyboardKey.keyV &&
@@ -516,10 +525,17 @@ Size computeDisplaySize({
 - **Rationale:** Self-hosted server with sufficient storage capacity
 
 ### Compression Settings
-- **Default:** Compression checkbox **checked** by default
+
+**Images:**
+- **Default:** Compression off (user opts in)
 - **Compressed:** Max 1920px, WebP format, 85% quality
-- **Original:** Keep original if user unchecks compression
+- **Original:** Keep original if unchecked
 - **Thumbnails:** 300px wide, WebP format, generated in isolate
+
+**Videos:**
+- **Default:** Compression off (user opts in)
+- **Compressed:** Max 1280×720, H.264 codec, medium quality preset (server-side via ffmpeg)
+- **Thumbnails:** Generated from the 1-second mark via ffprobe/ffmpeg
 
 ### Supported Formats
 
@@ -530,7 +546,16 @@ Size computeDisplaySize({
 - **GIF** - Preserve animated GIFs, generate static thumbnail
 - **HEIC** (iPhone) - Convert to WebP
 
-**Documents (Phase 2 - Server Ready):**
+**Videos (Phase 2):**
+- **MP4**: `video/mp4`
+- **MOV / QuickTime**: `video/quicktime`
+- **WebM**: `video/webm`
+- **AVI**: `video/x-msvideo`
+- **MKV**: `video/x-matroska`
+
+Processing: `ffprobe` extracts width/height/duration; thumbnail generated at the 1-second mark via ffmpeg; optional compression to 720p H.264.
+
+**Documents (Phase 2):**
 - **PDF**: `application/pdf`
 - **Text**: `text/plain`, `text/markdown`
 - **Word**: `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
@@ -1027,7 +1052,7 @@ Implemented features:
 
 **Required Changes:**
 
-1. **Update Input Bar** (`lib/widgets/input_bar.dart`):
+1. **Update Input** (`lib/widgets/note_input.dart`):
    - Replace `_pickImage()` with `_pickFile()` using `file_picker` package
    - Support all file extensions: jpg, png, pdf, txt, md, doc, docx, xls, xlsx, zip
    - Change button icon from `Icons.image` to `Icons.attach_file`
@@ -1071,7 +1096,7 @@ Implemented features:
 - `lib/widgets/document_attachment_widget.dart` (to create)
 - `lib/widgets/full_screen_image_view.dart`
 - `lib/widgets/chat_view.dart`
-- `lib/widgets/input_bar.dart`
+- `lib/widgets/note_input.dart`
 - `lib/providers/media_provider.dart`
 
 ### Infrastructure

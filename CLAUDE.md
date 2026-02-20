@@ -1,20 +1,21 @@
 u/docs/Android.md
 u/docs/Emulator.md
-u/docs/channel.md
-u/docs/link.md
-u/docs/media.md
-u/docs/overview.md
-u/docs/plan.md
-u/docs/security.md
-u/docs/ux.md
-u/docs/components/Sidebar.md
-u/docs/components/InputBar.md
-u/docs/components/TopBar.md
-u/docs/components/ArchiveCrate.md
+u/docs/Channel.md
+u/docs/Media.md
+u/docs/Overview.md
+u/docs/Security.md
+u/docs/DesignSystem.md
+u/docs/Settings.md
+u/docs/components/ChannelList.md
+u/docs/components/Input.md
+u/docs/components/Navbar.md
+u/docs/components/Archive.md
 u/docs/components/NewChannelModal.md
 u/docs/components/Tooltip.md
 u/docs/components/Icon.md
-u/docs/components/MediaSidebar.md
+u/docs/components/MediaPanel.md
+u/docs/components/Note.md
+u/docs/components/Preview.md
 
 # CLAUDE.md
 
@@ -38,10 +39,10 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
 - **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, compression, thumbnail generation, EXIF stripping
 - **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, compressed badge
-- **Media Sidebar**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
-- **Archive System**: Archive Crate for soft-deleted notes, channel archiving with restore
-- **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; TopBar transforms to show count + bulk archive action
-- **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media sidebar hidden in this mode
+- **Media Panel**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
+- **Archive System**: Archive for soft-deleted notes, channel archiving with restore
+- **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action
+- **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -240,7 +241,7 @@ Server serves:
   - Channels: create, update, delete, list, pin/unpin, archive/restore
   - Notes: create, update, delete, list with pagination, archive/restore
   - Archive: getArchiveItems, getArchivedChannelNoteCount
-  - Link previews: automatic URL detection and metadata fetching (see `docs/link.md`)
+  - Link previews: automatic URL detection and metadata fetching (see `docs/components/Preview.md`)
   - Real-time streaming: WebSocket events for live updates
 - `media`: Media upload and management
   - uploadMediaAndCreateNote, uploadMedia, deleteAttachment
@@ -274,14 +275,16 @@ Examples:
 Component specifications document individual Flutter widgets with their styling,
 interactions, state management, and integration details.
 
-- **Sidebar**: `docs/components/Sidebar.md`
-- **InputBar**: `docs/components/InputBar.md`
-- **TopBar**: `docs/components/TopBar.md`
-- **ArchiveCrate**: `docs/components/ArchiveCrate.md`
+- **ChannelList**: `docs/components/ChannelList.md`
+- **Input** (NoteInput): `docs/components/Input.md`
+- **Navbar**: `docs/components/Navbar.md`
+- **Archive**: `docs/components/Archive.md`
 - **NewChannelModal**: `docs/components/NewChannelModal.md`
 - **Tooltip**: `docs/components/Tooltip.md`
 - **Icon**: `docs/components/Icon.md`
-- **MediaSidebar**: `docs/components/MediaSidebar.md`
+- **MediaPanel**: `docs/components/MediaPanel.md`
+- **Note** (NoteItem): `docs/components/Note.md`
+- **Preview** (link previews): `docs/components/Preview.md`
 
 ## Platform Guides
 

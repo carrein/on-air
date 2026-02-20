@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoka_client/memoka_client.dart';
@@ -9,16 +10,17 @@ import '../providers/note_selection_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/settings_page_provider.dart';
+import '../providers/media_panel_visible_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
-import 'media_sidebar.dart';
+import 'media_panel.dart';
 import 'new_channel_modal.dart';
 
-/// Top bar displaying the current channel name and a menu button.
-class ChannelTopBar extends ConsumerWidget {
-  const ChannelTopBar({super.key});
+/// Navbar displaying the current channel name and a menu button.
+class Navbar extends ConsumerWidget {
+  const Navbar({super.key});
 
   static const _backgroundColor = Color(0xFFF6F0ED);
   static const _borderColor = Color(0xFFCE2161);
@@ -40,6 +42,8 @@ class ChannelTopBar extends ConsumerWidget {
     final isShowingSettings = ref.watch(settingsVisibilityProvider);
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
+    final mediaPanelVisible = ref.watch(mediaPanelVisibleProvider);
+    final isDesktop = ResponsiveUtils.isDesktop(context);
 
     if (isSelectionMode) {
       return _buildSelectionBar(context, ref, selection);
@@ -76,9 +80,20 @@ class ChannelTopBar extends ConsumerWidget {
                     : PhosphorIcons.pushPin(),
                 onPressed: () => _togglePin(ref, currentChannel.id!, !currentChannel.pinned),
               ),
+            if (isDesktop)
+              Transform.rotate(
+                angle: math.pi,
+                child: IconButtonStyled(
+                  icon: mediaPanelVisible
+                      ? PhosphorIconsFill.sidebar
+                      : PhosphorIcons.sidebar(),
+                  onPressed: () => ref.read(mediaPanelVisibleProvider.notifier).toggle(),
+                  tooltip: mediaPanelVisible ? 'Hide media panel' : 'Show media panel',
+                ),
+              ),
             IconButtonStyled(
               icon: PhosphorIcons.dotsThreeCircle(),
-              onPressed: () => _showTopBarMenu(context, ref),
+              onPressed: () => _showNavbarMenu(context, ref),
             ),
           ],
         ],
@@ -187,7 +202,7 @@ class ChannelTopBar extends ConsumerWidget {
     );
   }
 
-  void _showTopBarMenu(BuildContext context, WidgetRef ref) async {
+  void _showNavbarMenu(BuildContext context, WidgetRef ref) async {
     final currentChannelId = ref.read(currentChannelProvider).value;
     final channels = ref.read(channelsProvider).value ?? [];
     final channel = (currentChannelId != null && currentChannelId != -1)
@@ -195,7 +210,7 @@ class ChannelTopBar extends ConsumerWidget {
         : null;
 
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final showMedia = !ResponsiveUtils.shouldShowMediaSidebar(context);
+    final showMedia = !ResponsiveUtils.shouldShowMediaPanel(context);
 
     final result = await showMenu<String>(
       context: context,
@@ -243,12 +258,12 @@ class ChannelTopBar extends ConsumerWidget {
           ),
         ),
         PopupMenuItem(
-          value: 'archive_crate',
+          value: 'archive',
           child: Row(
             children: [
               Icon(PhosphorIcons.archive(), color: _textColor, size: 20),
               const SizedBox(width: 12),
-              const Text('Archive Crate', style: TextStyle(color: _textColor)),
+              const Text('Archive', style: TextStyle(color: _textColor)),
             ],
           ),
         ),
@@ -297,7 +312,7 @@ class ChannelTopBar extends ConsumerWidget {
           },
         );
         break;
-      case 'archive_crate':
+      case 'archive':
         ref.read(previousChannelProvider.notifier).state = ref.read(currentChannelProvider).value;
         ref.read(editingNoteProvider.notifier).cancelEditing();
         ref.read(settingsVisibilityProvider.notifier).hide();
@@ -383,7 +398,7 @@ class ChannelTopBar extends ConsumerWidget {
                     ),
                   ),
                   const Expanded(
-                    child: MediaSidebar(fixedWidth: false),
+                    child: MediaPanel(fixedWidth: false),
                   ),
                 ],
               ),

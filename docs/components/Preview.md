@@ -63,10 +63,10 @@ Location: `memoka_flutter/lib/widgets/link_preview_card.dart`
 
 Displays preview as a Material card with image, title, description, and domain.
 
-### Input Bar Preview
+### NoteInput Preview
 Location: `memoka_flutter/lib/widgets/input_link_preview.dart`
 
-Shows a simple "Link detected" banner above the input bar.
+Shows a simple "Link detected" banner above the NoteInput.
 
 ### Clickable Links
 Links in markdown are made clickable via `MarkdownBody` with `url_launcher`.
@@ -101,5 +101,5 @@ Links in markdown are made clickable via `MarkdownBody` with `url_launcher`.
 - `lib/widgets/link_preview_card.dart`
 - `lib/widgets/input_link_preview.dart`
 - `lib/widgets/chat_view.dart`
-- `lib/widgets/input_bar.dart`
+- `lib/widgets/note_input.dart`
 - `lib/providers/notes_provider.dart`

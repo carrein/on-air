@@ -1,12 +1,12 @@
-# MediaSidebar
+# MediaPanel
 
 ## Overview
 
-The MediaSidebar is a right-side panel that displays all media and links from the current channel, organized into four tabs. It provides quick browsing of images, videos, documents, and links without scrolling through the chat history. Clicking a media item scrolls the chat view to the note containing it.
+The MediaPanel is a right-side panel that displays all media and links from the current channel, organized into four tabs. It provides quick browsing of images, videos, documents, and links without scrolling through the chat history. Clicking a media item scrolls the chat view to the note containing it.
 
-**File**: `memoka_flutter/lib/widgets/media_sidebar.dart`
-**Widget**: `MediaSidebar` (ConsumerStatefulWidget)
-**State**: `_MediaSidebarState`
+**File**: `memoka_flutter/lib/widgets/media_panel.dart`
+**Widget**: `MediaPanel` (ConsumerStatefulWidget)
+**State**: `_MediaPanelState`
 
 ## Subcomponents
 
@@ -180,7 +180,7 @@ Clicking any image, video, or document in the grid scrolls the chat view to the 
 
 ## Data Flow
 
-1. `MediaSidebar` watches `currentChannelProvider` to get the active channel
+1. `MediaPanel` watches `currentChannelProvider` to get the active channel
 2. Watches `channelMediaDataProvider(channelId)` which internally watches `notesProvider(channelId)`
 3. `ChannelMediaData` provider filters notes client-side into `ChannelMedia` with separate lists:
    - Images: attachments where `mimeType.startsWith('image/')`
@@ -246,7 +246,7 @@ class LinkItem {
 ## Component Hierarchy
 
 ```
-MediaSidebar
+MediaPanel
 ├── TabBar (IMAGES | VIDEOS | DOCS | LINKS)
 ├── TabBarView
 │   ├── MediaGrid (images)
@@ -268,13 +268,13 @@ MediaSidebar
 
 ## Integration
 
-The MediaSidebar is placed as the right-most child in the app's main `Row` layout (in `ChatScreen`). It sits alongside the left Sidebar and the central ChatView. It communicates with the chat view exclusively through Riverpod providers — setting `scrollToNoteProvider` triggers the chat to scroll.
+The MediaPanel is placed as the right-most child in the app's main `Row` layout (in `ChatScreen`). It sits alongside the left ChannelList and the central ChatView. It communicates with the chat view exclusively through Riverpod providers — setting `scrollToNoteProvider` triggers the chat to scroll.
 
 ## Related Files
 
 | File | Relationship |
 |------|-------------|
-| `lib/widgets/media_sidebar.dart` | This component (container + tabs) |
+| `lib/widgets/media_panel.dart` | This component (container + tabs) |
 | `lib/widgets/media_grid.dart` | Grid layout for images/videos/documents |
 | `lib/widgets/media_grid_item.dart` | Individual grid cell (ConsumerWidget) |
 | `lib/widgets/link_list.dart` | Link list layout |

@@ -134,7 +134,7 @@ class NoteItem extends ConsumerWidget {
                 }
               }
             },
-            styleSheet: MarkdownStyleSheet.fromTheme(ThemeData()).copyWith(
+            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
               p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
               a: const TextStyle(
                 fontSize: 16,

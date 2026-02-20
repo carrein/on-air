@@ -248,7 +248,7 @@ class _ChatViewState extends ConsumerState<ChatView>
       });
     });
 
-    // Listen for scroll-to-note requests from media sidebar
+    // Listen for scroll-to-note requests from media panel
     ref.listen(scrollToNoteProvider, (prev, noteId) {
       if (noteId != null) {
         _scrollToNote(noteId);

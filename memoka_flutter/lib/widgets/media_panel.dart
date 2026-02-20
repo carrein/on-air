@@ -5,18 +5,18 @@ import '../providers/current_channel_provider.dart';
 import 'media_grid.dart';
 import 'link_list.dart';
 
-/// Right sidebar displaying media and links from the current channel.
+/// Right panel displaying media and links from the current channel.
 /// Shows tabs for IMAGES, VIDEOS, DOCUMENTS, and LINKS.
-class MediaSidebar extends ConsumerStatefulWidget {
+class MediaPanel extends ConsumerStatefulWidget {
   final bool fixedWidth;
 
-  const MediaSidebar({super.key, this.fixedWidth = true});
+  const MediaPanel({super.key, this.fixedWidth = true});
 
   @override
-  ConsumerState<MediaSidebar> createState() => _MediaSidebarState();
+  ConsumerState<MediaPanel> createState() => _MediaPanelState();
 }
 
-class _MediaSidebarState extends ConsumerState<MediaSidebar> with SingleTickerProviderStateMixin {
+class _MediaPanelState extends ConsumerState<MediaPanel> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override

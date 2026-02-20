@@ -1,12 +1,12 @@
-# Sidebar
+# ChannelList
 
 ## Overview
 
-The Sidebar is the primary navigation component of the Memoka app. It displays a fixed-width panel on the left side of the screen containing a scrollable, reorderable list of channels.
+ChannelList is the primary navigation component of the Memoka app. It displays a fixed-width panel on the left side of the screen containing a scrollable, reorderable list of channels.
 
-**File**: `memoka_flutter/lib/widgets/sidebar.dart`
-**Widget**: `Sidebar` (ConsumerStatefulWidget)
-**State**: `_SidebarState`
+**File**: `memoka_flutter/lib/widgets/channel_list.dart`
+**Widget**: `ChannelList` (ConsumerStatefulWidget)
+**State**: `_ChannelListState`
 
 ## Subcomponents
 
@@ -103,7 +103,7 @@ Individual channel row within the channel list.
 
 ### Channel CRUD
 
-Channel create/edit/pin/archive actions are accessed via the **TopBar 3-dot menu** (not the sidebar). See `docs/components/TopBar.md`.
+Channel create/edit/pin/archive actions are accessed via the **Navbar 3-dot menu** (not the sidebar). See `docs/components/Navbar.md`.
 
 ### Scroll Behaviour
 
@@ -158,15 +158,15 @@ When the active channel changes (via keyboard arrow keys or swipe gestures in `C
 
 ## Integration
 
-The Sidebar is placed as the left-most child in the app's main `Row` layout (in `ChatScreen`). It is **hidden in detail mode** — when the settings view is open or the Archive Crate is selected (`isInDetailMode = isShowingSettings || isArchive`). The sidebar communicates with the rest of the app exclusively through Riverpod providers — it has no direct widget-to-widget coupling.
+ChannelList is placed as the left-most child in the app's main `Row` layout (in `ChatScreen`). It is **hidden in detail mode** — when the settings view is open or the Archive is selected (`isInDetailMode = isShowingSettings || isArchive`). ChannelList communicates with the rest of the app exclusively through Riverpod providers — it has no direct widget-to-widget coupling.
 
 ## Related Files
 
 | File | Relationship |
 |------|-------------|
-| `lib/widgets/sidebar.dart` | This component |
+| `lib/widgets/channel_list.dart` | This component |
 | `lib/screens/chat_screen.dart` | Parent layout that hosts the sidebar |
-| `lib/widgets/channel_top_bar.dart` | Hosts channel actions (edit/pin/archive) |
+| `lib/widgets/navbar.dart` | Hosts channel actions (edit/pin/archive) |
 | `lib/providers/channels_provider.dart` | Channel list data and mutations |
 | `lib/providers/current_channel_provider.dart` | Active channel selection state |
 | `lib/providers/notes_provider.dart` | Note data for channel previews |

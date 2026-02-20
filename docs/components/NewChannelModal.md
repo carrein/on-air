@@ -181,6 +181,6 @@ The sidebar imports `NewChannelModal` and calls `NewChannelModal.show()` from tw
 | File | Relationship |
 |------|-------------|
 | `lib/widgets/new_channel_modal.dart` | This component |
-| `lib/widgets/sidebar.dart` | Caller that shows the modal |
+| `lib/widgets/channel_list.dart` | Caller that shows the modal |
 | `lib/providers/channels_provider.dart` | Channel create/update (called via onConfirm) |
 | `lib/providers/current_channel_provider.dart` | Channel switching (called via onConfirm) |

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Preview widget for links in the input bar (before sending).
+/// Preview widget for links in the NoteInput (before sending).
 /// Shows a simple indicator that a URL will be previewed.
 class InputLinkPreview extends StatelessWidget {
   final String url;

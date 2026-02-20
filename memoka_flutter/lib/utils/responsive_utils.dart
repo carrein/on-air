@@ -22,8 +22,8 @@ class ResponsiveUtils {
     return MediaQuery.of(context).size.width >= tabletBreakpoint;
   }
 
-  /// Check if media sidebar should be visible by default (desktop only)
-  static bool shouldShowMediaSidebar(BuildContext context) {
+  /// Check if media panel should be visible by default (desktop only)
+  static bool shouldShowMediaPanel(BuildContext context) {
     return isDesktop(context);
   }
 

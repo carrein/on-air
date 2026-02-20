@@ -1,12 +1,12 @@
-# InputBar
+# Input (NoteInput)
 
 ## Overview
 
-The InputBar is the note composition component pinned to the bottom of the screen. It handles creating new notes, editing existing notes, link preview detection, per-channel draft persistence, and file uploads (single and multi-file).
+NoteInput is the note composition component pinned to the bottom of the screen. It handles creating new notes, editing existing notes, link preview detection, per-channel draft persistence, and file uploads (single and multi-file).
 
-**File**: `memoka_flutter/lib/widgets/input_bar.dart`
-**Widget**: `InputBar` (ConsumerStatefulWidget)
-**State**: `_InputBarState`
+**File**: `memoka_flutter/lib/widgets/note_input.dart`
+**Widget**: `NoteInput` (ConsumerStatefulWidget)
+**State**: `_NoteInputState`
 
 ## Subcomponents
 
@@ -64,7 +64,7 @@ Icon transitions use 250ms `easeInOut` curves:
 
 ### Link Preview
 
-Appears above the input bar when a URL is detected in the text.
+Appears above the NoteInput when a URL is detected in the text.
 
 - Uses `InputLinkPreview` widget
 - Detects first URL via regex matching
@@ -193,18 +193,18 @@ Appears above the input bar when a URL is detected in the text.
 
 ## Integration
 
-The InputBar is placed at the bottom of the `ChatScreen` layout. On desktop/web it sits below the main `Row` (sidebar + chat + media sidebar), spanning the content area. On mobile it's the last item in the outermost `Column`. It is hidden when viewing the Archive channel or when settings is open (both are "detail mode").
+NoteInput is placed at the bottom of the `ChatScreen` layout. On desktop/web it sits below the main `Row` (channel list + chat + media panel), spanning the content area. On mobile it's the last item in the outermost `Column`. It is hidden when viewing the Archive channel or when settings is open (both are "detail mode").
 
 ## Related Files
 
 | File | Relationship |
 |------|-------------|
-| `lib/widgets/input_bar.dart` | This component |
+| `lib/widgets/note_input.dart` | This component |
 | `lib/widgets/icon_button_styled.dart` | Reusable icon button (camera, send, attach, edit mode) |
 | `lib/widgets/input_link_preview.dart` | Link preview widget shown above bar |
 | `lib/widgets/file_upload_dialog.dart` | Single file upload dialog |
 | `lib/widgets/multi_file_upload_dialog.dart` | Multi-file upload dialog |
-| `lib/screens/chat_screen.dart` | Parent layout that hosts the input bar |
+| `lib/screens/chat_screen.dart` | Parent layout that hosts the NoteInput |
 | `lib/providers/notes_provider.dart` | Note CRUD operations |
 | `lib/providers/current_channel_provider.dart` | Active channel for submissions |
 | `lib/providers/editing_note_provider.dart` | Edit mode state |

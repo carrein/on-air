@@ -91,6 +91,39 @@ flutter build apk --release --dart-define=SERVER_URL=https://memoka.example.com/
 
 Without `key.properties`, the release build falls back to debug signing (fine for sideloading, not for Play Store).
 
+### CI Release (GitHub Actions)
+
+The release workflow (`.github/workflows/release.yml`) builds a signed APK and attaches it to GitHub releases. It reconstructs the keystore from GitHub secrets at build time.
+
+**Required GitHub repository secrets:**
+
+| Secret | Value |
+|--------|-------|
+| `KEYSTORE_BASE64` | Base64-encoded keystore file |
+| `STORE_PASSWORD` | Keystore password |
+| `KEY_PASSWORD` | Key password (same as store password for PKCS12) |
+| `KEY_ALIAS` | Key alias (e.g. `memoka`) |
+
+**Setting up from scratch:**
+
+```bash
+# 1. Generate keystore (requires JDK)
+keytool -genkeypair -v \
+  -keystore memoka-release.keystore \
+  -keyalg RSA -keysize 2048 \
+  -validity 10000 \
+  -alias memoka \
+  -storetype PKCS12
+
+# 2. Base64-encode and copy to clipboard (macOS)
+base64 -i memoka-release.keystore | tr -d '\n' | pbcopy
+
+# 3. Paste into GitHub → Settings → Secrets → KEYSTORE_BASE64
+# 4. Add the other 3 secrets (STORE_PASSWORD, KEY_PASSWORD, KEY_ALIAS)
+```
+
+The keystore file is gitignored and never committed to the repo. A release is triggered by publishing a GitHub release.
+
 ## Launcher Icon
 
 The app icon uses `flutter_launcher_icons`. Icon PNGs are pre-generated from `icon.svg`. To regenerate after changing the icon:
@@ -112,7 +145,7 @@ Config is in `flutter_launcher_icons.yaml`. Adaptive icon uses `#00171F` backgro
 ## Features
 
 ### Camera Capture
-- Camera button appears in the input bar (next to attachment) on Android
+- Camera button appears in the NoteInput (next to attachment) on Android
 - Uses `image_picker` with `ImageSource.camera`
 - Captured photo routes through the standard file upload dialog
 - Requires CAMERA permission (requested at runtime)
@@ -134,7 +167,7 @@ Config is in `flutter_launcher_icons.yaml`. Adaptive icon uses `#00171F` backgro
 | Permission | Rationale |
 |-----------|-----------|
 | `INTERNET` | Connect to Serverpod backend |
-| `CAMERA` | Capture photos from input bar |
+| `CAMERA` | Capture photos from NoteInput |
 | `READ_MEDIA_IMAGES` | Access shared images (Android 13+) |
 | `READ_MEDIA_VIDEO` | Access shared videos (Android 13+) |
 

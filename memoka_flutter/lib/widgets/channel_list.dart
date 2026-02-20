@@ -10,16 +10,16 @@ import '../providers/settings_view_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/responsive_utils.dart';
 
-/// Sidebar displaying channels list and add channel button.
+/// Channel list sidebar displaying channels and add channel button.
 /// Fixed width (240px), always visible.
-class Sidebar extends ConsumerStatefulWidget {
-  const Sidebar({super.key});
+class ChannelList extends ConsumerStatefulWidget {
+  const ChannelList({super.key});
 
   @override
-  ConsumerState<Sidebar> createState() => _SidebarState();
+  ConsumerState<ChannelList> createState() => _ChannelListState();
 }
 
-class _SidebarState extends ConsumerState<Sidebar> {
+class _ChannelListState extends ConsumerState<ChannelList> {
   // -- Colors --
   static const _backgroundColor = Color(0xFFF6F0ED);
   static const _selectedColor = Color(0xFFCE2161);

@@ -1,11 +1,11 @@
-# TopBar
+# Navbar
 
 ## Overview
 
-The TopBar is the channel title bar displayed at the top of the screen. It renders in one of three modes depending on app state: **standard** (channel name + menu), **detail** (back button + plain title for settings/archive), or **selection** (bulk-action bar when notes are selected).
+The Navbar is the channel title bar displayed at the top of the screen. It renders in one of three modes depending on app state: **standard** (channel name + menu), **detail** (back button + plain title for settings/archive), or **selection** (bulk-action bar when notes are selected).
 
-**File**: `memoka_flutter/lib/widgets/channel_top_bar.dart`
-**Widget**: `ChannelTopBar` (ConsumerWidget)
+**File**: `memoka_flutter/lib/widgets/navbar.dart`
+**Widget**: `Navbar` (ConsumerWidget)
 
 ## Modes
 
@@ -60,13 +60,13 @@ Light popup menu anchored to the top-right corner.
 | Item | Icon | Action |
 |------|------|--------|
 | New Channel | `plusCircle` | Opens `NewChannelModal` in create mode |
-| Archive Crate | `archive` | Navigates to the Archive channel (`-1`) |
+| Archive | `archive` | Navigates to the Archive channel (`-1`) |
 | Media | `images` | Opens media bottom sheet (mobile/tablet only) |
 | Settings | `gear` | Opens settings view |
 
 ### Detail Mode
 
-Shown when `isShowingSettings == true` or `currentChannelId == -1` (Archive Crate).
+Shown when `isShowingSettings == true` or `currentChannelId == -1` (Archive).
 
 - **Padding**: `_padding` — horizontal 8px, vertical 8px (same as selection mode)
 - **Layout**: `[back button]` + `[plain title (Expanded)]`
@@ -90,12 +90,12 @@ Shown when `noteSelectionProvider` is non-empty (user has selected notes). Repla
 
 ### Media Bottom Sheet
 
-Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
+Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 
 - Initial size: 90% of screen height; min 50%, max 95%
 - Background: `core.surface` (`#F6F0ED`), 20px top border radius
 - Handle bar: 40×4px rounded bar, `core.text` at 15% opacity
-- Contains `MediaSidebar(fixedWidth: false)` for full-width tab content
+- Contains `MediaPanel(fixedWidth: false)` for full-width tab content
 
 ## Styling
 
@@ -127,7 +127,7 @@ Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
 ### Menu Button
 
 - Tap opens a popup menu anchored to the top-right
-- Channel actions (Edit/Archive) only appear when the active channel is a real channel (not Archive Crate)
+- Channel actions (Edit/Archive) only appear when the active channel is a real channel (not Archive)
 - Dismissing without selecting does nothing
 
 ### Archive Channel
@@ -144,8 +144,8 @@ Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
 
 - Draggable to resize between 50–95% of screen height
 - Tap outside the sheet to dismiss
-- Contains the same `MediaSidebar` widget used on desktop, with `fixedWidth: false`
-- Only accessible from the menu on mobile/tablet (when `shouldShowMediaSidebar` returns false)
+- Contains the same `MediaPanel` widget used on desktop, with `fixedWidth: false`
+- Only accessible from the menu on mobile/tablet (when `shouldShowMediaPanel` returns false)
 
 ## State Management
 
@@ -168,7 +168,7 @@ Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
 | `currentChannelProvider.notifier`      | Switch channel after archive / new channel     |
 | `previousChannelProvider`             | Restore channel when leaving archive view       |
 | `previousChannelProvider.notifier`    | Clear after back navigation                     |
-| `editingNoteProvider.notifier`         | Cancel editing on archive crate switch         |
+| `editingNoteProvider.notifier`         | Cancel editing on archive switch               |
 | `settingsVisibilityProvider.notifier`  | Show/hide settings                             |
 | `currentSettingsPageProvider.notifier` | Navigate to main settings page                 |
 | `noteSelectionProvider.notifier`       | Clear selection, or select all                 |
@@ -176,15 +176,15 @@ Draggable modal bottom sheet showing `MediaSidebar`. Mobile/tablet only.
 
 ## Integration
 
-The `ChannelTopBar` is placed in the `ChatScreen` column above the main `Row` layout. It spans full width and is **always visible** — including when settings or archive is open. The sidebar and media sidebar are hidden in detail mode; the TopBar remains.
+The `Navbar` is placed in the `ChatScreen` column above the main `Row` layout. It spans full width and is **always visible** — including when settings or archive is open. The sidebar and media panel are hidden in detail mode; the Navbar remains.
 
 ## Related Files
 
 | File | Relationship |
 |------|-------------|
-| `lib/widgets/channel_top_bar.dart` | This component |
+| `lib/widgets/navbar.dart` | This component |
 | `lib/widgets/icon_button_styled.dart` | All icon buttons |
-| `lib/widgets/media_sidebar.dart` | Media content in bottom sheet |
+| `lib/widgets/media_panel.dart` | Media content in bottom sheet |
 | `lib/widgets/new_channel_modal.dart` | Channel create/edit dialog |
 | `lib/screens/chat_screen.dart` | Parent layout |
 | `lib/providers/current_channel_provider.dart` | Active channel ID and previous channel |

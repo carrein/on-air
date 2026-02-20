@@ -14,8 +14,8 @@ Phosphor offers multiple styles. Memoka uses two:
 
 | Style | Usage | Example |
 |-------|-------|---------|
-| **Regular** | Interactive/tappable icons (buttons, actions) | Input bar camera, send, attach; TopBar buttons |
-| **Fill** | Static display icons (channel icons, sidebar, picker) | Channel icons in sidebar, icon picker grid |
+| **Regular** | Interactive/tappable icons (buttons, actions) | Note input camera, send, attach; Navbar buttons |
+| **Fill** | Static display icons (channel icons, sidebar, picker) | Channel icons in channel list, icon picker grid |
 
 Regular style is accessed via function calls: `PhosphorIcons.camera()`, `PhosphorIcons.archive()`, etc.
 Fill style is accessed via static fields: `PhosphorIconsFill.chatCircle`, `PhosphorIconsFill.star`, etc.
@@ -125,13 +125,13 @@ final iconKey = await IconPicker.show(
 
 | Location | Widget | Icons Used |
 |----------|--------|------------|
-| Input bar (empty) | `IconButtonStyled` | `camera`, `paperclip` |
-| Input bar (text) | `IconButtonStyled` | `paperPlaneRight` |
-| Input bar (edit mode) | `IconButtonStyled` | `xCircle` (cancel), `highlighter` (save) |
-| Top bar (standard) | `IconButtonStyled` | `pushPin`/`pushPinSlash`, `dotsThreeCircle` |
-| Top bar (detail/selection) | `IconButtonStyled` | `arrowCircleLeft`, `xCircle`, `archive` |
-| Top bar popup items | `PhosphorIcon` (static) | `pencilSimple`, `archive`, `plusCircle`, `images`, `gear` |
-| Sidebar channels | `PhosphorIcon` (static) | Per-channel Fill icon |
+| Input (empty) | `IconButtonStyled` | `camera`, `paperclip` |
+| Input (text) | `IconButtonStyled` | `paperPlaneRight` |
+| NoteInput (edit mode) | `IconButtonStyled` | `xCircle` (cancel), `highlighter` (save) |
+| Navbar (standard) | `IconButtonStyled` | `pushPin`/`pushPinSlash`, `dotsThreeCircle` |
+| Navbar (detail/selection) | `IconButtonStyled` | `arrowCircleLeft`, `xCircle`, `archive` |
+| Navbar popup items | `PhosphorIcon` (static) | `pencilSimple`, `archive`, `plusCircle`, `images`, `gear` |
+| ChannelList channels | `PhosphorIcon` (static) | Per-channel Fill icon |
 | Channel modal | `PhosphorIcon` (static) | Selected Fill icon |
 | Icon picker grid | `PhosphorIcon` (static) | All Fill icons |
 | Note footer | `PhosphorIcon` (static) | `pencilSimple`, `copySimple`, `archive`/`arrowCounterClockwise`, `shareNetwork` |
@@ -142,7 +142,7 @@ The icon system integrates with:
 
 - **Channel model**: `emoji` field stores Phosphor icon key names (e.g., `'chatCircle'`)
 - **Database**: No migration needed — reuses existing String field
-- **Sidebar**: Both compact and full modes render `PhosphorIcon(getChannelIcon(channel.emoji))`
+- **ChannelList**: Both compact and full modes render `PhosphorIcon(getChannelIcon(channel.emoji))`
 - **Seed data**: Demo and full seeds use icon key names
 
 ## Related Files
@@ -153,8 +153,8 @@ The icon system integrates with:
 | `lib/widgets/styled_tooltip.dart` | Tooltip wrapper (used by IconButtonStyled) |
 | `lib/utils/icon_utils.dart` | Icon name → PhosphorIconData mapping |
 | `lib/widgets/icon_picker.dart` | Channel icon selection bottom sheet |
-| `lib/widgets/input_bar.dart` | Primary consumer (camera, send, attach, edit) |
-| `lib/widgets/channel_top_bar.dart` | Top bar icon buttons |
-| `lib/widgets/sidebar.dart` | Channel icon display |
+| `lib/widgets/note_input.dart` | Primary consumer (camera, send, attach, edit) |
+| `lib/widgets/navbar.dart` | Navbar icon buttons |
+| `lib/widgets/channel_list.dart` | Channel icon display |
 | `lib/widgets/new_channel_modal.dart` | Channel icon selector |
 | `lib/widgets/note_item.dart` | Note footer action icons |

@@ -3,21 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:universal_html/html.dart' as html;
-import '../widgets/sidebar.dart';
+import '../widgets/channel_list.dart';
 import '../widgets/chat_view.dart';
-import '../widgets/input_bar.dart';
+import '../widgets/note_input.dart';
 import '../widgets/offline_banner.dart';
-import '../widgets/media_sidebar.dart';
+import '../widgets/media_panel.dart';
 import '../widgets/settings_view.dart';
-import '../widgets/channel_top_bar.dart';
+import '../widgets/navbar.dart';
 import '../widgets/share_intent_dialog.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/channels_provider.dart';
 import '../providers/share_intent_provider.dart';
+import '../providers/media_panel_visible_provider.dart';
 import '../utils/responsive_utils.dart';
 
-/// Main chat screen with sidebar, chat view, and input bar.
+/// Main chat screen with sidebar, chat view, and NoteInput.
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
 
@@ -89,7 +90,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showMediaSidebar = ResponsiveUtils.shouldShowMediaSidebar(context);
+    final isDesktop = ResponsiveUtils.isDesktop(context);
+    final mediaPanelVisible = ref.watch(mediaPanelVisibleProvider);
+    final showMediaPanel = isDesktop && mediaPanelVisible;
     final isShowingSettings = ref.watch(settingsVisibilityProvider);
     final currentChannelAsync = ref.watch(currentChannelProvider);
 
@@ -153,7 +156,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     Widget buildContentInner() {
       final mainContent = getMainContent();
       if (!isMobile && !isArchive && !isShowingSettings) {
-        return Column(children: [mainContent, const InputBar()]);
+        return Column(children: [mainContent, const NoteInput()]);
       }
       return Column(children: [mainContent]);
     }
@@ -193,17 +196,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: Column(
             children: [
               const OfflineBanner(),
-              const ChannelTopBar(),
+              const Navbar(),
               Expanded(
                 child: Row(
                   children: [
-                    if (!isInDetailMode) const Sidebar(),
+                    if (!isInDetailMode) const ChannelList(),
                     buildContentColumn(),
-                    if (showMediaSidebar && !isInDetailMode) const MediaSidebar(),
+                    if (showMediaPanel && !isInDetailMode) const MediaPanel(),
                   ],
                 ),
               ),
-              if (isMobile && !isArchive && !isShowingSettings) const InputBar(),
+              if (isMobile && !isArchive && !isShowingSettings) const NoteInput(),
             ],
           ),
         ),

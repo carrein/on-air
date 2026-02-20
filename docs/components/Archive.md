@@ -1,8 +1,8 @@
-# Archive Crate
+# Archive
 
 ## Overview
 
-The Archive Crate is the soft-delete destination for both notes and channels. It appears as a special sidebar entry (channelId `-1`) that displays a mixed chronological list of archived notes and archived channels. Items can be restored to their original location or permanently deleted from the Archive Crate.
+The Archive is the soft-delete destination for both notes and channels. It appears as a special sidebar entry (channelId `-1`) that displays a mixed chronological list of archived notes and archived channels. Items can be restored to their original location or permanently deleted from the Archive.
 
 **Files**:
 - `memoka_flutter/lib/widgets/chat_view.dart` (archive view rendering within ChatView)
@@ -35,11 +35,11 @@ Key distinction from note archiving: when a channel is archived, its notes stay 
 
 ## Subcomponents
 
-### Archive Crate Sidebar Button
+### Archive Sidebar Button
 
-Entry point in the sidebar for navigating to the Archive Crate.
+Entry point in the sidebar for navigating to the Archive.
 
-- SVG icon (recycle.svg, 28x28px) + "Archive Crate" text in Combo font (16px, white)
+- SVG icon (recycle.svg, 28x28px) + "Archive" text in Combo font (16px, white)
 - Padding: left 16px, right 20px, top/bottom 16px
 - Gap between icon and text: 16px
 - Selected state: background changes to `#CE2161` when channelId is `-1`
@@ -86,7 +86,7 @@ Distinct visual representation for archived channels.
 
 ### Delete Channel Confirmation Dialog
 
-Shown when permanently deleting a channel from the Archive Crate.
+Shown when permanently deleting a channel from the Archive.
 
 - **Style**: Dark background (`#00171F`), sharp corners (zero border radius)
 - **Title**: "Delete Channel" (white text)
@@ -135,10 +135,10 @@ Shown when permanently deleting a channel from the Archive Crate.
 
 ## Interactions
 
-### Channel Archiving (from TopBar Menu)
+### Channel Archiving (from Navbar Menu)
 
-- Tap the three-dot menu button in the TopBar → select "Archive Channel"
-- Channel disappears from sidebar, appears in Archive Crate
+- Tap the three-dot menu button in the Navbar → select "Archive Channel"
+- Channel disappears from sidebar, appears in Archive
 - If the archived channel was currently selected, auto-switches to the first remaining channel
 - Success toast: "Channel archived"
 - Error toast if attempting to archive the last remaining channel
@@ -146,8 +146,8 @@ Shown when permanently deleting a channel from the Archive Crate.
 ### Note Archiving (from Channel)
 
 - **Desktop**: Right-click a note → context menu → "Archive"
-- **Mobile**: Tap the archive icon in the note footer (always visible), or long-press to enter selection mode → use TopBar archive button for bulk archive
-- Note moves to Archive Crate (channelId set to `-1`, originalChannelId preserved)
+- **Mobile**: Tap the archive icon in the note footer (always visible), or long-press to enter selection mode → use Navbar archive button for bulk archive
+- Note moves to Archive (channelId set to `-1`, originalChannelId preserved)
 
 ### Restoring Items
 
@@ -208,7 +208,7 @@ The `channelsProvider` also listens for `channelArchived` and `channelRestored` 
 
 ## Integration
 
-The Archive Crate is accessed via the sidebar button (channelId `-1`). When selected, `ChatView` detects `channelId == -1` and renders `_buildArchiveView()` instead of the normal notes list. The input bar is hidden when viewing the Archive Crate. The Archive Crate communicates with the server through `archiveItemsProvider` and directly via `client.chat` for the note count endpoint.
+The Archive is accessed via the sidebar button (channelId `-1`). When selected, `ChatView` detects `channelId == -1` and renders `_buildArchiveView()` instead of the normal notes list. The input is hidden when viewing the Archive. The Archive communicates with the server through `archiveItemsProvider` and directly via `client.chat` for the note count endpoint.
 
 ## Related Files
 
@@ -217,7 +217,7 @@ The Archive Crate is accessed via the sidebar button (channelId `-1`). When sele
 | `lib/widgets/chat_view.dart` | Hosts archive view rendering (`_buildArchiveView`, `_buildArchivedChannelItem`, context menus, confirmation dialog) |
 | `lib/providers/archive_items_provider.dart` | Data provider for mixed archive list |
 | `lib/providers/channels_provider.dart` | Channel archiving method and event handling |
-| `lib/widgets/sidebar.dart` | Archive button and channel context menu (Archive action) |
+| `lib/widgets/channel_list.dart` | Archive button and channel context menu (Archive action) |
 | `lib/providers/current_channel_provider.dart` | Channel switching after archive |
 | `lib/utils/toast_utils.dart` | Success/error toast display |
 | `lib/widgets/styled_tooltip.dart` | Tooltip on cancel buttons |

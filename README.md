@@ -24,15 +24,13 @@ memoka (メモカ) aims to replicate Telegram's [Saved Message](https://telegram
 
 ## Documentation
 
-- [Project Overview](docs/overview.md)
-- [Implementation Plan](docs/plan.md)
-- [Channel Management](docs/channel.md)
-- [Link Previews](docs/link.md)
-- [Media Uploads](docs/media.md)
-- [Media Sidebar](docs/media_sidebar.md)
-- [UX Design](docs/ux.md)
+- [Project Overview](docs/Overview.md)
+- [Channel Management](docs/Channel.md)
+- [Link Previews](docs/components/Preview.md)
+- [Media Uploads](docs/Media.md)
+- [Design System](docs/DesignSystem.md)
 - [Deployment Guide](docs/Deployment.md)
-- **[Security Documentation](docs/security.md)** - Read before deployment
+- **[Security Documentation](docs/Security.md)** - Read before deployment
 
 ## Quick Start
 
@@ -98,9 +96,9 @@ This application has NO authentication by design (single-user environment).
 
 **Before deploying publicly or sharing with others:**
 
-1. Read [docs/security.md](docs/security.md) - Full security documentation
+1. Read [docs/Security.md](docs/Security.md) - Full security documentation
 2. Rotate all secrets in `passwords.yaml`
-3. Add authentication (see docs/security.md)
+3. Add authentication (see docs/Security.md)
 4. Configure CORS for production domain
 5. Enable HTTPS
 6. Set up firewall rules

@@ -5,7 +5,7 @@
 The Tooltip component provides consistent, styled hover tooltips across the Memoka app. It uses a custom theme override to apply brand-consistent styling to Flutter's built-in `Tooltip` widget.
 
 **Pattern**: Theme override wrapper
-**Current Usage**: InputBar icon buttons, Archive delete button
+**Current Usage**: NoteInput icon buttons, Archive delete button
 **Recommended Usage**: All interactive elements that benefit from explanatory hover text
 
 ## Styling
@@ -48,7 +48,7 @@ Custom-styled tooltips with sharp corners and brand colors.
 
 ### Pattern 1: Theme Override (Current)
 
-**Used in**: InputBar
+**Used in**: NoteInput
 
 Wrap a subtree with a `Theme` widget that overrides `tooltipTheme`:
 
@@ -131,14 +131,14 @@ StyledTooltip(
 
 ## Current Usage
 
-### InputBar
+### NoteInput
 
 - **Upload file**: Attachment button
 - **Send**: Send button (normal mode)
 - **Save**: Send button (edit mode)
 - **Cancel**: Cancel button (edit mode)
 
-All tooltips use the Theme override pattern wrapping the entire InputBar widget tree.
+All tooltips use the Theme override pattern wrapping the entire NoteInput widget tree.
 
 ### Archive Delete Button
 
@@ -172,9 +172,9 @@ bool get _isMobile {
 
 ✅ **Completed**:
 - Created `StyledTooltip` widget in `lib/widgets/styled_tooltip.dart`
-- Migrated InputBar tooltips (Upload file, Send, Save, Cancel)
+- Migrated NoteInput tooltips (Upload file, Send, Save, Cancel)
 - Migrated Archive delete button tooltip
-- Removed Theme override pattern from InputBar
+- Removed Theme override pattern from NoteInput
 
 ### Usage Guidelines
 
@@ -194,6 +194,6 @@ Use `StyledTooltip` for all interactive elements that benefit from hover hints:
 | File | Relationship |
 |------|-------------|
 | `lib/widgets/styled_tooltip.dart` | Proposed reusable component |
-| `lib/widgets/input_bar.dart` | Current theme override implementation |
+| `lib/widgets/note_input.dart` | Current theme override implementation |
 | `lib/widgets/chat_view.dart` | Archive delete button (needs migration) |
-| `docs/Theme.md` | Color and typography token reference |
+| `docs/DesignSystem.md` | Color and typography token reference |

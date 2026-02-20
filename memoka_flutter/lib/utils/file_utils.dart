@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// Utilities for file handling and display.
@@ -61,27 +60,17 @@ class FileUtils {
   }
 
   /// Build media URL with cache busting.
-  /// Media is served from the /media route on the web server (same server
-  /// that serves the Flutter app). On web, use the app's own origin so it
-  /// works behind reverse proxies without hardcoded port swapping.
+  /// Serverpod runs the API on port 8080 and the web server (which serves
+  /// /media) on port 8082. If the server URL uses port 8080, swap to 8082.
+  /// Production servers behind a reverse proxy (no explicit port or 80/443)
+  /// serve media from the same base URL.
   static String buildMediaUrl(String serverUrl, String path, String? contentHash) {
+    final uri = Uri.parse(serverUrl);
     final String base;
-    if (kIsWeb) {
-      // Use the origin where the app was loaded from — this is always the
-      // web server, which also serves /media.
-      final origin = Uri.base;
-      base = '${origin.scheme}://${origin.host}:${origin.port}';
+    if (uri.port == 8080) {
+      base = '${uri.scheme}://${uri.host}:8082';
     } else {
-      // Native: Serverpod runs API on port 8080 and web server (which serves
-      // /media) on port 8082. If the server URL uses port 8080, swap to 8082.
-      // Production servers behind a reverse proxy (no explicit port or 80/443)
-      // serve media from the same base URL.
-      final uri = Uri.parse(serverUrl);
-      if (uri.port == 8080) {
-        base = '${uri.scheme}://${uri.host}:8082';
-      } else {
-        base = '${uri.scheme}://${uri.host}${uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
-      }
+      base = '${uri.scheme}://${uri.host}${uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
     }
     final cacheBuster = contentHash ?? '';
     return '$base/media/$path?v=$cacheBuster';

@@ -16,16 +16,16 @@ import 'file_upload_dialog.dart';
 import 'multi_file_upload_dialog.dart';
 import 'icon_button_styled.dart';
 
-/// Input bar for creating and editing notes.
-class InputBar extends ConsumerStatefulWidget {
-  const InputBar({super.key});
+/// Note input for creating and editing notes.
+class NoteInput extends ConsumerStatefulWidget {
+  const NoteInput({super.key});
 
   @override
-  ConsumerState<InputBar> createState() => _InputBarState();
+  ConsumerState<NoteInput> createState() => _NoteInputState();
 }
 
-class _InputBarState extends ConsumerState<InputBar> {
-  // -- Colors (from Theme.md) --
+class _NoteInputState extends ConsumerState<NoteInput> {
+  // -- Colors (from DesignSystem.md) --
   static const _barBackground = Color(0xFFF6F0ED);
   static const _fieldFill = Colors.transparent;
   static const _borderColor = Color(0xFFCE2161);
@@ -111,7 +111,7 @@ class _InputBarState extends ConsumerState<InputBar> {
               onDismiss: () => setState(() => _showPreview = false),
             ),
 
-          // Input bar
+          // NoteInput
           Container(
           padding: _barPadding,
           decoration: const BoxDecoration(

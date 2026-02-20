@@ -1,5 +1,5 @@
 **Overview**
-Single-user real-time chat-style notes. Responsive layout with left sidebar (60-250px), chat view, and right media sidebar (250-400px). Serverpod backend, Flutter frontend, Riverpod state management.
+Single-user real-time chat-style notes. Responsive layout with left sidebar (60-250px), chat view, and right media panel (250-400px). Serverpod backend, Flutter frontend, Riverpod state management.
 
 **Tech Stack**
 
@@ -102,7 +102,7 @@ fields:
 - `deleteChannel(id)` → void (reject if last active channel, cascade delete notes + media files)
 - `createNote(channelId, content)` → `Note` (reject empty, async link preview fetch)
 - `updateNote(id, content)` → `Note` (last-write-wins)
-- `deleteNote(id)` → void (archives to Archive Crate, or permanently deletes if already in Archive)
+- `deleteNote(id)` → void (archives to Archive, or permanently deletes if already in Archive)
 - `restoreNote(id)` → void (restore from Archive to original channel)
 - `archiveChannel(id)` → void (soft delete, notes stay with channel)
 - `restoreChannel(id)` → `Channel` (unarchive)
@@ -140,11 +140,11 @@ _Layout_
 - Responsive three-panel layout:
   - Left sidebar: 60-250px (channels, collapsible)
   - Center: chat view (inverted list: newest at bottom)
-  - Right sidebar: 250-400px media sidebar (4 tabs: Images/Videos/Documents/Links)
+  - Right sidebar: 250-400px media panel (4 tabs: Images/Videos/Documents/Links)
   - Desktop (>=1200px): Both sidebars always visible
   - Tablet (768-1199px): Right sidebar hidden, toggle via button
   - Mobile (<768px): Right sidebar as bottom sheet
-- Static bottom input bar
+- Static bottom NoteInput
 
 _Sidebar_
 
@@ -155,7 +155,7 @@ _Sidebar_
 - Bottom: "New Channel" button → modal with name + emoji picker
 - Context menu per channel: Edit, Pin/Unpin, Archive, Delete
 - Account/Settings button below channel list
-- Archive Crate: system channel showing archived notes and channels
+- Archive: system channel showing archived notes and channels
 
 _Chat View_
 
@@ -175,7 +175,7 @@ _Chat View_
 - Link preview cards
 - Selectable chat background patterns (via Settings → Background Picker)
 
-_Input Bar_
+_NoteInput_
 
 - Multiline `TextField`, Enter to submit (via `Shortcuts`/`Actions`), Shift+Enter for newline
 - Supported file types: images (jpg, png, gif, webp, heic), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip)
@@ -186,7 +186,7 @@ _Input Bar_
 - Per-channel draft text preservation
 - Link detection banner
 
-_Media Sidebar_
+_Media Panel_
 
 - 4 tabs: Images, Videos, Documents, Links
 - Grid layout for media (3 columns), list layout for links
@@ -196,7 +196,7 @@ _Media Sidebar_
 
 _Delete Behavior_
 
-- Notes: Soft delete to Archive Crate (permanent delete from within Archive)
+- Notes: Soft delete to Archive (permanent delete from within Archive)
 - Channels: Soft archive (can be restored)
 - Channel permanent delete cascades to notes + media files
 
@@ -221,5 +221,5 @@ _Delete Behavior_
 - `currentChannelIdProvider`: StateProvider<int>
 - `editingNoteIdProvider`: StateProvider<int?> (null = create mode)
 - `connectionStateProvider`: StreamProvider<ConnectionState>
-- `channelMediaProvider(channelId)`: Family provider for media sidebar data
-- `mediaSidebarVisibleProvider`: Global state for sidebar visibility on mobile/tablet
+- `channelMediaProvider(channelId)`: Family provider for media panel data
+- `mediaPanelVisibleProvider`: Global state for media panel visibility on mobile/tablet
