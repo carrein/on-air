@@ -111,8 +111,11 @@ Future<void> _seedDemo(Session session) async {
   const mediaBaseDir = 'data/media';
   final demoDir = Directory('fixtures/demo');
 
-  Future<Note> addNote(int channelId, String content,
-      {int minutesAgo = 0}) async {
+  Future<Note> addNote(
+    int channelId,
+    String content, {
+    int minutesAgo = 0,
+  }) async {
     final note = Note(channelId: channelId, content: content);
     note.createdAt = now.subtract(Duration(minutes: minutesAgo));
     return await Note.db.insertRow(session, note);
@@ -135,8 +138,10 @@ Future<void> _seedDemo(Session session) async {
 
     int? width, height;
     if (bytes.length > 24 && bytes[0] == 0x89 && bytes[1] == 0x50) {
-      width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
-      height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+      width =
+          (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+      height =
+          (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
     }
 
     final channelMediaDir = Directory(
@@ -174,68 +179,89 @@ Future<void> _seedDemo(Session session) async {
   // ── General ──
   print('\n📝 Populating General...');
 
-  await addNote(general.id!,
-      'Welcome to Memoka! 🎉\n\nThis is your personal notes space. '
-      'Create channels to organize different topics, and jot down '
-      'thoughts as they come.',
-      minutesAgo: 1440);
-  await addNote(general.id!,
-      'Serverpod is the backend framework powering this app. '
-      'Check it out: https://serverpod.dev',
-      minutesAgo: 1380);
-  await addNote(general.id!,
-      'Built with Flutter — one codebase for web, Android, and iOS.\n\n'
-      'https://flutter.dev',
-      minutesAgo: 1200);
-  await addNote(general.id!,
-      'Quick tip: you can drag and drop images directly into the chat to upload them.',
-      minutesAgo: 1080);
-  await addNote(general.id!,
-      '## Meeting Notes — Project Kickoff\n\n'
-      '**Date:** Monday morning\n'
-      '**Attendees:** Alex, Jordan, Sam\n\n'
-      '### Key Decisions\n'
-      '- Use Serverpod for the backend (Dart everywhere)\n'
-      '- Flutter web as the primary client, Android as secondary\n'
-      '- PostgreSQL for persistence, Redis for real-time events\n\n'
-      '### Action Items\n'
-      '1. Set up CI/CD pipeline\n'
-      '2. Design the channel data model\n'
-      '3. Prototype the chat UI\n\n'
-      '### Open Questions\n'
-      '- How do we handle offline sync?\n'
-      '- What\'s our media storage strategy for production?\n'
-      '- Do we need end-to-end encryption?',
-      minutesAgo: 960);
+  await addNote(
+    general.id!,
+    'Welcome to Memoka! 🎉\n\nThis is your personal notes space. '
+    'Create channels to organize different topics, and jot down '
+    'thoughts as they come.',
+    minutesAgo: 1440,
+  );
+  await addNote(
+    general.id!,
+    'Serverpod is the backend framework powering this app. '
+    'Check it out: https://serverpod.dev',
+    minutesAgo: 1380,
+  );
+  await addNote(
+    general.id!,
+    'Built with Flutter — one codebase for web, Android, and iOS.\n\n'
+    'https://flutter.dev',
+    minutesAgo: 1200,
+  );
+  await addNote(
+    general.id!,
+    'Quick tip: you can drag and drop images directly into the chat to upload them.',
+    minutesAgo: 1080,
+  );
+  await addNote(
+    general.id!,
+    '## Meeting Notes — Project Kickoff\n\n'
+    '**Date:** Monday morning\n'
+    '**Attendees:** Alex, Jordan, Sam\n\n'
+    '### Key Decisions\n'
+    '- Use Serverpod for the backend (Dart everywhere)\n'
+    '- Flutter web as the primary client, Android as secondary\n'
+    '- PostgreSQL for persistence, Redis for real-time events\n\n'
+    '### Action Items\n'
+    '1. Set up CI/CD pipeline\n'
+    '2. Design the channel data model\n'
+    '3. Prototype the chat UI\n\n'
+    '### Open Questions\n'
+    '- How do we handle offline sync?\n'
+    '- What\'s our media storage strategy for production?\n'
+    '- Do we need end-to-end encryption?',
+    minutesAgo: 960,
+  );
   await addImageNote(general.id!, '', 'splash_apollo.png', minutesAgo: 840);
-  await addNote(general.id!,
-      'Found a great article on Dart isolates and concurrency:\n\n'
-      'https://dart.dev/language/concurrency',
-      minutesAgo: 720);
+  await addNote(
+    general.id!,
+    'Found a great article on Dart isolates and concurrency:\n\n'
+    'https://dart.dev/language/concurrency',
+    minutesAgo: 720,
+  );
   await addImageNote(general.id!, '', 'splash_celeste.png', minutesAgo: 600);
-  await addNote(general.id!,
-      'Reminder: the WebSocket connection auto-reconnects if the server '
-      'restarts. No need to refresh the page manually.',
-      minutesAgo: 480);
+  await addNote(
+    general.id!,
+    'Reminder: the WebSocket connection auto-reconnects if the server '
+    'restarts. No need to refresh the page manually.',
+    minutesAgo: 480,
+  );
   await addImageNote(general.id!, '', 'splash_graves.png', minutesAgo: 360);
-  await addNote(general.id!,
-      '```dart\n'
-      'Future<void> main() async {\n'
-      '  final pod = Serverpod(args, Protocol(), Endpoints());\n'
-      '  await pod.start();\n'
-      '}\n'
-      '```\n\n'
-      'That\'s literally all you need to start a Serverpod server.',
-      minutesAgo: 300);
+  await addNote(
+    general.id!,
+    '```dart\n'
+    'Future<void> main() async {\n'
+    '  final pod = Serverpod(args, Protocol(), Endpoints());\n'
+    '  await pod.start();\n'
+    '}\n'
+    '```\n\n'
+    'That\'s literally all you need to start a Serverpod server.',
+    minutesAgo: 300,
+  );
   await addImageNote(general.id!, '', 'splash_rem.png', minutesAgo: 240);
-  await addNote(general.id!,
-      'Interesting comparison of state management approaches in Flutter:\n\n'
-      'https://docs.flutter.dev/data-and-backend/state-mgmt/options',
-      minutesAgo: 180);
+  await addNote(
+    general.id!,
+    'Interesting comparison of state management approaches in Flutter:\n\n'
+    'https://docs.flutter.dev/data-and-backend/state-mgmt/options',
+    minutesAgo: 180,
+  );
   await addImageNote(general.id!, '', 'splash_silver.png', minutesAgo: 120);
   await addImageNote(general.id!, '', 'splash_venator.png', minutesAgo: 60);
-  await addNote(general.id!, 'That wraps up the demo content. Try creating your own notes!',
-      minutesAgo: 5);
+  await addNote(
+    general.id!,
+    'That wraps up the demo content. Try creating your own notes!',
+    minutesAgo: 5,
+  );
 
   general.updatedAt = now;
   await Channel.db.updateRow(session, general);
@@ -244,24 +270,34 @@ Future<void> _seedDemo(Session session) async {
   // ── Ideas ──
   print('📝 Populating Ideas...');
 
-  await addNote(ideas.id!,
-      'Add keyboard shortcuts for power users — Cmd+K for quick channel switch',
-      minutesAgo: 2000);
-  await addNote(ideas.id!,
-      'What if channels could have sub-channels? Like folders inside folders. '
-      'Might get complex but could be useful for large projects.',
-      minutesAgo: 1500);
-  await addNote(ideas.id!,
-      'Markdown preview toggle — sometimes you want to see the raw text, '
-      'sometimes the rendered version.',
-      minutesAgo: 800);
-  await addNote(ideas.id!,
-      'Export channel as PDF or Markdown file for sharing outside the app.',
-      minutesAgo: 400);
-  await addNote(ideas.id!,
-      'Dark/light theme toggle. The dark theme is great but some people '
-      'prefer light mode during the day.',
-      minutesAgo: 100);
+  await addNote(
+    ideas.id!,
+    'Add keyboard shortcuts for power users — Cmd+K for quick channel switch',
+    minutesAgo: 2000,
+  );
+  await addNote(
+    ideas.id!,
+    'What if channels could have sub-channels? Like folders inside folders. '
+    'Might get complex but could be useful for large projects.',
+    minutesAgo: 1500,
+  );
+  await addNote(
+    ideas.id!,
+    'Markdown preview toggle — sometimes you want to see the raw text, '
+    'sometimes the rendered version.',
+    minutesAgo: 800,
+  );
+  await addNote(
+    ideas.id!,
+    'Export channel as PDF or Markdown file for sharing outside the app.',
+    minutesAgo: 400,
+  );
+  await addNote(
+    ideas.id!,
+    'Dark/light theme toggle. The dark theme is great but some people '
+    'prefer light mode during the day.',
+    minutesAgo: 100,
+  );
 
   ideas.updatedAt = now;
   await Channel.db.updateRow(session, ideas);
@@ -270,10 +306,22 @@ Future<void> _seedDemo(Session session) async {
   // ── Todos ──
   print('📝 Populating Todos...');
 
-  await addNote(todos.id!, '[ ] Set up production server on Hetzner', minutesAgo: 3000);
-  await addNote(todos.id!, '[x] Configure Tailscale for secure remote access', minutesAgo: 2500);
+  await addNote(
+    todos.id!,
+    '[ ] Set up production server on Hetzner',
+    minutesAgo: 3000,
+  );
+  await addNote(
+    todos.id!,
+    '[x] Configure Tailscale for secure remote access',
+    minutesAgo: 2500,
+  );
   await addNote(todos.id!, '[x] Build and test Android APK', minutesAgo: 2000);
-  await addNote(todos.id!, '[ ] Add push notifications for new notes', minutesAgo: 1000);
+  await addNote(
+    todos.id!,
+    '[ ] Add push notifications for new notes',
+    minutesAgo: 1000,
+  );
   await addNote(todos.id!, '[ ] Write user documentation', minutesAgo: 200);
 
   todos.updatedAt = now;
@@ -357,15 +405,19 @@ Future<void> _seedFull(Session session) async {
     final noteCount = channel.name == 'Load Test'
         ? 500
         : i < 6
-            ? 10 + (i * 8)
-            : 0;
+        ? 10 + (i * 8)
+        : 0;
 
     for (var j = 0; j < noteCount; j++) {
       final template = noteTemplates[j % noteTemplates.length];
-      final content = j == 0 ? 'Welcome to ${channel.name}!' : '$template (#${j + 1})';
+      final content = j == 0
+          ? 'Welcome to ${channel.name}!'
+          : '$template (#${j + 1})';
 
       final daysAgo = (3650 * (1 - (j / noteCount) * (j / noteCount))).floor();
-      final createdAt = now.subtract(Duration(days: daysAgo, hours: (j % 10) * 2));
+      final createdAt = now.subtract(
+        Duration(days: daysAgo, hours: (j % 10) * 2),
+      );
 
       final note = Note(channelId: channel.id!, content: content);
       note.createdAt = createdAt;
@@ -381,5 +433,7 @@ Future<void> _seedFull(Session session) async {
     }
   }
 
-  print('\n✅ Full seed done! ${createdChannels.length} channels, $totalNotes notes.');
+  print(
+    '\n✅ Full seed done! ${createdChannels.length} channels, $totalNotes notes.',
+  );
 }
