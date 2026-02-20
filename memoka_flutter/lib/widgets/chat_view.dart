@@ -299,7 +299,7 @@ class _ChatViewState extends ConsumerState<ChatView>
         if (_isDragOver)
           Container(
             color: Colors.blue.withValues(alpha: 0.2),
-            child: const Center(
+            child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -506,13 +506,13 @@ class _ChatViewState extends ConsumerState<ChatView>
             ],
           ),
         ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
               PhosphorIcon(PhosphorIcons.trash(), size: 18),
-              SizedBox(width: 12),
-              Text('Delete'),
+              const SizedBox(width: 12),
+              const Text('Delete'),
             ],
           ),
         ),

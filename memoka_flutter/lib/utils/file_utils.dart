@@ -3,49 +3,67 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Utilities for file handling and display.
 class FileUtils {
+  static const _iconColor = Color(0xFF00171F);
+
   /// Get appropriate icon for file extension.
   static IconData getFileIcon(String fileExtension) {
     final ext = fileExtension.toLowerCase();
     switch (ext) {
-      case 'pdf':
-        return PhosphorIcons.filePdf();
-      case 'txt':
-      case 'md':
-        return PhosphorIcons.fileText();
-      case 'doc':
-      case 'docx':
-        return PhosphorIcons.fileText();
-      case 'xls':
-      case 'xlsx':
-        return PhosphorIcons.table();
+      // Documents
+      case 'pdf':  return PhosphorIcons.filePdf();
+      case 'doc':  return PhosphorIcons.fileDoc();
+      case 'docx': return PhosphorIcons.fileDoc();
+      case 'ppt':  return PhosphorIcons.filePpt();
+      case 'pptx': return PhosphorIcons.filePpt();
+      case 'xls':  return PhosphorIcons.fileXls();
+      case 'xlsx': return PhosphorIcons.fileXls();
+      case 'csv':  return PhosphorIcons.fileCsv();
+      case 'txt':  return PhosphorIcons.fileTxt();
+      case 'md':   return PhosphorIcons.fileMd();
+      case 'sql':  return PhosphorIcons.fileSql();
+      // Archives
       case 'zip':
-        return PhosphorIcons.fileZip();
-      default:
-        return PhosphorIcons.file();
+      case 'tar':
+      case 'gz':
+      case 'bz2':
+      case '7z':   return PhosphorIcons.fileZip();
+      // Images
+      case 'jpg':
+      case 'jpeg': return PhosphorIcons.fileJpg();
+      case 'png':  return PhosphorIcons.filePng();
+      case 'svg':  return PhosphorIcons.fileSvg();
+      // Web / markup
+      case 'html':
+      case 'htm':  return PhosphorIcons.fileHtml();
+      case 'css':  return PhosphorIcons.fileCss();
+      case 'js':   return PhosphorIcons.fileJs();
+      case 'jsx':  return PhosphorIcons.fileJsx();
+      case 'ts':   return PhosphorIcons.fileTs();
+      case 'tsx':  return PhosphorIcons.fileTsx();
+      case 'vue':  return PhosphorIcons.fileVue();
+      // Systems / compiled
+      case 'c':    return PhosphorIcons.fileC();
+      case 'cpp':
+      case 'cc':   return PhosphorIcons.fileCpp();
+      case 'cs':   return PhosphorIcons.fileCSharp();
+      case 'py':   return PhosphorIcons.filePy();
+      case 'rs':   return PhosphorIcons.fileRs();
+      // Audio / video
+      case 'mp3':
+      case 'wav':
+      case 'flac':
+      case 'ogg':  return PhosphorIcons.fileAudio();
+      case 'mp4':
+      case 'mov':
+      case 'webm': return PhosphorIcons.fileVideo();
+      // Config
+      case 'ini':  return PhosphorIcons.fileIni();
+      default:     return PhosphorIcons.file();
     }
   }
 
-  /// Get color for file extension.
-  static Color getFileColor(String fileExtension) {
-    final ext = fileExtension.toLowerCase();
-    switch (ext) {
-      case 'pdf':
-        return Colors.red;
-      case 'txt':
-      case 'md':
-        return Colors.blue;
-      case 'doc':
-      case 'docx':
-        return Colors.indigo;
-      case 'xls':
-      case 'xlsx':
-        return Colors.green;
-      case 'zip':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
+  /// Icon color for file attachments — always uses the app's core text colour.
+  static Color getFileColor(String fileExtension) => _iconColor;
 
   /// Extract file extension from filename.
   static String getExtension(String filename) {

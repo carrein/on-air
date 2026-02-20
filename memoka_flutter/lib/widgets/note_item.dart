@@ -28,13 +28,6 @@ class NoteItem extends ConsumerWidget {
   final int channelId;
   final List<String> allImageUrls;
 
-  static bool isMediaOnly(Note note) {
-    if (note.content.isNotEmpty) return false;
-    final attachments = note.attachments;
-    if (attachments == null || attachments.isEmpty) return false;
-    return true;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selection = ref.watch(noteSelectionProvider);
@@ -63,9 +56,10 @@ class NoteItem extends ConsumerWidget {
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 680),
-                child: Listener(
+              child: IntrinsicWidth(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600, minWidth: 300),
+                  child: Listener(
                   onPointerDown: (event) {
                     if (event.buttons == 2) {
                       _showContextMenu(context, ref, event.position);
@@ -84,16 +78,7 @@ class NoteItem extends ConsumerWidget {
                         _showContextMenu(context, ref, null);
                       }
                     },
-                    child: isMediaOnly(note)
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildContent(context, ref),
-                              const SizedBox(height: 10),
-                              _NoteFooter(note: note, channelId: channelId, ref: ref),
-                            ],
-                          )
-                        : Container(
+                    child: Container(
                             decoration: BoxDecoration(
                               color: const Color(0xFFF6F0ED),
                               border: Border.all(color: borderColor, width: 1.0),
@@ -112,6 +97,7 @@ class NoteItem extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
           ),
         ],
       ),
@@ -197,24 +183,24 @@ class NoteItem extends ConsumerWidget {
         overlay.size.height - position.dy,
       ),
       items: [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'copy',
           child: Row(
             children: [
               PhosphorIcon(PhosphorIcons.copySimple(), size: 18),
-              SizedBox(width: 12),
-              Text('Copy'),
+              const SizedBox(width: 12),
+              const Text('Copy'),
             ],
           ),
         ),
         if (!isArchive)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'edit',
             child: Row(
               children: [
                 PhosphorIcon(PhosphorIcons.pencilSimple(), size: 18),
-                SizedBox(width: 12),
-                Text('Edit'),
+                const SizedBox(width: 12),
+                const Text('Edit'),
               ],
             ),
           ),
@@ -229,34 +215,34 @@ class NoteItem extends ConsumerWidget {
               ],
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'delete',
             child: Row(
               children: [
                 PhosphorIcon(PhosphorIcons.trash(), size: 18),
-                SizedBox(width: 12),
-                Text('Delete'),
+                const SizedBox(width: 12),
+                const Text('Delete'),
               ],
             ),
           ),
         ] else
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'archive',
             child: Row(
               children: [
                 PhosphorIcon(PhosphorIcons.archive(), size: 18),
-                SizedBox(width: 12),
-                Text('Archive'),
+                const SizedBox(width: 12),
+                const Text('Archive'),
               ],
             ),
           ),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'select',
           child: Row(
             children: [
               PhosphorIcon(PhosphorIcons.checkCircle(), size: 18),
-              SizedBox(width: 12),
-              Text('Select'),
+              const SizedBox(width: 12),
+              const Text('Select'),
             ],
           ),
         ),

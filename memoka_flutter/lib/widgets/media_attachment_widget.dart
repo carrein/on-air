@@ -165,12 +165,12 @@ class _ImageAttachmentWidget extends StatelessWidget {
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     PhosphorIcon(PhosphorIcons.arrowsInSimple(), color: Colors.white70, size: 12),
-                    SizedBox(width: 3),
-                    Text(
+                    const SizedBox(width: 3),
+                    const Text(
                       'Compressed',
                       style: TextStyle(color: Colors.white70, fontSize: 10),
                     ),

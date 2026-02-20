@@ -21,81 +21,51 @@ class DocumentAttachmentWidget extends StatelessWidget {
 
   IconData get _fileIcon => FileUtils.getFileIcon(_extension);
 
-  Color get _fileColor => FileUtils.getFileColor(_extension);
-
   String get _fileSizeFormatted => FileUtils.formatFileSize(attachment.fileSize);
 
   String _buildDocumentUrl() =>
       FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
 
+  static const _textPrimary = Color(0xFF00171F);
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(maxWidth: 400),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _handleDownload,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // File icon
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: _fileColor.withOpacity(0.1),
+    return Row(
+          children: [
+            PhosphorIcon(_fileIcon, color: _textPrimary, size: 32),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    attachment.originalFilename,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: _textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Icon(
-                    _fileIcon,
-                    color: _fileColor,
-                    size: 28,
+                  const SizedBox(height: 4),
+                  Text(
+                    _fileSizeFormatted,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _textPrimary.withValues(alpha: 0.5),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-
-                // File info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        attachment.originalFilename,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _fileSizeFormatted,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Download button
-                IconButtonStyled(
-                  icon: PhosphorIcons.downloadSimple(),
-                  onPressed: _handleDownload,
-                  size: 20,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
-      ),
+            const SizedBox(width: 32),
+            IconButtonStyled(
+              icon: PhosphorIcons.downloadSimple(),
+              onPressed: _handleDownload,
+              size: 20,
+            ),
+          ],
     );
   }
 

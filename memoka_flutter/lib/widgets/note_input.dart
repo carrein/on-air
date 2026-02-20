@@ -169,6 +169,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                   onPressed: _cancelEditing,
                   size: _iconSize,
                 ),
+                const SizedBox(width: 4),
                 IconButtonStyled(
                   icon: PhosphorIcons.highlighter(),
                   onPressed: _submit,

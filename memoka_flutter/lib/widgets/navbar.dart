@@ -32,7 +32,7 @@ class Navbar extends ConsumerWidget {
     fontWeight: FontWeight.bold,
   );
 
-  static const _padding = EdgeInsets.symmetric(horizontal: 8, vertical: 8);
+  static const _padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
   static const _paddingStandard = EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8);
 
   @override
@@ -119,23 +119,37 @@ class Navbar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          IconButtonStyled(
-            icon: PhosphorIcons.xCircle(),
-            onPressed: () => ref.read(noteSelectionProvider.notifier).clear(),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '${selection.length} selected',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: _textColor,
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '${selection.length}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _textColor,
+                  ),
+                ),
+                const TextSpan(
+                  text: ' selected',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: _textColor,
+                  ),
+                ),
+              ],
             ),
           ),
           const Spacer(),
           IconButtonStyled(
             icon: PhosphorIcons.archive(),
             onPressed: () => _archiveSelected(context, ref, selection),
+          ),
+          const SizedBox(width: 4),
+          IconButtonStyled(
+            icon: PhosphorIcons.xCircle(),
+            onPressed: () => ref.read(noteSelectionProvider.notifier).clear(),
           ),
         ],
       ),
@@ -190,8 +204,8 @@ class Navbar extends ConsumerWidget {
             if (channel == null) return const SizedBox.shrink();
             return Row(
               children: [
-                PhosphorIcon(getChannelIcon(channel.emoji), color: _textColor, size: 20),
-                const SizedBox(width: 8),
+                PhosphorIcon(getChannelIcon(channel.emoji), color: _textColor, size: 22),
+                const SizedBox(width: 10),
                 Flexible(
                   child: Text(
                     channel.name,

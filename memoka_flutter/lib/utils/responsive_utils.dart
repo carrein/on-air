@@ -1,10 +1,16 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
 
 /// Responsive breakpoint utilities for adaptive layouts.
 class ResponsiveUtils {
   // Breakpoint constants
   static const double mobileBreakpoint = 768.0;
   static const double tabletBreakpoint = 1200.0;
+
+  /// True on macOS, Windows, Linux (and web — treated as desktop for key handling).
+  static bool get isDesktopPlatform =>
+      kIsWeb || (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux));
 
   /// Check if the current screen width is mobile (< 768px)
   static bool isMobile(BuildContext context) {

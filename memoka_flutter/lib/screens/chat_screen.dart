@@ -16,6 +16,8 @@ import '../providers/current_channel_provider.dart';
 import '../providers/channels_provider.dart';
 import '../providers/share_intent_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
+import '../providers/note_selection_provider.dart';
+import '../providers/editing_note_provider.dart';
 import '../utils/responsive_utils.dart';
 
 /// Main chat screen with sidebar, chat view, and NoteInput.
@@ -29,17 +31,21 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   static const _swipeVelocityThreshold = 300.0;
 
+  // Register on web and desktop (not mobile where physical keyboard is absent).
+  static bool get _useKeyboardHandler =>
+      kIsWeb || ResponsiveUtils.isDesktopPlatform;
+
   @override
   void initState() {
     super.initState();
-    if (kIsWeb) {
+    if (_useKeyboardHandler) {
       HardwareKeyboard.instance.addHandler(_handleHardwareKey);
     }
   }
 
   @override
   void dispose() {
-    if (kIsWeb) {
+    if (_useKeyboardHandler) {
       HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
     }
     super.dispose();
@@ -51,9 +57,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return focus?.context?.widget is EditableText;
   }
 
-  /// Global hardware key handler for web arrow-key channel cycling.
+  /// Global hardware key handler for channel cycling and modal dismissal.
   bool _handleHardwareKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
+
+    // Escape cancels selection mode or edit mode (regardless of text focus).
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      final selection = ref.read(noteSelectionProvider);
+      if (selection.isNotEmpty) {
+        ref.read(noteSelectionProvider.notifier).clear();
+        return true;
+      }
+      final editing = ref.read(editingNoteProvider);
+      if (editing != null) {
+        ref.read(editingNoteProvider.notifier).cancelEditing();
+        return true;
+      }
+      return false;
+    }
+
+    // Arrow-key channel cycling only when no text field is focused.
     if (_isTextFieldFocused()) return false;
 
     if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {

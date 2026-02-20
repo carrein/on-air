@@ -191,11 +191,20 @@ class _ChannelListState extends ConsumerState<ChannelList> {
 
                               final isSelected = currentChannelAsync.value == channel.id;
 
-                              // Long press starts drag on both compact and non-compact.
+                              // Desktop: immediate drag on pointer down.
+                              // Mobile: delayed (long-press) to avoid scroll conflicts.
+                              final child = _buildChannelItem(channel, isSelected, context, compact: compact);
+                              if (ResponsiveUtils.isDesktopPlatform) {
+                                return ReorderableDragStartListener(
+                                  key: ValueKey(channel.id),
+                                  index: index,
+                                  child: child,
+                                );
+                              }
                               return ReorderableDelayedDragStartListener(
                                 key: ValueKey(channel.id),
                                 index: index,
-                                child: _buildChannelItem(channel, isSelected, context, compact: compact),
+                                child: child,
                               );
                             },
                           ),
