@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:serverpod/serverpod.dart';
@@ -62,11 +63,13 @@ class MediaEndpoint extends Endpoint {
     Session session,
     int channelId,
     String noteContent,
-    List<int> fileBytes,
+    String fileBytesBase64,
     String originalFilename,
     String mimeType,
     bool compress,
   ) async {
+    final fileBytes = base64.decode(fileBytesBase64);
+
     // Validate file size
     if (fileBytes.length > maxFileSize) {
       throw Exception(

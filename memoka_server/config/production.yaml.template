@@ -45,7 +45,7 @@ redis:
   port: 6379
   requireSsl: false  # Internal Docker network
 
-maxRequestSize: 4294967296  # 4GB - supports 1GB files with JSON List<int> encoding overhead (~4x raw size)
+maxRequestSize: 1610612736  # 1.5GB - supports 1GB files with base64 encoding overhead (~1.33x raw size)
 
 # CORS - CRITICAL: Replace with your actual domain!
 cors:

@@ -203,7 +203,7 @@ class EndpointMedia extends _i1.EndpointRef {
   _i2.Future<_i4.Note> uploadMediaAndCreateNote(
     int channelId,
     String noteContent,
-    List<int> fileBytes,
+    String fileBytesBase64,
     String originalFilename,
     String mimeType,
     bool compress,
@@ -213,7 +213,7 @@ class EndpointMedia extends _i1.EndpointRef {
     {
       'channelId': channelId,
       'noteContent': noteContent,
-      'fileBytes': fileBytes,
+      'fileBytesBase64': fileBytesBase64,
       'originalFilename': originalFilename,
       'mimeType': mimeType,
       'compress': compress,

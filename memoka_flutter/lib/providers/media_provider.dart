@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -61,7 +62,7 @@ class MediaUpload extends _$MediaUpload {
     final note = await client.media.uploadMediaAndCreateNote(
       channelId,
       noteContent,
-      finalBytes,
+      base64.encode(finalBytes),
       fileName,
       mimeType,
       compress,
