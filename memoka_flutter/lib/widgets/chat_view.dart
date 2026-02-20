@@ -44,13 +44,14 @@ class _ChatViewState extends ConsumerState<ChatView>
   int? _displayedChannelId;
   bool _isAnimating = false;
   bool _isAnimatingIn = true;
+  int? _pendingChannelId; // queued target when an animation is already running
 
   @override
   void initState() {
     super.initState();
     _itemPositionsListener.itemPositions.addListener(_onScroll);
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 80),
       vsync: this,
       value: 1.0,
     );
@@ -67,25 +68,29 @@ class _ChatViewState extends ConsumerState<ChatView>
       return;
     }
 
-    if (_isAnimating) {
-      // Rapid switch: snap immediately
-      if (mounted) setState(() => _displayedChannelId = newChannelId);
-      _fadeController.value = 1.0;
-      return;
-    }
+    // If already animating, queue the latest target and let the loop pick it up.
+    _pendingChannelId = newChannelId;
+    if (_isAnimating) return;
+
     _isAnimating = true;
+    while (_pendingChannelId != null) {
+      final target = _pendingChannelId!;
+      _pendingChannelId = null;
 
-    setState(() => _isAnimatingIn = false);
-    await _fadeController.animateTo(0.0, curve: Curves.easeIn);
-    if (!mounted) { _isAnimating = false; return; }
+      if (!mounted) break;
+      setState(() => _isAnimatingIn = false);
+      await _fadeController.animateTo(0.0, curve: Curves.easeIn);
+      if (!mounted) break;
 
-    setState(() {
-      _displayedChannelId = newChannelId;
-      _isAnimatingIn = true;
-    });
+      setState(() {
+        _displayedChannelId = target;
+        _isAnimatingIn = true;
+      });
 
-    await _fadeController.animateTo(1.0, curve: Curves.easeOut);
-    if (mounted) _isAnimating = false;
+      await _fadeController.animateTo(1.0, curve: Curves.easeOut);
+      if (!mounted) break;
+    }
+    _isAnimating = false;
   }
 
   void _setupWebEventListeners() {
@@ -181,7 +186,7 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  PhosphorIcon(PhosphorIcons.flask(), size: 48, color: Color(0xFF00171F)),
+                  PhosphorIcon(PhosphorIcons.empty(), size: 48, color: Color(0xFF00171F)),
                   const SizedBox(height: 16),
                   const Text(
                     'It\'s quiet in here...',
@@ -337,7 +342,7 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  PhosphorIcon(PhosphorIcons.flask(), size: 48, color: Color(0xFF00171F)),
+                  PhosphorIcon(PhosphorIcons.empty(), size: 48, color: Color(0xFF00171F)),
                   const SizedBox(height: 16),
                   const Text(
                     'It\'s quiet in here...',

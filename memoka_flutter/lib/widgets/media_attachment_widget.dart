@@ -6,6 +6,7 @@ import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../utils/file_utils.dart';
+import 'audio_attachment_widget.dart';
 import 'document_attachment_widget.dart';
 import 'full_screen_image_view.dart';
 import 'video_attachment_widget.dart';
@@ -59,6 +60,13 @@ class MediaAttachmentWidget extends StatelessWidget {
     return mime.startsWith('video/');
   }
 
+  bool get _isAudio {
+    final mime = attachment.mimeType.toLowerCase();
+    if (mime.startsWith('audio/')) return true;
+    final ext = FileUtils.getExtension(attachment.originalFilename);
+    return FileUtils.isAudio(ext);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Route to appropriate widget based on type
@@ -71,6 +79,11 @@ class MediaAttachmentWidget extends StatelessWidget {
       );
     } else if (_isVideo) {
       return VideoAttachmentWidget(
+        attachment: attachment,
+        serverUrl: serverUrl,
+      );
+    } else if (_isAudio) {
+      return AudioAttachmentWidget(
         attachment: attachment,
         serverUrl: serverUrl,
       );

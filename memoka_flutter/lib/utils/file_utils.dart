@@ -65,6 +65,12 @@ class FileUtils {
   /// Icon color for file attachments — always uses the app's core text colour.
   static Color getFileColor(String fileExtension) => _iconColor;
 
+  /// Returns true if the extension is a supported audio format.
+  static bool isAudio(String fileExtension) {
+    const audioExts = {'mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a', 'opus'};
+    return audioExts.contains(fileExtension.toLowerCase());
+  }
+
   /// Extract file extension from filename.
   static String getExtension(String filename) {
     final parts = filename.split('.');

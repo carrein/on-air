@@ -5,6 +5,7 @@ import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
 import 'src/shared/constants.dart';
 import 'src/web/routes/app_config_route.dart';
+import 'src/web/routes/cors_media_route.dart';
 import 'src/web/routes/root.dart';
 
 /// The starting point of the Serverpod server.
@@ -37,7 +38,7 @@ void run(List<String> args) async {
     await mediaDir.create(recursive: true);
   }
   pod.webServer.addRoute(
-    StaticRoute.directory(mediaDir),
+    CorsMediaRoute(mediaDir),
     '/media',
   );
 
