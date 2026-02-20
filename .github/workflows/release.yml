@@ -51,9 +51,9 @@ jobs:
         working-directory: memoka_flutter
 
       - name: Upload APK to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: memoka_flutter/build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" memoka_flutter/build/app/outputs/flutter-apk/app-release.apk --clobber
 
   build-docker:
     runs-on: ubuntu-latest
