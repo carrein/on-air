@@ -361,9 +361,9 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
-            'fileBytes': _i1.ParameterDescription(
-              name: 'fileBytes',
-              type: _i1.getType<List<int>>(),
+            'fileBytesBase64': _i1.ParameterDescription(
+              name: 'fileBytesBase64',
+              type: _i1.getType<String>(),
               nullable: false,
             ),
             'originalFilename': _i1.ParameterDescription(
@@ -391,7 +391,7 @@ class Endpoints extends _i1.EndpointDispatch {
                     session,
                     params['channelId'],
                     params['noteContent'],
-                    params['fileBytes'],
+                    params['fileBytesBase64'],
                     params['originalFilename'],
                     params['mimeType'],
                     params['compress'],

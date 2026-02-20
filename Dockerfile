@@ -45,7 +45,7 @@ FROM debian:stable-slim
 
 # Install runtime dependencies
 RUN apt-get update && \
-    apt-get install -y curl ca-certificates && \
+    apt-get install -y curl ca-certificates ffmpeg && \
     rm -rf /var/lib/apt/lists/*
 
 # Set working directory

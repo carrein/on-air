@@ -662,7 +662,7 @@ class _MediaEndpoint {
     _i1.TestSessionBuilder sessionBuilder,
     int channelId,
     String noteContent,
-    List<int> fileBytes,
+    String fileBytesBase64,
     String originalFilename,
     String mimeType,
     bool compress,
@@ -681,7 +681,7 @@ class _MediaEndpoint {
           parameters: _i1.testObjectToJson({
             'channelId': channelId,
             'noteContent': noteContent,
-            'fileBytes': fileBytes,
+            'fileBytesBase64': fileBytesBase64,
             'originalFilename': originalFilename,
             'mimeType': mimeType,
             'compress': compress,
