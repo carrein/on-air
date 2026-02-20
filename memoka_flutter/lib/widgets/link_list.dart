@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/channel_media.dart';
 import 'link_list_item.dart';
 
@@ -34,7 +35,7 @@ class LinkList extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.link_off, size: 64, color: Color(0xFF00171F).withValues(alpha: 0.4)),
+            PhosphorIcon(PhosphorIcons.linkBreak(), size: 64, color: Color(0xFF00171F).withValues(alpha: 0.4)),
             const SizedBox(height: 16),
             Text(
               'No links in this channel yet',

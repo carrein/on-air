@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Settings/Account screen
 class SettingsScreen extends StatelessWidget {
@@ -22,7 +23,7 @@ class SettingsScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: Colors.blue[700],
-                  child: const Icon(Icons.person, size: 32, color: Colors.white),
+                  child: PhosphorIcon(PhosphorIcons.user(), size: 32, color: Colors.white),
                 ),
                 const SizedBox(width: 16),
                 const Column(
@@ -52,7 +53,7 @@ class SettingsScreen extends StatelessWidget {
           // Settings sections
           _buildSection('General', [
             _buildListTile(
-              icon: Icons.palette,
+              icon: PhosphorIcons.palette(),
               title: 'Theme',
               subtitle: 'Light',
               onTap: () {
@@ -60,7 +61,7 @@ class SettingsScreen extends StatelessWidget {
               },
             ),
             _buildListTile(
-              icon: Icons.notifications,
+              icon: PhosphorIcons.bell(),
               title: 'Notifications',
               subtitle: 'Enabled',
               onTap: () {
@@ -71,13 +72,13 @@ class SettingsScreen extends StatelessWidget {
           const Divider(height: 1),
           _buildSection('About', [
             _buildListTile(
-              icon: Icons.info,
+              icon: PhosphorIcons.info(),
               title: 'Version',
               subtitle: '1.0.0',
               onTap: null,
             ),
             _buildListTile(
-              icon: Icons.code,
+              icon: PhosphorIcons.code(),
               title: 'Open Source',
               subtitle: 'View on GitHub',
               onTap: () {
@@ -120,7 +121,7 @@ class SettingsScreen extends StatelessWidget {
       leading: Icon(icon, color: Colors.grey[700]),
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: onTap != null ? const Icon(Icons.chevron_right) : null,
+      trailing: onTap != null ? PhosphorIcon(PhosphorIcons.caretRight()) : null,
       onTap: onTap,
     );
   }

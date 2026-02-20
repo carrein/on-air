@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:memoka_client/memoka_client.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Card widget displaying link preview metadata below a message.
@@ -37,8 +38,8 @@ class LinkPreviewCard extends StatelessWidget {
                   height: 160,
                   color: Colors.grey[100],
                   child: Center(
-                    child: Icon(
-                      Icons.broken_image,
+                    child: PhosphorIcon(
+                      PhosphorIcons.imageBroken(),
                       size: 48,
                       color: Colors.grey[400],
                     ),
@@ -88,10 +89,10 @@ class LinkPreviewCard extends StatelessWidget {
                           width: 16,
                           height: 16,
                           errorWidget: (context, url, error) =>
-                              const Icon(Icons.language, size: 16),
+                              PhosphorIcon(PhosphorIcons.globe(), size: 16),
                         )
                       else
-                        const Icon(Icons.language, size: 16),
+                        PhosphorIcon(PhosphorIcons.globe(), size: 16),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(

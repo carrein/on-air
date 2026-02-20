@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/channel_media.dart';
 
@@ -36,14 +37,14 @@ class LinkListItem extends StatelessWidget {
                       width: 16,
                       height: 16,
                       errorBuilder: (context, error, stackTrace) {
-                        return Icon(Icons.language, size: 16, color: Color(0xFF00171F).withValues(alpha: 0.5));
+                        return PhosphorIcon(PhosphorIcons.globe(), size: 16, color: Color(0xFF00171F).withValues(alpha: 0.5));
                       },
                     ),
                     const SizedBox(width: 8),
                   ] else
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
-                      child: Icon(Icons.language, size: 16, color: Color(0xFF00171F).withValues(alpha: 0.5)),
+                      child: PhosphorIcon(PhosphorIcons.globe(), size: 16, color: Color(0xFF00171F).withValues(alpha: 0.5)),
                     ),
                   Expanded(
                     child: Text(
@@ -58,7 +59,7 @@ class LinkListItem extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Icon(Icons.open_in_new, size: 14, color: Color(0xFF00171F).withValues(alpha: 0.5)),
+                  PhosphorIcon(PhosphorIcons.arrowSquareOut(), size: 14, color: Color(0xFF00171F).withValues(alpha: 0.5)),
                 ],
               ),
 

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:memoka_client/memoka_client.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../utils/file_utils.dart';
 import 'document_attachment_widget.dart';
@@ -167,7 +168,7 @@ class _ImageAttachmentWidget extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.compress, color: Colors.white70, size: 12),
+                    PhosphorIcon(PhosphorIcons.arrowsInSimple(), color: Colors.white70, size: 12),
                     SizedBox(width: 3),
                     Text(
                       'Compressed',
@@ -191,7 +192,7 @@ class _ImageAttachmentWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.broken_image, color: Colors.grey, size: 48),
+            PhosphorIcon(PhosphorIcons.imageBroken(), color: Colors.grey, size: 48),
             const SizedBox(height: 8),
             Text(
               'Error: ${error.toString().substring(0, math.min(50, error.toString().length))}...',

@@ -121,7 +121,7 @@ class _IconPickerState extends State<IconPicker> {
             autofocus: true,
             decoration: InputDecoration(
               hintText: 'Search icons...',
-              prefixIcon: const Icon(Icons.search, size: 20),
+              prefixIcon: PhosphorIcon(PhosphorIcons.magnifyingGlass(), size: 20),
               filled: true,
               fillColor: Colors.grey[100],
               contentPadding: const EdgeInsets.symmetric(vertical: 10),

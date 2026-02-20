@@ -303,7 +303,7 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.upload_file, size: 64, color: Colors.blue),
+                  PhosphorIcon(PhosphorIcons.uploadSimple(), size: 64, color: Colors.blue),
                   SizedBox(height: 16),
                   Text(
                     'Drop file here to upload',
@@ -510,7 +510,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete_forever, size: 18),
+              PhosphorIcon(PhosphorIcons.trash(), size: 18),
               SizedBox(width: 12),
               Text('Delete'),
             ],

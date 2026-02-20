@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Utilities for file handling and display.
 class FileUtils {
@@ -7,20 +8,20 @@ class FileUtils {
     final ext = fileExtension.toLowerCase();
     switch (ext) {
       case 'pdf':
-        return Icons.picture_as_pdf;
+        return PhosphorIcons.filePdf();
       case 'txt':
       case 'md':
-        return Icons.description;
+        return PhosphorIcons.fileText();
       case 'doc':
       case 'docx':
-        return Icons.article;
+        return PhosphorIcons.fileText();
       case 'xls':
       case 'xlsx':
-        return Icons.table_chart;
+        return PhosphorIcons.table();
       case 'zip':
-        return Icons.folder_zip;
+        return PhosphorIcons.fileZip();
       default:
-        return Icons.insert_drive_file;
+        return PhosphorIcons.file();
     }
   }
 

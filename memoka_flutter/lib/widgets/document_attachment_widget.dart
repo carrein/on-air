@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:memoka_client/memoka_client.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/file_utils.dart';
+import 'icon_button_styled.dart';
 
 /// Widget to display document attachments (PDF, TXT, DOC, etc.)
 class DocumentAttachmentWidget extends StatelessWidget {
@@ -84,10 +86,10 @@ class DocumentAttachmentWidget extends StatelessWidget {
                 ),
 
                 // Download button
-                IconButton(
-                  icon: const Icon(Icons.download),
+                IconButtonStyled(
+                  icon: PhosphorIcons.downloadSimple(),
                   onPressed: _handleDownload,
-                  iconSize: 20,
+                  size: 20,
                 ),
               ],
             ),

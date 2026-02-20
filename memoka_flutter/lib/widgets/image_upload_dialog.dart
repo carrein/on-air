@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Dialog for confirming image upload with compression option.
 class ImageUploadDialog extends StatefulWidget {
@@ -142,8 +143,8 @@ class _ImageUploadDialogState extends State<ImageUploadDialog> {
         fit: BoxFit.contain,
       );
     } else {
-      return const Icon(
-        Icons.broken_image,
+      return PhosphorIcon(
+        PhosphorIcons.imageBroken(),
         color: Colors.grey,
         size: 48,
       );

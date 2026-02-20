@@ -2,9 +2,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:memoka_client/memoka_client.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:video_player/video_player.dart';
 
 import '../utils/file_utils.dart';
+import 'icon_button_styled.dart';
 import 'media_attachment_widget.dart';
 
 /// Widget for displaying a video attachment inline in chat.
@@ -65,8 +67,8 @@ class VideoAttachmentWidget extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(12),
-            child: const Icon(
-              Icons.play_arrow,
+            child: PhosphorIcon(
+              PhosphorIcons.play(),
               color: Colors.white,
               size: 48,
             ),
@@ -122,7 +124,7 @@ class VideoAttachmentWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.videocam, color: Colors.grey[400], size: 64),
+            PhosphorIcon(PhosphorIcons.video(), color: Colors.grey[400], size: 64),
             const SizedBox(height: 8),
             Text(
               attachment.originalFilename,
@@ -249,9 +251,11 @@ class _VideoLightboxState extends State<_VideoLightbox> {
             Positioned(
               top: 16,
               right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              child: IconButtonStyled(
+                icon: PhosphorIcons.x(),
                 onPressed: () => Navigator.of(context).pop(),
+                color: Colors.white,
+                size: 28,
               ),
             ),
           ],
@@ -265,7 +269,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 64),
+          PhosphorIcon(PhosphorIcons.warning(), color: Colors.red, size: 64),
           const SizedBox(height: 16),
           const Text(
             'Failed to load video',
@@ -311,8 +315,8 @@ class _VideoLightboxState extends State<_VideoLightbox> {
                     shape: BoxShape.circle,
                   ),
                   padding: const EdgeInsets.all(16),
-                  child: const Icon(
-                    Icons.play_arrow,
+                  child: PhosphorIcon(
+                    PhosphorIcons.play(),
                     color: Colors.white,
                     size: 56,
                   ),
@@ -327,15 +331,14 @@ class _VideoLightboxState extends State<_VideoLightbox> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
-              GestureDetector(
-                onTap: _togglePlayPause,
-                child: Icon(
-                  _controller.value.isPlaying
-                      ? Icons.pause
-                      : Icons.play_arrow,
-                  color: Colors.white,
-                  size: 24,
-                ),
+              IconButtonStyled(
+                icon: _controller.value.isPlaying
+                    ? PhosphorIcons.pause()
+                    : PhosphorIcons.play(),
+                onPressed: _togglePlayPause,
+                color: Colors.white,
+                size: 24,
+                padding: 4,
               ),
               const SizedBox(width: 12),
               Expanded(

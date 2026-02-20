@@ -66,11 +66,13 @@ class Navbar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          if (isInDetailMode)
+          if (isInDetailMode) ...[
             IconButtonStyled(
               icon: PhosphorIcons.arrowCircleLeft(),
               onPressed: () => _goBack(context, ref),
             ),
+            const SizedBox(width: 4),
+          ],
           Expanded(child: _buildTitle(currentChannelAsync, channelsAsync, isShowingSettings)),
           if (!isInDetailMode)
             Row(

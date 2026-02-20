@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/background_provider.dart';
 import '../providers/settings_page_provider.dart';
+import '../widgets/icon_button_styled.dart';
 
 /// Screen for selecting chat background
 class BackgroundPickerScreen extends ConsumerWidget {
@@ -30,12 +32,12 @@ class BackgroundPickerScreen extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                IconButtonStyled(
+                  icon: PhosphorIcons.arrowCircleLeft(),
                   onPressed: () {
-                    // Go back to settings main
                     ref.read(currentSettingsPageProvider.notifier).showMain();
                   },
+                  color: Colors.white,
                 ),
                 const SizedBox(width: 8),
                 const Text(
@@ -160,8 +162,8 @@ class BackgroundPickerScreen extends ConsumerWidget {
                                 color: Colors.blue[700],
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(
-                                Icons.check,
+                              child: PhosphorIcon(
+                                PhosphorIcons.check(),
                                 color: Colors.white,
                                 size: 20,
                               ),

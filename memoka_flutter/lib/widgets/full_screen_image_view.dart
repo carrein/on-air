@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'icon_button_styled.dart';
 
 /// Full screen image viewer overlay with gallery support and keyboard navigation.
 class FullScreenImageView extends StatefulWidget {
@@ -133,12 +135,14 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
             Positioned(
               top: 16,
               right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              child: IconButtonStyled(
+                icon: PhosphorIcons.x(),
                 onPressed: () {
                   FocusScope.of(context).unfocus();
                   Navigator.of(context).pop();
                 },
+                color: Colors.white,
+                size: 28,
               ),
             ),
             // Navigation arrows (desktop)
@@ -149,10 +153,11 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                   top: 0,
                   bottom: 0,
                   child: Center(
-                    child: IconButton(
-                      icon: const Icon(Icons.chevron_left,
-                          color: Colors.white70, size: 36),
+                    child: IconButtonStyled(
+                      icon: PhosphorIcons.caretLeft(),
                       onPressed: () => _goTo(_currentIndex - 1),
+                      color: Colors.white70,
+                      size: 36,
                     ),
                   ),
                 ),
@@ -162,10 +167,11 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                   top: 0,
                   bottom: 0,
                   child: Center(
-                    child: IconButton(
-                      icon: const Icon(Icons.chevron_right,
-                          color: Colors.white70, size: 36),
+                    child: IconButtonStyled(
+                      icon: PhosphorIcons.caretRight(),
                       onPressed: () => _goTo(_currentIndex + 1),
+                      color: Colors.white70,
+                      size: 36,
                     ),
                   ),
                 ),

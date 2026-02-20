@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/channel_media.dart';
 import 'media_grid_item.dart';
 
@@ -50,15 +51,15 @@ class MediaGrid extends StatelessWidget {
     switch (type) {
       case MediaType.image:
         message = 'No images in this channel yet';
-        icon = Icons.image_outlined;
+        icon = PhosphorIcons.image();
         break;
       case MediaType.video:
         message = 'No videos in this channel yet';
-        icon = Icons.videocam_outlined;
+        icon = PhosphorIcons.video();
         break;
       case MediaType.document:
         message = 'No documents in this channel yet';
-        icon = Icons.description_outlined;
+        icon = PhosphorIcons.file();
         break;
     }
 

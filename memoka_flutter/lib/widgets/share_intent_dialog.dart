@@ -214,10 +214,10 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
+                                    PhosphorIcon(
                                       file.type == SharedMediaType.video
-                                          ? Icons.videocam
-                                          : Icons.insert_drive_file,
+                                          ? PhosphorIcons.video()
+                                          : PhosphorIcons.file(),
                                       color: Colors.grey[600],
                                     ),
                                     const SizedBox(height: 4),

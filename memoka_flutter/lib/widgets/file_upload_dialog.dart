@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../utils/file_utils.dart';
 
@@ -90,7 +91,7 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
               Center(
                 child: Column(
                   children: [
-                    Icon(Icons.video_library, size: 64, color: Colors.grey[600]),
+                    PhosphorIcon(PhosphorIcons.filmStrip(), size: 64, color: Colors.grey[600]),
                     const SizedBox(height: 16),
                     Text(
                       widget.fileName,

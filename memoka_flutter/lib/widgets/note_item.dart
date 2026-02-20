@@ -201,7 +201,7 @@ class NoteItem extends ConsumerWidget {
           value: 'copy',
           child: Row(
             children: [
-              Icon(Icons.copy, size: 18),
+              PhosphorIcon(PhosphorIcons.copySimple(), size: 18),
               SizedBox(width: 12),
               Text('Copy'),
             ],
@@ -212,7 +212,7 @@ class NoteItem extends ConsumerWidget {
             value: 'edit',
             child: Row(
               children: [
-                Icon(Icons.edit, size: 18),
+                PhosphorIcon(PhosphorIcons.pencilSimple(), size: 18),
                 SizedBox(width: 12),
                 Text('Edit'),
               ],
@@ -233,7 +233,7 @@ class NoteItem extends ConsumerWidget {
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete_forever, size: 18),
+                PhosphorIcon(PhosphorIcons.trash(), size: 18),
                 SizedBox(width: 12),
                 Text('Delete'),
               ],
@@ -244,7 +244,7 @@ class NoteItem extends ConsumerWidget {
             value: 'archive',
             child: Row(
               children: [
-                Icon(Icons.archive, size: 18),
+                PhosphorIcon(PhosphorIcons.archive(), size: 18),
                 SizedBox(width: 12),
                 Text('Archive'),
               ],
@@ -254,7 +254,7 @@ class NoteItem extends ConsumerWidget {
           value: 'select',
           child: Row(
             children: [
-              Icon(Icons.check_circle_outline, size: 18),
+              PhosphorIcon(PhosphorIcons.checkCircle(), size: 18),
               SizedBox(width: 12),
               Text('Select'),
             ],

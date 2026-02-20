@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/channel_media.dart';
 import '../main.dart' show serverUrl;
 import '../providers/scroll_to_note_provider.dart';
@@ -50,7 +51,7 @@ class MediaGridItem extends ConsumerWidget {
           fit: BoxFit.cover,
           cacheWidth: 400,
           errorBuilder: (context, error, stackTrace) {
-            return _buildErrorPlaceholder(Icons.broken_image, 'Failed to load');
+            return _buildErrorPlaceholder(PhosphorIcons.imageBroken(), 'Failed to load');
           },
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
@@ -72,7 +73,7 @@ class MediaGridItem extends ConsumerWidget {
             thumbnailUrl,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return _buildErrorPlaceholder(Icons.videocam, 'No preview');
+              return _buildErrorPlaceholder(PhosphorIcons.video(), 'No preview');
             },
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;
@@ -80,7 +81,7 @@ class MediaGridItem extends ConsumerWidget {
             },
           )
         else
-          _buildErrorPlaceholder(Icons.videocam, 'No preview'),
+          _buildErrorPlaceholder(PhosphorIcons.video(), 'No preview'),
 
         // Play icon overlay
         Center(
@@ -90,8 +91,8 @@ class MediaGridItem extends ConsumerWidget {
               color: Colors.black.withValues(alpha: 0.6),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.play_arrow,
+            child: PhosphorIcon(
+              PhosphorIcons.play(),
               color: Colors.white,
               size: 32,
             ),

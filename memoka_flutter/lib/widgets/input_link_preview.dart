@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'icon_button_styled.dart';
 
 /// Preview widget for links in the NoteInput (before sending).
 /// Shows a simple indicator that a URL will be previewed.
@@ -21,7 +23,7 @@ class InputLinkPreview extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.link, color: Colors.blue[700], size: 20),
+          PhosphorIcon(PhosphorIcons.link(), color: Colors.blue[700], size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -56,11 +58,11 @@ class InputLinkPreview extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
+          IconButtonStyled(
+            icon: PhosphorIcons.x(),
             onPressed: onDismiss,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            size: 18,
+            padding: 6,
           ),
         ],
       ),

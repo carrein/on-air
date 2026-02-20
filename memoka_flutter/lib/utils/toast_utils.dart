@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 enum ToastType {
   error,
@@ -81,11 +82,11 @@ class _NotificationData {
   IconData get icon {
     switch (type) {
       case ToastType.error:
-        return Icons.error_outline;
+        return PhosphorIcons.warning();
       case ToastType.success:
-        return Icons.check_circle_outline;
+        return PhosphorIcons.checkCircle();
       case ToastType.info:
-        return Icons.info_outline;
+        return PhosphorIcons.info();
     }
   }
 }
