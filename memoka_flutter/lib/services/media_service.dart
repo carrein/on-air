@@ -126,9 +126,9 @@ class MediaService {
     }
   }
 
-  /// Validate file size (max 100MB).
+  /// Validate file size (max 1GB).
   static bool validateFileSize(int bytes) {
-    const maxSize = 100 * 1024 * 1024; // 100MB
+    const maxSize = 1024 * 1024 * 1024; // 1GB
     return bytes <= maxSize;
   }
 }

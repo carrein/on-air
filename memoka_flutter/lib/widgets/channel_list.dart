@@ -36,9 +36,6 @@ class _ChannelListState extends ConsumerState<ChannelList> {
   static const _emojiToTextGap = 8.0;
   static const _channelNameFontSize = 14.0;
   static const _previewFontSize = 10.0;
-  static const _pinIconSize = 20.0;
-  static const _pinIconRotation = 15 * 3.14159 / 180;
-  static const _pinIconGap = 12.0;
   static const _fadeGradientHeight = 60.0;
 
   // -- Scroll --
@@ -362,16 +359,35 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // Icon avatar (no background)
+                    // Icon avatar — circle border when pinned
                     SizedBox(
                       width: _emojiContainerSize,
                       height: _emojiContainerSize,
                       child: Center(
-                        child: PhosphorIcon(
-                          getChannelIcon(channel.emoji),
-                          size: _emojiFontSize,
-                          color: isSelected ? Colors.white : _textColor,
-                        ),
+                        child: channel.pinned
+                            ? Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: isSelected ? Colors.white : _textColor,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: PhosphorIcon(
+                                    getChannelIcon(channel.emoji),
+                                    size: _emojiFontSize,
+                                    color: isSelected ? Colors.white : _textColor,
+                                  ),
+                                ),
+                              )
+                            : PhosphorIcon(
+                                getChannelIcon(channel.emoji),
+                                size: _emojiFontSize,
+                                color: isSelected ? Colors.white : _textColor,
+                              ),
                       ),
                     ),
                     // Channel name and message preview
@@ -405,18 +421,6 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                         ],
                       ),
                     ),
-                    // Pin icon at the end
-                    if (channel.pinned) ...[
-                      const SizedBox(width: _pinIconGap),
-                      Transform.rotate(
-                        angle: _pinIconRotation,
-                        child: PhosphorIcon(
-                          PhosphorIconsFill.star,
-                          size: _pinIconSize,
-                          color: isSelected ? Colors.white : _textColor,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -457,6 +461,8 @@ class _ChannelListState extends ConsumerState<ChannelList> {
     ref.read(editingNoteProvider.notifier).cancelEditing();
     // Hide settings if showing
     ref.read(settingsVisibilityProvider.notifier).hide();
+    // Direct tap — no slide animation
+    ref.read(channelSwitchDirectionProvider.notifier).state = 0;
     ref.read(currentChannelProvider.notifier).switchChannel(channelId);
   }
 

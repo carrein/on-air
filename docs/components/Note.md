@@ -38,7 +38,7 @@ Individual note card widget that renders note content, footer actions, context m
     [Checkbox?]  ← visible in selection mode only
     Expanded:
       Align(left):
-        ConstrainedBox(maxWidth: 75% screen):
+        ConstrainedBox(maxWidth: 680px):
           [Context Menu Wrapper]
             [Media-only: bare content, no card]
             [Regular: Card with border]
@@ -63,7 +63,7 @@ All values follow `docs/DesignSystem.md` tokens.
 | Card padding | 12px all sides |
 | Outer horizontal padding | 14px |
 | Outer vertical padding | 6px between cards |
-| Max width | 75% of screen width |
+| Max width | 680px (fixed) |
 | Footer icon size | 20px |
 | Footer icon color | `#00171F` at 50% opacity |
 

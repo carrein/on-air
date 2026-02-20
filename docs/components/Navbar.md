@@ -16,7 +16,7 @@ Shown when viewing a real channel (not archive, not settings).
 - **Background**: `core.surface` (`#F6F0ED`)
 - **Bottom border**: 1px `brand.primary` (`#CE2161`)
 - **Padding**: `_paddingStandard` — left 16px, right 8px, top 8px, bottom 8px
-- **Layout**: `[pin button?]` + `[channel icon + name (Expanded)]` + `[menu button]`
+- **Layout**: `[channel icon + name (Expanded)]` + `[pin button?]` + `[media panel toggle? desktop only]` + `[menu button]`
 
 #### Channel Title
 
@@ -27,11 +27,20 @@ Left-aligned icon + text showing the current channel.
 
 #### Pin Button
 
-Inline icon button shown to the left of the three-dot button, using `IconButtonStyled`.
+Inline icon button, using `IconButtonStyled`.
 
 - Icon: `PhosphorIcons.pushPin()` when unpinned; `PhosphorIcons.pushPinSlash()` when pinned
 - Visible only when a real channel is active (hidden on Archive)
 - Tap immediately toggles the pinned state via `channelsProvider.notifier.updateChannel`
+
+#### Media Panel Toggle (desktop only)
+
+Icon button between the pin button and three-dot menu, visible only on desktop.
+
+- Icon: `PhosphorIcons.sidebar()` (rotated 180°) when panel is hidden; `PhosphorIconsFill.sidebar` (rotated 180°) when visible
+- Tap toggles `mediaPanelVisibleProvider`; panel defaults to hidden on startup
+- Tooltip: "Show media panel" / "Hide media panel"
+- Hidden on mobile (media accessible via bottom sheet in the menu instead)
 
 #### Menu Button
 
@@ -151,12 +160,13 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 
 ### Providers Watched (reactive)
 
-| Provider                | Type                        | Purpose                         |
-|-------------------------|-----------------------------|----------------------------------|
-| `currentChannelProvider`| `AsyncValue<int>`           | Current channel ID               |
-| `channelsProvider`      | `AsyncValue<List<Channel>>` | Channel list for name/icon lookup|
-| `settingsVisibilityProvider` | `bool`               | Whether settings view is open    |
-| `noteSelectionProvider` | `Set<int>`                  | Selected note IDs (selection mode) |
+| Provider                    | Type                        | Purpose                            |
+|-----------------------------|-----------------------------|------------------------------------|
+| `currentChannelProvider`    | `AsyncValue<int>`           | Current channel ID                 |
+| `channelsProvider`          | `AsyncValue<List<Channel>>` | Channel list for name/icon lookup  |
+| `settingsVisibilityProvider`| `bool`                      | Whether settings view is open      |
+| `noteSelectionProvider`     | `Set<int>`                  | Selected note IDs (selection mode) |
+| `mediaPanelVisibleProvider` | `bool`                      | Media panel toggle state (desktop) |
 
 ### Providers Read (on interaction)
 

@@ -60,6 +60,13 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   Future<void> _animateChannelSwitch(int newChannelId) async {
+    // Direct tap (direction == 0): snap with no animation
+    if (ref.read(channelSwitchDirectionProvider) == 0) {
+      if (mounted) setState(() => _displayedChannelId = newChannelId);
+      _fadeController.value = 1.0;
+      return;
+    }
+
     if (_isAnimating) {
       // Rapid switch: snap immediately
       if (mounted) setState(() => _displayedChannelId = newChannelId);
@@ -382,7 +389,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                 children: [
                   Flexible(
                     child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    constraints: const BoxConstraints(maxWidth: 680),
                     child: Listener(
                       onPointerDown: (event) {
                         if (event.buttons == 2) {
@@ -663,61 +670,63 @@ class _ChatViewState extends ConsumerState<ChatView>
       final length = items.length;
       if (length == null) return;
 
-      // Check if clipboard contains any file items (image/video)
-      bool hasFiles = false;
+      // Collect all file-kind items — includes Finder-copied files which may
+      // have an empty MIME type but are still valid file uploads.
+      final List<html.File> fileItems = [];
       for (var i = 0; i < length; i++) {
-        final itemType = items[i].type;
-        if (itemType != null && (itemType.startsWith('image/') || itemType.startsWith('video/'))) {
-          hasFiles = true;
-          break;
+        final item = items[i];
+        if (item.kind == 'file') {
+          final file = item.getAsFile();
+          if (file != null) fileItems.add(file);
         }
       }
 
       // No files — let browser handle normally (e.g. text paste into input)
-      if (!hasFiles) return;
+      if (fileItems.isEmpty) return;
 
       // Files found — prevent default so browser doesn't paste filename as text
       event.preventDefault();
 
-      // Collect all image/video files from clipboard
       final List<UploadFileData> uploadFiles = [];
 
-      for (var i = 0; i < length; i++) {
-        final item = items[i];
-        final itemType = item.type;
-        if (itemType != null && (itemType.startsWith('image/') || itemType.startsWith('video/'))) {
-          final file = item.getAsFile();
-          if (file == null) continue;
+      for (var i = 0; i < fileItems.length; i++) {
+        final file = fileItems[i];
 
-          // Read file as bytes
-          final reader = html.FileReader();
-          reader.readAsArrayBuffer(file);
-          await reader.onLoadEnd.first;
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        await reader.onLoadEnd.first;
 
-          if (reader.result != null) {
-            // FileReader result can be either ByteBuffer or Uint8List depending on browser
-            final result = reader.result!;
-            final Uint8List uint8List;
-            if (result is ByteBuffer) {
-              uint8List = result.asUint8List();
-            } else {
-              uint8List = result as Uint8List;
-            }
+        if (reader.result == null) continue;
 
-            // Generate filename
-            final extension = itemType.split('/').last;
-            final fileName = 'pasted_file_${DateTime.now().millisecondsSinceEpoch}_$i.$extension';
-
-            uploadFiles.add(UploadFileData(
-              bytes: uint8List,
-              fileName: fileName,
-              extension: extension,
-            ));
-          }
+        final result = reader.result!;
+        final Uint8List uint8List;
+        if (result is ByteBuffer) {
+          uint8List = result.asUint8List();
+        } else {
+          uint8List = result as Uint8List;
         }
+
+        // Use the real filename when available (Finder copy), otherwise
+        // generate one from the MIME type (clipboard image/screenshot).
+        final String fileName;
+        final String extension;
+        if (file.name.isNotEmpty) {
+          fileName = file.name;
+          final parts = file.name.split('.');
+          extension = parts.length > 1 ? parts.last : '';
+        } else {
+          final mimeType = file.type.isNotEmpty ? file.type : 'application/octet-stream';
+          extension = mimeType.split('/').last;
+          fileName = 'pasted_file_${DateTime.now().millisecondsSinceEpoch}_$i.$extension';
+        }
+
+        uploadFiles.add(UploadFileData(
+          bytes: uint8List,
+          fileName: fileName,
+          extension: extension,
+        ));
       }
 
-      // Show appropriate dialog based on number of files
       if (uploadFiles.isEmpty) return;
 
       if (uploadFiles.length == 1) {
@@ -744,50 +753,34 @@ class _ChatViewState extends ConsumerState<ChatView>
       final files = dataTransfer.files;
       if (files == null || files.isEmpty) return;
 
-      // Allowed MIME types (images, videos, and documents)
-      const allowedTypes = [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic',
-        'video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska',
-        'application/pdf', 'text/plain', 'text/markdown',
-        'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/zip', 'application/x-zip-compressed',
-      ];
-
-      // Collect all valid files
+      // Collect all dropped files regardless of type
       final List<UploadFileData> uploadFiles = [];
 
       for (var i = 0; i < files.length; i++) {
         final file = files[i];
-        final fileType = file.type.toLowerCase();
 
-        if (allowedTypes.contains(fileType) || fileType.startsWith('image/') || fileType.startsWith('video/')) {
-          // Read file as bytes
-          final reader = html.FileReader();
-          reader.readAsArrayBuffer(file);
-          await reader.onLoadEnd.first;
+        final reader = html.FileReader();
+        reader.readAsArrayBuffer(file);
+        await reader.onLoadEnd.first;
 
-          if (reader.result != null) {
-            // FileReader result can be either ByteBuffer or Uint8List depending on browser
-            final result = reader.result!;
-            final Uint8List uint8List;
-            if (result is ByteBuffer) {
-              uint8List = result.asUint8List();
-            } else {
-              uint8List = result as Uint8List;
-            }
+        if (reader.result == null) continue;
 
-            // Extract extension from filename
-            final parts = file.name.split('.');
-            final extension = parts.length > 1 ? parts.last : '';
-
-            uploadFiles.add(UploadFileData(
-              bytes: uint8List,
-              fileName: file.name,
-              extension: extension,
-            ));
-          }
+        final result = reader.result!;
+        final Uint8List uint8List;
+        if (result is ByteBuffer) {
+          uint8List = result.asUint8List();
+        } else {
+          uint8List = result as Uint8List;
         }
+
+        final parts = file.name.split('.');
+        final extension = parts.length > 1 ? parts.last : '';
+
+        uploadFiles.add(UploadFileData(
+          bytes: uint8List,
+          fileName: file.name,
+          extension: extension,
+        ));
       }
 
       // Show appropriate dialog based on number of files

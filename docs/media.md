@@ -10,7 +10,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 - Upload dialog with compression option
 - Display inline in chat messages
 - No captions required
-- 100MB file size limit (increased from 50MB)
+- 1GB file size limit
 - Public access (no authentication required)
 
 ### Phase 2 (Completed): Multi-File Upload & Documents & Video
@@ -519,7 +519,7 @@ Size computeDisplaySize({
 ## ✅ Confirmed Decisions
 
 ### File Size & Storage
-- **File size limit:** 50MB per file
+- **File size limit:** 1GB per file
 - **No storage quotas:** Unlimited storage per channel
 - **Monitoring:** Optional disk usage alert at 85%
 - **Rationale:** Self-hosted server with sufficient storage capacity
@@ -539,28 +539,13 @@ Size computeDisplaySize({
 
 ### Supported Formats
 
-**Images (Phase 1):**
-- **JPEG** - Convert to WebP if compressed
-- **PNG** - Convert to WebP if compressed (preserves transparency)
-- **WebP** - Native support
-- **GIF** - Preserve animated GIFs, generate static thumbnail
-- **HEIC** (iPhone) - Convert to WebP
+**All file types are accepted.** The server applies type-specific processing:
 
-**Videos (Phase 2):**
-- **MP4**: `video/mp4`
-- **MOV / QuickTime**: `video/quicktime`
-- **WebM**: `video/webm`
-- **AVI**: `video/x-msvideo`
-- **MKV**: `video/x-matroska`
+- **Images** (JPEG, PNG, WebP, GIF, HEIC): compression, thumbnail generation, EXIF stripping
+- **Videos** (MP4, MOV, WebM, AVI, MKV): thumbnail generation, optional 720p compression via ffmpeg
+- **Documents & other files**: stored as-is with a content hash; no image/video processing
 
-Processing: `ffprobe` extracts width/height/duration; thumbnail generated at the 1-second mark via ffmpeg; optional compression to 720p H.264.
-
-**Documents (Phase 2):**
-- **PDF**: `application/pdf`
-- **Text**: `text/plain`, `text/markdown`
-- **Word**: `application/msword`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
-- **Excel**: `application/vnd.ms-excel`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
-- **Zip**: `application/zip`
+Files with unknown or missing MIME types (`application/octet-stream`) are accepted and stored using the original filename's extension.
 
 ### Upload Behavior
 - **Multi-file support:** Select, drag, or paste multiple files at once
@@ -595,7 +580,7 @@ Processing: `ffprobe` extracts width/height/duration; thumbnail generated at the
 - **Content hash:** For cache busting (URL param: ?v={hash})
 - **Original filename:** Stored in DB only, never used in file paths
 - **Animated GIF detection:** Check frame count, preserve if animated
-- **Web media URLs:** Uses `Uri.base` origin on web platform (works behind reverse proxies without hardcoded ports)
+- **Web media URLs:** Always derived from `serverUrl` config (port 8080 → 8082 for dev; same origin for production behind a reverse proxy). Never uses `Uri.base` (which would point to the Flutter dev server, not the media server).
 
 ### Performance
 - **Streaming uploads:** Stream to temp file, process from disk
@@ -815,8 +800,8 @@ if (!await _hasChannelAccess(session, channelId)) {
 ```
 
 ### File Upload Validation
-- ✅ Validate MIME type (whitelist)
-- ✅ Enforce 50MB size limit while streaming
+- ✅ Accept all file types (no MIME whitelist); unknown types stored as-is
+- ✅ Enforce 1GB size limit
 - ✅ Decode image to validate format
 - ✅ Sanitize all file paths
 - ✅ UUID prevents directory traversal

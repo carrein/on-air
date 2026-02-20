@@ -29,17 +29,17 @@ Scrollable, drag-to-reorder list of all channels, sorted with pinned channels fi
 Individual channel row within the channel list.
 
 **Non-compact (desktop/web — 240px sidebar):**
-- **Icon container**: 40x40px centered box with Phosphor fill icon at 18px
+- **Icon container**: 40x40px centered box with Phosphor icon at 18px
+- **Pinned indicator**: when pinned, icon is enclosed in a 38×38px circle border (1.5px, `core.text` / white when selected) — no trailing star
 - **Text column**: Channel name (14px, normal weight) with optional preview line below
 - **Preview text**: 10px, 70% opacity, single line with ellipsis overflow
-- **Pin icon**: Star SVG (20px) rotated 15 degrees, shown after a 12px gap for pinned channels
 - **Padding**: left 8px, right 18px, top/bottom 10px
 - **Gap** between icon and text: 8px
 
 **Compact (mobile — 64px sidebar):**
 - Channel icon only (22px), vertically centred, no text or preview
-- **Pinned indicator**: icon shown inside a 32×32px `brand.primary` circle when the channel is pinned but not selected
-- Selected state overrides the circle: full-row `brand.primary` background with white icon as normal
+- **Pinned indicator**: same circle border treatment as desktop (38×38px, 1.5px border)
+- Selected state: full-row `brand.primary` background with white icon; circle border turns white
 
 **States:**
 - **Default**: transparent background, `core.text` icon/text
@@ -76,12 +76,9 @@ Individual channel row within the channel list.
 | `_sidebarWidth`        | 240px                           | Desktop sidebar width    |
 | `_sidebarCompactWidth` | 64px                            | Mobile sidebar width     |
 | `_emojiContainerSize`  | 40px                            | Icon box width/height    |
-| `_emojiFontSize`       | 18px                            | Icon size (non-compact)  |
+| `_emojiFontSize`       | 18px                            | Icon size                |
 | `_channelItemPadding`  | L: 8, R: 18, T: 10, B: 10     | Channel item padding     |
 | `_emojiToTextGap`      | 8px                             | Gap icon to text column  |
-| `_pinIconSize`         | 20px                            | Pin star SVG size        |
-| `_pinIconRotation`     | 15 degrees (0.2618 rad)         | Star icon tilt           |
-| `_pinIconGap`          | 12px                            | Gap before pin icon      |
 | `_fadeGradientHeight`  | 60px                            | Top/bottom scroll fades  |
 | `_scrollThreshold`     | 10px                            | Scroll edge detection    |
 
@@ -89,10 +86,11 @@ Individual channel row within the channel list.
 
 ### Channel Selection
 
-- Tap a channel item to switch to it
+- Tap a channel item to switch to it — **no animation** (instant snap)
 - Switching discards any in-progress note editing state
 - Switching hides the settings view if open
 - Selected channel is highlighted with `_selectedColor` background
+- Sets `channelSwitchDirectionProvider` to `0` so `ChatView` skips the slide animation
 
 ### Drag-to-Reorder
 
@@ -115,7 +113,7 @@ Channel create/edit/pin/archive actions are accessed via the **Navbar 3-dot menu
 
 ### Scroll-to-Active-Channel
 
-When the active channel changes (via keyboard arrow keys or swipe gestures in `ChatScreen`), the sidebar automatically scrolls to center the newly selected channel in the viewport.
+When the active channel changes (via any means — tap, keyboard arrow keys, or swipe gesture), the sidebar automatically scrolls to center the newly selected channel in the viewport.
 
 - Triggered via `ref.listen(currentChannelProvider)` with `addPostFrameCallback`
 - Item height: `_emojiContainerSize + 20.0 = 60px` (40px icon + 10px top + 10px bottom padding)
@@ -138,9 +136,10 @@ When the active channel changes (via keyboard arrow keys or swipe gestures in `C
 | Provider                              | Usage                            |
 |---------------------------------------|----------------------------------|
 | `channelsProvider.notifier`           | Reorder channels                 |
-| `currentChannelProvider.notifier`     | Switch active channel            |
-| `editingNoteProvider.notifier`        | Cancel editing on channel switch |
-| `settingsVisibilityProvider.notifier` | Hide settings on channel switch  |
+| `currentChannelProvider.notifier`      | Switch active channel             |
+| `channelSwitchDirectionProvider.notifier` | Set to `0` to suppress animation |
+| `editingNoteProvider.notifier`         | Cancel editing on channel switch  |
+| `settingsVisibilityProvider.notifier`  | Hide settings on channel switch   |
 
 ### Local Widget State
 

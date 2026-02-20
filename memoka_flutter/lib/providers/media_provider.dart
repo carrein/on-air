@@ -23,7 +23,7 @@ class MediaUpload extends _$MediaUpload {
   }) async {
     // Validate file size
     if (!MediaService.validateFileSize(imageBytes.length)) {
-      throw Exception('File size exceeds 100MB limit');
+      throw Exception('File size exceeds 1GB limit');
     }
 
     // Get MIME type

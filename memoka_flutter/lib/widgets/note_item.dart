@@ -64,7 +64,7 @@ class NoteItem extends ConsumerWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                constraints: const BoxConstraints(maxWidth: 680),
                 child: Listener(
                   onPointerDown: (event) {
                     if (event.buttons == 2) {

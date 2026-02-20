@@ -9,8 +9,8 @@ import 'video_processor.dart';
 
 /// Endpoint for media upload and management.
 class MediaEndpoint extends Endpoint {
-  /// Maximum file size (100MB).
-  static const int maxFileSize = 100 * 1024 * 1024;
+  /// Maximum file size (1GB).
+  static const int maxFileSize = 1024 * 1024 * 1024;
 
   /// Allowed MIME types for images.
   static const List<String> allowedImageTypes = [
@@ -74,13 +74,6 @@ class MediaEndpoint extends Endpoint {
       );
     }
 
-    // Validate MIME type
-    if (!allowedMimeTypes.contains(mimeType.toLowerCase())) {
-      throw Exception(
-        'Unsupported file type: $mimeType. Allowed types: ${allowedMimeTypes.join(", ")}',
-      );
-    }
-
     // Validate filename length
     if (originalFilename.length > 255) {
       throw Exception('Filename too long (max 255 characters)');
@@ -97,9 +90,12 @@ class MediaEndpoint extends Endpoint {
       throw Exception('Channel not found: $channelId');
     }
 
-    // Generate UUID-based filename
+    // Generate UUID-based filename, preferring the original file's extension
     final uuid = Uuid().v4();
-    final extension = _getExtensionFromMimeType(mimeType);
+    final originalExt = path.extension(originalFilename).toLowerCase();
+    final extension = originalExt.isNotEmpty
+        ? originalExt
+        : _getExtensionFromMimeType(mimeType);
     final filename = '$uuid$extension';
     final tempFilename = '$uuid.tmp';
 
@@ -273,22 +269,18 @@ class MediaEndpoint extends Endpoint {
     bool compress,
     Stream<List<int>> fileStream,
   ) async {
-    // Validate MIME type
-    if (!allowedMimeTypes.contains(mimeType.toLowerCase())) {
-      throw Exception(
-        'Unsupported file type: $mimeType. Allowed types: ${allowedMimeTypes.join(", ")}',
-      );
-    }
-
     // Verify channel exists
     final channel = await Channel.db.findById(session, channelId);
     if (channel == null) {
       throw Exception('Channel not found: $channelId');
     }
 
-    // Generate UUID-based filename
+    // Generate UUID-based filename, preferring the original file's extension
     final uuid = Uuid().v4();
-    final extension = _getExtensionFromMimeType(mimeType);
+    final originalExt = path.extension(originalFilename).toLowerCase();
+    final extension = originalExt.isNotEmpty
+        ? originalExt
+        : _getExtensionFromMimeType(mimeType);
     final filename = '$uuid$extension';
     final tempFilename = '$uuid.tmp';
 
