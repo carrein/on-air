@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:markdown/markdown.dart' as md;
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -121,6 +123,7 @@ class NoteItem extends ConsumerWidget {
             }
           }
         },
+        builders: {'pre': _CodeBlockBuilder()},
         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
           p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
           a: const TextStyle(
@@ -134,7 +137,11 @@ class NoteItem extends ConsumerWidget {
           h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
           h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
           h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-          code: const TextStyle(color: Color(0xFF00171F), backgroundColor: Color(0xFFDADDD8)),
+          code: const TextStyle(
+            color: Color(0xFFF6F0ED),
+            backgroundColor: Color(0xFF00171F),
+          ),
+          codeblockDecoration: const BoxDecoration(),
           blockquote: const TextStyle(color: Color(0xFF00171F)),
         ),
       ));
@@ -445,6 +452,105 @@ class _NoteFooter extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Code-block custom renderer
+// ---------------------------------------------------------------------------
+
+class _CodeBlockBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    String language = '';
+    String code = '';
+    if (element.children != null) {
+      for (final child in element.children!) {
+        if (child is md.Element && child.tag == 'code') {
+          final cls = child.attributes['class'] ?? '';
+          if (cls.startsWith('language-')) language = cls.substring(9);
+          code = child.textContent;
+          break;
+        }
+      }
+    }
+    return _CodeBlock(language: language, code: code);
+  }
+}
+
+class _CodeBlock extends StatelessWidget {
+  const _CodeBlock({required this.language, required this.code});
+
+  final String language;
+  final String code;
+
+  static const _bg = Color(0xFF00171F);
+  static const _fg = Color(0xFFF6F0ED);
+
+  @override
+  Widget build(BuildContext context) {
+    final displayCode = code.trimRight();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Header bar
+        Container(
+          decoration: BoxDecoration(
+            color: _bg,
+            border: Border(
+              bottom: BorderSide(
+                color: _fg.withValues(alpha: 0.12),
+                width: 1,
+              ),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Row(
+            children: [
+              RichText(
+                text: TextSpan(
+                  text: language.isEmpty ? 'text' : language,
+                  style: GoogleFonts.spaceGrotesk(
+                    color: _fg.withValues(alpha: 0.55),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: displayCode));
+                    ToastUtils.show(context, 'Copied', type: ToastType.info);
+                  },
+                  child: PhosphorIcon(
+                    PhosphorIcons.copySimple(),
+                    size: 15,
+                    color: _fg.withValues(alpha: 0.55),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Code body
+        Container(
+          color: _bg,
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            displayCode,
+            style: const TextStyle(
+              color: _fg,
+              fontSize: 13,
+              fontFamily: 'monospace',
+              height: 1.5,
+            ),
+          ),
         ),
       ],
     );
