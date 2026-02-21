@@ -225,31 +225,30 @@ Future<void> _handlePaste() async {
 **Upload Dialog:**
 - Preview image (scaled to fit)
 - Checkbox: "Compress image" (checked by default)
-  - Full size: Original image (max 50MB)
-  - Compressed: Resize to max 1920px, quality 85%, WebP format
+  - Full size: Original image (max 1GB)
+  - Compressed: Resize to max 1920px, quality 85%, WebP format (server-side)
 - Buttons: "Cancel" | "Send"
 
-**Upload Process:**
-```dart
-1. Show dialog with image preview
-2. User selects compression option
-3. Validate file size <= 50MB
-4. Compress image if selected (using image package)
-5. Call server endpoint: POST /api/chat/upload-media
-   - multipart/form-data
-   - Stream file data (not load into memory)
-   - fields: channelId, compress, file stream
-6. Server returns MediaAttachment metadata
-7. Create note with attachment reference
-8. Close dialog, display in chat with thumbnail
-9. Preview appears immediately (thumbnail generated on server)
+**Upload Process (Phase 3 — Async / Optimistic):**
 ```
+1. Dialog dismisses instantly; file copied to <docsDir>/pending_uploads/<uuid><ext>
+2. Ghost note (PendingNoteWidget) appears in chat immediately with progress bar
+3. PendingUploads notifier queues upload and POSTs multipart to POST /media/upload
+4. Progress tracked on outgoing network stream ("X MB / Y MB" in footer)
+5. On success: ghost note removed, notesProvider invalidated (WebSocket fallback)
+6. On failure: "Upload failed" state with Retry / Dismiss buttons
+7. Cancel: closes http.Client, removes ghost note, deletes local copy
+```
+See `memoka_flutter/lib/providers/pending_uploads_provider.dart` for implementation.
 
-### 2. Server-Side (Serverpod)
+### 2. Server-Side (HTTP Route)
 
-**Critical: Atomic Upload with Two-Phase Commit**
+> **Note:** The original `MediaEndpoint` Serverpod RPC class was removed. All uploads go through `MediaUploadRoute` — a plain HTTP multipart route at `POST /media/upload`. See `memoka_server/lib/src/web/routes/media_upload_route.dart` for the actual implementation.
+
+**Critical: Atomic Upload with Two-Phase Commit** (design reference — see route for real code)
 
 ```dart
+// HISTORICAL DESIGN DOC — actual implementation in media_upload_route.dart
 class MediaEndpoint extends Endpoint {
   Future<MediaAttachment> uploadMedia(
     Session session,
@@ -259,7 +258,7 @@ class MediaEndpoint extends Endpoint {
     String originalFilename,
     String mimeType,
   ) async {
-    // 1. Validate file type and size limit (50MB)
+    // 1. Validate file type and size limit (1GB)
     if (!_isValidMimeType(mimeType)) {
       throw Exception('Invalid file type');
     }
@@ -281,8 +280,8 @@ class MediaEndpoint extends Endpoint {
     try {
       await for (final chunk in fileStream) {
         bytesWritten += chunk.length;
-        if (bytesWritten > 50 * 1024 * 1024) {  // 50MB limit
-          throw Exception('File exceeds 50MB limit');
+        if (bytesWritten > 1024 * 1024 * 1024) {  // 1GB limit
+          throw Exception('File exceeds 1GB limit');
         }
         sink.add(chunk);
       }
@@ -639,9 +638,9 @@ Files with unknown or missing MIME types (`application/octet-stream`) are accept
 **Implementation:** Generate UUID first, create note after file processed
 
 ### 2. Memory Streaming ✅
-**Problem:** Loading entire file into ByteData crashes on large files  
-**Solution:** Stream<List<int>> with chunked writes to temp file  
-**Implementation:** Validate 50MB limit while streaming, early abort on overflow
+**Problem:** Loading entire file into ByteData crashes on large files
+**Solution:** Stream<List<int>> with chunked writes to temp file
+**Implementation:** Validate 1GB limit while streaming, early abort on overflow
 
 ### 3. Atomic File+DB Writes ✅
 **Problem:** Crash during upload can orphan files or DB records  
@@ -708,8 +707,8 @@ if (gif.numFrames > 1) {
 ```
 
 ### 10. Resumable Uploads ⏸️
-**Status:** Deferred to Phase 2  
-**Rationale:** Adds significant complexity, 50MB limit makes it less critical  
+**Status:** Deferred
+**Rationale:** Adds significant complexity; 1GB limit and 1-minute timeout cover most use cases
 **Future:** Implement chunked upload protocol if users need it
 
 ---
@@ -940,36 +939,20 @@ test('EXIF orientation applied before stripping', () async {
 ```
 
 ### Integration Tests
+
+> **Note:** `MediaEndpoint` was removed. Upload integration tests would target `POST /media/upload` directly via `http.MultipartRequest`. The examples below are historical design references only.
+
 ```dart
-withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
-  test('when uploading >50MB then should reject', () async {
-    final largeStream = _generate60MBStream();
-    expect(
-      () => endpoints.media.uploadMedia(
-        sessionBuilder,
-        channelId: 1,
-        fileStream: largeStream,
-        ...
-      ),
-      throwsA(contains('exceeds 50MB')),
-    );
+// HISTORICAL — MediaEndpoint no longer exists
+// Real uploads go to POST /media/upload (MediaUploadRoute)
+withServerpod('Given MediaUploadRoute', (sessionBuilder, endpoints) {
+  test('when uploading >1GB then should reject', () async {
+    // Send multipart POST to /media/upload with oversized stream
+    // Expect 413 or error response
   });
-  
+
   test('when upload fails then should cleanup temp file', () async {
-    final tempDir = Directory('/app/media/channels/1');
-    final beforeFiles = await tempDir.list().length;
-    
-    try {
-      await endpoints.media.uploadMedia(
-        sessionBuilder,
-        channelId: 1,
-        fileStream: _corruptedStream(),
-        ...
-      );
-    } catch (_) {}
-    
-    final afterFiles = await tempDir.list().length;
-    expect(afterFiles, beforeFiles);  // No orphaned files
+    // Verify no orphaned .tmp files after failed upload
   });
 });
 ```

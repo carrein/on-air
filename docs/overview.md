@@ -210,8 +210,8 @@ _Delete Behavior_
 
 - Channel name: non-empty, max 100 chars
 - Channel emoji: max 10 chars
-- Note content: non-empty, max 50,000 chars
-- File size: max 50 MB
+- Note content: non-empty, max 200,000 chars
+- File size: max 1 GB
 - Cannot delete last remaining active channel
 
 **State Management (Riverpod)**
