@@ -14,6 +14,7 @@ class DownloadUtils {
     String url,
     String filename,
   ) async {
+    ToastUtils.show(context, 'Downloading\u2026', type: ToastType.info);
     try {
       final client = HttpClient();
       final request = await client.getUrl(Uri.parse(url));
