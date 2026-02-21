@@ -33,7 +33,8 @@ class PendingNoteWidget extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               child: IntrinsicWidth(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600, minWidth: 300),
+                  constraints:
+                      const BoxConstraints(maxWidth: 600, minWidth: 300),
                   child: Container(
                     decoration: BoxDecoration(
                       color: _bgColor,
@@ -156,6 +157,17 @@ class PendingNoteWidget extends ConsumerWidget {
     );
   }
 
+  String _progressText() {
+    if (upload.fileSize <= 0) return 'Uploading\u2026';
+    final total = FileUtils.formatFileSize(upload.fileSize);
+    if (upload.progress > 0) {
+      final uploaded =
+          FileUtils.formatFileSize((upload.progress * upload.fileSize).round());
+      return '$uploaded / $total';
+    }
+    return '0 B / $total';
+  }
+
   Widget _buildFooter(WidgetRef ref, bool isError) {
     if (isError) {
       return Row(
@@ -183,12 +195,23 @@ class PendingNoteWidget extends ConsumerWidget {
       );
     }
 
-    return Text(
-      'Uploading\u2026',
-      style: TextStyle(
-        fontSize: 11,
-        color: const Color(0xFF00171F).withValues(alpha: 0.5),
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            _progressText(),
+            style: TextStyle(
+              fontSize: 11,
+              color: const Color(0xFF00171F).withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+        _FooterButton(
+          label: 'Cancel',
+          onTap: () =>
+              ref.read(pendingUploadsProvider.notifier).cancel(upload.id),
+        ),
+      ],
     );
   }
 }

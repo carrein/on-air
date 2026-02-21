@@ -139,8 +139,12 @@ class MediaUploadRoute extends Route {
         ).firstMatch(disposition);
         originalFilename = filenameMatch?.group(1) ?? 'upload';
 
-        // Content-type of the file part.
+        // Content-type of the file part. Fall back to filename extension if
+        // the client sent application/octet-stream (common on Android).
         mimeType = part.headers['content-type'] ?? 'application/octet-stream';
+        if (mimeType == 'application/octet-stream') {
+          mimeType = lookupMimeType(originalFilename) ?? mimeType;
+        }
 
         // Stream to a temp file in the system temp directory.
         final tempDir = Directory.systemTemp;

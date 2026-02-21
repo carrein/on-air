@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -28,6 +29,7 @@ class PendingUpload {
   final Uint8List? localBytes; // web only
   final String noteContent;
   final bool compress;
+  final int fileSize;
   final double progress;
   final UploadStatus status;
   final String? errorMessage;
@@ -41,6 +43,7 @@ class PendingUpload {
     this.localBytes,
     required this.noteContent,
     required this.compress,
+    this.fileSize = 0,
     this.progress = 0.0,
     this.status = UploadStatus.uploading,
     this.errorMessage,
@@ -60,6 +63,7 @@ class PendingUpload {
       localBytes: localBytes,
       noteContent: noteContent,
       compress: compress,
+      fileSize: fileSize,
       progress: progress ?? this.progress,
       status: status ?? this.status,
       errorMessage: errorMessage,
@@ -81,6 +85,9 @@ class PendingUploads extends _$PendingUploads {
   /// Queue of upload IDs waiting to start.
   final List<String> _queue = [];
   bool _isProcessing = false;
+
+  /// Active HTTP clients keyed by upload ID — used to cancel in-flight uploads.
+  final Map<String, http.Client> _activeClients = {};
 
   @override
   List<PendingUpload> build() {
@@ -112,10 +119,12 @@ class PendingUploads extends _$PendingUploads {
     required bool compress,
   }) async {
     final id = const Uuid().v4();
-    final mimeType = MediaService.getMimeTypeFromExtension(fileName, filePath: filePath);
+    final mimeType =
+        MediaService.getMimeTypeFromExtension(fileName, filePath: filePath);
 
     String? localFilePath;
     Uint8List? localBytes;
+    int fileSize = 0;
 
     if (!kIsWeb && filePath != null) {
       // Copy file to app documents dir for retry resilience.
@@ -128,8 +137,10 @@ class PendingUploads extends _$PendingUploads {
       final stablePath = p.join(pendingDir.path, '$id$ext');
       await File(filePath).copy(stablePath);
       localFilePath = stablePath;
+      fileSize = await File(stablePath).length();
     } else if (fileBytes != null) {
       localBytes = fileBytes;
+      fileSize = fileBytes.length;
     }
 
     final pending = PendingUpload(
@@ -141,6 +152,7 @@ class PendingUploads extends _$PendingUploads {
       localBytes: localBytes,
       noteContent: noteContent,
       compress: compress,
+      fileSize: fileSize,
     );
 
     // Prepend so newest ghost notes are first (they render at bottom of
@@ -164,12 +176,33 @@ class PendingUploads extends _$PendingUploads {
     unawaited(_processQueue());
   }
 
+  /// Cancel an in-progress upload.
+  void cancel(String id) {
+    // Close the HTTP client to abort the request.
+    _activeClients[id]?.close();
+    _activeClients.remove(id);
+
+    // Remove from queue if still waiting.
+    _queue.remove(id);
+
+    // Remove ghost note and delete local file.
+    remove(id);
+  }
+
   /// Dismiss a failed upload (remove ghost note).
   void remove(String id) {
     // Also delete the local copy if it exists.
-    final pending = state.firstWhere((p) => p.id == id,
-        orElse: () => PendingUpload(
-            id: '', channelId: 0, fileName: '', mimeType: '', noteContent: '', compress: false));
+    final pending = state.firstWhere(
+      (p) => p.id == id,
+      orElse: () => PendingUpload(
+        id: '',
+        channelId: 0,
+        fileName: '',
+        mimeType: '',
+        noteContent: '',
+        compress: false,
+      ),
+    );
     if (pending.localFilePath != null) {
       final f = File(pending.localFilePath!);
       if (f.existsSync()) f.deleteSync();
@@ -194,41 +227,70 @@ class PendingUploads extends _$PendingUploads {
 
   /// Perform the actual HTTP multipart upload.
   Future<void> _upload(String id) async {
-    final pending = state.firstWhere((p) => p.id == id,
-        orElse: () => PendingUpload(
-            id: '', channelId: 0, fileName: '', mimeType: '', noteContent: '', compress: false));
+    final pending = state.firstWhere(
+      (p) => p.id == id,
+      orElse: () => PendingUpload(
+        id: '',
+        channelId: 0,
+        fileName: '',
+        mimeType: '',
+        noteContent: '',
+        compress: false,
+      ),
+    );
     if (pending.id.isEmpty) return;
 
+    final client = http.Client();
+    _activeClients[id] = client;
+
     try {
-      final request = http.MultipartRequest('POST', Uri.parse(_uploadUrl));
-      request.fields['channelId'] = pending.channelId.toString();
-      request.fields['noteContent'] = pending.noteContent;
-      request.fields['compress'] = pending.compress.toString();
+      final multipart = http.MultipartRequest('POST', Uri.parse(_uploadUrl));
+      multipart.fields['channelId'] = pending.channelId.toString();
+      multipart.fields['noteContent'] = pending.noteContent;
+      multipart.fields['compress'] = pending.compress.toString();
+
+      final contentType = MediaType.parse(pending.mimeType);
 
       if (!kIsWeb && pending.localFilePath != null) {
         // Stream from disk — never holds full file in memory.
         final file = File(pending.localFilePath!);
         final fileLength = await file.length();
-        final byteStream = _trackProgress(file.openRead(), fileLength, id);
-        request.files.add(http.MultipartFile(
+        multipart.files.add(http.MultipartFile(
           'file',
-          byteStream,
+          file.openRead(),
           fileLength,
           filename: pending.fileName,
+          contentType: contentType,
         ));
       } else if (pending.localBytes != null) {
         // Web: bytes already in memory.
-        request.files.add(http.MultipartFile.fromBytes(
+        multipart.files.add(http.MultipartFile.fromBytes(
           'file',
           pending.localBytes!,
           filename: pending.fileName,
+          contentType: contentType,
         ));
       }
 
-      final streamedResponse = await request.send().timeout(
-            const Duration(minutes: 5),
+      // Finalize into a StreamedRequest so we can track bytes *sent over
+      // the network* (not just read from disk — disk reads are near-instant).
+      final totalBytes = multipart.contentLength;
+      final bodyStream = multipart.finalize();
+
+      final streamed = http.StreamedRequest('POST', Uri.parse(_uploadUrl))
+        ..contentLength = totalBytes
+        ..headers.addAll(multipart.headers);
+
+      unawaited(
+        _trackProgress(bodyStream, totalBytes, id)
+            .pipe(streamed.sink)
+            .catchError((_) {}),
+      );
+
+      final streamedResponse = await client.send(streamed).timeout(
+            const Duration(minutes: 1),
             onTimeout: () => throw TimeoutException(
-              'Upload timed out after 5 minutes',
+              'Upload timed out after 1 minute',
             ),
           );
       final statusCode = streamedResponse.statusCode;
@@ -250,7 +312,13 @@ class PendingUploads extends _$PendingUploads {
         _setError(id, 'Server error ($statusCode)');
       }
     } catch (e) {
-      _setError(id, e.toString());
+      // Don't set error if the upload was cancelled (client closed).
+      if (state.any((p) => p.id == id)) {
+        _setError(id, e.toString());
+      }
+    } finally {
+      _activeClients.remove(id);
+      client.close();
     }
   }
 
