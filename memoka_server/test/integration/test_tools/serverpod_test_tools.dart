@@ -18,7 +18,6 @@ import 'package:memoka_server/src/generated/chat/channel.dart' as _i4;
 import 'package:memoka_server/src/generated/chat/note.dart' as _i5;
 import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i6;
 import 'package:memoka_server/src/generated/chat/chat_event.dart' as _i7;
-import 'package:memoka_server/src/generated/media/media_attachment.dart' as _i8;
 import 'package:memoka_server/src/generated/protocol.dart';
 import 'package:memoka_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -127,8 +126,6 @@ void withServerpod(
 
 class TestEndpoints {
   late final _ChatEndpoint chat;
-
-  late final _MediaEndpoint media;
 }
 
 class _InternalTestEndpoints extends TestEndpoints
@@ -139,10 +136,6 @@ class _InternalTestEndpoints extends TestEndpoints
     _i2.EndpointDispatch endpoints,
   ) {
     chat = _ChatEndpoint(
-      endpoints,
-      serializationManager,
-    );
-    media = _MediaEndpoint(
       endpoints,
       serializationManager,
     );
@@ -645,130 +638,5 @@ class _ChatEndpoint {
       _localTestStreamManager.outputStreamController,
     );
     return _localTestStreamManager.outputStreamController.stream;
-  }
-}
-
-class _MediaEndpoint {
-  _MediaEndpoint(
-    this._endpointDispatch,
-    this._serializationManager,
-  );
-
-  final _i2.EndpointDispatch _endpointDispatch;
-
-  final _i2.SerializationManager _serializationManager;
-
-  _i3.Future<_i5.Note> uploadMediaAndCreateNote(
-    _i1.TestSessionBuilder sessionBuilder,
-    int channelId,
-    String noteContent,
-    String fileBytesBase64,
-    String originalFilename,
-    String mimeType,
-    bool compress,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'media',
-            method: 'uploadMediaAndCreateNote',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'media',
-          methodName: 'uploadMediaAndCreateNote',
-          parameters: _i1.testObjectToJson({
-            'channelId': channelId,
-            'noteContent': noteContent,
-            'fileBytesBase64': fileBytesBase64,
-            'originalFilename': originalFilename,
-            'mimeType': mimeType,
-            'compress': compress,
-          }),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<_i5.Note>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
-  }
-
-  _i3.Future<_i8.MediaAttachment> uploadMedia(
-    _i1.TestSessionBuilder sessionBuilder,
-    int channelId,
-    String originalFilename,
-    String mimeType,
-    bool compress,
-    _i3.Stream<List<int>> fileStream,
-  ) async {
-    var _localTestStreamManager = _i1.TestStreamManager<_i8.MediaAttachment>();
-    return _i1.callAwaitableFunctionWithStreamInputAndHandleExceptions(
-      () async {
-        var _localUniqueSession =
-            (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-              endpoint: 'media',
-              method: 'uploadMedia',
-            );
-        var _localCallContext = await _endpointDispatch
-            .getMethodStreamCallContext(
-              createSessionCallback: (_) => _localUniqueSession,
-              endpointPath: 'media',
-              methodName: 'uploadMedia',
-              arguments: {
-                'channelId': channelId,
-                'originalFilename': originalFilename,
-                'mimeType': mimeType,
-                'compress': compress,
-              },
-              requestedInputStreams: ['fileStream'],
-              serializationManager: _serializationManager,
-            );
-        await _localTestStreamManager.callStreamMethod(
-          _localCallContext,
-          _localUniqueSession,
-          {'fileStream': fileStream},
-        );
-        return _localTestStreamManager.outputStreamController.stream;
-      },
-    );
-  }
-
-  _i3.Future<void> deleteAttachment(
-    _i1.TestSessionBuilder sessionBuilder,
-    int attachmentId,
-  ) async {
-    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
-      var _localUniqueSession =
-          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'media',
-            method: 'deleteAttachment',
-          );
-      try {
-        var _localCallContext = await _endpointDispatch.getMethodCallContext(
-          createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'media',
-          methodName: 'deleteAttachment',
-          parameters: _i1.testObjectToJson({'attachmentId': attachmentId}),
-          serializationManager: _serializationManager,
-        );
-        var _localReturnValue =
-            await (_localCallContext.method.call(
-                  _localUniqueSession,
-                  _localCallContext.arguments,
-                )
-                as _i3.Future<void>);
-        return _localReturnValue;
-      } finally {
-        await _localUniqueSession.close();
-      }
-    });
   }
 }

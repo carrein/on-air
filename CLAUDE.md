@@ -246,9 +246,7 @@ Server serves:
   - Archive: getArchiveItems, getArchivedChannelNoteCount
   - Link previews: automatic URL detection and metadata fetching (see `docs/components/Preview.md`)
   - Real-time streaming: WebSocket events for live updates
-- `media`: Media management (RPC)
-  - deleteAttachment
-  - Note: file uploads use the HTTP route `POST /media/upload` (not RPC) to stream directly to disk
+- File uploads: HTTP route `POST /media/upload` (not RPC) — streams multipart body directly to disk, no in-memory buffering
 
 ## Git Workflow Policy
 

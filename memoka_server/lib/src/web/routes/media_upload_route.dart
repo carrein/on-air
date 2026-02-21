@@ -17,7 +17,7 @@ import '../../shared/constants.dart';
 /// memory — fixing the OOM crash caused by the previous base64-over-RPC path.
 ///
 /// Reuses the same image/video processing, DB transaction, and WebSocket
-/// broadcast logic from [MediaEndpoint].
+/// broadcast logic previously in the (now removed) MediaEndpoint RPC methods.
 class MediaUploadRoute extends Route {
   MediaUploadRoute()
     : super(

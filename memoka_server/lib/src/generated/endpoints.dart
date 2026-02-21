@@ -12,7 +12,6 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/chat_endpoint.dart' as _i2;
-import '../media/media_endpoint.dart' as _i3;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -22,12 +21,6 @@ class Endpoints extends _i1.EndpointDispatch {
         ..initialize(
           server,
           'chat',
-          null,
-        ),
-      'media': _i3.MediaEndpoint()
-        ..initialize(
-          server,
-          'media',
           null,
         ),
     };
@@ -341,125 +334,6 @@ class Endpoints extends _i1.EndpointDispatch {
                 Map<String, dynamic> params,
                 Map<String, Stream> streamParams,
               ) => (endpoints['chat'] as _i2.ChatEndpoint).chat(session),
-        ),
-      },
-    );
-    connectors['media'] = _i1.EndpointConnector(
-      name: 'media',
-      endpoint: endpoints['media']!,
-      methodConnectors: {
-        'uploadMediaAndCreateNote': _i1.MethodConnector(
-          name: 'uploadMediaAndCreateNote',
-          params: {
-            'channelId': _i1.ParameterDescription(
-              name: 'channelId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-            'noteContent': _i1.ParameterDescription(
-              name: 'noteContent',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'fileBytesBase64': _i1.ParameterDescription(
-              name: 'fileBytesBase64',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'originalFilename': _i1.ParameterDescription(
-              name: 'originalFilename',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'mimeType': _i1.ParameterDescription(
-              name: 'mimeType',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'compress': _i1.ParameterDescription(
-              name: 'compress',
-              type: _i1.getType<bool>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['media'] as _i3.MediaEndpoint)
-                  .uploadMediaAndCreateNote(
-                    session,
-                    params['channelId'],
-                    params['noteContent'],
-                    params['fileBytesBase64'],
-                    params['originalFilename'],
-                    params['mimeType'],
-                    params['compress'],
-                  ),
-        ),
-        'deleteAttachment': _i1.MethodConnector(
-          name: 'deleteAttachment',
-          params: {
-            'attachmentId': _i1.ParameterDescription(
-              name: 'attachmentId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-          },
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async =>
-                  (endpoints['media'] as _i3.MediaEndpoint).deleteAttachment(
-                    session,
-                    params['attachmentId'],
-                  ),
-        ),
-        'uploadMedia': _i1.MethodStreamConnector(
-          name: 'uploadMedia',
-          params: {
-            'channelId': _i1.ParameterDescription(
-              name: 'channelId',
-              type: _i1.getType<int>(),
-              nullable: false,
-            ),
-            'originalFilename': _i1.ParameterDescription(
-              name: 'originalFilename',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'mimeType': _i1.ParameterDescription(
-              name: 'mimeType',
-              type: _i1.getType<String>(),
-              nullable: false,
-            ),
-            'compress': _i1.ParameterDescription(
-              name: 'compress',
-              type: _i1.getType<bool>(),
-              nullable: false,
-            ),
-          },
-          streamParams: {
-            'fileStream': _i1.StreamParameterDescription<List<int>>(
-              name: 'fileStream',
-              nullable: false,
-            ),
-          },
-          returnType: _i1.MethodStreamReturnType.futureType,
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-                Map<String, Stream> streamParams,
-              ) => (endpoints['media'] as _i3.MediaEndpoint).uploadMedia(
-                session,
-                params['channelId'],
-                params['originalFilename'],
-                params['mimeType'],
-                params['compress'],
-                streamParams['fileStream']!.cast<List<int>>(),
-              ),
         ),
       },
     );

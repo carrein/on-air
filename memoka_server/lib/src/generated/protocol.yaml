@@ -14,7 +14,3 @@ chat:
   - getArchiveItems:
   - getArchivedChannelNoteCount:
   - chat:
-media:
-  - uploadMediaAndCreateNote:
-  - uploadMedia:
-  - deleteAttachment:

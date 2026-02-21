@@ -166,9 +166,6 @@ class Protocol extends _i1.SerializationManager {
       case _i7.MediaAttachment():
         return 'MediaAttachment';
     }
-    if (data is List<int>) {
-      return 'List<int>';
-    }
     return null;
   }
 
@@ -195,9 +192,6 @@ class Protocol extends _i1.SerializationManager {
     }
     if (dataClassName == 'MediaAttachment') {
       return deserialize<_i7.MediaAttachment>(data['data']);
-    }
-    if (dataClassName == 'List<int>') {
-      return deserialize<List<int>>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

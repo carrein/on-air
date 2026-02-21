@@ -16,8 +16,7 @@ import 'package:memoka_client/src/protocol/chat/channel.dart' as _i3;
 import 'package:memoka_client/src/protocol/chat/note.dart' as _i4;
 import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i5;
 import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i6;
-import 'package:memoka_client/src/protocol/media/media_attachment.dart' as _i7;
-import 'protocol.dart' as _i8;
+import 'protocol.dart' as _i7;
 
 /// Endpoint for managing channels and notes with real-time updates.
 /// {@category Endpoint}
@@ -184,81 +183,6 @@ class EndpointChat extends _i1.EndpointRef {
       );
 }
 
-/// Endpoint for media upload and management.
-/// {@category Endpoint}
-class EndpointMedia extends _i1.EndpointRef {
-  EndpointMedia(_i1.EndpointCaller caller) : super(caller);
-
-  @override
-  String get name => 'media';
-
-  /// Upload a media file as bytes and create a note with it.
-  ///
-  /// Uses two-phase commit:
-  /// 1. Write bytes to temporary file
-  /// 2. Process image
-  /// 3. Insert database records (note + attachment) in transaction
-  /// 4. Rename to final filename
-  /// 5. On error: cleanup temp file
-  _i2.Future<_i4.Note> uploadMediaAndCreateNote(
-    int channelId,
-    String noteContent,
-    String fileBytesBase64,
-    String originalFilename,
-    String mimeType,
-    bool compress,
-  ) => caller.callServerEndpoint<_i4.Note>(
-    'media',
-    'uploadMediaAndCreateNote',
-    {
-      'channelId': channelId,
-      'noteContent': noteContent,
-      'fileBytesBase64': fileBytesBase64,
-      'originalFilename': originalFilename,
-      'mimeType': mimeType,
-      'compress': compress,
-    },
-  );
-
-  /// Upload a media file with streaming (for future use).
-  ///
-  /// Uses two-phase commit:
-  /// 1. Stream to temporary file
-  /// 2. Process image
-  /// 3. Insert database record
-  /// 4. Rename to final filename
-  /// 5. On error: cleanup temp file
-  _i2.Future<_i7.MediaAttachment> uploadMedia(
-    int channelId,
-    String originalFilename,
-    String mimeType,
-    bool compress,
-    _i2.Stream<List<int>> fileStream,
-  ) =>
-      caller.callStreamingServerEndpoint<
-        _i2.Future<_i7.MediaAttachment>,
-        _i7.MediaAttachment
-      >(
-        'media',
-        'uploadMedia',
-        {
-          'channelId': channelId,
-          'originalFilename': originalFilename,
-          'mimeType': mimeType,
-          'compress': compress,
-        },
-        {'fileStream': fileStream},
-      );
-
-  /// Delete a media attachment and its files.
-  _i2.Future<void> deleteAttachment(int attachmentId) =>
-      caller.callServerEndpoint<void>(
-        'media',
-        'deleteAttachment',
-        {'attachmentId': attachmentId},
-      );
-}
-
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -279,7 +203,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i8.Protocol(),
+         _i7.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -289,18 +213,12 @@ class Client extends _i1.ServerpodClientShared {
              disconnectStreamsOnLostInternetConnection,
        ) {
     chat = EndpointChat(this);
-    media = EndpointMedia(this);
   }
 
   late final EndpointChat chat;
 
-  late final EndpointMedia media;
-
   @override
-  Map<String, _i1.EndpointRef> get endpointRefLookup => {
-    'chat': chat,
-    'media': media,
-  };
+  Map<String, _i1.EndpointRef> get endpointRefLookup => {'chat': chat};
 
   @override
   Map<String, _i1.ModuleEndpointCaller> get moduleLookup => {};

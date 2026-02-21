@@ -140,8 +140,15 @@ The Serverpod media server (`port 8082`) needs `Access-Control-Allow-Origin: *` 
 
 ---
 
+## Attachment Source
+
+Audio attachments are **uploaded files only** — the user attaches an existing audio file (mp3, flac, m4a, wav, ogg, etc.) via the file picker or drag-and-drop. There is no in-app microphone recording; that is a potential future feature.
+
+---
+
 ## Out of Scope
 
+- In-app microphone recording (planned future feature)
 - Waveform visualisation
 - iOS / desktop support (can be added later)
 - Background playback across channel navigation
