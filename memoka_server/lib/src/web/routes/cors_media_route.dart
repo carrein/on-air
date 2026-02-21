@@ -10,11 +10,11 @@ class CorsMediaRoute extends Route {
   final StaticRoute _inner;
 
   CorsMediaRoute(Directory root)
-      : _inner = StaticRoute.directory(root),
-        super(
-          methods: {Method.get, Method.head, Method.options},
-          path: '/**',
-        );
+    : _inner = StaticRoute.directory(root),
+      super(
+        methods: {Method.get, Method.head, Method.options},
+        path: '/**',
+      );
 
   @override
   FutureOr<Result> handleCall(Session session, Request request) async {
@@ -36,7 +36,7 @@ class CorsMediaRoute extends Route {
   }
 
   Headers _corsHeaders() => Headers.build(
-        (mh) => mh.accessControlAllowOrigin =
-            const AccessControlAllowOriginHeader.wildcard(),
-      );
+    (mh) => mh.accessControlAllowOrigin =
+        const AccessControlAllowOriginHeader.wildcard(),
+  );
 }
