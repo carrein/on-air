@@ -62,15 +62,15 @@ class VideoAttachmentWidget extends StatelessWidget {
                 : _defaultVideoThumbnail(displaySize),
           ),
           Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFFCE2161),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.75),
               shape: BoxShape.circle,
             ),
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             child: PhosphorIcon(
-              PhosphorIconsFill.play,
-              color: Colors.white,
-              size: 48,
+              PhosphorIcons.play(),
+              color: const Color(0xFFCE2161),
+              size: 28,
             ),
           ),
           if (attachment.duration != null)
@@ -310,15 +310,15 @@ class _VideoLightboxState extends State<_VideoLightbox> {
               ),
               if (!_controller.value.isPlaying)
                 Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFCE2161),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.75),
                     shape: BoxShape.circle,
                   ),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(10),
                   child: PhosphorIcon(
-                    PhosphorIconsFill.play,
-                    color: Colors.white,
-                    size: 56,
+                    PhosphorIcons.play(),
+                    color: const Color(0xFFCE2161),
+                    size: 36,
                   ),
                 ),
             ],
