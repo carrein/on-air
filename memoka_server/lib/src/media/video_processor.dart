@@ -57,7 +57,7 @@ class _ProcessVideoParams {
 class VideoProcessor {
   static const int maxWidth = 1280;
   static const int maxHeight = 720;
-  static const int thumbnailSize = 300;
+  static const int thumbnailSize = 720;
 
   /// Calculate SHA-256 hash of file bytes (first 8 characters).
   /// Used for cache busting.

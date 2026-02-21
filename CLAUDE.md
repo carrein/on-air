@@ -16,6 +16,7 @@ u/docs/components/MediaPanel.md
 u/docs/components/Note.md
 u/docs/components/Preview.md
 u/docs/components/Audio.md
+u/docs/Offline.md
 
 # CLAUDE.md
 
@@ -44,6 +45,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Archive System**: Archive for soft-deleted notes, channel archiving with restore
 - **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
+- **Offline Mode**: Local-first reads from SQLite cache (Drift), offline mutation queue (create/delete notes, create/update/archive channels), sync engine drains on reconnect, navbar sync indicator; persistent on native, in-memory on web (see `docs/Offline.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -237,6 +239,7 @@ Server serves:
 - App config at `/app/assets/assets/config.json` (dynamically generated from server config)
 - Media files at `/media` via `CorsMediaRoute` (adds `Access-Control-Allow-Origin: *` so Flutter web dev server can load audio/media cross-origin)
 - File uploads at `POST /media/upload` via `MediaUploadRoute` — streams multipart body directly to disk (no in-memory buffering), processes image/video, creates DB record, broadcasts WebSocket event
+- Healthcheck at `/healthcheck` via `HealthcheckRoute` — returns 200 OK with CORS headers, used by Flutter connectivity probe
 
 ### Current Endpoints
 
@@ -287,6 +290,10 @@ interactions, state management, and integration details.
 - **Note** (NoteItem): `docs/components/Note.md`
 - **Preview** (link previews): `docs/components/Preview.md`
 - **Audio** (audio player): `docs/components/Audio.md`
+
+## Architecture Guides
+
+- **Offline Mode**: `docs/Offline.md` — Local-first caching, mutation queue, sync engine, connectivity detection
 
 ## Platform Guides
 
