@@ -150,12 +150,14 @@ Appears above the NoteInput when a URL is detected in the text.
 
 ### File Upload
 
-- File picker supports: images (jpg, png, gif, webp, heic), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip)
+- File picker supports: images (jpg, png, gif, webp, heic), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip) — any file type accepted
 - Camera capture on mobile (via `image_picker`)
 - Single file: opens `FileUploadDialog` with compression option
 - Multiple files: opens `MultiFileUploadDialog` for batch upload
+- **Fire-and-forget**: tapping Send in either dialog dismisses it immediately; upload is handed off to `pendingUploadsProvider`. Ghost note appears in chat instantly with a progress indicator
+- On native, `FilePicker` uses `withData: false` (file path only, no bytes in memory). On web, `withData: true` is used because web has no file system paths
 - Current text field content is attached as note text for single file uploads
-- Toast notifications for success and failure
+- Compression flag is passed to server; no client-side compression
 
 ## State Management
 
@@ -180,7 +182,7 @@ Appears above the NoteInput when a URL is detected in the text.
 | `currentChannelProvider`            | Get active channel for submissions  |
 | `editingNoteProvider.notifier`      | Cancel editing                      |
 | `draftsProvider.notifier`           | Save, load, clear per-channel drafts|
-| `mediaUploadProvider.notifier`      | Upload files and create notes       |
+| `pendingUploadsProvider.notifier`   | Enqueue file uploads (fire-and-forget optimistic) |
 
 ### Local Widget State
 
@@ -209,6 +211,6 @@ NoteInput is placed at the bottom of the `ChatScreen` layout. On desktop/web it 
 | `lib/providers/current_channel_provider.dart` | Active channel for submissions |
 | `lib/providers/editing_note_provider.dart` | Edit mode state |
 | `lib/providers/drafts_provider.dart` | Per-channel draft persistence |
-| `lib/providers/media_provider.dart` | File upload handling |
+| `lib/providers/pending_uploads_provider.dart` | Optimistic upload queue (ghost notes, progress, retry, cancel) |
 | `lib/models/upload_file_data.dart` | Upload file data model |
 | `lib/utils/toast_utils.dart` | Success/error toast display |

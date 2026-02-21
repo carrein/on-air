@@ -33,22 +33,31 @@ Covers media upload, storage, and display for images, videos, and documents in t
 **Fix — path-based streaming:**
 - `FilePicker.pickFiles(withData: kIsWeb)` — only loads bytes on web where paths are unavailable
 - Camera capture uses `photo.path` instead of `photo.readAsBytes()`
-- New HTTP multipart route (`POST /media/upload`) streams file to disk in chunks — zero bytes held in memory on server
-- Client sends `http.MultipartFile.fromPath()` which streams from disk in ~64KB chunks
+- New HTTP multipart route (`POST /media/upload`) streams file directly to a temp file — zero bytes held in memory on server
+- Client constructs a `MultipartRequest`, finalizes it into a `StreamedRequest`, and pipes the body through a progress-tracking stream
 - Client-side compression (`flutter_image_compress`, `video_compress`) removed entirely — compress toggle sends flag to server which does WebP/720p conversion
+- `ShareIntentDialog` uses `file.path` directly instead of `File(file.path).readAsBytes()` — same OOM fix
 
-**Optimistic UI — `PendingUploadsNotifier` + `PendingNoteWidget`:**
-- On Send: dialog dismisses instantly, file copied to `<docsDir>/pending_uploads/<uuid>`, ghost note appears in chat immediately
-- `PendingNoteWidget` matches `NoteItem` card styling with local file preview + progress indicator
-- Images: `Image.file()` preview with `CircularProgressIndicator` overlay (determinate when progress > 0)
+**Optimistic UI — `PendingUploads` + `PendingNoteWidget`:**
+- On Send: dialog dismisses instantly, file copied to `<docsDir>/pending_uploads/<uuid><ext>`, ghost note appears in chat immediately
+- `PendingNoteWidget` matches `NoteItem` card styling (border `#CE2161`, bg `#F6F0ED`, padding 12, maxWidth 600)
+- Images: `Image.file()` / `Image.memory()` preview (cacheWidth: 600) + `LinearProgressIndicator` below; dialog preview uses cacheWidth: 800
 - Videos/documents: file icon + filename + `LinearProgressIndicator`
-- On success: ghost note removed, real note arrives via WebSocket
-- On failure: red warning + "Upload failed" text + Retry/Dismiss buttons
-- Sequential upload queue: multiple ghost notes appear at once, uploads proceed one-by-one
+- Footer (uploading): "X MB / Y MB" progress text + **Cancel** button
+- Footer (error): "Upload failed" + **Retry** / **Dismiss** buttons
+- On success: ghost note removed + `ref.invalidate(notesProvider(channelId))` as fallback for missed WebSocket events (e.g. app backgrounded)
+- Upload timeout: **1 minute** — network loss triggers error state
+- Cancel: closes the active `http.Client`, removes ghost note and deletes local copy
+- Sequential queue: multiple ghost notes appear at once, uploads proceed one-by-one
 - Orphaned file cleanup: scan `pending_uploads/` on app start, delete files older than 24h
-- Web: bytes-based upload (unchanged), `PendingUpload.localBytes` stores bytes for preview
+- Web: bytes-based path, `PendingUpload.localBytes` stores bytes for `Image.memory()` preview; browser reload loses all in-progress uploads (expected)
 
-**ShareIntentDialog fix:** Uses `file.path` directly instead of `File(file.path).readAsBytes()` — same OOM fix applied to share intent flow.
+**MIME type — two layers of defence:**
+1. Client passes `contentType: MediaType.parse(mimeType)` in `MultipartFile` so server receives the correct type
+2. Server falls back to `lookupMimeType(originalFilename)` if content-type is still `application/octet-stream` (Android content URI filenames can lack extensions — client-side `getMimeTypeFromExtension` also accepts `filePath` as fallback)
+
+**Progress tracking:**
+Wraps the *outgoing network stream* (via `multipart.finalize() → StreamedRequest`), not the disk-read stream. Disk reads are near-instant and would show 0 → 100% immediately.
 
 ### Future Phases
 
@@ -861,10 +870,12 @@ dependencies:
 ### Flutter
 ```yaml
 dependencies:
-  image_picker: ^1.0.0              # For paste support
+  image_picker: ^1.0.0              # Camera capture
   cached_network_image: ^3.4.1      # Image caching
   photo_view: ^0.14.0               # Full screen viewer
-  flutter_image_compress: ^2.1.0    # Client compression
+  http: ^1.3.0                      # Multipart upload streaming
+  # NOTE: flutter_image_compress and video_compress removed in Phase 3
+  # Client-side compression is gone; compress flag is sent to server instead
 ```
 
 ---
@@ -967,37 +978,19 @@ withServerpod('Given MediaEndpoint', (sessionBuilder, endpoints) {
 
 ## Implementation Phases
 
-### Phase 1: Basic Image Upload (MVP)
-1. ✅ Create MediaAttachment model with UUID filenames
-2. ✅ Update Note model with attachments field
-3. ✅ Create media directory structure
-4. ✅ Implement streaming upload endpoint with two-phase commit
-5. ✅ Add paste detection in Flutter
-6. ✅ Create upload dialog UI
-7. ✅ Implement image compression with EXIF handling
-8. ✅ Generate thumbnails in isolate
-9. ✅ Display images in chat with cache busting
-10. ✅ Serve images via public static route
-11. ✅ Implement JOIN query for efficient loading
+### Phase 1 ✅ Basic Image Upload
+Single image upload, paste from clipboard, drag-drop, compression, thumbnails, EXIF stripping, JOIN query.
 
-### Phase 2: Enhanced Features
-1. Resumable uploads (chunked protocol)
-2. Multiple images per upload
-3. Full screen viewer with swipe
-4. Image editing (crop, rotate)
-5. Drag and drop support
+### Phase 2 ✅ Multi-File, Documents, Video
+Multiple file selection, drag-drop multiple, document support (PDF/TXT/DOC/XLS/ZIP), video (MP4/MOV/WebM) with thumbnail + optional 720p server compression, per-file compress toggle.
 
-### Phase 3: Media Gallery
-1. Gallery tab UI with grid layout
-2. Pagination and infinite scroll
-3. Date range filtering
-4. Media type filtering
+### Phase 3 ✅ Async Upload + Optimistic UI
+OOM fix (path-based streaming), `POST /media/upload` HTTP route, ghost notes with live progress, cancel/retry/dismiss, MIME detection fixes, client compression removed. See Phase 3 section above for full detail.
 
-### Phase 4: Advanced Features
-1. Video support
-2. File attachments (PDFs, documents)
-3. Storage analytics dashboard
-4. Content-based image search
+### Future
+- Resumable uploads (chunked protocol)
+- Image editing (crop, rotate)
+- Storage analytics dashboard
 
 ---
 

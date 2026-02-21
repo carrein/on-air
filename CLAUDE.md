@@ -37,7 +37,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Notes**: Create, update, delete with cursor-based pagination, archive/restore
 - **Real-time**: WebSocket streaming via MessageCentral for live updates
 - **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
-- **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, compression, thumbnail generation, EXIF stripping
+- **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, thumbnail generation, EXIF stripping; fire-and-forget async upload with ghost notes, real-time progress, cancel, and retry
 - **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, compressed badge
 - **Audio Playback**: Inline audio player for audio attachments — HTML Audio API on web, ExoPlayer on Android; scrubber, preview + download buttons
 - **Media Panel**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
@@ -236,6 +236,7 @@ Server serves:
 - Flutter web app from `web/app/` at `/app` (if built)
 - App config at `/app/assets/assets/config.json` (dynamically generated from server config)
 - Media files at `/media` via `CorsMediaRoute` (adds `Access-Control-Allow-Origin: *` so Flutter web dev server can load audio/media cross-origin)
+- File uploads at `POST /media/upload` via `MediaUploadRoute` — streams multipart body directly to disk (no in-memory buffering), processes image/video, creates DB record, broadcasts WebSocket event
 
 ### Current Endpoints
 
@@ -245,8 +246,9 @@ Server serves:
   - Archive: getArchiveItems, getArchivedChannelNoteCount
   - Link previews: automatic URL detection and metadata fetching (see `docs/components/Preview.md`)
   - Real-time streaming: WebSocket events for live updates
-- `media`: Media upload and management
-  - uploadMediaAndCreateNote, uploadMedia, deleteAttachment
+- `media`: Media management (RPC)
+  - deleteAttachment
+  - Note: file uploads use the HTTP route `POST /media/upload` (not RPC) to stream directly to disk
 
 ## Git Workflow Policy
 

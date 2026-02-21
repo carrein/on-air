@@ -90,6 +90,13 @@ All icons: 20px, `Color(0xFF00171F).withValues(alpha: 0.5)`.
 
 ---
 
+## Text Selection
+
+`MarkdownBody` has `selectable: kIsWeb`.
+
+- **Mobile**: Text selection is **disabled** so long-press correctly triggers selection mode instead of the OS text-selection handles
+- **Web**: Text selection is **enabled** (expected desktop behaviour)
+
 ## Context Menu
 
 - **Desktop**: Right-click (`onPointerDown` with `event.buttons == 2`)
