@@ -38,8 +38,9 @@ class ArchiveItems extends _$ArchiveItems {
     });
 
     // 1. Load from cache and emit immediately
-    final cached =
-        await db.getCachedArchiveItems().catchError((_) => <ArchiveItem>[]);
+    final cached = await db.getCachedArchiveItems().catchError(
+      (_) => <ArchiveItem>[],
+    );
     if (cached.isNotEmpty) {
       state = AsyncData(cached);
     }
@@ -98,8 +99,7 @@ class ArchiveItems extends _$ArchiveItems {
     final current = state.value ?? [];
     final updated = current
         .where(
-          (item) =>
-              !(item.type == 'channel' && item.channel?.id == channelId),
+          (item) => !(item.type == 'channel' && item.channel?.id == channelId),
         )
         .toList();
     state = AsyncValue.data(updated);
@@ -112,8 +112,7 @@ class ArchiveItems extends _$ArchiveItems {
     final current = state.value ?? [];
     final updated = current
         .where(
-          (item) =>
-              !(item.type == 'channel' && item.channel?.id == channelId),
+          (item) => !(item.type == 'channel' && item.channel?.id == channelId),
         )
         .toList();
     state = AsyncValue.data(updated);

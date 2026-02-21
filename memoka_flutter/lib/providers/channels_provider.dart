@@ -100,7 +100,10 @@ class Channels extends _$Channels {
     );
 
     final current = state.valueOrNull ?? [];
-    final maxSort = current.fold<int>(0, (m, c) => c.sortOrder > m ? c.sortOrder : m);
+    final maxSort = current.fold<int>(
+      0,
+      (m, c) => c.sortOrder > m ? c.sortOrder : m,
+    );
     final provisional = Channel(
       id: _nextProvisionalId--,
       name: name,

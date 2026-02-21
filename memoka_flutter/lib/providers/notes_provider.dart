@@ -216,9 +216,11 @@ class Notes extends _$Notes {
 
     final current = state.value ?? [];
     _notes = current
-        .map((n) => n.id == id
-            ? n.copyWith(content: content, updatedAt: DateTime.now())
-            : n)
+        .map(
+          (n) => n.id == id
+              ? n.copyWith(content: content, updatedAt: DateTime.now())
+              : n,
+        )
         .toList();
     state = AsyncValue.data(_notes);
     await db.cacheNotes(channelId, _notes);
