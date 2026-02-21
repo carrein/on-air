@@ -319,16 +319,9 @@ class _NoteInputState extends ConsumerState<NoteInput> {
   Future<void> _pickFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: [
-          'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', // Images
-          'mp4', 'mov', 'webm', 'avi', 'mkv', // Videos
-          'pdf', 'txt', 'md', // Documents
-          'doc', 'docx', 'xls', 'xlsx', // Office
-          'zip', // Archives
-        ],
-        withData: true, // Get bytes for web
-        allowMultiple: true, // Allow multiple file selection
+        type: FileType.any,
+        withData: true,
+        allowMultiple: true,
       );
 
       if (result == null || result.files.isEmpty) return;
