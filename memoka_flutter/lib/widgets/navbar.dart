@@ -369,8 +369,9 @@ class Navbar extends ConsumerWidget {
         if (channel != null) _showEditChannelDialog(context, ref, channel);
         break;
       case 'archive_channel':
-        if (channel != null && context.mounted)
+        if (channel != null && context.mounted) {
           _archiveChannel(context, ref, channel.id!);
+        }
         break;
       case 'new_channel':
         NewChannelModal.show(

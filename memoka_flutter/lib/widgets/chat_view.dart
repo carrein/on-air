@@ -207,8 +207,9 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   Widget _buildDisplayedContent() {
     final channelId = _displayedChannelId;
-    if (channelId == null)
+    if (channelId == null) {
       return const Center(child: CircularProgressIndicator());
+    }
     if (channelId == -1) return _buildArchiveView();
 
     final notesAsync = ref.watch(notesProvider(channelId));
