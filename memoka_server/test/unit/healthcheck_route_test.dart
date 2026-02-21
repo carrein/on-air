@@ -16,7 +16,7 @@ void main() {
     });
 
     test('path is /', () {
-      expect(route.path, '/**');
+      expect(route.path, '/');
     });
   });
 }
