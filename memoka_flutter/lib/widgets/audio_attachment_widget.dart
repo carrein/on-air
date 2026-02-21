@@ -86,12 +86,12 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
       }),
       _webAudio!.onTimeUpdate.listen((_) {
         if (!mounted || _seeking) return;
-        final secs = (_webAudio!.currentTime ?? 0).toDouble();
+        final secs = ((_webAudio! as dynamic).currentTime ?? 0).toDouble();
         setState(() => _position = _secsToDuration(secs));
       }),
       _webAudio!.onDurationChange.listen((_) {
         if (!mounted) return;
-        final d = (_webAudio!.duration ?? double.nan).toDouble();
+        final d = ((_webAudio! as dynamic).duration ?? double.nan).toDouble();
         if (!d.isNaN && !d.isInfinite && d > 0) {
           setState(() => _duration = _secsToDuration(d));
         }
@@ -102,7 +102,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
           _isPlaying = false;
           _position = Duration.zero;
         });
-        _webAudio!.currentTime = 0;
+        (_webAudio! as dynamic).currentTime = 0;
       }),
     ]);
   }
@@ -187,7 +187,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
     _seeking = false;
     final dur = Duration(milliseconds: (seconds * 1000).toInt());
     if (kIsWeb) {
-      _webAudio!.currentTime = seconds.toInt();
+      (_webAudio! as dynamic).currentTime = seconds.toInt();
       if (mounted) setState(() => _position = dur);
     } else {
       await _mobilePlayer!.seek(dur);
