@@ -76,6 +76,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return false;
     }
 
+    // Don't cycle channels when a dialog/lightbox is open on top.
+    if (ModalRoute.of(context)?.isCurrent == false) return false;
+
     // Arrow-key channel cycling only when no text field is focused.
     if (_isTextFieldFocused()) return false;
 
