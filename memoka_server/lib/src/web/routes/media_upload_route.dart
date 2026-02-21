@@ -20,10 +20,10 @@ import '../../shared/constants.dart';
 /// broadcast logic from [MediaEndpoint].
 class MediaUploadRoute extends Route {
   MediaUploadRoute()
-      : super(
-          methods: {Method.post, Method.options},
-          path: '/**',
-        );
+    : super(
+        methods: {Method.post, Method.options},
+        path: '/**',
+      );
 
   /// Maximum file size (1GB).
   static const int maxFileSize = 1024 * 1024 * 1024;
@@ -47,9 +47,9 @@ class MediaUploadRoute extends Route {
   ];
 
   static Headers _corsHeaders() => Headers.build((mh) {
-        mh.accessControlAllowOrigin =
-            const AccessControlAllowOriginHeader.wildcard();
-      });
+    mh.accessControlAllowOrigin =
+        const AccessControlAllowOriginHeader.wildcard();
+  });
 
   @override
   FutureOr<Result> handleCall(Session session, Request request) async {
@@ -81,26 +81,31 @@ class MediaUploadRoute extends Route {
     final contentTypeValues = request.headers['content-type'];
     if (contentTypeValues == null || contentTypeValues.isEmpty) {
       return Response.badRequest(
-          body: Body.fromString(jsonEncode({'error': 'Missing Content-Type'})),
-          headers: _corsHeaders());
+        body: Body.fromString(jsonEncode({'error': 'Missing Content-Type'})),
+        headers: _corsHeaders(),
+      );
     }
 
     final contentType = contentTypeValues.first;
     if (!contentType.contains('multipart/form-data')) {
       return Response.badRequest(
-          body: Body.fromString(
-              jsonEncode({'error': 'Expected multipart/form-data'})),
-          headers: _corsHeaders());
+        body: Body.fromString(
+          jsonEncode({'error': 'Expected multipart/form-data'}),
+        ),
+        headers: _corsHeaders(),
+      );
     }
 
     // Extract boundary from Content-Type.
-    final boundaryMatch =
-        RegExp(r'boundary=(.+?)(?:;|$)', caseSensitive: false)
-            .firstMatch(contentType);
+    final boundaryMatch = RegExp(
+      r'boundary=(.+?)(?:;|$)',
+      caseSensitive: false,
+    ).firstMatch(contentType);
     if (boundaryMatch == null) {
       return Response.badRequest(
-          body: Body.fromString(jsonEncode({'error': 'Missing boundary'})),
-          headers: _corsHeaders());
+        body: Body.fromString(jsonEncode({'error': 'Missing boundary'})),
+        headers: _corsHeaders(),
+      );
     }
     final boundary = boundaryMatch.group(1)!.trim();
 
@@ -129,8 +134,9 @@ class MediaUploadRoute extends Route {
 
       if (fieldName == 'file') {
         // Extract filename from content-disposition.
-        final filenameMatch =
-            RegExp(r'filename="([^"]*)"').firstMatch(disposition);
+        final filenameMatch = RegExp(
+          r'filename="([^"]*)"',
+        ).firstMatch(disposition);
         originalFilename = filenameMatch?.group(1) ?? 'upload';
 
         // Content-type of the file part.
@@ -148,9 +154,11 @@ class MediaUploadRoute extends Route {
               await sink.close();
               await File(tempFilePath).delete();
               return Response.contentTooLarge(
-                  body: Body.fromString(
-                      jsonEncode({'error': 'File exceeds 1GB limit'})),
-                  headers: _corsHeaders());
+                body: Body.fromString(
+                  jsonEncode({'error': 'File exceeds 1GB limit'}),
+                ),
+                headers: _corsHeaders(),
+              );
             }
             sink.add(chunk);
           }
@@ -186,17 +194,20 @@ class MediaUploadRoute extends Route {
         if (await f.exists()) await f.delete();
       }
       return Response.badRequest(
-          body: Body.fromString(
-              jsonEncode({'error': 'Missing channelId or file'})),
-          headers: _corsHeaders());
+        body: Body.fromString(
+          jsonEncode({'error': 'Missing channelId or file'}),
+        ),
+        headers: _corsHeaders(),
+      );
     }
 
     final channelId = int.tryParse(channelIdStr);
     if (channelId == null) {
       await File(tempFilePath).delete();
       return Response.badRequest(
-          body: Body.fromString(jsonEncode({'error': 'Invalid channelId'})),
-          headers: _corsHeaders());
+        body: Body.fromString(jsonEncode({'error': 'Invalid channelId'})),
+        headers: _corsHeaders(),
+      );
     }
 
     final compress = compressStr == 'true';
@@ -208,18 +219,24 @@ class MediaUploadRoute extends Route {
     if (originalFilename.length > 255) {
       await File(tempFilePath).delete();
       return Response.badRequest(
-          body: Body.fromString(
-              jsonEncode({'error': 'Filename too long (max 255 characters)'})),
-          headers: _corsHeaders());
+        body: Body.fromString(
+          jsonEncode({'error': 'Filename too long (max 255 characters)'}),
+        ),
+        headers: _corsHeaders(),
+      );
     }
 
     // Validate note content length
     if (noteContent.length > 50000) {
       await File(tempFilePath).delete();
       return Response.badRequest(
-          body: Body.fromString(jsonEncode(
-              {'error': 'Note content too long (max 50,000 characters)'})),
-          headers: _corsHeaders());
+        body: Body.fromString(
+          jsonEncode({
+            'error': 'Note content too long (max 50,000 characters)',
+          }),
+        ),
+        headers: _corsHeaders(),
+      );
     }
 
     // Verify channel exists.
@@ -227,8 +244,9 @@ class MediaUploadRoute extends Route {
     if (channel == null) {
       await File(tempFilePath).delete();
       return Response.notFound(
-          body: Body.fromString(jsonEncode({'error': 'Channel not found'})),
-          headers: _corsHeaders());
+        body: Body.fromString(jsonEncode({'error': 'Channel not found'})),
+        headers: _corsHeaders(),
+      );
     }
 
     // Move temp file into channel directory.
