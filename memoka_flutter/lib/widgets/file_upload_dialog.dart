@@ -40,8 +40,8 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
     final String title = _isImage
         ? 'Upload Image'
         : _isVideo
-            ? 'Upload Video'
-            : 'Upload File';
+        ? 'Upload Video'
+        : 'Upload File';
     final double dialogWidth = (_isImage || _isVideo) ? 400 : 300;
 
     return Shortcuts(
@@ -79,8 +79,11 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
                     Center(
                       child: Column(
                         children: [
-                          PhosphorIcon(PhosphorIcons.filmStrip(),
-                              size: 64, color: Colors.grey[600]),
+                          PhosphorIcon(
+                            PhosphorIcons.filmStrip(),
+                            size: 64,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             widget.file.fileName,
@@ -120,11 +123,14 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
                   // Compression option (images and videos)
                   if (_isImage || _isVideo)
                     CheckboxListTile(
-                      title:
-                          Text(_isVideo ? 'Compress video' : 'Compress image'),
-                      subtitle: Text(_isVideo
-                          ? 'Server-side compression to 720p (recommended)'
-                          : 'Reduces file size, maintains quality'),
+                      title: Text(
+                        _isVideo ? 'Compress video' : 'Compress image',
+                      ),
+                      subtitle: Text(
+                        _isVideo
+                            ? 'Server-side compression to 720p (recommended)'
+                            : 'Reduces file size, maintains quality',
+                      ),
                       value: _compress,
                       onChanged: (value) =>
                           setState(() => _compress = value ?? true),

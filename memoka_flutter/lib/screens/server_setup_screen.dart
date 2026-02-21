@@ -128,7 +128,9 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                   enabled: !_testing,
                   autocorrect: false,
                   keyboardType: TextInputType.url,
-                  style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00171F)),
+                  style: GoogleFonts.spaceGrotesk(
+                    color: const Color(0xFF00171F),
+                  ),
                   decoration: InputDecoration(
                     hintText: 'https://memoka.example.com',
                     hintStyle: GoogleFonts.spaceGrotesk(

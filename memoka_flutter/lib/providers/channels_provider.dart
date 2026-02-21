@@ -1,15 +1,24 @@
+import 'dart:convert';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
+import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
+import 'connection_provider.dart';
 
 part 'channels_provider.g.dart';
 
-/// Manages the list of channels with real-time updates from WebSocket.
+/// Manages the list of channels with local-first caching and real-time updates.
 @riverpod
 class Channels extends _$Channels {
+  /// Negative IDs for provisional offline-created channels.
+  static int _nextProvisionalId = -1;
+
   @override
   Future<List<Channel>> build() async {
+    final db = ref.read(appDatabaseProvider);
+
     // Listen to chat stream for real-time updates
     ref.listen(chatStreamProvider, (_, event) {
       event.whenData((chatEvent) {
@@ -18,19 +27,76 @@ class Channels extends _$Channels {
             chatEvent.type == 'channelUpdated' ||
             chatEvent.type == 'channelArchived' ||
             chatEvent.type == 'channelRestored') {
-          // Refetch channels when they change
-          ref.invalidateSelf();
+          _refetchAndCache();
         }
       });
     });
 
-    return client.chat.getChannels();
+    // 1. Load from cache and emit immediately (native only)
+    if (db != null) {
+      final cached = await db.getCachedChannels();
+      if (cached.isNotEmpty) {
+        state = AsyncData(cached);
+      }
+    }
+
+    // 2. Try to fetch from server
+    if (_isOnline) {
+      try {
+        final serverChannels = await client.chat.getChannels();
+        await db?.cacheChannels(serverChannels);
+        return serverChannels;
+      } catch (_) {
+        final cached = state.valueOrNull;
+        if (cached != null && cached.isNotEmpty) return cached;
+        rethrow;
+      }
+    }
+
+    return state.valueOrNull ?? [];
   }
 
-  Future<Channel> createChannel(String name, {String emoji = 'chatCircle'}) async {
-    final channel = await client.chat.createChannel(name, emoji: emoji);
-    // WebSocket broadcast will trigger refetch via listener above
-    return channel;
+  bool get _isOnline {
+    final conn = ref.read(connectionStreamProvider);
+    return conn.valueOrNull == ConnectionState.connected;
+  }
+
+  Future<void> _refetchAndCache() async {
+    try {
+      final channels = await client.chat.getChannels();
+      final db = ref.read(appDatabaseProvider);
+      await db?.cacheChannels(channels);
+      state = AsyncData(channels);
+    } catch (_) {
+      // Keep current state on error
+    }
+  }
+
+  Future<Channel> createChannel(
+    String name, {
+    String emoji = 'chatCircle',
+  }) async {
+    if (_isOnline) {
+      final channel = await client.chat.createChannel(name, emoji: emoji);
+      return channel;
+    }
+
+    // Offline: enqueue mutation and add provisional channel
+    final db = ref.read(appDatabaseProvider);
+    await db?.enqueueMutation(
+      'createChannel',
+      null,
+      jsonEncode({'name': name, 'emoji': emoji}),
+    );
+
+    final provisional = Channel(
+      id: _nextProvisionalId--,
+      name: name,
+      emoji: emoji,
+    );
+    final current = state.valueOrNull ?? [];
+    state = AsyncData([...current, provisional]);
+    return provisional;
   }
 
   Future<void> updateChannel(
@@ -39,18 +105,46 @@ class Channels extends _$Channels {
     String? emoji,
     bool? pinned,
   }) async {
-    await client.chat.updateChannel(id, name: name, emoji: emoji, pinned: pinned);
-    // WebSocket broadcast will trigger refetch via listener above
+    if (_isOnline) {
+      await client.chat.updateChannel(
+        id,
+        name: name,
+        emoji: emoji,
+        pinned: pinned,
+      );
+      return;
+    }
+
+    // Offline: enqueue
+    final db = ref.read(appDatabaseProvider);
+    final payload = <String, dynamic>{'id': id};
+    if (name != null) payload['name'] = name;
+    if (emoji != null) payload['emoji'] = emoji;
+    if (pinned != null) payload['pinned'] = pinned;
+    await db?.enqueueMutation('updateChannel', id, jsonEncode(payload));
+
+    // Optimistic local update
+    final current = state.valueOrNull ?? [];
+    state = AsyncData(
+      current.map((c) {
+        if (c.id != id) return c;
+        return c.copyWith(
+          name: name ?? c.name,
+          emoji: emoji ?? c.emoji,
+          pinned: pinned ?? c.pinned,
+        );
+      }).toList(),
+    );
   }
 
   Future<void> deleteChannel(int id) async {
     try {
       await client.chat.deleteChannel(id);
-      // WebSocket broadcast will trigger refetch via listener above
     } catch (e) {
-      // Provide user-friendly error messages
       if (e.toString().contains('last remaining channel')) {
-        throw Exception('Cannot delete the last channel. Create another channel first.');
+        throw Exception(
+          'Cannot delete the last channel. Create another channel first.',
+        );
       }
       rethrow;
     }
@@ -68,7 +162,6 @@ class Channels extends _$Channels {
           reordered.add(ch.copyWith(sortOrder: i));
         }
       }
-      // Add any channels not in the reorder list (other group)
       for (final ch in current) {
         if (!channelIds.contains(ch.id)) {
           reordered.add(ch);
@@ -82,14 +175,26 @@ class Channels extends _$Channels {
   }
 
   Future<void> archiveChannel(int id) async {
-    try {
-      await client.chat.archiveChannel(id);
-      // WebSocket broadcast will trigger refetch via listener above
-    } catch (e) {
-      if (e.toString().contains('last remaining channel')) {
-        throw Exception('Cannot archive the last channel. Create another channel first.');
+    if (_isOnline) {
+      try {
+        await client.chat.archiveChannel(id);
+      } catch (e) {
+        if (e.toString().contains('last remaining channel')) {
+          throw Exception(
+            'Cannot archive the last channel. Create another channel first.',
+          );
+        }
+        rethrow;
       }
-      rethrow;
+      return;
     }
+
+    // Offline: enqueue
+    final db = ref.read(appDatabaseProvider);
+    await db?.enqueueMutation('archiveChannel', id, jsonEncode({'id': id}));
+
+    // Remove from local state
+    final current = state.valueOrNull ?? [];
+    state = AsyncData(current.where((c) => c.id != id).toList());
   }
 }

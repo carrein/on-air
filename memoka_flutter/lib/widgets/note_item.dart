@@ -50,10 +50,19 @@ class NoteItem extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8, top: 8),
               child: GestureDetector(
-                onTap: () => ref.read(noteSelectionProvider.notifier).toggle(note.id!),
+                onTap: () =>
+                    ref.read(noteSelectionProvider.notifier).toggle(note.id!),
                 child: isSelected
-                    ? PhosphorIcon(PhosphorIcons.checkCircle(), size: 24, color: const Color(0xFFCE2161))
-                    : PhosphorIcon(PhosphorIcons.circle(), size: 24, color: const Color(0xFFCE2161)),
+                    ? PhosphorIcon(
+                        PhosphorIcons.checkCircle(),
+                        size: 24,
+                        color: const Color(0xFFCE2161),
+                      )
+                    : PhosphorIcon(
+                        PhosphorIcons.circle(),
+                        size: 24,
+                        color: const Color(0xFFCE2161),
+                      ),
               ),
             ),
           // Note content
@@ -62,46 +71,59 @@ class NoteItem extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               child: IntrinsicWidth(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600, minWidth: 300),
+                  constraints: const BoxConstraints(
+                    maxWidth: 600,
+                    minWidth: 300,
+                  ),
                   child: Listener(
-                  onPointerDown: (event) {
-                    if (event.buttons == 2) {
-                      _showContextMenu(context, ref, event.position);
-                    }
-                  },
-                  child: GestureDetector(
-                    onTap: isSelectionMode
-                        ? () => ref.read(noteSelectionProvider.notifier).toggle(note.id!)
-                        : null,
-                    onLongPress: () {
-                      if (isSelectionMode) {
-                        ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                      } else if (MediaQuery.of(context).size.width < 600) {
-                        ref.read(noteSelectionProvider.notifier).select(note.id!);
-                      } else {
-                        _showContextMenu(context, ref, null);
+                    onPointerDown: (event) {
+                      if (event.buttons == 2) {
+                        _showContextMenu(context, ref, event.position);
                       }
                     },
-                    child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF6F0ED),
-                              border: Border.all(color: borderColor, width: 1.0),
+                    child: GestureDetector(
+                      onTap: isSelectionMode
+                          ? () => ref
+                                .read(noteSelectionProvider.notifier)
+                                .toggle(note.id!)
+                          : null,
+                      onLongPress: () {
+                        if (isSelectionMode) {
+                          ref
+                              .read(noteSelectionProvider.notifier)
+                              .toggle(note.id!);
+                        } else if (MediaQuery.of(context).size.width < 600) {
+                          ref
+                              .read(noteSelectionProvider.notifier)
+                              .select(note.id!);
+                        } else {
+                          _showContextMenu(context, ref, null);
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF6F0ED),
+                          border: Border.all(color: borderColor, width: 1.0),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildContent(context, ref),
+                            const SizedBox(height: 12),
+                            _NoteFooter(
+                              note: note,
+                              channelId: channelId,
+                              ref: ref,
                             ),
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildContent(context, ref),
-                                const SizedBox(height: 12),
-                                _NoteFooter(note: note, channelId: channelId, ref: ref),
-                              ],
-                            ),
-                          ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           ),
         ],
       ),
@@ -112,39 +134,65 @@ class NoteItem extends ConsumerWidget {
     final parts = <Widget>[];
 
     if (note.content.isNotEmpty) {
-      parts.add(MarkdownBody(
-        data: note.content,
-        selectable: kIsWeb,
-        onTapLink: (text, href, title) async {
-          if (href != null) {
-            final uri = Uri.tryParse(href);
-            if (uri != null && await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
+      parts.add(
+        MarkdownBody(
+          data: note.content,
+          selectable: kIsWeb,
+          onTapLink: (text, href, title) async {
+            if (href != null) {
+              final uri = Uri.tryParse(href);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
             }
-          }
-        },
-        builders: {'pre': _CodeBlockBuilder()},
-        styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-          p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
-          a: const TextStyle(
-            fontSize: 16,
-            color: Colors.blue,
-            decoration: TextDecoration.underline,
+          },
+          builders: {'pre': _CodeBlockBuilder()},
+          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
+            a: const TextStyle(
+              fontSize: 16,
+              color: Colors.blue,
+              decoration: TextDecoration.underline,
+            ),
+            h1: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+            h2: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+            h3: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+            h4: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+            h5: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+            h6: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+            code: const TextStyle(
+              color: Color(0xFFF6F0ED),
+              backgroundColor: Color(0xFF00171F),
+            ),
+            codeblockDecoration: const BoxDecoration(),
+            blockquote: const TextStyle(color: Color(0xFF00171F)),
           ),
-          h1: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-          h2: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-          h3: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-          h4: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-          h5: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-          h6: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF00171F)),
-          code: const TextStyle(
-            color: Color(0xFFF6F0ED),
-            backgroundColor: Color(0xFF00171F),
-          ),
-          codeblockDecoration: const BoxDecoration(),
-          blockquote: const TextStyle(color: Color(0xFF00171F)),
         ),
-      ));
+      );
     }
 
     if (note.attachments != null && note.attachments!.isNotEmpty) {
@@ -152,14 +200,20 @@ class NoteItem extends ConsumerWidget {
       for (var i = 0; i < attachments.length; i++) {
         if (parts.isNotEmpty || i > 0) parts.add(const SizedBox(height: 12));
         final attachment = attachments[i];
-        final url = FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
+        final url = FileUtils.buildMediaUrl(
+          serverUrl,
+          attachment.filePath,
+          attachment.contentHash,
+        );
         final imageIndex = allImageUrls.indexOf(url);
-        parts.add(MediaAttachmentWidget(
-          attachment: attachment,
-          serverUrl: serverUrl,
-          allImageUrls: allImageUrls,
-          initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
-        ));
+        parts.add(
+          MediaAttachmentWidget(
+            attachment: attachment,
+            serverUrl: serverUrl,
+            allImageUrls: allImageUrls,
+            initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
+          ),
+        );
       }
     }
 
@@ -174,11 +228,17 @@ class NoteItem extends ConsumerWidget {
     );
   }
 
-  void _showContextMenu(BuildContext context, WidgetRef ref, Offset? globalPosition) {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  void _showContextMenu(
+    BuildContext context,
+    WidgetRef ref,
+    Offset? globalPosition,
+  ) {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
     final isArchive = channelId == -1;
 
-    final Offset position = globalPosition ??
+    final Offset position =
+        globalPosition ??
         Offset(overlay.size.width / 2, overlay.size.height / 2);
 
     showMenu(
@@ -315,12 +375,18 @@ class NoteItem extends ConsumerWidget {
     }
     if (imageAttachment == null) return;
     final url = FileUtils.buildMediaUrl(
-        serverUrl, imageAttachment.filePath, imageAttachment.contentHash);
+      serverUrl,
+      imageAttachment.filePath,
+      imageAttachment.contentHash,
+    );
     final success = await copyImageToClipboard(url);
     if (!context.mounted) return;
     if (success) {
-      ToastUtils.show(context, 'Image copied to clipboard',
-          type: ToastType.success);
+      ToastUtils.show(
+        context,
+        'Image copied to clipboard',
+        type: ToastType.success,
+      );
     } else {
       ToastUtils.show(context, 'Failed to copy image', type: ToastType.error);
     }
@@ -334,7 +400,11 @@ class NoteItem extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ToastUtils.show(context, 'Failed to restore: $e', type: ToastType.error);
+        ToastUtils.show(
+          context,
+          'Failed to restore: $e',
+          type: ToastType.error,
+        );
       }
     }
   }
@@ -353,10 +423,25 @@ class _NoteFooter extends StatelessWidget {
 
   static String _formatDateTime(DateTime dt) {
     final localTime = dt.toLocal();
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final month = months[localTime.month - 1];
     final day = localTime.day;
-    final hour = localTime.hour > 12 ? localTime.hour - 12 : (localTime.hour == 0 ? 12 : localTime.hour);
+    final hour = localTime.hour > 12
+        ? localTime.hour - 12
+        : (localTime.hour == 0 ? 12 : localTime.hour);
     final minute = localTime.minute.toString().padLeft(2, '0');
     final period = localTime.hour >= 12 ? 'PM' : 'AM';
     return '$month $day, $hour:$minute $period';
@@ -367,8 +452,11 @@ class _NoteFooter extends StatelessWidget {
     if (kIsWeb) {
       for (final a in note.attachments ?? []) {
         if (a.mimeType.toLowerCase().startsWith('image/')) {
-          final url =
-              FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash);
+          final url = FileUtils.buildMediaUrl(
+            serverUrl,
+            a.filePath,
+            a.contentHash,
+          );
           copyImageToClipboard(url).then((success) {
             if (!context.mounted) return;
             ToastUtils.show(
@@ -394,7 +482,10 @@ class _NoteFooter extends StatelessWidget {
       children: [
         Text(
           _formatDateTime(note.createdAt),
-          style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+          style: TextStyle(
+            fontSize: 12,
+            color: const Color(0xFF00171F).withValues(alpha: 0.5),
+          ),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -403,8 +494,14 @@ class _NoteFooter extends StatelessWidget {
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: GestureDetector(
-                  onTap: () => ref.read(editingNoteProvider.notifier).startEditing(note.id!),
-                  child: PhosphorIcon(PhosphorIcons.pencilSimple(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+                  onTap: () => ref
+                      .read(editingNoteProvider.notifier)
+                      .startEditing(note.id!),
+                  child: PhosphorIcon(
+                    PhosphorIcons.pencilSimple(),
+                    size: 20,
+                    color: const Color(0xFF00171F).withValues(alpha: 0.5),
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
@@ -413,7 +510,11 @@ class _NoteFooter extends StatelessWidget {
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: () => _onCopyTap(context),
-                child: PhosphorIcon(PhosphorIcons.copySimple(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+                child: PhosphorIcon(
+                  PhosphorIcons.copySimple(),
+                  size: 20,
+                  color: const Color(0xFF00171F).withValues(alpha: 0.5),
+                ),
               ),
             ),
             const SizedBox(width: 14),
@@ -425,17 +526,29 @@ class _NoteFooter extends StatelessWidget {
                         try {
                           await client.chat.restoreNote(note.id!);
                           if (context.mounted) {
-                            ToastUtils.show(context, 'Note restored', type: ToastType.success);
+                            ToastUtils.show(
+                              context,
+                              'Note restored',
+                              type: ToastType.success,
+                            );
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            ToastUtils.show(context, 'Failed to restore: $e', type: ToastType.error);
+                            ToastUtils.show(
+                              context,
+                              'Failed to restore: $e',
+                              type: ToastType.error,
+                            );
                           }
                         }
                       }
-                    : () => ref.read(notesProvider(channelId).notifier).deleteNote(note.id!),
+                    : () => ref
+                          .read(notesProvider(channelId).notifier)
+                          .deleteNote(note.id!),
                 child: PhosphorIcon(
-                  isArchive ? PhosphorIcons.arrowCounterClockwise() : PhosphorIcons.archive(),
+                  isArchive
+                      ? PhosphorIcons.arrowCounterClockwise()
+                      : PhosphorIcons.archive(),
                   size: 20,
                   color: const Color(0xFF00171F).withValues(alpha: 0.5),
                 ),
@@ -448,7 +561,11 @@ class _NoteFooter extends StatelessWidget {
                 onTap: () {
                   if (note.content.isNotEmpty) Share.share(note.content);
                 },
-                child: PhosphorIcon(PhosphorIcons.shareNetwork(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+                child: PhosphorIcon(
+                  PhosphorIcons.shareNetwork(),
+                  size: 20,
+                  color: const Color(0xFF00171F).withValues(alpha: 0.5),
+                ),
               ),
             ),
           ],
@@ -544,10 +661,9 @@ class _CodeBlock extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Text(
             displayCode,
-            style: const TextStyle(
+            style: GoogleFonts.spaceGrotesk(
               color: _fg,
               fontSize: 13,
-              fontFamily: 'monospace',
               height: 1.5,
             ),
           ),

@@ -10,7 +10,7 @@ import '../utils/file_utils.dart';
 import 'icon_button_styled.dart';
 
 /// Widget to display document attachments (PDF, TXT, DOC, etc.)
-class DocumentAttachmentWidget extends StatelessWidget {
+class DocumentAttachmentWidget extends StatefulWidget {
   final MediaAttachment attachment;
   final String serverUrl;
 
@@ -20,60 +20,90 @@ class DocumentAttachmentWidget extends StatelessWidget {
     required this.serverUrl,
   });
 
-  String get _extension => FileUtils.getExtension(attachment.originalFilename);
+  @override
+  State<DocumentAttachmentWidget> createState() =>
+      _DocumentAttachmentWidgetState();
+}
+
+class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
+  static const _textPrimary = Color(0xFF00171F);
+  static const _accent = Color(0xFFCE2161);
+
+  /// null = not downloading; 0.0–1.0 = download progress.
+  double? _downloadProgress;
+
+  String get _extension =>
+      FileUtils.getExtension(widget.attachment.originalFilename);
 
   IconData get _fileIcon => FileUtils.getFileIcon(_extension);
 
-  String get _fileSizeFormatted => FileUtils.formatFileSize(attachment.fileSize);
+  String get _fileSizeFormatted =>
+      FileUtils.formatFileSize(widget.attachment.fileSize);
 
-  String _buildDocumentUrl() =>
-      FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
-
-  static const _textPrimary = Color(0xFF00171F);
+  String _buildDocumentUrl() => FileUtils.buildMediaUrl(
+    widget.serverUrl,
+    widget.attachment.filePath,
+    widget.attachment.contentHash,
+  );
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PhosphorIcon(_fileIcon, color: _textPrimary, size: 32),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                attachment.originalFilename,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: _textPrimary,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+        Row(
+          children: [
+            PhosphorIcon(_fileIcon, color: _textPrimary, size: 32),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.attachment.originalFilename,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: _textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _fileSizeFormatted,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _textPrimary.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                _fileSizeFormatted,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _textPrimary.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
+            ),
+            const SizedBox(width: 16),
+            IconButtonStyled(
+              icon: PhosphorIcons.handEye(),
+              onPressed: _handlePreview,
+              size: 20,
+            ),
+            const SizedBox(width: 4),
+            IconButtonStyled(
+              icon: PhosphorIcons.downloadSimple(),
+              onPressed: _downloadProgress == null
+                  ? () => _handleDownload(context)
+                  : null,
+              size: 20,
+            ),
+          ],
+        ),
+        if (_downloadProgress != null) ...[
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: _downloadProgress! > 0 ? _downloadProgress : null,
+            color: _accent,
+            backgroundColor: _accent.withValues(alpha: 0.15),
           ),
-        ),
-        const SizedBox(width: 16),
-        IconButtonStyled(
-          icon: PhosphorIcons.handEye(),
-          onPressed: _handlePreview,
-          size: 20,
-        ),
-        const SizedBox(width: 4),
-        IconButtonStyled(
-          icon: PhosphorIcons.downloadSimple(),
-          onPressed: () => _handleDownload(context),
-          size: 20,
-        ),
+        ],
       ],
     );
   }
@@ -91,10 +121,20 @@ class DocumentAttachmentWidget extends StatelessWidget {
     if (kIsWeb) {
       html.AnchorElement()
         ..href = url
-        ..setAttribute('download', attachment.originalFilename)
+        ..setAttribute('download', widget.attachment.originalFilename)
         ..click();
     } else {
-      DownloadUtils.downloadToDevice(context, url, attachment.originalFilename);
+      setState(() => _downloadProgress = 0.0);
+      DownloadUtils.downloadToDevice(
+        context,
+        url,
+        widget.attachment.originalFilename,
+        onProgress: (p) {
+          if (mounted) setState(() => _downloadProgress = p);
+        },
+      ).whenComplete(() {
+        if (mounted) setState(() => _downloadProgress = null);
+      });
     }
   }
 }

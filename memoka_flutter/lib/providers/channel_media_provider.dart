@@ -53,7 +53,8 @@ class ChannelMediaData extends _$ChannelMediaData {
       final urls = _extractUrlsFromContent(note.content);
       for (final url in urls) {
         // If this URL has a preview, use it; otherwise create a basic preview
-        final hasPreview = note.linkPreview != null && note.linkPreview!.url == url;
+        final hasPreview =
+            note.linkPreview != null && note.linkPreview!.url == url;
         final preview = hasPreview
             ? note.linkPreview!
             : LinkPreview(
@@ -64,12 +65,14 @@ class ChannelMediaData extends _$ChannelMediaData {
                 faviconUrl: null,
               );
 
-        links.add(LinkItem(
-          noteId: note.id!,
-          preview: preview,
-          createdAt: note.createdAt,
-          noteContent: note.content,
-        ));
+        links.add(
+          LinkItem(
+            noteId: note.id!,
+            preview: preview,
+            createdAt: note.createdAt,
+            noteContent: note.content,
+          ),
+        );
       }
     }
 

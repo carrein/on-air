@@ -35,7 +35,10 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
     super.initState();
     // Pre-fill with shared text if it's a text-only share
     final textItems = widget.sharedFiles
-        .where((f) => f.type == SharedMediaType.text || f.type == SharedMediaType.url)
+        .where(
+          (f) =>
+              f.type == SharedMediaType.text || f.type == SharedMediaType.url,
+        )
         .toList();
     if (textItems.isNotEmpty) {
       _textController.text = textItems.map((f) => f.path).join('\n');
@@ -49,16 +52,19 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
   }
 
   bool get _hasMediaFiles => widget.sharedFiles.any(
-        (f) => f.type == SharedMediaType.image ||
-            f.type == SharedMediaType.video ||
-            f.type == SharedMediaType.file,
-      );
+    (f) =>
+        f.type == SharedMediaType.image ||
+        f.type == SharedMediaType.video ||
+        f.type == SharedMediaType.file,
+  );
 
   List<SharedMediaFile> get _mediaFiles => widget.sharedFiles
-      .where((f) =>
-          f.type == SharedMediaType.image ||
-          f.type == SharedMediaType.video ||
-          f.type == SharedMediaType.file)
+      .where(
+        (f) =>
+            f.type == SharedMediaType.image ||
+            f.type == SharedMediaType.video ||
+            f.type == SharedMediaType.file,
+      )
       .toList();
 
   Future<void> _send() async {
@@ -72,11 +78,15 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
       // directly (no readAsBytes OOM risk).
       for (final file in _mediaFiles) {
         final fileName = file.path.split('/').last;
-        ref.read(pendingUploadsProvider.notifier).enqueue(
+        ref
+            .read(pendingUploadsProvider.notifier)
+            .enqueue(
               channelId: channelId,
               filePath: file.path,
               fileName: fileName,
-              noteContent: text.isNotEmpty && file == _mediaFiles.first ? text : '',
+              noteContent: text.isNotEmpty && file == _mediaFiles.first
+                  ? text
+                  : '',
               compress: _compress,
             );
       }
@@ -133,32 +143,33 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                       ),
                     ),
                     items: channels
-                        .map((c) => DropdownMenuItem(
-                              value: c.id,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  PhosphorIcon(
-                                    getChannelIcon(c.emoji),
-                                    size: 18,
-                                    color: const Color(0xFF00171F),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    c.name,
-                                    style: GoogleFonts.spaceGrotesk(),
-                                  ),
-                                ],
-                              ),
-                            ))
+                        .map(
+                          (c) => DropdownMenuItem(
+                            value: c.id,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PhosphorIcon(
+                                  getChannelIcon(c.emoji),
+                                  size: 18,
+                                  color: const Color(0xFF00171F),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  c.name,
+                                  style: GoogleFonts.spaceGrotesk(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: _sending
                         ? null
                         : (id) => setState(() => _selectedChannelId = id),
                   );
                 },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Text('Failed to load channels: $e'),
               ),
               const SizedBox(height: 12),

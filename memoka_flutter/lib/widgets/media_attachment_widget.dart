@@ -157,8 +157,7 @@ class _ImageAttachmentWidget extends StatelessWidget {
               bottom: 4,
               right: 4,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(4),
@@ -166,7 +165,11 @@ class _ImageAttachmentWidget extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    PhosphorIcon(PhosphorIcons.arrowsInSimple(), color: Colors.white70, size: 12),
+                    PhosphorIcon(
+                      PhosphorIcons.arrowsInSimple(),
+                      color: Colors.white70,
+                      size: 12,
+                    ),
                     const SizedBox(width: 3),
                     const Text(
                       'Compressed',
@@ -190,7 +193,11 @@ class _ImageAttachmentWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            PhosphorIcon(PhosphorIcons.imageBroken(), color: Colors.grey, size: 48),
+            PhosphorIcon(
+              PhosphorIcons.imageBroken(),
+              color: Colors.grey,
+              size: 48,
+            ),
             const SizedBox(height: 8),
             Text(
               'Error: ${error.toString().substring(0, math.min(50, error.toString().length))}...',

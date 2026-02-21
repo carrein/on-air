@@ -32,7 +32,12 @@ class _ChannelListState extends ConsumerState<ChannelList> {
   static const double _sidebarCompactWidth = 64.0;
   static const _emojiContainerSize = 40.0;
   static const _emojiFontSize = 18.0;
-  static const _channelItemPadding = EdgeInsets.only(left: 8, right: 18, top: 10, bottom: 10);
+  static const _channelItemPadding = EdgeInsets.only(
+    left: 8,
+    right: 18,
+    top: 10,
+    bottom: 10,
+  );
   static const _emojiToTextGap = 8.0;
   static const _channelNameFontSize = 14.0;
   static const _previewFontSize = 10.0;
@@ -40,7 +45,8 @@ class _ChannelListState extends ConsumerState<ChannelList> {
 
   // -- Scroll --
   static const _scrollThreshold = 10.0;
-  static const _itemHeight = _emojiContainerSize + 20.0; // top(10) + bottom(10) padding
+  static const _itemHeight =
+      _emojiContainerSize + 20.0; // top(10) + bottom(10) padding
 
   final ScrollController _scrollController = ScrollController();
   bool _showFadeOut = true;
@@ -58,7 +64,11 @@ class _ChannelListState extends ConsumerState<ChannelList> {
     super.dispose();
   }
 
-  void _scrollToChannel(int channelId, List<Channel> pinned, List<Channel> unpinned) {
+  void _scrollToChannel(
+    int channelId,
+    List<Channel> pinned,
+    List<Channel> unpinned,
+  ) {
     if (!_scrollController.hasClients) return;
 
     int index = pinned.indexWhere((c) => c.id == channelId);
@@ -72,8 +82,10 @@ class _ChannelListState extends ConsumerState<ChannelList> {
     final pos = _scrollController.position;
 
     // Center the item in the viewport, clamped to valid scroll range
-    final target = (itemTop - (pos.viewportDimension - _itemHeight) / 2)
-        .clamp(pos.minScrollExtent, pos.maxScrollExtent);
+    final target = (itemTop - (pos.viewportDimension - _itemHeight) / 2).clamp(
+      pos.minScrollExtent,
+      pos.maxScrollExtent,
+    );
 
     if ((target - pos.pixels).abs() < 1.0) return;
 
@@ -86,7 +98,8 @@ class _ChannelListState extends ConsumerState<ChannelList> {
 
   void _onScroll() {
     if (_scrollController.hasClients) {
-      final isAtBottom = _scrollController.position.pixels >=
+      final isAtBottom =
+          _scrollController.position.pixels >=
           _scrollController.position.maxScrollExtent - _scrollThreshold;
       final isAtTop = _scrollController.position.pixels <= _scrollThreshold;
 
@@ -119,154 +132,171 @@ class _ChannelListState extends ConsumerState<ChannelList> {
     });
 
     return Container(
-          width: compact ? _sidebarCompactWidth : _sidebarWidth,
-          decoration: const BoxDecoration(
-            color: _backgroundColor,
-            border: Border(right: BorderSide(color: _borderColor, width: 1)),
-          ),
-          child: Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    channelsAsync.when(
-                      data: (channels) {
-                        // Filter out system channels (e.g., Archive)
-                        final regularChannels = channels.where((c) => !c.isSystemChannel).toList();
+      width: compact ? _sidebarCompactWidth : _sidebarWidth,
+      decoration: const BoxDecoration(
+        color: _backgroundColor,
+        border: Border(right: BorderSide(color: _borderColor, width: 1)),
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                channelsAsync.when(
+                  data: (channels) {
+                    // Filter out system channels (e.g., Archive)
+                    final regularChannels = channels
+                        .where((c) => !c.isSystemChannel)
+                        .toList();
 
-                        // Split into pinned and unpinned groups
-                        final pinned = regularChannels.where((c) => c.pinned).toList();
-                        final unpinned = regularChannels.where((c) => !c.pinned).toList();
+                    // Split into pinned and unpinned groups
+                    final pinned = regularChannels
+                        .where((c) => c.pinned)
+                        .toList();
+                    final unpinned = regularChannels
+                        .where((c) => !c.pinned)
+                        .toList();
 
-                        final totalCount = pinned.length + unpinned.length;
+                    final totalCount = pinned.length + unpinned.length;
 
-                        return ScrollConfiguration(
-                          behavior: ScrollConfiguration.of(context).copyWith(
-                            scrollbars: false,
-                          ),
-                          child: ReorderableListView.builder(
-                            scrollController: _scrollController,
-                            buildDefaultDragHandles: false,
-                            proxyDecorator: (child, index, animation) {
-                              return AnimatedBuilder(
-                                animation: animation,
-                                builder: (context, child) {
-                                  final scale = 1.0 + 0.04 * animation.value;
-                                  return Transform.scale(
-                                    scale: scale,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: _borderColor.withValues(alpha: animation.value),
-                                          width: 1.5,
-                                        ),
+                    return ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(
+                        scrollbars: false,
+                      ),
+                      child: ReorderableListView.builder(
+                        scrollController: _scrollController,
+                        buildDefaultDragHandles: false,
+                        proxyDecorator: (child, index, animation) {
+                          return AnimatedBuilder(
+                            animation: animation,
+                            builder: (context, child) {
+                              final scale = 1.0 + 0.04 * animation.value;
+                              return Transform.scale(
+                                scale: scale,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: _borderColor.withValues(
+                                        alpha: animation.value,
                                       ),
-                                      child: Material(
-                                        elevation: 10 * animation.value,
-                                        shadowColor: _borderColor.withValues(alpha: 0.4),
-                                        color: _backgroundColor,
-                                        child: child,
-                                      ),
+                                      width: 1.5,
                                     ),
-                                  );
-                                },
-                                child: child,
+                                  ),
+                                  child: Material(
+                                    elevation: 10 * animation.value,
+                                    shadowColor: _borderColor.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                    color: _backgroundColor,
+                                    child: child,
+                                  ),
+                                ),
                               );
                             },
-                            itemCount: totalCount,
-                            onReorder: (oldIndex, newIndex) => _onReorder(
-                              oldIndex,
-                              newIndex,
-                              pinned,
-                              unpinned,
-                            ),
-                            itemBuilder: (context, index) {
-                              // Determine which channel this index maps to
-                              final Channel channel;
-                              if (index < pinned.length) {
-                                channel = pinned[index];
-                              } else {
-                                channel = unpinned[index - pinned.length];
-                              }
-
-                              final isSelected = currentChannelAsync.value == channel.id;
-
-                              // Desktop: immediate drag on pointer down.
-                              // Mobile: delayed (long-press) to avoid scroll conflicts.
-                              final child = _buildChannelItem(channel, isSelected, context, compact: compact);
-                              if (ResponsiveUtils.isDesktopPlatform) {
-                                return ReorderableDragStartListener(
-                                  key: ValueKey(channel.id),
-                                  index: index,
-                                  child: child,
-                                );
-                              }
-                              return ReorderableDelayedDragStartListener(
-                                key: ValueKey(channel.id),
-                                index: index,
-                                child: child,
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (err, stack) => Center(child: Text('Error: $err')),
-                    ),
-                    // Fade-in gradient at top (only when scrolled down)
-                    if (_showFadeIn)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        height: _fadeGradientHeight,
-                        child: IgnorePointer(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  _backgroundColor.withValues(alpha: 0.95),
-                                  _backgroundColor.withValues(alpha: 0.5),
-                                  _backgroundColor.withValues(alpha: 0),
-                                ],
-                                stops: const [0.0, 0.5, 1.0],
-                              ),
-                            ),
-                          ),
+                            child: child,
+                          );
+                        },
+                        itemCount: totalCount,
+                        onReorder: (oldIndex, newIndex) => _onReorder(
+                          oldIndex,
+                          newIndex,
+                          pinned,
+                          unpinned,
                         ),
+                        itemBuilder: (context, index) {
+                          // Determine which channel this index maps to
+                          final Channel channel;
+                          if (index < pinned.length) {
+                            channel = pinned[index];
+                          } else {
+                            channel = unpinned[index - pinned.length];
+                          }
+
+                          final isSelected =
+                              currentChannelAsync.value == channel.id;
+
+                          // Desktop: immediate drag on pointer down.
+                          // Mobile: delayed (long-press) to avoid scroll conflicts.
+                          final child = _buildChannelItem(
+                            channel,
+                            isSelected,
+                            context,
+                            compact: compact,
+                          );
+                          if (ResponsiveUtils.isDesktopPlatform) {
+                            return ReorderableDragStartListener(
+                              key: ValueKey(channel.id),
+                              index: index,
+                              child: child,
+                            );
+                          }
+                          return ReorderableDelayedDragStartListener(
+                            key: ValueKey(channel.id),
+                            index: index,
+                            child: child,
+                          );
+                        },
                       ),
-                    // Fade-out gradient at bottom (only when not at bottom)
-                    if (_showFadeOut)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: _fadeGradientHeight,
-                        child: IgnorePointer(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  _backgroundColor.withValues(alpha: 0),
-                                  _backgroundColor.withValues(alpha: 0.5),
-                                  _backgroundColor.withValues(alpha: 0.95),
-                                ],
-                                stops: const [0.0, 0.5, 1.0],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (err, stack) => Center(child: Text('Error: $err')),
                 ),
-              ),
-            ],
+                // Fade-in gradient at top (only when scrolled down)
+                if (_showFadeIn)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: _fadeGradientHeight,
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              _backgroundColor.withValues(alpha: 0.95),
+                              _backgroundColor.withValues(alpha: 0.5),
+                              _backgroundColor.withValues(alpha: 0),
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                // Fade-out gradient at bottom (only when not at bottom)
+                if (_showFadeOut)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: _fadeGradientHeight,
+                    child: IgnorePointer(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              _backgroundColor.withValues(alpha: 0),
+                              _backgroundColor.withValues(alpha: 0.5),
+                              _backgroundColor.withValues(alpha: 0.95),
+                            ],
+                            stops: const [0.0, 0.5, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
-        );
+        ],
+      ),
+    );
   }
 
   void _onReorder(
@@ -293,7 +323,9 @@ class _ChannelListState extends ConsumerState<ChannelList> {
       final item = reordered.removeAt(oldIndex);
       reordered.insert(newIndex, item);
 
-      ref.read(channelsProvider.notifier).reorderChannels(
+      ref
+          .read(channelsProvider.notifier)
+          .reorderChannels(
             reordered.map((c) => c.id!).toList(),
           );
     } else {
@@ -309,7 +341,9 @@ class _ChannelListState extends ConsumerState<ChannelList> {
       final item = reordered.removeAt(localOld);
       reordered.insert(localNew, item);
 
-      ref.read(channelsProvider.notifier).reorderChannels(
+      ref
+          .read(channelsProvider.notifier)
+          .reorderChannels(
             reordered.map((c) => c.id!).toList(),
           );
     }
@@ -323,7 +357,9 @@ class _ChannelListState extends ConsumerState<ChannelList> {
   }) {
     // Get latest note for preview (skip in compact mode)
     final notesAsync = compact ? null : ref.watch(notesProvider(channel.id!));
-    final latestNote = notesAsync?.value?.isNotEmpty == true ? notesAsync!.value!.first : null;
+    final latestNote = notesAsync?.value?.isNotEmpty == true
+        ? notesAsync!.value!.first
+        : null;
 
     return Material(
       color: isSelected ? _selectedColor : Colors.transparent,
@@ -380,7 +416,9 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: isSelected ? Colors.white : _textColor,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : _textColor,
                                     width: 1.5,
                                   ),
                                 ),
@@ -388,7 +426,9 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                                   child: PhosphorIcon(
                                     getChannelIcon(channel.emoji),
                                     size: _emojiFontSize,
-                                    color: isSelected ? Colors.white : _textColor,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : _textColor,
                                   ),
                                 ),
                               )
@@ -415,7 +455,8 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                               color: isSelected ? Colors.white : _textColor,
                             ),
                           ),
-                          if (latestNote != null && _shouldShowPreview(latestNote))
+                          if (latestNote != null &&
+                              _shouldShowPreview(latestNote))
                             Text(
                               _getPreviewText(latestNote),
                               overflow: TextOverflow.ellipsis,
@@ -423,8 +464,12 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                               style: TextStyle(
                                 fontSize: _previewFontSize,
                                 color: isSelected
-                                    ? Colors.white.withValues(alpha: _previewTextAlpha)
-                                    : _textColor.withValues(alpha: _previewTextAlpha),
+                                    ? Colors.white.withValues(
+                                        alpha: _previewTextAlpha,
+                                      )
+                                    : _textColor.withValues(
+                                        alpha: _previewTextAlpha,
+                                      ),
                               ),
                             ),
                         ],
@@ -474,5 +519,4 @@ class _ChannelListState extends ConsumerState<ChannelList> {
     ref.read(channelSwitchDirectionProvider.notifier).state = 0;
     ref.read(currentChannelProvider.notifier).switchChannel(channelId);
   }
-
 }

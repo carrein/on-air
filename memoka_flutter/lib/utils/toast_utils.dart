@@ -106,7 +106,8 @@ class _ToastNotification extends StatefulWidget {
   State<_ToastNotification> createState() => _ToastNotificationState();
 }
 
-class _ToastNotificationState extends State<_ToastNotification> with SingleTickerProviderStateMixin {
+class _ToastNotificationState extends State<_ToastNotification>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -153,7 +154,10 @@ class _ToastNotificationState extends State<_ToastNotification> with SingleTicke
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     constraints: const BoxConstraints(maxWidth: 300),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -163,7 +167,10 @@ class _ToastNotificationState extends State<_ToastNotification> with SingleTicke
                         Flexible(
                           child: Text(
                             widget.data.message,
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ],

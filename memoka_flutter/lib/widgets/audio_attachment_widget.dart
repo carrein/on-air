@@ -51,15 +51,18 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
   bool _seeking = false;
   String? _error;
 
+  /// null = not downloading; 0.0–1.0 = download progress.
+  double? _downloadProgress;
+
   final List<StreamSubscription<dynamic>> _subs = [];
 
   String get _audioId => widget.attachment.filePath;
 
   String get _audioUrl => FileUtils.buildMediaUrl(
-        widget.serverUrl,
-        widget.attachment.filePath,
-        widget.attachment.contentHash,
-      );
+    widget.serverUrl,
+    widget.attachment.filePath,
+    widget.attachment.contentHash,
+  );
 
   // ── init / dispose ────────────────────────────────────────────────────────
 
@@ -217,122 +220,169 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
     ref.listen<String?>(activeAudioIdProvider, _onActiveIdChanged);
 
     final totalSeconds = _duration.inSeconds.toDouble();
-    final posSeconds = _position.inSeconds
-        .toDouble()
-        .clamp(0.0, totalSeconds > 0 ? totalSeconds : 1.0);
+    final posSeconds = _position.inSeconds.toDouble().clamp(
+      0.0,
+      totalSeconds > 0 ? totalSeconds : 1.0,
+    );
     final hasDuration = _duration > Duration.zero;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // File icon — mirrors document attachment style
-        PhosphorIcon(PhosphorIcons.fileAudio(), color: _textPrimary, size: 32),
-        const SizedBox(width: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // File icon — mirrors document attachment style
+            PhosphorIcon(
+              PhosphorIcons.fileAudio(),
+              color: _textPrimary,
+              size: 32,
+            ),
+            const SizedBox(width: 12),
 
-        // Filename + controls
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    'Audio error: $_error',
-                    style: const TextStyle(fontSize: 10, color: Colors.red),
-                  ),
-                ),
-
-              Text(
-                widget.attachment.originalFilename,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: _textPrimary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-
-              // play | scrubber | time | download
-              Row(
+            // Filename + controls
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButtonStyled(
-                    icon: _isPlaying
-                        ? PhosphorIcons.pause()
-                        : PhosphorIcons.play(),
-                    onPressed: _togglePlay,
-                    size: 22,
-                  ),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: _accent,
-                        inactiveTrackColor: _textPrimary.withValues(alpha: 0.15),
-                        thumbColor: _accent,
-                        overlayColor: _accent.withValues(alpha: 0.2),
-                        thumbShape:
-                            const RoundSliderThumbShape(enabledThumbRadius: 6),
-                        trackHeight: 3,
-                        overlayShape:
-                            const RoundSliderOverlayShape(overlayRadius: 12),
-                      ),
-                      child: Slider(
-                        value: posSeconds,
-                        min: 0,
-                        max: totalSeconds > 0 ? totalSeconds : 1.0,
-                        onChangeStart: (_) => setState(() => _seeking = true),
-                        onChanged: hasDuration
-                            ? (v) => setState(
-                                  () => _position = Duration(seconds: v.toInt()),
-                                )
-                            : null,
-                        onChangeEnd: (v) => _seekTo(v),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        'Audio error: $_error',
+                        style: const TextStyle(fontSize: 10, color: Colors.red),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
+
                   Text(
-                    hasDuration
-                        ? '${_formatDuration(_position)} / ${_formatDuration(_duration)}'
-                        : '--:-- / --:--',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: _textPrimary.withValues(alpha: 0.5),
+                    widget.attachment.originalFilename,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: _textPrimary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 16),
-                  IconButtonStyled(
-                    icon: PhosphorIcons.handEye(),
-                    onPressed: () async {
-                      final uri = Uri.parse(_audioUrl);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                    size: 20,
-                  ),
-                  const SizedBox(width: 4),
-                  IconButtonStyled(
-                    icon: PhosphorIcons.downloadSimple(),
-                    onPressed: () {
-                      if (kIsWeb) {
-                        html.AnchorElement()
-                          ..href = _audioUrl
-                          ..setAttribute('download', widget.attachment.originalFilename)
-                          ..click();
-                      } else {
-                        DownloadUtils.downloadToDevice(context, _audioUrl, widget.attachment.originalFilename);
-                      }
-                    },
-                    size: 20,
+                  const SizedBox(height: 8),
+
+                  // play | scrubber | time | download
+                  Row(
+                    children: [
+                      IconButtonStyled(
+                        icon: _isPlaying
+                            ? PhosphorIcons.pause()
+                            : PhosphorIcons.play(),
+                        onPressed: _togglePlay,
+                        size: 22,
+                      ),
+                      Expanded(
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            activeTrackColor: _accent,
+                            inactiveTrackColor: _textPrimary.withValues(
+                              alpha: 0.15,
+                            ),
+                            thumbColor: _accent,
+                            overlayColor: _accent.withValues(alpha: 0.2),
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6,
+                            ),
+                            trackHeight: 3,
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 12,
+                            ),
+                          ),
+                          child: Slider(
+                            value: posSeconds,
+                            min: 0,
+                            max: totalSeconds > 0 ? totalSeconds : 1.0,
+                            onChangeStart: (_) =>
+                                setState(() => _seeking = true),
+                            onChanged: hasDuration
+                                ? (v) => setState(
+                                    () => _position = Duration(
+                                      seconds: v.toInt(),
+                                    ),
+                                  )
+                                : null,
+                            onChangeEnd: (v) => _seekTo(v),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        hasDuration
+                            ? '${_formatDuration(_position)} / ${_formatDuration(_duration)}'
+                            : '--:-- / --:--',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _textPrimary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      IconButtonStyled(
+                        icon: PhosphorIcons.handEye(),
+                        onPressed: () async {
+                          final uri = Uri.parse(_audioUrl);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }
+                        },
+                        size: 20,
+                      ),
+                      const SizedBox(width: 4),
+                      IconButtonStyled(
+                        icon: PhosphorIcons.downloadSimple(),
+                        onPressed: _downloadProgress == null
+                            ? () {
+                                if (kIsWeb) {
+                                  html.AnchorElement()
+                                    ..href = _audioUrl
+                                    ..setAttribute(
+                                      'download',
+                                      widget.attachment.originalFilename,
+                                    )
+                                    ..click();
+                                } else {
+                                  setState(() => _downloadProgress = 0.0);
+                                  DownloadUtils.downloadToDevice(
+                                    context,
+                                    _audioUrl,
+                                    widget.attachment.originalFilename,
+                                    onProgress: (p) {
+                                      if (mounted) {
+                                        setState(() => _downloadProgress = p);
+                                      }
+                                    },
+                                  ).whenComplete(() {
+                                    if (mounted) {
+                                      setState(() => _downloadProgress = null);
+                                    }
+                                  });
+                                }
+                              }
+                            : null,
+                        size: 20,
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+        if (_downloadProgress != null) ...[
+          const SizedBox(height: 6),
+          LinearProgressIndicator(
+            value: _downloadProgress! > 0 ? _downloadProgress : null,
+            color: _accent,
+            backgroundColor: _accent.withValues(alpha: 0.15),
+          ),
+        ],
       ],
     );
   }

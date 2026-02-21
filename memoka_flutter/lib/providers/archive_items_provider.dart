@@ -38,7 +38,9 @@ class ArchiveItems extends _$ArchiveItems {
     // Optimistic update
     final current = state.value ?? [];
     state = AsyncValue.data(
-      current.where((item) => !(item.type == 'note' && item.note?.id == noteId)).toList(),
+      current
+          .where((item) => !(item.type == 'note' && item.note?.id == noteId))
+          .toList(),
     );
   }
 
@@ -52,7 +54,12 @@ class ArchiveItems extends _$ArchiveItems {
     // Optimistic update
     final current = state.value ?? [];
     state = AsyncValue.data(
-      current.where((item) => !(item.type == 'channel' && item.channel?.id == channelId)).toList(),
+      current
+          .where(
+            (item) =>
+                !(item.type == 'channel' && item.channel?.id == channelId),
+          )
+          .toList(),
     );
   }
 }

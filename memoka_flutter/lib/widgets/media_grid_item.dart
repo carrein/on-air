@@ -51,7 +51,10 @@ class MediaGridItem extends ConsumerWidget {
           fit: BoxFit.cover,
           cacheWidth: 400,
           errorBuilder: (context, error, stackTrace) {
-            return _buildErrorPlaceholder(PhosphorIcons.imageBroken(), 'Failed to load');
+            return _buildErrorPlaceholder(
+              PhosphorIcons.imageBroken(),
+              'Failed to load',
+            );
           },
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
@@ -73,7 +76,10 @@ class MediaGridItem extends ConsumerWidget {
             thumbnailUrl,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              return _buildErrorPlaceholder(PhosphorIcons.video(), 'No preview');
+              return _buildErrorPlaceholder(
+                PhosphorIcons.video(),
+                'No preview',
+              );
             },
             loadingBuilder: (context, child, loadingProgress) {
               if (loadingProgress == null) return child;

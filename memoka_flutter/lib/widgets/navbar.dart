@@ -17,6 +17,7 @@ import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
 import 'media_panel.dart';
 import 'new_channel_modal.dart';
+import 'sync_indicator.dart';
 
 /// Navbar displaying the current channel name and a menu button.
 class Navbar extends ConsumerWidget {
@@ -32,9 +33,18 @@ class Navbar extends ConsumerWidget {
     fontWeight: FontWeight.bold,
   );
 
-  static const _padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
-  static const _paddingDetail = EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8);
-  static const _paddingStandard = EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8);
+  static const _paddingDetail = EdgeInsets.only(
+    left: 8,
+    right: 16,
+    top: 8,
+    bottom: 8,
+  );
+  static const _paddingStandard = EdgeInsets.only(
+    left: 16,
+    right: 8,
+    top: 8,
+    bottom: 8,
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,7 +84,13 @@ class Navbar extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
           ],
-          Expanded(child: _buildTitle(currentChannelAsync, channelsAsync, isShowingSettings)),
+          Expanded(
+            child: _buildTitle(
+              currentChannelAsync,
+              channelsAsync,
+              isShowingSettings,
+            ),
+          ),
           if (!isInDetailMode)
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -84,7 +100,11 @@ class Navbar extends ConsumerWidget {
                     icon: currentChannel.pinned
                         ? PhosphorIcons.pushPinSlash()
                         : PhosphorIcons.pushPin(),
-                    onPressed: () => _togglePin(ref, currentChannel.id!, !currentChannel.pinned),
+                    onPressed: () => _togglePin(
+                      ref,
+                      currentChannel.id!,
+                      !currentChannel.pinned,
+                    ),
                   ),
                   const SizedBox(width: 4),
                 ],
@@ -95,11 +115,13 @@ class Navbar extends ConsumerWidget {
                       icon: mediaPanelVisible
                           ? PhosphorIconsFill.sidebar
                           : PhosphorIcons.sidebar(),
-                      onPressed: () => ref.read(mediaPanelVisibleProvider.notifier).toggle(),
+                      onPressed: () =>
+                          ref.read(mediaPanelVisibleProvider.notifier).toggle(),
                     ),
                   ),
                   const SizedBox(width: 4),
                 ],
+                const SyncIndicator(),
                 IconButtonStyled(
                   icon: PhosphorIcons.dotsThreeCircle(),
                   onPressed: () => _showNavbarMenu(context, ref),
@@ -111,9 +133,13 @@ class Navbar extends ConsumerWidget {
     );
   }
 
-  Widget _buildSelectionBar(BuildContext context, WidgetRef ref, Set<int> selection) {
+  Widget _buildSelectionBar(
+    BuildContext context,
+    WidgetRef ref,
+    Set<int> selection,
+  ) {
     return Container(
-      padding: _padding,
+      padding: _paddingStandard,
       decoration: const BoxDecoration(
         color: _backgroundColor,
         border: Border(bottom: BorderSide(color: _borderColor, width: 1)),
@@ -157,7 +183,11 @@ class Navbar extends ConsumerWidget {
     );
   }
 
-  Future<void> _archiveSelected(BuildContext context, WidgetRef ref, Set<int> selection) async {
+  Future<void> _archiveSelected(
+    BuildContext context,
+    WidgetRef ref,
+    Set<int> selection,
+  ) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
     final notifier = ref.read(notesProvider(channelId).notifier);
@@ -166,7 +196,11 @@ class Navbar extends ConsumerWidget {
     }
     ref.read(noteSelectionProvider.notifier).clear();
     if (context.mounted) {
-      ToastUtils.show(context, '${selection.length} note${selection.length == 1 ? '' : 's'} archived', type: ToastType.success);
+      ToastUtils.show(
+        context,
+        '${selection.length} note${selection.length == 1 ? '' : 's'} archived',
+        type: ToastType.success,
+      );
     }
   }
 
@@ -190,7 +224,11 @@ class Navbar extends ConsumerWidget {
     }
   }
 
-  Widget _buildTitle(AsyncValue<int> currentChannelAsync, AsyncValue<List<Channel>> channelsAsync, bool isShowingSettings) {
+  Widget _buildTitle(
+    AsyncValue<int> currentChannelAsync,
+    AsyncValue<List<Channel>> channelsAsync,
+    bool isShowingSettings,
+  ) {
     if (isShowingSettings) {
       return const Text('Settings', style: _titleStyle);
     }
@@ -201,11 +239,17 @@ class Navbar extends ConsumerWidget {
         }
         return channelsAsync.when(
           data: (channels) {
-            final channel = channels.where((c) => c.id == channelId).firstOrNull;
+            final channel = channels
+                .where((c) => c.id == channelId)
+                .firstOrNull;
             if (channel == null) return const SizedBox.shrink();
             return Row(
               children: [
-                PhosphorIcon(getChannelIcon(channel.emoji), color: _textColor, size: 22),
+                PhosphorIcon(
+                  getChannelIcon(channel.emoji),
+                  color: _textColor,
+                  size: 22,
+                ),
                 const SizedBox(width: 10),
                 Flexible(
                   child: Text(
@@ -264,7 +308,10 @@ class Navbar extends ConsumerWidget {
               children: [
                 Icon(PhosphorIcons.archive(), color: _textColor, size: 20),
                 const SizedBox(width: 12),
-                const Text('Archive Channel', style: TextStyle(color: _textColor)),
+                const Text(
+                  'Archive Channel',
+                  style: TextStyle(color: _textColor),
+                ),
               ],
             ),
           ),
@@ -322,13 +369,16 @@ class Navbar extends ConsumerWidget {
         if (channel != null) _showEditChannelDialog(context, ref, channel);
         break;
       case 'archive_channel':
-        if (channel != null && context.mounted) _archiveChannel(context, ref, channel.id!);
+        if (channel != null && context.mounted)
+          _archiveChannel(context, ref, channel.id!);
         break;
       case 'new_channel':
         NewChannelModal.show(
           context,
           onConfirm: (name, emoji) async {
-            final ch = await ref.read(channelsProvider.notifier).createChannel(
+            final ch = await ref
+                .read(channelsProvider.notifier)
+                .createChannel(
                   name,
                   emoji: emoji,
                 );
@@ -337,7 +387,9 @@ class Navbar extends ConsumerWidget {
         );
         break;
       case 'archive':
-        ref.read(previousChannelProvider.notifier).state = ref.read(currentChannelProvider).value;
+        ref.read(previousChannelProvider.notifier).state = ref
+            .read(currentChannelProvider)
+            .value;
         ref.read(editingNoteProvider.notifier).cancelEditing();
         ref.read(settingsVisibilityProvider.notifier).hide();
         ref.read(currentChannelProvider.notifier).switchChannel(-1);
@@ -352,12 +404,18 @@ class Navbar extends ConsumerWidget {
     }
   }
 
-  void _showEditChannelDialog(BuildContext context, WidgetRef ref, Channel channel) {
+  void _showEditChannelDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Channel channel,
+  ) {
     NewChannelModal.show(
       context,
       channel: channel,
       onConfirm: (name, emoji) async {
-        await ref.read(channelsProvider.notifier).updateChannel(
+        await ref
+            .read(channelsProvider.notifier)
+            .updateChannel(
               channel.id!,
               name: name,
               emoji: emoji,
@@ -367,17 +425,25 @@ class Navbar extends ConsumerWidget {
   }
 
   void _togglePin(WidgetRef ref, int channelId, bool pinned) {
-    ref.read(channelsProvider.notifier).updateChannel(channelId, pinned: pinned);
+    ref
+        .read(channelsProvider.notifier)
+        .updateChannel(channelId, pinned: pinned);
   }
 
-  void _archiveChannel(BuildContext context, WidgetRef ref, int channelId) async {
+  void _archiveChannel(
+    BuildContext context,
+    WidgetRef ref,
+    int channelId,
+  ) async {
     try {
       final currentId = ref.read(currentChannelProvider).value;
       await ref.read(channelsProvider.notifier).archiveChannel(channelId);
       if (currentId == channelId) {
         final chs = await ref.read(channelsProvider.future);
         if (chs.isNotEmpty) {
-          ref.read(currentChannelProvider.notifier).switchChannel(chs.first.id!);
+          ref
+              .read(currentChannelProvider.notifier)
+              .switchChannel(chs.first.id!);
         }
       }
       if (context.mounted) {
@@ -385,7 +451,11 @@ class Navbar extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ToastUtils.show(context, e.toString().replaceFirst('Exception: ', ''), type: ToastType.error);
+        ToastUtils.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          type: ToastType.error,
+        );
       }
     }
   }

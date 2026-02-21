@@ -18,6 +18,7 @@ import '../providers/share_intent_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/sync_engine_provider.dart';
 import '../utils/responsive_utils.dart';
 
 /// Main chat screen with sidebar, chat view, and NoteInput.
@@ -38,6 +39,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    // Eagerly start the sync engine so it watches connectivity from app launch.
+    ref.read(syncEngineProvider);
     if (_useKeyboardHandler) {
       HardwareKeyboard.instance.addHandler(_handleHardwareKey);
     }
@@ -52,9 +55,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   /// Returns true if a text field currently holds keyboard focus.
+  ///
+  /// Checks both the focused widget and its immediate child, because Flutter
+  /// attaches the FocusNode to the wrapping Focus widget whose child is the
+  /// EditableText — so the focused context's widget is Focus, not EditableText.
   bool _isTextFieldFocused() {
     final focus = FocusManager.instance.primaryFocus;
-    return focus?.context?.widget is EditableText;
+    if (focus == null) return false;
+    final ctx = focus.context;
+    if (ctx == null) return false;
+    if (ctx.widget is EditableText) return true;
+    bool found = false;
+    ctx.visitChildElements((element) {
+      if (element.widget is EditableText) found = true;
+    });
+    return found;
   }
 
   /// Global hardware key handler for channel cycling and modal dismissal.
@@ -108,8 +123,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         if (currentIndex == -1) return;
 
         ref.read(channelSwitchDirectionProvider.notifier).state = delta;
-        final nextIndex = (currentIndex + delta + channels.length) % channels.length;
-        ref.read(currentChannelProvider.notifier).switchChannel(channels[nextIndex].id!);
+        final nextIndex =
+            (currentIndex + delta + channels.length) % channels.length;
+        ref
+            .read(currentChannelProvider.notifier)
+            .switchChannel(channels[nextIndex].id!);
       });
     });
   }
@@ -144,7 +162,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           html.document.title = 'Memoka - Archive';
         } else {
           channelsAsync.whenData((channels) {
-            final channel = channels.where((c) => c.id == channelId).firstOrNull;
+            final channel = channels
+                .where((c) => c.id == channelId)
+                .firstOrNull;
             if (channel != null) {
               html.document.title = 'Memoka - ${channel.name}';
             }
@@ -163,7 +183,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final isInDetailMode = isShowingSettings || isArchive;
 
     Widget getMainContent() {
-      final key = ValueKey(isShowingSettings ? 'settings' : (isArchive ? 'archive' : 'chat'));
+      final key = ValueKey(
+        isShowingSettings ? 'settings' : (isArchive ? 'archive' : 'chat'),
+      );
       return Expanded(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
@@ -198,7 +220,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             onHorizontalDragEnd: (details) {
               final v = details.primaryVelocity ?? 0;
               if (v < -_swipeVelocityThreshold) {
-                _cycleChannel(1);  // swipe left → next
+                _cycleChannel(1); // swipe left → next
               } else if (v > _swipeVelocityThreshold) {
                 _cycleChannel(-1); // swipe right → previous
               }
@@ -232,7 +254,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ],
                 ),
               ),
-              if (isMobile && !isArchive && !isShowingSettings) const NoteInput(),
+              if (isMobile && !isArchive && !isShowingSettings)
+                const NoteInput(),
             ],
           ),
         ),

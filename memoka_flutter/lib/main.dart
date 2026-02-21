@@ -14,6 +14,14 @@ late Client client;
 
 late String serverUrl;
 
+/// Web server URL (port 8082 in dev, same port otherwise).
+/// Used by upload route, healthcheck probe, etc.
+String getWebServerUrl() {
+  final uri = Uri.parse(serverUrl);
+  final port = uri.port == 8080 ? 8082 : uri.port;
+  return '${uri.scheme}://${uri.host}:$port';
+}
+
 /// SharedPreferences key for stored server URL.
 const _serverUrlKey = 'server_url';
 

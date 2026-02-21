@@ -10,55 +10,86 @@ class FileUtils {
     final ext = fileExtension.toLowerCase();
     switch (ext) {
       // Documents
-      case 'pdf':  return PhosphorIcons.filePdf();
-      case 'doc':  return PhosphorIcons.fileDoc();
-      case 'docx': return PhosphorIcons.fileDoc();
-      case 'ppt':  return PhosphorIcons.filePpt();
-      case 'pptx': return PhosphorIcons.filePpt();
-      case 'xls':  return PhosphorIcons.fileXls();
-      case 'xlsx': return PhosphorIcons.fileXls();
-      case 'csv':  return PhosphorIcons.fileCsv();
-      case 'txt':  return PhosphorIcons.fileTxt();
-      case 'md':   return PhosphorIcons.fileMd();
-      case 'sql':  return PhosphorIcons.fileSql();
+      case 'pdf':
+        return PhosphorIcons.filePdf();
+      case 'doc':
+        return PhosphorIcons.fileDoc();
+      case 'docx':
+        return PhosphorIcons.fileDoc();
+      case 'ppt':
+        return PhosphorIcons.filePpt();
+      case 'pptx':
+        return PhosphorIcons.filePpt();
+      case 'xls':
+        return PhosphorIcons.fileXls();
+      case 'xlsx':
+        return PhosphorIcons.fileXls();
+      case 'csv':
+        return PhosphorIcons.fileCsv();
+      case 'txt':
+        return PhosphorIcons.fileTxt();
+      case 'md':
+        return PhosphorIcons.fileMd();
+      case 'sql':
+        return PhosphorIcons.fileSql();
       // Archives
       case 'zip':
       case 'tar':
       case 'gz':
       case 'bz2':
-      case '7z':   return PhosphorIcons.fileZip();
+      case '7z':
+        return PhosphorIcons.fileZip();
       // Images
       case 'jpg':
-      case 'jpeg': return PhosphorIcons.fileJpg();
-      case 'png':  return PhosphorIcons.filePng();
-      case 'svg':  return PhosphorIcons.fileSvg();
+      case 'jpeg':
+        return PhosphorIcons.fileJpg();
+      case 'png':
+        return PhosphorIcons.filePng();
+      case 'svg':
+        return PhosphorIcons.fileSvg();
       // Web / markup
       case 'html':
-      case 'htm':  return PhosphorIcons.fileHtml();
-      case 'css':  return PhosphorIcons.fileCss();
-      case 'js':   return PhosphorIcons.fileJs();
-      case 'jsx':  return PhosphorIcons.fileJsx();
-      case 'ts':   return PhosphorIcons.fileTs();
-      case 'tsx':  return PhosphorIcons.fileTsx();
-      case 'vue':  return PhosphorIcons.fileVue();
+      case 'htm':
+        return PhosphorIcons.fileHtml();
+      case 'css':
+        return PhosphorIcons.fileCss();
+      case 'js':
+        return PhosphorIcons.fileJs();
+      case 'jsx':
+        return PhosphorIcons.fileJsx();
+      case 'ts':
+        return PhosphorIcons.fileTs();
+      case 'tsx':
+        return PhosphorIcons.fileTsx();
+      case 'vue':
+        return PhosphorIcons.fileVue();
       // Systems / compiled
-      case 'c':    return PhosphorIcons.fileC();
+      case 'c':
+        return PhosphorIcons.fileC();
       case 'cpp':
-      case 'cc':   return PhosphorIcons.fileCpp();
-      case 'cs':   return PhosphorIcons.fileCSharp();
-      case 'py':   return PhosphorIcons.filePy();
-      case 'rs':   return PhosphorIcons.fileRs();
+      case 'cc':
+        return PhosphorIcons.fileCpp();
+      case 'cs':
+        return PhosphorIcons.fileCSharp();
+      case 'py':
+        return PhosphorIcons.filePy();
+      case 'rs':
+        return PhosphorIcons.fileRs();
       // Audio / video
       case 'mp3':
       case 'wav':
       case 'flac':
-      case 'ogg':  return PhosphorIcons.fileAudio();
+      case 'ogg':
+        return PhosphorIcons.fileAudio();
       case 'mp4':
       case 'mov':
-      case 'webm': return PhosphorIcons.fileVideo();
+      case 'webm':
+        return PhosphorIcons.fileVideo();
       // Config
-      case 'ini':  return PhosphorIcons.fileIni();
-      default:     return PhosphorIcons.file();
+      case 'ini':
+        return PhosphorIcons.fileIni();
+      default:
+        return PhosphorIcons.file();
     }
   }
 
@@ -89,13 +120,18 @@ class FileUtils {
   /// /media) on port 8082. If the server URL uses port 8080, swap to 8082.
   /// Production servers behind a reverse proxy (no explicit port or 80/443)
   /// serve media from the same base URL.
-  static String buildMediaUrl(String serverUrl, String path, String? contentHash) {
+  static String buildMediaUrl(
+    String serverUrl,
+    String path,
+    String? contentHash,
+  ) {
     final uri = Uri.parse(serverUrl);
     final String base;
     if (uri.port == 8080) {
       base = '${uri.scheme}://${uri.host}:8082';
     } else {
-      base = '${uri.scheme}://${uri.host}${uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
+      base =
+          '${uri.scheme}://${uri.host}${uri.port != 80 && uri.port != 443 ? ':${uri.port}' : ''}';
     }
     final cacheBuster = contentHash ?? '';
     return '$base/media/$path?v=$cacheBuster';

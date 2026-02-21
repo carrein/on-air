@@ -38,7 +38,8 @@ class ChatView extends ConsumerStatefulWidget {
 class _ChatViewState extends ConsumerState<ChatView>
     with SingleTickerProviderStateMixin {
   final ItemScrollController _itemScrollController = ItemScrollController();
-  final ItemPositionsListener _itemPositionsListener = ItemPositionsListener.create();
+  final ItemPositionsListener _itemPositionsListener =
+      ItemPositionsListener.create();
   int? _highlightedNoteId;
   bool _isDragOver = false;
 
@@ -133,7 +134,9 @@ class _ChatViewState extends ConsumerState<ChatView>
     final positions = _itemPositionsListener.itemPositions.value;
     if (positions.isEmpty) return;
 
-    final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
+    final maxIndex = positions
+        .map((p) => p.index)
+        .reduce((a, b) => a > b ? a : b);
     final channelId = _displayedChannelId;
     if (channelId == null || channelId == -1) return;
 
@@ -143,7 +146,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     // In a reversed list, higher indices = older notes (top of screen).
     // Load more when within 10 items of the oldest loaded note.
     // Offset by pending count since pending items occupy the lowest indices.
-    final pending = ref.read(pendingUploadsProvider)
+    final pending = ref
+        .read(pendingUploadsProvider)
         .where((p) => p.channelId == channelId)
         .toList();
     final noteIndex = maxIndex - pending.length;
@@ -158,7 +162,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     final notes = ref.read(notesProvider(channelId)).value;
     if (notes == null) return;
 
-    final pending = ref.read(pendingUploadsProvider)
+    final pending = ref
+        .read(pendingUploadsProvider)
         .where((p) => p.channelId == channelId)
         .toList();
 
@@ -189,7 +194,11 @@ class _ChatViewState extends ConsumerState<ChatView>
       if (!mounted) return;
       for (final attachment in note.attachments ?? []) {
         if (!attachment.mimeType.toLowerCase().startsWith('image/')) continue;
-        final url = FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
+        final url = FileUtils.buildMediaUrl(
+          serverUrl,
+          attachment.filePath,
+          attachment.contentHash,
+        );
         unawaited(precacheImage(CachedNetworkImageProvider(url), context));
         if (++count >= _kPrecacheImageCount) return;
       }
@@ -198,11 +207,13 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   Widget _buildDisplayedContent() {
     final channelId = _displayedChannelId;
-    if (channelId == null) return const Center(child: CircularProgressIndicator());
+    if (channelId == null)
+      return const Center(child: CircularProgressIndicator());
     if (channelId == -1) return _buildArchiveView();
 
     final notesAsync = ref.watch(notesProvider(channelId));
-    final pending = ref.watch(pendingUploadsProvider)
+    final pending = ref
+        .watch(pendingUploadsProvider)
         .where((p) => p.channelId == channelId)
         .toList();
 
@@ -219,7 +230,11 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  PhosphorIcon(PhosphorIcons.empty(), size: 48, color: Color(0xFF00171F)),
+                  PhosphorIcon(
+                    PhosphorIcons.empty(),
+                    size: 48,
+                    color: Color(0xFF00171F),
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'It\'s quiet in here...',
@@ -236,9 +251,17 @@ class _ChatViewState extends ConsumerState<ChatView>
         }
 
         final allImageUrls = notes.reversed
-            .expand((n) => (n.attachments ?? [])
-                .where((a) => a.mimeType.toLowerCase().startsWith('image/'))
-                .map((a) => FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash)))
+            .expand(
+              (n) => (n.attachments ?? [])
+                  .where((a) => a.mimeType.toLowerCase().startsWith('image/'))
+                  .map(
+                    (a) => FileUtils.buildMediaUrl(
+                      serverUrl,
+                      a.filePath,
+                      a.contentHash,
+                    ),
+                  ),
+            )
             .toList();
 
         // Total items = pending ghost notes + real notes.
@@ -264,7 +287,8 @@ class _ChatViewState extends ConsumerState<ChatView>
             final noteIndex = index - pending.length;
             final note = notes[noteIndex];
             final previousNote = noteIndex > 0 ? notes[noteIndex - 1] : null;
-            final needsSeparator = previousNote != null &&
+            final needsSeparator =
+                previousNote != null &&
                 !_isSameDay(note.createdAt, previousNote.createdAt);
             final isHighlighted = _highlightedNoteId == note.id;
             return Column(
@@ -276,7 +300,11 @@ class _ChatViewState extends ConsumerState<ChatView>
                         ? const Color(0xFFCE2161).withValues(alpha: 0.15)
                         : Colors.transparent,
                   ),
-                  child: NoteItem(note: note, channelId: channelId, allImageUrls: allImageUrls),
+                  child: NoteItem(
+                    note: note,
+                    channelId: channelId,
+                    allImageUrls: allImageUrls,
+                  ),
                 ),
                 if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
               ],
@@ -295,7 +323,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     final currentBackground = ref.watch(backgroundPreferenceProvider);
 
     // Initialise displayed channel on first load
-    if (_displayedChannelId == null && currentChannelAsync.valueOrNull != null) {
+    if (_displayedChannelId == null &&
+        currentChannelAsync.valueOrNull != null) {
       _displayedChannelId = currentChannelAsync.valueOrNull;
     }
 
@@ -318,7 +347,9 @@ class _ChatViewState extends ConsumerState<ChatView>
     ref.listen(scrollToNoteProvider, (prev, noteId) {
       if (noteId != null) {
         _scrollToNote(noteId);
-        Future.microtask(() => ref.read(scrollToNoteProvider.notifier).state = null);
+        Future.microtask(
+          () => ref.read(scrollToNoteProvider.notifier).state = null,
+        );
       }
     });
 
@@ -362,7 +393,11 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  PhosphorIcon(PhosphorIcons.uploadSimple(), size: 64, color: Colors.blue),
+                  PhosphorIcon(
+                    PhosphorIcons.uploadSimple(),
+                    size: 64,
+                    color: Colors.blue,
+                  ),
                   SizedBox(height: 16),
                   Text(
                     'Drop file here to upload',
@@ -396,7 +431,11 @@ class _ChatViewState extends ConsumerState<ChatView>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  PhosphorIcon(PhosphorIcons.empty(), size: 48, color: Color(0xFF00171F)),
+                  PhosphorIcon(
+                    PhosphorIcons.empty(),
+                    size: 48,
+                    color: Color(0xFF00171F),
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'It\'s quiet in here...',
@@ -448,75 +487,92 @@ class _ChatViewState extends ConsumerState<ChatView>
                 children: [
                   Flexible(
                     child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 680),
-                    child: Listener(
-                      onPointerDown: (event) {
-                        if (event.buttons == 2) {
-                          _showChannelArchiveContextMenu(context, channel, event.position);
-                        }
-                      },
-                      child: GestureDetector(
-                        onLongPress: () {
-                          _showChannelArchiveContextMenu(context, channel, null);
+                      constraints: const BoxConstraints(maxWidth: 680),
+                      child: Listener(
+                        onPointerDown: (event) {
+                          if (event.buttons == 2) {
+                            _showChannelArchiveContextMenu(
+                              context,
+                              channel,
+                              event.position,
+                            );
+                          }
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF6F0ED),
-                            border: Border.all(
-                              color: borderColor,
-                              width: 1.0,
+                        child: GestureDetector(
+                          onLongPress: () {
+                            _showChannelArchiveContextMenu(
+                              context,
+                              channel,
+                              null,
+                            );
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF6F0ED),
+                              border: Border.all(
+                                color: borderColor,
+                                width: 1.0,
+                              ),
                             ),
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              PhosphorIcon(
-                                getChannelIcon(channel.emoji),
-                                size: 24,
-                                color: const Color(0xFF00171F),
-                              ),
-                              const SizedBox(width: 10),
-                              Flexible(
-                                child: Text(
-                                  channel.name,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF00171F),
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PhosphorIcon(
+                                  getChannelIcon(channel.emoji),
+                                  size: 24,
+                                  color: const Color(0xFF00171F),
+                                ),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  child: Text(
+                                    channel.name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF00171F),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFDADDD8),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'Channel',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF00171F).withValues(alpha: 0.5),
+                                const SizedBox(width: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDADDD8),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Channel',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(
+                                        0xFF00171F,
+                                      ).withValues(alpha: 0.5),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
                   ),
                   const SizedBox(width: 12),
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
                       onTap: () => _restoreChannel(channel),
-                      child: PhosphorIcon(PhosphorIcons.arrowCounterClockwise(), size: 24, color: Color(0xFF00171F)),
+                      child: PhosphorIcon(
+                        PhosphorIcons.arrowCounterClockwise(),
+                        size: 24,
+                        color: Color(0xFF00171F),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -524,7 +580,11 @@ class _ChatViewState extends ConsumerState<ChatView>
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
                       onTap: () => _showDeleteChannelConfirmation(channel),
-                      child: PhosphorIcon(PhosphorIcons.x(), size: 24, color: Color(0xFF00171F)),
+                      child: PhosphorIcon(
+                        PhosphorIcons.x(),
+                        size: 24,
+                        color: Color(0xFF00171F),
+                      ),
                     ),
                   ),
                 ],
@@ -536,8 +596,13 @@ class _ChatViewState extends ConsumerState<ChatView>
     );
   }
 
-  void _showChannelArchiveContextMenu(BuildContext context, Channel channel, Offset? globalPosition) {
-    final RenderBox overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+  void _showChannelArchiveContextMenu(
+    BuildContext context,
+    Channel channel,
+    Offset? globalPosition,
+  ) {
+    final RenderBox overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox;
 
     final Offset position;
     if (globalPosition != null) {
@@ -597,7 +662,11 @@ class _ChatViewState extends ConsumerState<ChatView>
       }
     } catch (e) {
       if (mounted) {
-        ToastUtils.show(context, 'Failed to restore: $e', type: ToastType.error);
+        ToastUtils.show(
+          context,
+          'Failed to restore: $e',
+          type: ToastType.error,
+        );
       }
     }
   }
@@ -637,7 +706,9 @@ class _ChatViewState extends ConsumerState<ChatView>
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFF00171F),
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
               child: const Text('Cancel'),
             ),
@@ -645,20 +716,32 @@ class _ChatViewState extends ConsumerState<ChatView>
               onPressed: () async {
                 Navigator.pop(ctx);
                 try {
-                  await ref.read(archiveItemsProvider.notifier).deleteChannel(channel.id!);
+                  await ref
+                      .read(archiveItemsProvider.notifier)
+                      .deleteChannel(channel.id!);
                   if (mounted) {
-                    ToastUtils.show(context, 'Channel deleted permanently', type: ToastType.success);
+                    ToastUtils.show(
+                      context,
+                      'Channel deleted permanently',
+                      type: ToastType.success,
+                    );
                   }
                 } catch (e) {
                   if (mounted) {
-                    ToastUtils.show(context, 'Failed to delete: $e', type: ToastType.error);
+                    ToastUtils.show(
+                      context,
+                      'Failed to delete: $e',
+                      type: ToastType.error,
+                    );
                   }
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
-                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                ),
               ),
               child: const Text('Delete'),
             ),
@@ -672,8 +755,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     final aLocal = a.toLocal();
     final bLocal = b.toLocal();
     return aLocal.year == bLocal.year &&
-           aLocal.month == bLocal.month &&
-           aLocal.day == bLocal.day;
+        aLocal.month == bLocal.month &&
+        aLocal.day == bLocal.day;
   }
 
   Widget _buildDateSeparator(DateTime date) {
@@ -688,8 +771,20 @@ class _ChatViewState extends ConsumerState<ChatView>
       dateText = 'Yesterday';
     } else {
       // Format as "February 6" or "February 6, 2025" if different year
-      final months = ['January', 'February', 'March', 'April', 'May', 'June',
-                      'July', 'August', 'September', 'October', 'November', 'December'];
+      final months = [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ];
       final month = months[localDate.month - 1];
       dateText = localDate.year == now.year
           ? '$month ${localDate.day}'
@@ -774,16 +869,21 @@ class _ChatViewState extends ConsumerState<ChatView>
           final parts = file.name.split('.');
           extension = parts.length > 1 ? parts.last : '';
         } else {
-          final mimeType = file.type.isNotEmpty ? file.type : 'application/octet-stream';
+          final mimeType = file.type.isNotEmpty
+              ? file.type
+              : 'application/octet-stream';
           extension = mimeType.split('/').last;
-          fileName = 'pasted_file_${DateTime.now().millisecondsSinceEpoch}_$i.$extension';
+          fileName =
+              'pasted_file_${DateTime.now().millisecondsSinceEpoch}_$i.$extension';
         }
 
-        uploadFiles.add(UploadFileData(
-          bytes: uint8List,
-          fileName: fileName,
-          extension: extension,
-        ));
+        uploadFiles.add(
+          UploadFileData(
+            bytes: uint8List,
+            fileName: fileName,
+            extension: extension,
+          ),
+        );
       }
 
       if (uploadFiles.isEmpty) return;
@@ -831,11 +931,13 @@ class _ChatViewState extends ConsumerState<ChatView>
         final parts = file.name.split('.');
         final extension = parts.length > 1 ? parts.last : '';
 
-        uploadFiles.add(UploadFileData(
-          bytes: uint8List,
-          fileName: file.name,
-          extension: extension,
-        ));
+        uploadFiles.add(
+          UploadFileData(
+            bytes: uint8List,
+            fileName: file.name,
+            extension: extension,
+          ),
+        );
       }
 
       // Show appropriate dialog based on number of files
@@ -861,7 +963,9 @@ class _ChatViewState extends ConsumerState<ChatView>
         file: file,
         onSend: (compress) {
           // Enqueue optimistic upload — fire-and-forget
-          ref.read(pendingUploadsProvider.notifier).enqueue(
+          ref
+              .read(pendingUploadsProvider.notifier)
+              .enqueue(
                 channelId: channelId,
                 filePath: file.filePath,
                 fileBytes: file.bytes,
@@ -874,7 +978,9 @@ class _ChatViewState extends ConsumerState<ChatView>
     );
   }
 
-  Future<void> _showMultiFileUploadDialog(List<UploadFileData> uploadFiles) async {
+  Future<void> _showMultiFileUploadDialog(
+    List<UploadFileData> uploadFiles,
+  ) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
 
@@ -884,7 +990,9 @@ class _ChatViewState extends ConsumerState<ChatView>
         files: uploadFiles,
         onSend: (files) {
           for (final file in files) {
-            ref.read(pendingUploadsProvider.notifier).enqueue(
+            ref
+                .read(pendingUploadsProvider.notifier)
+                .enqueue(
                   channelId: channelId,
                   filePath: file.filePath,
                   fileBytes: file.bytes,

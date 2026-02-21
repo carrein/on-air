@@ -60,7 +60,10 @@ class SettingsView extends ConsumerWidget {
           title: const Text('Server URL', style: TextStyle(fontSize: 14)),
           subtitle: Text(
             serverUrl,
-            style: TextStyle(fontSize: 12, color: Color(0xFF00171F).withValues(alpha: 0.5)),
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF00171F).withValues(alpha: 0.5),
+            ),
             overflow: TextOverflow.ellipsis,
           ),
           trailing: TextButton(
@@ -82,7 +85,10 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildBackgroundSection(WidgetRef ref, BackgroundType currentBackground) {
+  Widget _buildBackgroundSection(
+    WidgetRef ref,
+    BackgroundType currentBackground,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -137,11 +143,18 @@ class SettingsView extends ConsumerWidget {
         FutureBuilder<PackageInfo>(
           future: PackageInfo.fromPlatform(),
           builder: (context, snapshot) => ListTile(
-            leading: PhosphorIcon(PhosphorIcons.info(), color: const Color(0xFF00171F), size: 20),
+            leading: PhosphorIcon(
+              PhosphorIcons.info(),
+              color: const Color(0xFF00171F),
+              size: 20,
+            ),
             title: const Text('Version', style: TextStyle(fontSize: 14)),
             subtitle: Text(
               snapshot.data?.version ?? '—',
-              style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+              style: TextStyle(
+                fontSize: 12,
+                color: const Color(0xFF00171F).withValues(alpha: 0.5),
+              ),
             ),
           ),
         ),
@@ -149,10 +162,16 @@ class SettingsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildBackgroundCard(WidgetRef ref, BackgroundType background, bool isSelected) {
+  Widget _buildBackgroundCard(
+    WidgetRef ref,
+    BackgroundType background,
+    bool isSelected,
+  ) {
     return GestureDetector(
       onTap: () {
-        ref.read(backgroundPreferenceProvider.notifier).setBackground(background);
+        ref
+            .read(backgroundPreferenceProvider.notifier)
+            .setBackground(background);
       },
       child: Container(
         width: 120,
@@ -214,5 +233,4 @@ class SettingsView extends ConsumerWidget {
       ),
     );
   }
-
 }

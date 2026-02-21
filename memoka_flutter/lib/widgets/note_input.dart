@@ -35,10 +35,15 @@ class _NoteInputState extends ConsumerState<NoteInput> {
   static const _hintTextAlpha = 0.4;
 
   // -- Layout --
-  static const _barPadding = EdgeInsets.only(left: 10, top: 8, bottom: 8, right: 6);
+  static const _barPadding = EdgeInsets.only(
+    left: 10,
+    top: 8,
+    bottom: 8,
+    right: 6,
+  );
   static const _fieldContentPadding = EdgeInsets.zero;
   static const _iconGap = 2.0;
-  static const _fieldBorderRadius = 0.0;              // no border radius
+  static const _fieldBorderRadius = 0.0; // no border radius
   static const _iconSize = 24.0;
 
   final TextEditingController _controller = TextEditingController();
@@ -101,18 +106,17 @@ class _NoteInputState extends ConsumerState<NoteInput> {
       }
     });
 
-
     return Column(
-        children: [
-          // Link preview (show above input when URL detected)
-          if (_showPreview && _previewUrl != null && !isEditMode)
-            InputLinkPreview(
-              url: _previewUrl!,
-              onDismiss: () => setState(() => _showPreview = false),
-            ),
+      children: [
+        // Link preview (show above input when URL detected)
+        if (_showPreview && _previewUrl != null && !isEditMode)
+          InputLinkPreview(
+            url: _previewUrl!,
+            onDismiss: () => setState(() => _showPreview = false),
+          ),
 
-          // NoteInput
-          Container(
+        // NoteInput
+        Container(
           padding: _barPadding,
           decoration: const BoxDecoration(
             color: _barBackground,
@@ -144,12 +148,18 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                       cursorColor: _iconColor,
                       decoration: InputDecoration(
                         isDense: true,
-                        hintText: isEditMode ? 'Edit note... (Shift+Enter for new line)' : 'Keyboard goes brrrr...',
+                        hintText: isEditMode
+                            ? 'Edit note... (Shift+Enter for new line)'
+                            : 'Keyboard goes brrrr...',
                         hintStyle: TextStyle(
-                          color: _hintTextColor.withValues(alpha: _hintTextAlpha),
+                          color: _hintTextColor.withValues(
+                            alpha: _hintTextAlpha,
+                          ),
                         ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(_fieldBorderRadius),
+                          borderRadius: BorderRadius.circular(
+                            _fieldBorderRadius,
+                          ),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
@@ -182,9 +192,9 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                 _buildActionIcons(),
               ],
             ],
-            ),
           ),
-        ],
+        ),
+      ],
     );
   }
 
@@ -202,7 +212,9 @@ class _NoteInputState extends ConsumerState<NoteInput> {
 
     if (editingNoteId != null) {
       // Update existing note
-      ref.read(notesProvider(channelId).notifier).updateNote(
+      ref
+          .read(notesProvider(channelId).notifier)
+          .updateNote(
             editingNoteId,
             content,
           );
@@ -307,11 +319,13 @@ class _NoteInputState extends ConsumerState<NoteInput> {
       final fileName = photo.name;
       final ext = fileName.split('.').last;
 
-      await _showFileUploadDialog(UploadFileData(
-        filePath: photo.path,
-        fileName: fileName,
-        extension: ext,
-      ));
+      await _showFileUploadDialog(
+        UploadFileData(
+          filePath: photo.path,
+          fileName: fileName,
+          extension: ext,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ToastUtils.show(context, 'Camera failed: $e', type: ToastType.error);
@@ -335,27 +349,35 @@ class _NoteInputState extends ConsumerState<NoteInput> {
         if (kIsWeb) {
           // Web: must use bytes
           if (file.bytes != null) {
-            uploadFiles.add(UploadFileData(
-              bytes: file.bytes!,
-              fileName: file.name,
-              extension: file.extension ?? '',
-            ));
+            uploadFiles.add(
+              UploadFileData(
+                bytes: file.bytes!,
+                fileName: file.name,
+                extension: file.extension ?? '',
+              ),
+            );
           }
         } else {
           // Native: use file path (no bytes loaded into memory)
           if (file.path != null) {
-            uploadFiles.add(UploadFileData(
-              filePath: file.path!,
-              fileName: file.name,
-              extension: file.extension ?? '',
-            ));
+            uploadFiles.add(
+              UploadFileData(
+                filePath: file.path!,
+                fileName: file.name,
+                extension: file.extension ?? '',
+              ),
+            );
           }
         }
       }
 
       if (uploadFiles.isEmpty) {
         if (mounted) {
-          ToastUtils.show(context, 'Failed to read files', type: ToastType.error);
+          ToastUtils.show(
+            context,
+            'Failed to read files',
+            type: ToastType.error,
+          );
         }
         return;
       }
@@ -368,7 +390,11 @@ class _NoteInputState extends ConsumerState<NoteInput> {
       }
     } catch (e) {
       if (mounted) {
-        ToastUtils.show(context, 'Failed to pick file: $e', type: ToastType.error);
+        ToastUtils.show(
+          context,
+          'Failed to pick file: $e',
+          type: ToastType.error,
+        );
       }
     }
   }
@@ -386,7 +412,9 @@ class _NoteInputState extends ConsumerState<NoteInput> {
           final noteContent = _controller.text.trim();
 
           // Enqueue optimistic upload — fire-and-forget
-          ref.read(pendingUploadsProvider.notifier).enqueue(
+          ref
+              .read(pendingUploadsProvider.notifier)
+              .enqueue(
                 channelId: channelId,
                 filePath: file.filePath,
                 fileBytes: file.bytes,
@@ -406,7 +434,9 @@ class _NoteInputState extends ConsumerState<NoteInput> {
     );
   }
 
-  Future<void> _showMultiFileUploadDialog(List<UploadFileData> uploadFiles) async {
+  Future<void> _showMultiFileUploadDialog(
+    List<UploadFileData> uploadFiles,
+  ) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
 
@@ -418,7 +448,9 @@ class _NoteInputState extends ConsumerState<NoteInput> {
           // Enqueue all files — ghost notes appear immediately,
           // uploads proceed sequentially in the queue.
           for (final file in files) {
-            ref.read(pendingUploadsProvider.notifier).enqueue(
+            ref
+                .read(pendingUploadsProvider.notifier)
+                .enqueue(
                   channelId: channelId,
                   filePath: file.filePath,
                   fileBytes: file.bytes,

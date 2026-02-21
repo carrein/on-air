@@ -115,8 +115,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
               SizedBox(
                 width: 140,
                 child: CheckboxListTile(
-                  title:
-                      const Text('Compress', style: TextStyle(fontSize: 12)),
+                  title: const Text('Compress', style: TextStyle(fontSize: 12)),
                   value: file.compress,
                   dense: true,
                   onChanged: (value) {

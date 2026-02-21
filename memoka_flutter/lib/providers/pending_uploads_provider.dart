@@ -10,7 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-import '../main.dart' show serverUrl;
+import '../main.dart' show getWebServerUrl;
 import '../services/media_service.dart';
 import 'notes_provider.dart';
 
@@ -98,13 +98,8 @@ class PendingUploads extends _$PendingUploads {
     return [];
   }
 
-  /// The upload endpoint URL derived from [serverUrl].
-  String get _uploadUrl {
-    final uri = Uri.parse(serverUrl);
-    // Serverpod web server runs on port 8082 in dev (API is 8080).
-    final port = uri.port == 8080 ? 8082 : uri.port;
-    return '${uri.scheme}://${uri.host}:$port/media/upload';
-  }
+  /// The upload endpoint URL derived from shared web server URL.
+  String get _uploadUrl => '${getWebServerUrl()}/media/upload';
 
   /// Enqueue a file for upload. The ghost note appears immediately.
   ///
@@ -119,8 +114,10 @@ class PendingUploads extends _$PendingUploads {
     required bool compress,
   }) async {
     final id = const Uuid().v4();
-    final mimeType =
-        MediaService.getMimeTypeFromExtension(fileName, filePath: filePath);
+    final mimeType = MediaService.getMimeTypeFromExtension(
+      fileName,
+      filePath: filePath,
+    );
 
     String? localFilePath;
     Uint8List? localBytes;
@@ -255,21 +252,25 @@ class PendingUploads extends _$PendingUploads {
         // Stream from disk — never holds full file in memory.
         final file = File(pending.localFilePath!);
         final fileLength = await file.length();
-        multipart.files.add(http.MultipartFile(
-          'file',
-          file.openRead(),
-          fileLength,
-          filename: pending.fileName,
-          contentType: contentType,
-        ));
+        multipart.files.add(
+          http.MultipartFile(
+            'file',
+            file.openRead(),
+            fileLength,
+            filename: pending.fileName,
+            contentType: contentType,
+          ),
+        );
       } else if (pending.localBytes != null) {
         // Web: bytes already in memory.
-        multipart.files.add(http.MultipartFile.fromBytes(
-          'file',
-          pending.localBytes!,
-          filename: pending.fileName,
-          contentType: contentType,
-        ));
+        multipart.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            pending.localBytes!,
+            filename: pending.fileName,
+            contentType: contentType,
+          ),
+        );
       }
 
       // Finalize into a StreamedRequest so we can track bytes *sent over
@@ -282,12 +283,16 @@ class PendingUploads extends _$PendingUploads {
         ..headers.addAll(multipart.headers);
 
       unawaited(
-        _trackProgress(bodyStream, totalBytes, id)
-            .pipe(streamed.sink)
-            .catchError((_) {}),
+        _trackProgress(
+          bodyStream,
+          totalBytes,
+          id,
+        ).pipe(streamed.sink).catchError((_) {}),
       );
 
-      final streamedResponse = await client.send(streamed).timeout(
+      final streamedResponse = await client
+          .send(streamed)
+          .timeout(
             const Duration(minutes: 1),
             onTimeout: () => throw TimeoutException(
               'Upload timed out after 1 minute',
@@ -324,7 +329,10 @@ class PendingUploads extends _$PendingUploads {
 
   /// Wraps a byte stream to track upload progress.
   Stream<List<int>> _trackProgress(
-      Stream<List<int>> source, int totalBytes, String uploadId) {
+    Stream<List<int>> source,
+    int totalBytes,
+    String uploadId,
+  ) {
     var sent = 0;
     return source.map((chunk) {
       sent += chunk.length;

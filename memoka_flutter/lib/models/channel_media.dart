@@ -25,7 +25,8 @@ class ChannelMedia {
   }
 
   /// Total count of all media items
-  int get totalCount => images.length + videos.length + documents.length + links.length;
+  int get totalCount =>
+      images.length + videos.length + documents.length + links.length;
 }
 
 /// Represents a media attachment (image, video, or document) from a note.
@@ -44,7 +45,11 @@ class MediaItem {
 
   /// Returns the full URL to the media file
   String getMediaUrl(String serverUrl) {
-    return FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
+    return FileUtils.buildMediaUrl(
+      serverUrl,
+      attachment.filePath,
+      attachment.contentHash,
+    );
   }
 
   /// Returns the thumbnail URL (if available)
@@ -55,7 +60,11 @@ class MediaItem {
       if (parts.length >= 2) {
         final channelPath = parts.take(parts.length - 1).join('/');
         final thumbnailPath = '$channelPath/${attachment.thumbnailPath}';
-        return FileUtils.buildMediaUrl(serverUrl, thumbnailPath, attachment.contentHash);
+        return FileUtils.buildMediaUrl(
+          serverUrl,
+          thumbnailPath,
+          attachment.contentHash,
+        );
       }
     }
     return null;
@@ -106,8 +115,7 @@ class LinkItem {
   String? get description => preview.description;
 
   /// Check if this link has a full preview (title + description)
-  bool get hasFullPreview =>
-      preview.title != null && preview.title!.isNotEmpty;
+  bool get hasFullPreview => preview.title != null && preview.title!.isNotEmpty;
 
   /// Get the favicon URL
   String? get faviconUrl => preview.faviconUrl;

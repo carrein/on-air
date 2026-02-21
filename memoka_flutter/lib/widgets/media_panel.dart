@@ -16,7 +16,8 @@ class MediaPanel extends ConsumerStatefulWidget {
   ConsumerState<MediaPanel> createState() => _MediaPanelState();
 }
 
-class _MediaPanelState extends ConsumerState<MediaPanel> with SingleTickerProviderStateMixin {
+class _MediaPanelState extends ConsumerState<MediaPanel>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -60,7 +61,10 @@ class _MediaPanelState extends ConsumerState<MediaPanel> with SingleTickerProvid
                     borderSide: BorderSide(color: Color(0xFFCE2161), width: 3),
                   ),
                   dividerHeight: 0,
-                  labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  labelStyle: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                   unselectedLabelStyle: const TextStyle(fontSize: 11),
                   tabs: const [
                     Tab(text: 'IMAGES'),
@@ -79,11 +83,15 @@ class _MediaPanelState extends ConsumerState<MediaPanel> with SingleTickerProvid
                     children: [
                       MediaGrid(items: media.images, type: MediaType.image),
                       MediaGrid(items: media.videos, type: MediaType.video),
-                      MediaGrid(items: media.documents, type: MediaType.document),
+                      MediaGrid(
+                        items: media.documents,
+                        type: MediaType.document,
+                      ),
                       LinkList(links: media.links),
                     ],
                   ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (err, stack) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16),

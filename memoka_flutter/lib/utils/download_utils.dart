@@ -12,16 +12,24 @@ class DownloadUtils {
   static Future<void> downloadToDevice(
     BuildContext context,
     String url,
-    String filename,
-  ) async {
-    ToastUtils.show(context, 'Downloading\u2026', type: ToastType.info);
+    String filename, {
+    void Function(double)? onProgress,
+  }) async {
     try {
       final client = HttpClient();
       final request = await client.getUrl(Uri.parse(url));
       final response = await request.close();
+
+      final contentLength = response.contentLength; // -1 if unknown
       final bytes = <int>[];
+      var received = 0;
+
       await for (final chunk in response) {
         bytes.addAll(chunk);
+        received += chunk.length;
+        if (contentLength > 0) {
+          onProgress?.call(received / contentLength);
+        }
       }
       client.close();
 

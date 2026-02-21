@@ -34,15 +34,18 @@ Future<bool> copyImageToClipboard(String imageUrl) async {
       final canvas = web.HTMLCanvasElement()
         ..width = img.naturalWidth
         ..height = img.naturalHeight;
-      (canvas.getContext('2d') as web.CanvasRenderingContext2D)
-          .drawImage(img, 0, 0);
+      (canvas.getContext('2d') as web.CanvasRenderingContext2D).drawImage(
+        img,
+        0,
+        0,
+      );
 
       // toBlob is callback-based; bridge to a Future with a Completer.
       final blobCompleter = Completer<web.Blob?>();
       canvas.toBlob(
-        ((JSAny? b) =>
-                blobCompleter.complete(b == null ? null : b as web.Blob))
-            .toJS,
+        ((JSAny? b) => blobCompleter.complete(
+          b == null ? null : b as web.Blob,
+        )).toJS,
         'image/png',
       );
       final pngBlob = await blobCompleter.future;

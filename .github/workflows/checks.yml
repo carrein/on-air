@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  checks:
+  server-checks:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,3 +20,39 @@ jobs:
       - run: dart pub get
       - run: dart format --set-exit-if-changed .
       - run: dart analyze --fatal-infos
+
+  flutter-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.8'
+
+      # Generate Serverpod code (memoka_client is a path dependency)
+      - name: Generate Serverpod code
+        run: |
+          cd memoka_server
+          dart pub get
+          dart pub global activate serverpod_cli 3.2.3
+          serverpod generate
+
+      - name: Install dependencies
+        working-directory: memoka_flutter
+        run: flutter pub get
+
+      - name: Generate Drift + Riverpod code
+        working-directory: memoka_flutter
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Format check
+        working-directory: memoka_flutter
+        run: dart format --set-exit-if-changed lib/ test/
+
+      - name: Analyze
+        working-directory: memoka_flutter
+        run: flutter analyze
+
+      - name: Run tests
+        working-directory: memoka_flutter
+        run: flutter test

@@ -129,13 +129,21 @@ class _NewChannelModalState extends State<NewChannelModal> {
                 style: const TextStyle(color: _darkColor),
                 decoration: InputDecoration(
                   hintText: 'Channel Name',
-                  hintStyle: TextStyle(color: _darkColor.withValues(alpha: 0.4)),
+                  hintStyle: TextStyle(
+                    color: _darkColor.withValues(alpha: 0.4),
+                  ),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: _emojiCircleBorder, width: 1.0),
+                    borderSide: BorderSide(
+                      color: _emojiCircleBorder,
+                      width: 1.0,
+                    ),
                   ),
                   focusedBorder: const OutlineInputBorder(
                     borderRadius: BorderRadius.zero,

@@ -10,7 +10,8 @@ class ResponsiveUtils {
 
   /// True on macOS, Windows, Linux (and web — treated as desktop for key handling).
   static bool get isDesktopPlatform =>
-      kIsWeb || (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux));
+      kIsWeb ||
+      (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux));
 
   /// Check if the current screen width is mobile (< 768px)
   static bool isMobile(BuildContext context) {
@@ -34,7 +35,10 @@ class ResponsiveUtils {
   }
 
   /// Get the number of grid columns based on screen width
-  static int getGridColumnCount(BuildContext context, {bool isDocument = false}) {
+  static int getGridColumnCount(
+    BuildContext context, {
+    bool isDocument = false,
+  }) {
     if (isDocument) {
       // Documents: 2 columns on desktop, 1 on mobile
       return isDesktop(context) ? 2 : 1;

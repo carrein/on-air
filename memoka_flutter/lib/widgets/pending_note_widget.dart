@@ -33,8 +33,10 @@ class PendingNoteWidget extends ConsumerWidget {
               alignment: Alignment.centerLeft,
               child: IntrinsicWidth(
                 child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(maxWidth: 600, minWidth: 300),
+                  constraints: const BoxConstraints(
+                    maxWidth: 600,
+                    minWidth: 300,
+                  ),
                   child: Container(
                     decoration: BoxDecoration(
                       color: _bgColor,
@@ -161,8 +163,9 @@ class PendingNoteWidget extends ConsumerWidget {
     if (upload.fileSize <= 0) return 'Uploading\u2026';
     final total = FileUtils.formatFileSize(upload.fileSize);
     if (upload.progress > 0) {
-      final uploaded =
-          FileUtils.formatFileSize((upload.progress * upload.fileSize).round());
+      final uploaded = FileUtils.formatFileSize(
+        (upload.progress * upload.fileSize).round(),
+      );
       return '$uploaded / $total';
     }
     return '0 B / $total';

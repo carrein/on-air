@@ -22,8 +22,10 @@ class UploadFileData {
     required this.fileName,
     required this.extension,
     this.compress = false,
-  }) : assert(bytes != null || filePath != null,
-            'Either bytes or filePath must be provided');
+  }) : assert(
+         bytes != null || filePath != null,
+         'Either bytes or filePath must be provided',
+       );
 
   bool get isImage {
     final ext = extension.toLowerCase();

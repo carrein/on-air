@@ -34,6 +34,10 @@ jobs:
         run: flutter pub get
         working-directory: memoka_flutter
 
+      - name: Generate Drift + Riverpod code
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: memoka_flutter
+
       - name: Decode keystore
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > memoka_flutter/memoka-release.keystore
 

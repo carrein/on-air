@@ -6,6 +6,7 @@ import 'src/generated/protocol.dart';
 import 'src/shared/constants.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/cors_media_route.dart';
+import 'src/web/routes/healthcheck_route.dart';
 import 'src/web/routes/media_upload_route.dart';
 import 'src/web/routes/root.dart';
 
@@ -45,6 +46,9 @@ void run(List<String> args) async {
 
   // Multipart upload route (streams file to disk, no OOM)
   pod.webServer.addRoute(MediaUploadRoute(), '/media/upload');
+
+  // Healthcheck for connectivity probes (Flutter offline mode)
+  pod.webServer.addRoute(HealthcheckRoute(), '/healthcheck');
 
   // Checks if the flutter web app has been built and serves it if it has.
   final appDir = Directory(Uri(path: 'web/app').toFilePath());

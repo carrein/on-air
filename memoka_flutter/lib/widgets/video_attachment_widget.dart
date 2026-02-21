@@ -78,8 +78,7 @@ class VideoAttachmentWidget extends StatelessWidget {
               bottom: 8,
               right: 8,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.black87,
                   borderRadius: BorderRadius.circular(4),
@@ -101,7 +100,10 @@ class VideoAttachmentWidget extends StatelessWidget {
 
   String _buildVideoUrl() {
     return FileUtils.buildMediaUrl(
-        serverUrl, attachment.filePath, attachment.contentHash);
+      serverUrl,
+      attachment.filePath,
+      attachment.contentHash,
+    );
   }
 
   String? _buildThumbnailUrl() {
@@ -124,7 +126,11 @@ class VideoAttachmentWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            PhosphorIcon(PhosphorIcons.video(), color: Colors.grey[400], size: 64),
+            PhosphorIcon(
+              PhosphorIcons.video(),
+              color: Colors.grey[400],
+              size: 64,
+            ),
             const SizedBox(height: 8),
             Text(
               attachment.originalFilename,
@@ -180,8 +186,9 @@ class _VideoLightboxState extends State<_VideoLightbox> {
 
   Future<void> _initializeVideo() async {
     try {
-      _controller =
-          VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+      _controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.videoUrl),
+      );
       await _controller.initialize();
       if (mounted) {
         setState(() => _isInitialized = true);

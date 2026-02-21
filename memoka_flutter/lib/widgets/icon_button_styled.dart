@@ -21,8 +21,8 @@ class IconButtonStyled extends StatefulWidget {
   /// The Phosphor icon to display.
   final IconData icon;
 
-  /// Callback when the button is tapped.
-  final VoidCallback onPressed;
+  /// Callback when the button is tapped. When null the button is disabled.
+  final VoidCallback? onPressed;
 
   /// Icon size in logical pixels. Defaults to 24.
   final double size;
@@ -52,17 +52,18 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
 
   @override
   Widget build(BuildContext context) {
-    final active = _isHovered || _isPressed;
+    final enabled = widget.onPressed != null;
+    final active = enabled && (_isHovered || _isPressed);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      cursor: SystemMouseCursors.click,
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
       child: GestureDetector(
         onTap: widget.onPressed,
-        onTapDown: (_) => setState(() => _isPressed = true),
-        onTapUp: (_) => setState(() => _isPressed = false),
-        onTapCancel: () => setState(() => _isPressed = false),
+        onTapDown: enabled ? (_) => setState(() => _isPressed = true) : null,
+        onTapUp: enabled ? (_) => setState(() => _isPressed = false) : null,
+        onTapCancel: enabled ? () => setState(() => _isPressed = false) : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           decoration: BoxDecoration(
@@ -78,7 +79,9 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
             padding: EdgeInsets.all(widget.padding),
             child: Icon(
               widget.icon,
-              color: widget.color,
+              color: enabled
+                  ? widget.color
+                  : widget.color.withValues(alpha: 0.3),
               size: widget.size,
             ),
           ),

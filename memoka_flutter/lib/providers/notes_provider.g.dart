@@ -6,7 +6,7 @@ part of 'notes_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$notesHash() => r'63840e3f7b501300f344441b3f79b12ab17c9b2b';
+String _$notesHash() => r'4705141a7353c262fea98b79c10e2b7cd30cf810';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -35,22 +35,26 @@ abstract class _$Notes extends BuildlessAutoDisposeAsyncNotifier<List<Note>> {
   FutureOr<List<Note>> build(int channelId);
 }
 
-/// Manages notes for a specific channel with pagination and real-time updates.
+/// Manages notes for a specific channel with local-first caching,
+/// pagination, and real-time updates.
 ///
 /// Copied from [Notes].
 @ProviderFor(Notes)
 const notesProvider = NotesFamily();
 
-/// Manages notes for a specific channel with pagination and real-time updates.
+/// Manages notes for a specific channel with local-first caching,
+/// pagination, and real-time updates.
 ///
 /// Copied from [Notes].
 class NotesFamily extends Family<AsyncValue<List<Note>>> {
-  /// Manages notes for a specific channel with pagination and real-time updates.
+  /// Manages notes for a specific channel with local-first caching,
+  /// pagination, and real-time updates.
   ///
   /// Copied from [Notes].
   const NotesFamily();
 
-  /// Manages notes for a specific channel with pagination and real-time updates.
+  /// Manages notes for a specific channel with local-first caching,
+  /// pagination, and real-time updates.
   ///
   /// Copied from [Notes].
   NotesProvider call(int channelId) {
@@ -77,12 +81,14 @@ class NotesFamily extends Family<AsyncValue<List<Note>>> {
   String? get name => r'notesProvider';
 }
 
-/// Manages notes for a specific channel with pagination and real-time updates.
+/// Manages notes for a specific channel with local-first caching,
+/// pagination, and real-time updates.
 ///
 /// Copied from [Notes].
 class NotesProvider
     extends AutoDisposeAsyncNotifierProviderImpl<Notes, List<Note>> {
-  /// Manages notes for a specific channel with pagination and real-time updates.
+  /// Manages notes for a specific channel with local-first caching,
+  /// pagination, and real-time updates.
   ///
   /// Copied from [Notes].
   NotesProvider(int channelId)

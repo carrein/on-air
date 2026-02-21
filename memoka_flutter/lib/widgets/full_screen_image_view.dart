@@ -146,7 +146,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                   value: event == null
                       ? 0
                       : event.cumulativeBytesLoaded /
-                          (event.expectedTotalBytes ?? 1),
+                            (event.expectedTotalBytes ?? 1),
                   color: Colors.white,
                 ),
               ),
@@ -202,16 +202,20 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                 right: 0,
                 child: Center(
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black54,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '${_currentIndex + 1} / ${widget.imageUrls.length}',
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
