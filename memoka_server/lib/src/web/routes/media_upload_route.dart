@@ -227,12 +227,12 @@ class MediaUploadRoute extends Route {
     }
 
     // Validate note content length
-    if (noteContent.length > 50000) {
+    if (noteContent.length > 200000) {
       await File(tempFilePath).delete();
       return Response.badRequest(
         body: Body.fromString(
           jsonEncode({
-            'error': 'Note content too long (max 50,000 characters)',
+            'error': 'Note content too long (max 200,000 characters)',
           }),
         ),
         headers: _corsHeaders(),

@@ -246,8 +246,8 @@ class ChatEndpoint extends Endpoint {
     if (content.trim().isEmpty) {
       throw Exception('Note content cannot be empty');
     }
-    if (content.length > 50000) {
-      throw Exception('Note content too long (max 50,000 characters)');
+    if (content.length > 200000) {
+      throw Exception('Note content too long (max 200,000 characters)');
     }
 
     final note = Note(
@@ -318,8 +318,8 @@ class ChatEndpoint extends Endpoint {
     if (content.trim().isEmpty) {
       throw Exception('Note content cannot be empty');
     }
-    if (content.length > 50000) {
-      throw Exception('Note content too long (max 50,000 characters)');
+    if (content.length > 200000) {
+      throw Exception('Note content too long (max 200,000 characters)');
     }
 
     final note = await Note.db.findById(session, id);
