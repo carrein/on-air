@@ -63,12 +63,12 @@ class VideoAttachmentWidget extends StatelessWidget {
           ),
           Container(
             decoration: const BoxDecoration(
-              color: Colors.black54,
+              color: Color(0xFFCE2161),
               shape: BoxShape.circle,
             ),
             padding: const EdgeInsets.all(12),
             child: PhosphorIcon(
-              PhosphorIcons.play(),
+              PhosphorIconsFill.play,
               color: Colors.white,
               size: 48,
             ),
@@ -310,13 +310,13 @@ class _VideoLightboxState extends State<_VideoLightbox> {
               ),
               if (!_controller.value.isPlaying)
                 Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFCE2161),
                     shape: BoxShape.circle,
                   ),
                   padding: const EdgeInsets.all(16),
                   child: PhosphorIcon(
-                    PhosphorIcons.play(),
+                    PhosphorIconsFill.play,
                     color: Colors.white,
                     size: 56,
                   ),
