@@ -71,18 +71,20 @@ class PendingNoteWidget extends ConsumerWidget {
       image = Image.file(
         File(upload.localFilePath!),
         fit: BoxFit.contain,
+        cacheWidth: 600,
       );
     } else if (upload.localBytes != null) {
       image = Image.memory(
         upload.localBytes!,
         fit: BoxFit.contain,
+        cacheWidth: 600,
       );
     } else {
       image = const SizedBox.shrink();
     }
 
-    return Stack(
-      alignment: Alignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 300, maxHeight: 200),
@@ -94,21 +96,18 @@ class PendingNoteWidget extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 8),
         if (upload.status == UploadStatus.uploading)
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: CircularProgressIndicator(
-              value: upload.progress > 0 ? upload.progress : null,
-              strokeWidth: 3,
-              color: _borderColor,
-            ),
+          LinearProgressIndicator(
+            value: upload.progress > 0 ? upload.progress : null,
+            color: _borderColor,
+            backgroundColor: _borderColor.withValues(alpha: 0.15),
           ),
         if (upload.status == UploadStatus.error)
-          const PhosphorIcon(
-            PhosphorIconsBold.warning,
-            size: 36,
+          LinearProgressIndicator(
+            value: 1.0,
             color: Colors.red,
+            backgroundColor: Colors.red.withValues(alpha: 0.15),
           ),
       ],
     );

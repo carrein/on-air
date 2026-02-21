@@ -2,9 +2,17 @@ import 'package:path/path.dart' as path;
 
 /// Service for handling media operations.
 class MediaService {
-  /// Get MIME type from bytes using file extension.
-  static String getMimeTypeFromExtension(String fileName) {
-    final ext = path.extension(fileName).toLowerCase();
+  /// Get MIME type from file extension.
+  ///
+  /// On Android, the file name from FilePicker may lack an extension (e.g.
+  /// content URI cache names like "1000028478"). Pass [filePath] as a fallback
+  /// so we can try its extension too.
+  static String getMimeTypeFromExtension(String fileName, {String? filePath}) {
+    var ext = path.extension(fileName).toLowerCase();
+    // Fallback: try the file path extension if the filename has none.
+    if (ext.isEmpty && filePath != null) {
+      ext = path.extension(filePath).toLowerCase();
+    }
     switch (ext) {
       // Images
       case '.jpg':

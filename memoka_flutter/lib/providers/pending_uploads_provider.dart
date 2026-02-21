@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 
 import '../main.dart' show serverUrl;
 import '../services/media_service.dart';
+import 'notes_provider.dart';
 
 part 'pending_uploads_provider.g.dart';
 
@@ -111,7 +112,7 @@ class PendingUploads extends _$PendingUploads {
     required bool compress,
   }) async {
     final id = const Uuid().v4();
-    final mimeType = MediaService.getMimeTypeFromExtension(fileName);
+    final mimeType = MediaService.getMimeTypeFromExtension(fileName, filePath: filePath);
 
     String? localFilePath;
     Uint8List? localBytes;
@@ -224,18 +225,27 @@ class PendingUploads extends _$PendingUploads {
         ));
       }
 
-      final streamedResponse = await request.send();
+      final streamedResponse = await request.send().timeout(
+            const Duration(minutes: 5),
+            onTimeout: () => throw TimeoutException(
+              'Upload timed out after 5 minutes',
+            ),
+          );
       final statusCode = streamedResponse.statusCode;
       await streamedResponse.stream.drain<void>();
 
       if (statusCode >= 200 && statusCode < 300) {
-        // Success — remove ghost note (real note arrives via WebSocket).
+        // Success — remove ghost note.
         // Delete the local copy.
         if (!kIsWeb && pending.localFilePath != null) {
           final f = File(pending.localFilePath!);
           if (await f.exists()) await f.delete();
         }
         state = state.where((p) => p.id != id).toList();
+
+        // Invalidate notes so the real note appears even if the WebSocket
+        // event was missed (e.g. app was backgrounded).
+        ref.invalidate(notesProvider(pending.channelId));
       } else {
         _setError(id, 'Server error ($statusCode)');
       }

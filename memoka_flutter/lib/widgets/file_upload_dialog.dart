@@ -155,12 +155,14 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
       return Image.file(
         File(widget.file.filePath!),
         fit: BoxFit.contain,
+        cacheWidth: 800,
       );
     }
     if (widget.file.bytes != null) {
       return Image.memory(
         widget.file.bytes!,
         fit: BoxFit.contain,
+        cacheWidth: 800,
       );
     }
     return const SizedBox.shrink();
