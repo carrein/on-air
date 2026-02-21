@@ -314,7 +314,8 @@ class _ChatViewState extends ConsumerState<ChatView>
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+      error: (err, stack) => const Center(
+            child: Text('Unable to load notes. Check your connection.')),
     );
   }
 
@@ -467,7 +468,8 @@ class _ChatViewState extends ConsumerState<ChatView>
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+      error: (err, stack) => const Center(
+            child: Text('Unable to load notes. Check your connection.')),
     );
   }
 

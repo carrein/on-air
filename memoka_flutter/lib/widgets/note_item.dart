@@ -480,11 +480,14 @@ class _NoteFooter extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          _formatDateTime(note.createdAt),
-          style: TextStyle(
-            fontSize: 12,
-            color: const Color(0xFF00171F).withValues(alpha: 0.5),
+        Flexible(
+          child: Text(
+            _formatDateTime(note.createdAt),
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF00171F).withValues(alpha: 0.5),
+            ),
           ),
         ),
         Row(

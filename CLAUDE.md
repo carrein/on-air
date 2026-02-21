@@ -45,7 +45,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Archive System**: Archive for soft-deleted notes, channel archiving with restore
 - **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
-- **Offline Mode**: Local-first reads from SQLite cache (Drift), offline mutation queue (create/delete notes, create/update/archive channels), sync engine drains on reconnect, navbar sync indicator; persistent on native, in-memory on web (see `docs/Offline.md`)
+- **Offline Mode**: Local-first reads from SQLite cache (Drift), offline mutation queue (create/delete notes, create/update/archive channels), sync engine drains on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Offline.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture

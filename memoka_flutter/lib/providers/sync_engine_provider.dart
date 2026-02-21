@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:memoka_client/memoka_client.dart' show ServerpodClientException;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../local_db/database.dart';
 import '../main.dart';
@@ -28,13 +29,12 @@ class SyncEngine extends _$SyncEngine {
   }
 
   Future<void> _drain() async {
-    final db = ref.read(appDatabaseProvider);
-    if (db == null) return; // web — no persistent queue
     if (state) return; // already draining
     state = true;
 
-    final mutations = await db.getPendingMutations();
+    final db = ref.read(appDatabaseProvider);
     final affectedChannelIds = <int>{};
+    final mutations = await db.getPendingMutations();
 
     for (final m in mutations) {
       try {
@@ -74,18 +74,41 @@ class SyncEngine extends _$SyncEngine {
             final id = payload['id'] as int;
             await client.chat.archiveChannel(id);
             break;
+
+          case 'updateNote':
+            final noteId = payload['noteId'] as int;
+            final content = payload['content'] as String;
+            await client.chat.updateNote(noteId, content);
+            if (m.channelId != null) affectedChannelIds.add(m.channelId!);
+            break;
+
+          case 'deleteChannel':
+            final id = payload['id'] as int;
+            await client.chat.deleteChannel(id);
+            break;
+
+          case 'reorderChannels':
+            final ids = (payload['channelIds'] as List).cast<int>();
+            await client.chat.reorderChannels(ids);
+            break;
         }
 
         await db.deleteMutation(m.id);
-      } catch (_) {
-        // Stop drain on first failure — retry on next reconnect
-        break;
+      } catch (e) {
+        // Network error (server unreachable) — stop drain, retry on reconnect.
+        if (e is ServerpodClientException && e.statusCode == -1) break;
+
+        // Server error (4xx/5xx, e.g. "Note not found") — the mutation won't
+        // succeed on retry either, so discard it and continue draining.
+        await db.deleteMutation(m.id);
       }
     }
 
     state = false;
 
-    // Invalidate affected providers to pull fresh server state
+    // Always invalidate to force a fresh server fetch after reconnect.
+    // This also fixes the startup race where providers built before
+    // connectionStreamProvider resolved its first value.
     ref.invalidate(channelsProvider);
     for (final channelId in affectedChannelIds) {
       ref.invalidate(notesProvider(channelId));

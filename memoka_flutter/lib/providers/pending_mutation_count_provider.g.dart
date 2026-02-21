@@ -7,7 +7,7 @@ part of 'pending_mutation_count_provider.dart';
 // **************************************************************************
 
 String _$pendingMutationCountHash() =>
-    r'7b24921c7b82ebceb189f146bd2cd562a118242e';
+    r'18cb97911758df79e96f24b49cf93d34205edb5d';
 
 /// Watches the count of pending offline mutations for the sync indicator.
 ///

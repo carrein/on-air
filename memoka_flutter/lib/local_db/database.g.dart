@@ -482,6 +482,258 @@ class CachedNotesCompanion extends UpdateCompanion<CachedNote> {
   }
 }
 
+class $CachedArchiveItemsTable extends CachedArchiveItems
+    with TableInfo<$CachedArchiveItemsTable, CachedArchiveItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CachedArchiveItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _jsonMeta = const VerificationMeta('json');
+  @override
+  late final GeneratedColumn<String> json = GeneratedColumn<String>(
+    'json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _archivedAtMeta = const VerificationMeta(
+    'archivedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> archivedAt = GeneratedColumn<DateTime>(
+    'archived_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, json, archivedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cached_archive_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CachedArchiveItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('json')) {
+      context.handle(
+        _jsonMeta,
+        json.isAcceptableOrUnknown(data['json']!, _jsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_jsonMeta);
+    }
+    if (data.containsKey('archived_at')) {
+      context.handle(
+        _archivedAtMeta,
+        archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_archivedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CachedArchiveItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CachedArchiveItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      json: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}json'],
+      )!,
+      archivedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}archived_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CachedArchiveItemsTable createAlias(String alias) {
+    return $CachedArchiveItemsTable(attachedDatabase, alias);
+  }
+}
+
+class CachedArchiveItem extends DataClass
+    implements Insertable<CachedArchiveItem> {
+  final int id;
+  final String json;
+  final DateTime archivedAt;
+  const CachedArchiveItem({
+    required this.id,
+    required this.json,
+    required this.archivedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['json'] = Variable<String>(json);
+    map['archived_at'] = Variable<DateTime>(archivedAt);
+    return map;
+  }
+
+  CachedArchiveItemsCompanion toCompanion(bool nullToAbsent) {
+    return CachedArchiveItemsCompanion(
+      id: Value(id),
+      json: Value(json),
+      archivedAt: Value(archivedAt),
+    );
+  }
+
+  factory CachedArchiveItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CachedArchiveItem(
+      id: serializer.fromJson<int>(json['id']),
+      json: serializer.fromJson<String>(json['json']),
+      archivedAt: serializer.fromJson<DateTime>(json['archivedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'json': serializer.toJson<String>(json),
+      'archivedAt': serializer.toJson<DateTime>(archivedAt),
+    };
+  }
+
+  CachedArchiveItem copyWith({int? id, String? json, DateTime? archivedAt}) =>
+      CachedArchiveItem(
+        id: id ?? this.id,
+        json: json ?? this.json,
+        archivedAt: archivedAt ?? this.archivedAt,
+      );
+  CachedArchiveItem copyWithCompanion(CachedArchiveItemsCompanion data) {
+    return CachedArchiveItem(
+      id: data.id.present ? data.id.value : this.id,
+      json: data.json.present ? data.json.value : this.json,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedArchiveItem(')
+          ..write('id: $id, ')
+          ..write('json: $json, ')
+          ..write('archivedAt: $archivedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, json, archivedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CachedArchiveItem &&
+          other.id == this.id &&
+          other.json == this.json &&
+          other.archivedAt == this.archivedAt);
+}
+
+class CachedArchiveItemsCompanion extends UpdateCompanion<CachedArchiveItem> {
+  final Value<int> id;
+  final Value<String> json;
+  final Value<DateTime> archivedAt;
+  const CachedArchiveItemsCompanion({
+    this.id = const Value.absent(),
+    this.json = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+  });
+  CachedArchiveItemsCompanion.insert({
+    this.id = const Value.absent(),
+    required String json,
+    required DateTime archivedAt,
+  }) : json = Value(json),
+       archivedAt = Value(archivedAt);
+  static Insertable<CachedArchiveItem> custom({
+    Expression<int>? id,
+    Expression<String>? json,
+    Expression<DateTime>? archivedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (json != null) 'json': json,
+      if (archivedAt != null) 'archived_at': archivedAt,
+    });
+  }
+
+  CachedArchiveItemsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? json,
+    Value<DateTime>? archivedAt,
+  }) {
+    return CachedArchiveItemsCompanion(
+      id: id ?? this.id,
+      json: json ?? this.json,
+      archivedAt: archivedAt ?? this.archivedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (json.present) {
+      map['json'] = Variable<String>(json.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<DateTime>(archivedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CachedArchiveItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('json: $json, ')
+          ..write('archivedAt: $archivedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PendingMutationsTable extends PendingMutations
     with TableInfo<$PendingMutationsTable, PendingMutation> {
   @override
@@ -838,6 +1090,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CachedChannelsTable cachedChannels = $CachedChannelsTable(this);
   late final $CachedNotesTable cachedNotes = $CachedNotesTable(this);
+  late final $CachedArchiveItemsTable cachedArchiveItems =
+      $CachedArchiveItemsTable(this);
   late final $PendingMutationsTable pendingMutations = $PendingMutationsTable(
     this,
   );
@@ -848,6 +1102,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     cachedChannels,
     cachedNotes,
+    cachedArchiveItems,
     pendingMutations,
   ];
 }
@@ -1152,6 +1407,177 @@ typedef $$CachedNotesTableProcessedTableManager =
       CachedNote,
       PrefetchHooks Function()
     >;
+typedef $$CachedArchiveItemsTableCreateCompanionBuilder =
+    CachedArchiveItemsCompanion Function({
+      Value<int> id,
+      required String json,
+      required DateTime archivedAt,
+    });
+typedef $$CachedArchiveItemsTableUpdateCompanionBuilder =
+    CachedArchiveItemsCompanion Function({
+      Value<int> id,
+      Value<String> json,
+      Value<DateTime> archivedAt,
+    });
+
+class $$CachedArchiveItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedArchiveItemsTable> {
+  $$CachedArchiveItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CachedArchiveItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedArchiveItemsTable> {
+  $$CachedArchiveItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CachedArchiveItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedArchiveItemsTable> {
+  $$CachedArchiveItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get json =>
+      $composableBuilder(column: $table.json, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$CachedArchiveItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CachedArchiveItemsTable,
+          CachedArchiveItem,
+          $$CachedArchiveItemsTableFilterComposer,
+          $$CachedArchiveItemsTableOrderingComposer,
+          $$CachedArchiveItemsTableAnnotationComposer,
+          $$CachedArchiveItemsTableCreateCompanionBuilder,
+          $$CachedArchiveItemsTableUpdateCompanionBuilder,
+          (
+            CachedArchiveItem,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedArchiveItemsTable,
+              CachedArchiveItem
+            >,
+          ),
+          CachedArchiveItem,
+          PrefetchHooks Function()
+        > {
+  $$CachedArchiveItemsTableTableManager(
+    _$AppDatabase db,
+    $CachedArchiveItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CachedArchiveItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedArchiveItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedArchiveItemsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> json = const Value.absent(),
+                Value<DateTime> archivedAt = const Value.absent(),
+              }) => CachedArchiveItemsCompanion(
+                id: id,
+                json: json,
+                archivedAt: archivedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String json,
+                required DateTime archivedAt,
+              }) => CachedArchiveItemsCompanion.insert(
+                id: id,
+                json: json,
+                archivedAt: archivedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CachedArchiveItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CachedArchiveItemsTable,
+      CachedArchiveItem,
+      $$CachedArchiveItemsTableFilterComposer,
+      $$CachedArchiveItemsTableOrderingComposer,
+      $$CachedArchiveItemsTableAnnotationComposer,
+      $$CachedArchiveItemsTableCreateCompanionBuilder,
+      $$CachedArchiveItemsTableUpdateCompanionBuilder,
+      (
+        CachedArchiveItem,
+        BaseReferences<
+          _$AppDatabase,
+          $CachedArchiveItemsTable,
+          CachedArchiveItem
+        >,
+      ),
+      CachedArchiveItem,
+      PrefetchHooks Function()
+    >;
 typedef $$PendingMutationsTableCreateCompanionBuilder =
     PendingMutationsCompanion Function({
       Value<int> id,
@@ -1360,6 +1786,8 @@ class $AppDatabaseManager {
       $$CachedChannelsTableTableManager(_db, _db.cachedChannels);
   $$CachedNotesTableTableManager get cachedNotes =>
       $$CachedNotesTableTableManager(_db, _db.cachedNotes);
+  $$CachedArchiveItemsTableTableManager get cachedArchiveItems =>
+      $$CachedArchiveItemsTableTableManager(_db, _db.cachedArchiveItems);
   $$PendingMutationsTableTableManager get pendingMutations =>
       $$PendingMutationsTableTableManager(_db, _db.pendingMutations);
 }
@@ -1368,14 +1796,14 @@ class $AppDatabaseManager {
 // RiverpodGenerator
 // **************************************************************************
 
-String _$appDatabaseHash() => r'43c9762ad22e802e8da440b3a560695e832526a7';
+String _$appDatabaseHash() => r'381febe96593785fa9c66d1647b02b1f2c4c7d05';
 
 /// Provides the singleton [AppDatabase] instance.
-/// Returns null on web (no SQLite available — cache lives in Riverpod state only).
+/// On native: SQLite file on disk. On web: WASM SQLite backed by IndexedDB.
 ///
 /// Copied from [appDatabase].
 @ProviderFor(appDatabase)
-final appDatabaseProvider = Provider<AppDatabase?>.internal(
+final appDatabaseProvider = Provider<AppDatabase>.internal(
   appDatabase,
   name: r'appDatabaseProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -1387,6 +1815,6 @@ final appDatabaseProvider = Provider<AppDatabase?>.internal(
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef AppDatabaseRef = ProviderRef<AppDatabase?>;
+typedef AppDatabaseRef = ProviderRef<AppDatabase>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

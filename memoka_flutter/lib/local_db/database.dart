@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoka_client/memoka_client.dart' as proto;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -29,6 +28,13 @@ class CachedNotes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Cached archive items — stores full serialised ArchiveItem JSON.
+class CachedArchiveItems extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get json => text()();
+  DateTimeColumn get archivedAt => dateTime()();
+}
+
 /// Pending offline mutations — queued for sync when connectivity returns.
 class PendingMutations extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -38,12 +44,26 @@ class PendingMutations extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
-@DriftDatabase(tables: [CachedChannels, CachedNotes, PendingMutations])
+@DriftDatabase(
+  tables: [CachedChannels, CachedNotes, CachedArchiveItems, PendingMutations],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (Migrator m) async {
+      await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 2) {
+        await m.createTable(cachedArchiveItems);
+      }
+    },
+  );
 
   // -- Channel cache --
 
@@ -63,13 +83,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<proto.Channel>> getCachedChannels() async {
     final rows = await select(cachedChannels).get();
-    return rows
+    final channels = rows
         .map(
           (r) => proto.Channel.fromJson(
             jsonDecode(r.json) as Map<String, dynamic>,
           ),
         )
         .toList();
+    channels.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return channels;
   }
 
   // -- Note cache --
@@ -106,6 +128,35 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteCachedNote(int noteId) async {
     await (delete(cachedNotes)..where((t) => t.id.equals(noteId))).go();
+  }
+
+  // -- Archive cache --
+
+  Future<void> cacheArchiveItems(List<proto.ArchiveItem> items) async {
+    await transaction(() async {
+      await delete(cachedArchiveItems).go();
+      for (final item in items) {
+        await into(cachedArchiveItems).insert(
+          CachedArchiveItemsCompanion.insert(
+            json: jsonEncode(item.toJson()),
+            archivedAt: item.archivedAt,
+          ),
+        );
+      }
+    });
+  }
+
+  Future<List<proto.ArchiveItem>> getCachedArchiveItems() async {
+    final query = select(cachedArchiveItems)
+      ..orderBy([(t) => OrderingTerm.desc(t.archivedAt)]);
+    final rows = await query.get();
+    return rows
+        .map(
+          (r) => proto.ArchiveItem.fromJson(
+            jsonDecode(r.json) as Map<String, dynamic>,
+          ),
+        )
+        .toList();
   }
 
   // -- Pending mutations --
@@ -146,11 +197,18 @@ class AppDatabase extends _$AppDatabase {
 }
 
 /// Provides the singleton [AppDatabase] instance.
-/// Returns null on web (no SQLite available — cache lives in Riverpod state only).
+/// On native: SQLite file on disk. On web: WASM SQLite backed by IndexedDB.
 @Riverpod(keepAlive: true)
-AppDatabase? appDatabase(Ref ref) {
-  if (kIsWeb) return null;
-  final db = AppDatabase(driftDatabase(name: 'memoka'));
+AppDatabase appDatabase(Ref ref) {
+  final db = AppDatabase(
+    driftDatabase(
+      name: 'memoka',
+      web: DriftWebOptions(
+        sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+        driftWorker: Uri.parse('drift_worker.js'),
+      ),
+    ),
+  );
   ref.onDispose(db.close);
   return db;
 }

@@ -19,7 +19,9 @@ class Notes extends _$Notes {
   bool _isLoadingMore = false;
 
   /// Negative IDs for provisional offline-created notes.
-  static int _nextProvisionalId = -1;
+  /// Use timestamp-based starting point so IDs are unique across app restarts
+  /// (avoids primary key conflicts in the CachedNotes table).
+  static int _nextProvisionalId = -DateTime.now().millisecondsSinceEpoch;
 
   @override
   Future<List<Note>> build(int channelId) async {
@@ -32,32 +34,22 @@ class Notes extends _$Notes {
       });
     });
 
-    // 1. Load from cache and emit immediately (native only)
-    if (db != null) {
-      final cached = await db.getCachedNotes(channelId);
-      if (cached.isNotEmpty) {
-        _notes = cached;
-        _oldestNoteId = cached.last.id;
-        state = AsyncData(cached);
-      }
+    // 1. Load from cache and emit immediately
+    final cached = await db.getCachedNotes(channelId);
+    if (cached.isNotEmpty) {
+      _notes = cached;
+      _oldestNoteId = cached.last.id;
+      state = AsyncData(cached);
     }
 
-    // 2. Try to fetch from server
-    final conn = ref.read(connectionStreamProvider);
-    final isOnline = conn.valueOrNull == ConnectionState.connected;
-
-    if (isOnline) {
-      try {
-        final serverNotes = await _loadInitialNotes(channelId);
-        await db?.cacheNotes(channelId, serverNotes);
-        return serverNotes;
-      } catch (_) {
-        if (_notes.isNotEmpty) return _notes;
-        rethrow;
-      }
+    // 2. Always try to fetch from server; fall back to cache if unreachable.
+    try {
+      final serverNotes = await _loadInitialNotes(channelId);
+      await db.cacheNotes(channelId, serverNotes);
+      return serverNotes;
+    } catch (_) {
+      return _notes;
     }
-
-    return _notes;
   }
 
   bool get _isOnline {
@@ -89,7 +81,7 @@ class Notes extends _$Notes {
           if (currentState.any((n) => n.id == event.note!.id)) break;
           _notes = [event.note!, ...currentState];
           state = AsyncValue.data(_notes);
-          db?.cacheNotes(channelId, _notes);
+          db.cacheNotes(channelId, _notes);
         }
         break;
 
@@ -97,7 +89,7 @@ class Notes extends _$Notes {
         if (event.channelId == channelId) {
           _notes = currentState.where((n) => n.id != event.noteId).toList();
           state = AsyncValue.data(_notes);
-          db?.cacheNotes(channelId, _notes);
+          db.cacheNotes(channelId, _notes);
         }
         if (channelId == -1) {
           ref.invalidateSelf();
@@ -114,7 +106,7 @@ class Notes extends _$Notes {
           _notes = [event.note!, ...currentState];
           _sortNotes();
           state = AsyncValue.data(_notes);
-          db?.cacheNotes(channelId, _notes);
+          db.cacheNotes(channelId, _notes);
         }
         break;
 
@@ -125,7 +117,7 @@ class Notes extends _$Notes {
               .map((n) => n.id == event.note!.id ? event.note! : n)
               .toList();
           state = AsyncValue.data(_notes);
-          db?.cacheNotes(channelId, _notes);
+          db.cacheNotes(channelId, _notes);
         }
         break;
 
@@ -133,7 +125,7 @@ class Notes extends _$Notes {
         if (event.channelId == channelId) {
           _notes = currentState.where((n) => n.id != event.noteId).toList();
           state = AsyncValue.data(_notes);
-          db?.cacheNotes(channelId, _notes);
+          db.cacheNotes(channelId, _notes);
         }
         break;
     }
@@ -176,13 +168,13 @@ class Notes extends _$Notes {
         state = AsyncValue.data(_notes);
       }
       final db = ref.read(appDatabaseProvider);
-      await db?.cacheNotes(channelId, _notes);
+      await db.cacheNotes(channelId, _notes);
       return;
     }
 
     // Offline: enqueue mutation and add provisional note
     final db = ref.read(appDatabaseProvider);
-    await db?.enqueueMutation(
+    await db.enqueueMutation(
       'createNote',
       channelId,
       jsonEncode({'content': content}),
@@ -198,15 +190,38 @@ class Notes extends _$Notes {
     final current = state.value ?? [];
     _notes = [provisional, ...current];
     state = AsyncValue.data(_notes);
+
+    // Persist to cache so provisional notes survive page refresh.
+    await db.cacheNotes(channelId, _notes);
   }
 
   Future<void> updateNote(int id, String content) async {
-    final updated = await client.chat.updateNote(id, content);
-    final current = state.value ?? [];
-    _notes = current.map((n) => n.id == id ? updated : n).toList();
-    state = AsyncValue.data(_notes);
     final db = ref.read(appDatabaseProvider);
-    await db?.cacheNotes(channelId, _notes);
+
+    if (_isOnline) {
+      final updated = await client.chat.updateNote(id, content);
+      final current = state.value ?? [];
+      _notes = current.map((n) => n.id == id ? updated : n).toList();
+      state = AsyncValue.data(_notes);
+      await db.cacheNotes(channelId, _notes);
+      return;
+    }
+
+    // Offline: enqueue and optimistic update
+    await db.enqueueMutation(
+      'updateNote',
+      channelId,
+      jsonEncode({'noteId': id, 'content': content}),
+    );
+
+    final current = state.value ?? [];
+    _notes = current
+        .map((n) => n.id == id
+            ? n.copyWith(content: content, updatedAt: DateTime.now())
+            : n)
+        .toList();
+    state = AsyncValue.data(_notes);
+    await db.cacheNotes(channelId, _notes);
   }
 
   Future<void> deleteNote(int id) async {
@@ -214,7 +229,7 @@ class Notes extends _$Notes {
       await client.chat.deleteNote(id);
     } else {
       final db = ref.read(appDatabaseProvider);
-      await db?.enqueueMutation(
+      await db.enqueueMutation(
         'deleteNote',
         channelId,
         jsonEncode({'noteId': id}),
@@ -226,6 +241,6 @@ class Notes extends _$Notes {
     state = AsyncValue.data(_notes);
 
     final db = ref.read(appDatabaseProvider);
-    await db?.deleteCachedNote(id);
+    await db.deleteCachedNote(id);
   }
 }

@@ -8,6 +8,5 @@ part 'pending_mutation_count_provider.g.dart';
 @riverpod
 Stream<int> pendingMutationCount(Ref ref) {
   final db = ref.watch(appDatabaseProvider);
-  if (db == null) return Stream.value(0);
   return db.watchPendingCount();
 }

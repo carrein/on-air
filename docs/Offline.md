@@ -1,6 +1,6 @@
 # Offline Mode
 
-Memoka supports local-first reads and offline writes on native platforms (Android). Notes and channels are cached in a local SQLite database via Drift, and mutations made while offline are queued and synced when connectivity is restored.
+Memoka supports local-first reads and offline writes on all platforms. Notes and channels are cached in a local SQLite database via Drift, and mutations made while offline are queued and synced when connectivity is restored.
 
 ## Architecture
 
@@ -13,7 +13,27 @@ Three SQLite tables:
 - **CachedNotes** — full serialised Note JSON, keyed by server ID + channelId index
 - **PendingMutations** — queued offline operations (autoIncrement ID, type, channelId, payload JSON, createdAt)
 
-On web, the database provider returns `null` — all caching is in Riverpod state only (no persistence across page reloads).
+On native, Drift uses `sqlite3_flutter_libs` (file-based SQLite). On web, Drift uses WASM SQLite backed by IndexedDB — the same schema, same code paths, full persistence across page reloads.
+
+### WASM SQLite (Web)
+
+Two files must be present in `memoka_flutter/web/`:
+- **`sqlite3.wasm`** — compiled SQLite module (from [sqlite3.dart releases](https://github.com/simolus3/sqlite3.dart/releases), must match the `sqlite3` version in `pubspec.lock`)
+- **`drift_worker.js`** — web worker for shared database access across tabs (from [drift releases](https://github.com/simolus3/drift/releases), must match the `drift` version in `pubspec.lock`)
+
+These are configured via `DriftWebOptions` in the `appDatabaseProvider`:
+
+```dart
+driftDatabase(
+  name: 'memoka',
+  web: DriftWebOptions(
+    sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+    driftWorker: Uri.parse('drift_worker.js'),
+  ),
+)
+```
+
+When upgrading drift or sqlite3, download matching WASM/worker files from the release pages above.
 
 ### Connectivity Detection
 
@@ -29,11 +49,17 @@ Returns `200 OK` with CORS headers. Registered at `/healthcheck` on the web serv
 
 ## Data Flow
 
+### App Launch (online)
+
+1. `channelsProvider.build()` loads `db.getCachedChannels()` → emits immediately from cache
+2. Then fetches from server → updates state + cache
+3. `notesProvider.build(channelId)` follows the same pattern
+
 ### App Launch (offline)
 
 1. `channelsProvider.build()` loads `db.getCachedChannels()` → emits immediately
-2. `notesProvider.build(channelId)` loads `db.getCachedNotes(channelId)` → emits immediately
-3. Connectivity check fails → skip server fetch, render from cache
+2. Server fetch fails → caught, returns cache
+3. `notesProvider.build(channelId)` follows the same pattern
 
 ### User Creates Note (offline)
 
@@ -84,8 +110,8 @@ Last-write-wins. When the queue drains, server state wins via WebSocket events t
 
 | Feature | Native (Android) | Web |
 |---------|------------------|-----|
-| Cache persistence | SQLite on disk (survives restart) | In-memory only (Riverpod state) |
-| Mutation queue | SQLite (survives force-kill) | In-memory only |
+| Cache persistence | SQLite on disk (survives restart) | WASM SQLite + IndexedDB (survives reload) |
+| Mutation queue | SQLite (survives force-kill) | WASM SQLite + IndexedDB (survives reload) |
 | Connectivity detection | connectivity_plus + healthcheck | connectivity_plus + healthcheck |
 
 ## Key Files
@@ -100,3 +126,5 @@ Last-write-wins. When the queue drains, server state wins via WebSocket events t
 | `memoka_flutter/lib/providers/sync_engine_provider.dart` | Drains pending mutations on reconnect |
 | `memoka_flutter/lib/providers/pending_mutation_count_provider.dart` | Pending count stream for UI |
 | `memoka_flutter/lib/widgets/sync_indicator.dart` | Navbar sync badge widget |
+| `memoka_flutter/web/sqlite3.wasm` | WASM SQLite binary (match sqlite3 pubspec.lock version) |
+| `memoka_flutter/web/drift_worker.js` | Drift web worker (match drift pubspec.lock version) |

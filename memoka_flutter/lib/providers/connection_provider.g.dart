@@ -6,9 +6,12 @@ part of 'connection_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$connectionStreamHash() => r'ba85004cc09273541f8ffe1b3a684544f7f5ab2d';
+String _$connectionStreamHash() => r'533fea0b9b58aab5baadffb5c1baac6547e52b75';
 
-/// Monitors connectivity using connectivity_plus + server healthcheck probe.
+/// Monitors connectivity using connectivity_plus + periodic healthcheck probe.
+/// Polls the server every 5 seconds to detect both server going down and
+/// coming back up, since killing/restarting the server process doesn't
+/// trigger OS-level network change events.
 ///
 /// Copied from [connectionStream].
 @ProviderFor(connectionStream)

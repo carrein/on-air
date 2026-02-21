@@ -119,8 +119,8 @@ class _ChannelListState extends ConsumerState<ChannelList> {
     final compact = ResponsiveUtils.isMobile(context);
 
     ref.listen(currentChannelProvider, (prev, next) {
-      final channelId = next.value;
-      if (channelId == null || channelId == prev?.value) return;
+      final channelId = next.valueOrNull;
+      if (channelId == null || channelId == prev?.valueOrNull) return;
       final channels = ref.read(channelsProvider).value;
       if (channels == null) return;
       final regular = channels.where((c) => !c.isSystemChannel).toList();
@@ -213,7 +213,7 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                           }
 
                           final isSelected =
-                              currentChannelAsync.value == channel.id;
+                              currentChannelAsync.valueOrNull == channel.id;
 
                           // Desktop: immediate drag on pointer down.
                           // Mobile: delayed (long-press) to avoid scroll conflicts.
