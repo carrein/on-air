@@ -56,7 +56,12 @@ jobs:
       - name: Upload APK to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" memoka_flutter/build/app/outputs/flutter-apk/app-release.apk --clobber
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          APK_SRC="memoka_flutter/build/app/outputs/flutter-apk/app-release.apk"
+          APK_DST="memoka_flutter/build/app/outputs/flutter-apk/memoka-${TAG}.apk"
+          cp "${APK_SRC}" "${APK_DST}"
+          gh release upload "${TAG}" "${APK_DST}" --clobber
 
   build-docker:
     runs-on: ubuntu-latest
