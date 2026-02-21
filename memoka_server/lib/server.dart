@@ -6,6 +6,7 @@ import 'src/generated/protocol.dart';
 import 'src/shared/constants.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/cors_media_route.dart';
+import 'src/web/routes/media_upload_route.dart';
 import 'src/web/routes/root.dart';
 
 /// The starting point of the Serverpod server.
@@ -41,6 +42,9 @@ void run(List<String> args) async {
     CorsMediaRoute(mediaDir),
     '/media',
   );
+
+  // Multipart upload route (streams file to disk, no OOM)
+  pod.webServer.addRoute(MediaUploadRoute(), '/media/upload');
 
   // Checks if the flutter web app has been built and serves it if it has.
   final appDir = Directory(Uri(path: 'web/app').toFilePath());

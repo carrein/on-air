@@ -1,20 +1,29 @@
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../utils/file_utils.dart';
 
-/// Helper class for upload file data
+/// Helper class for upload file data.
+///
+/// On native platforms, [filePath] points to the picked file on disk and
+/// [bytes] is null (avoids loading multi-MB files into the Dart heap).
+/// On web, [bytes] holds the file contents because web has no file system.
 class UploadFileData {
-  final Uint8List bytes;
+  final Uint8List? bytes;
+  final String? filePath;
   final String fileName;
   final String extension;
   bool compress;
 
   UploadFileData({
-    required this.bytes,
+    this.bytes,
+    this.filePath,
     required this.fileName,
     required this.extension,
     this.compress = false,
-  });
+  }) : assert(bytes != null || filePath != null,
+            'Either bytes or filePath must be provided');
 
   bool get isImage {
     final ext = extension.toLowerCase();
@@ -28,5 +37,13 @@ class UploadFileData {
 
   IconData get fileIcon => FileUtils.getFileIcon(extension);
 
-  String get fileSizeFormatted => FileUtils.formatFileSize(bytes.length);
+  String get fileSizeFormatted {
+    if (bytes != null) {
+      return FileUtils.formatFileSize(bytes!.length);
+    }
+    if (!kIsWeb && filePath != null) {
+      return FileUtils.formatFileSize(File(filePath!).lengthSync());
+    }
+    return '';
+  }
 }

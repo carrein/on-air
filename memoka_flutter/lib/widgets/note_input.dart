@@ -8,7 +8,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
-import '../providers/media_provider.dart';
+import '../providers/pending_uploads_provider.dart';
 import '../utils/toast_utils.dart';
 import '../models/upload_file_data.dart';
 import 'input_link_preview.dart';
@@ -304,11 +304,14 @@ class _NoteInputState extends ConsumerState<NoteInput> {
       final photo = await picker.pickImage(source: ImageSource.camera);
       if (photo == null) return;
 
-      final bytes = await photo.readAsBytes();
       final fileName = photo.name;
       final ext = fileName.split('.').last;
 
-      await _showFileUploadDialog(bytes, fileName, ext);
+      await _showFileUploadDialog(UploadFileData(
+        filePath: photo.path,
+        fileName: fileName,
+        extension: ext,
+      ));
     } catch (e) {
       if (mounted) {
         ToastUtils.show(context, 'Camera failed: $e', type: ToastType.error);
@@ -320,7 +323,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.any,
-        withData: true,
+        withData: kIsWeb, // Only load bytes on web
         allowMultiple: true,
       );
 
@@ -329,12 +332,24 @@ class _NoteInputState extends ConsumerState<NoteInput> {
       // Collect all valid files
       final List<UploadFileData> uploadFiles = [];
       for (final file in result.files) {
-        if (file.bytes != null) {
-          uploadFiles.add(UploadFileData(
-            bytes: file.bytes!,
-            fileName: file.name,
-            extension: file.extension ?? '',
-          ));
+        if (kIsWeb) {
+          // Web: must use bytes
+          if (file.bytes != null) {
+            uploadFiles.add(UploadFileData(
+              bytes: file.bytes!,
+              fileName: file.name,
+              extension: file.extension ?? '',
+            ));
+          }
+        } else {
+          // Native: use file path (no bytes loaded into memory)
+          if (file.path != null) {
+            uploadFiles.add(UploadFileData(
+              filePath: file.path!,
+              fileName: file.name,
+              extension: file.extension ?? '',
+            ));
+          }
         }
       }
 
@@ -347,11 +362,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
 
       // Show appropriate dialog based on number of files
       if (uploadFiles.length == 1) {
-        await _showFileUploadDialog(
-          uploadFiles.first.bytes,
-          uploadFiles.first.fileName,
-          uploadFiles.first.extension,
-        );
+        await _showFileUploadDialog(uploadFiles.first);
       } else {
         await _showMultiFileUploadDialog(uploadFiles);
       }
@@ -362,49 +373,34 @@ class _NoteInputState extends ConsumerState<NoteInput> {
     }
   }
 
-  Future<void> _showFileUploadDialog(Uint8List fileBytes, String fileName, String extension) async {
+  Future<void> _showFileUploadDialog(UploadFileData file) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
 
     await showDialog(
       context: context,
       builder: (_) => FileUploadDialog(
-        fileBytes: fileBytes,
-        fileName: fileName,
-        fileExtension: extension,
-        onSend: (compress) async {
-          try {
-            // Get current text content
-            final noteContent = _controller.text.trim().isEmpty
-                ? ''
-                : _controller.text.trim();
+        file: file,
+        onSend: (compress) {
+          // Get current text content
+          final noteContent = _controller.text.trim();
 
-            // Upload file and create note
-            await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
-              channelId: channelId,
-              noteContent: noteContent,
-              imageBytes: fileBytes,
-              fileName: fileName,
-              compress: compress,
-            );
+          // Enqueue optimistic upload — fire-and-forget
+          ref.read(pendingUploadsProvider.notifier).enqueue(
+                channelId: channelId,
+                filePath: file.filePath,
+                fileBytes: file.bytes,
+                fileName: file.fileName,
+                noteContent: noteContent,
+                compress: compress,
+              );
 
-            // Clear text field
-            _controller.clear();
-            setState(() {
-              _previewUrl = null;
-              _showPreview = true;
-            });
-
-            // Show success message
-            if (mounted) {
-              ToastUtils.show(context, 'File uploaded successfully', type: ToastType.success);
-            }
-          } catch (e) {
-            // Show error message
-            if (mounted) {
-              ToastUtils.show(context, 'Upload failed: $e', type: ToastType.error);
-            }
-          }
+          // Clear text field
+          _controller.clear();
+          setState(() {
+            _previewUrl = null;
+            _showPreview = true;
+          });
         },
       ),
     );
@@ -418,30 +414,24 @@ class _NoteInputState extends ConsumerState<NoteInput> {
       context: context,
       builder: (_) => MultiFileUploadDialog(
         files: uploadFiles,
-        onSend: (files) async {
+        onSend: (files) {
+          // Enqueue all files — ghost notes appear immediately,
+          // uploads proceed sequentially in the queue.
           for (final file in files) {
-            try {
-              await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
-                channelId: channelId,
-                noteContent: '',
-                imageBytes: file.bytes,
-                fileName: file.fileName,
-                compress: file.compress,
-              );
-            } catch (e) {
-              if (mounted) {
-                ToastUtils.show(context, 'Upload failed for ${file.fileName}: $e', type: ToastType.error);
-              }
-            }
+            ref.read(pendingUploadsProvider.notifier).enqueue(
+                  channelId: channelId,
+                  filePath: file.filePath,
+                  fileBytes: file.bytes,
+                  fileName: file.fileName,
+                  noteContent: '',
+                  compress: file.compress,
+                );
           }
         },
       ),
     );
 
     _controller.clear();
-    if (mounted) {
-      ToastUtils.show(context, '${uploadFiles.length} files uploaded', type: ToastType.success);
-    }
   }
 
   @override

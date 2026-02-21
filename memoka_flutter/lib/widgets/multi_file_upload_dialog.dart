@@ -1,11 +1,17 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../models/upload_file_data.dart';
 
 /// Dialog for uploading multiple files.
+///
+/// Shows a list of files with per-file compression toggles. On send, pops
+/// immediately and lets the caller enqueue uploads optimistically.
 class MultiFileUploadDialog extends StatefulWidget {
   final List<UploadFileData> files;
-  final Future<void> Function(List<UploadFileData> files) onSend;
+  final void Function(List<UploadFileData> files) onSend;
 
   const MultiFileUploadDialog({
     super.key,
@@ -18,9 +24,6 @@ class MultiFileUploadDialog extends StatefulWidget {
 }
 
 class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
-  bool _uploading = false;
-  int _uploadedCount = 0;
-
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
@@ -30,7 +33,6 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // File list
             Flexible(
               child: ListView.builder(
                 shrinkWrap: true,
@@ -41,32 +43,17 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
                 },
               ),
             ),
-
-            if (_uploading) ...[
-              const SizedBox(height: 16),
-              LinearProgressIndicator(
-                value: _uploadedCount / widget.files.length,
-              ),
-              const SizedBox(height: 8),
-              Text('Uploading $_uploadedCount of ${widget.files.length}...'),
-            ],
           ],
         ),
       ),
       actions: [
         TextButton(
-          onPressed: _uploading ? null : () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: _uploading ? null : _handleSend,
-          child: _uploading
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Upload All'),
+          onPressed: _handleSend,
+          child: const Text('Upload All'),
         ),
       ],
     );
@@ -89,13 +76,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: Image.memory(
-                    file.bytes,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Icon(file.fileIcon, size: 40);
-                    },
-                  ),
+                  child: _buildImagePreview(file),
                 ),
               )
             else
@@ -134,16 +115,15 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
               SizedBox(
                 width: 140,
                 child: CheckboxListTile(
-                  title: const Text('Compress', style: TextStyle(fontSize: 12)),
+                  title:
+                      const Text('Compress', style: TextStyle(fontSize: 12)),
                   value: file.compress,
                   dense: true,
-                  onChanged: _uploading
-                      ? null
-                      : (value) {
-                          setState(() {
-                            file.compress = value ?? true;
-                          });
-                        },
+                  onChanged: (value) {
+                    setState(() {
+                      file.compress = value ?? true;
+                    });
+                  },
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 ),
@@ -154,30 +134,30 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
     );
   }
 
-  Future<void> _handleSend() async {
-    setState(() {
-      _uploading = true;
-      _uploadedCount = 0;
-    });
-
-    try {
-      // Upload files one by one to avoid overwhelming the server
-      for (var i = 0; i < widget.files.length; i++) {
-        await widget.onSend([widget.files[i]]);
-
-        if (mounted) {
-          setState(() {
-            _uploadedCount = i + 1;
-          });
-        }
-      }
-
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      setState(() => _uploading = false);
-      rethrow; // Let parent handle error display
+  Widget _buildImagePreview(UploadFileData file) {
+    if (!kIsWeb && file.filePath != null) {
+      return Image.file(
+        File(file.filePath!),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(file.fileIcon, size: 40);
+        },
+      );
     }
+    if (file.bytes != null) {
+      return Image.memory(
+        file.bytes!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(file.fileIcon, size: 40);
+        },
+      );
+    }
+    return Icon(file.fileIcon, size: 40);
+  }
+
+  void _handleSend() {
+    Navigator.of(context).pop();
+    widget.onSend(widget.files);
   }
 }

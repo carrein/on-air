@@ -25,6 +25,31 @@ Covers media upload, storage, and display for images, videos, and documents in t
 - **Video support**: MP4, MOV, WebM, AVI, MKV with thumbnail generation and optional 720p compression
 - **File picker UI**: `FilePicker` with custom file type extensions
 
+### Phase 3 (Completed): Async Upload (OOM Fix + Optimistic UI)
+
+**Root Cause — OOM crash on Android:**
+`FilePicker.pickFiles(withData: true)` loads the entire file as a `Uint8List` into memory on selection. Then `base64.encode(finalBytes)` creates a 33% larger copy. A 23.4MB video caused ~55MB peak heap, crashing Android before the dialog even appeared.
+
+**Fix — path-based streaming:**
+- `FilePicker.pickFiles(withData: kIsWeb)` — only loads bytes on web where paths are unavailable
+- Camera capture uses `photo.path` instead of `photo.readAsBytes()`
+- New HTTP multipart route (`POST /media/upload`) streams file to disk in chunks — zero bytes held in memory on server
+- Client sends `http.MultipartFile.fromPath()` which streams from disk in ~64KB chunks
+- Client-side compression (`flutter_image_compress`, `video_compress`) removed entirely — compress toggle sends flag to server which does WebP/720p conversion
+
+**Optimistic UI — `PendingUploadsNotifier` + `PendingNoteWidget`:**
+- On Send: dialog dismisses instantly, file copied to `<docsDir>/pending_uploads/<uuid>`, ghost note appears in chat immediately
+- `PendingNoteWidget` matches `NoteItem` card styling with local file preview + progress indicator
+- Images: `Image.file()` preview with `CircularProgressIndicator` overlay (determinate when progress > 0)
+- Videos/documents: file icon + filename + `LinearProgressIndicator`
+- On success: ghost note removed, real note arrives via WebSocket
+- On failure: red warning + "Upload failed" text + Retry/Dismiss buttons
+- Sequential upload queue: multiple ghost notes appear at once, uploads proceed one-by-one
+- Orphaned file cleanup: scan `pending_uploads/` on app start, delete files older than 24h
+- Web: bytes-based upload (unchanged), `PendingUpload.localBytes` stores bytes for preview
+
+**ShareIntentDialog fix:** Uses `file.path` directly instead of `File(file.path).readAsBytes()` — same OOM fix applied to share intent flow.
+
 ### Future Phases
 
 **Enhanced Media**

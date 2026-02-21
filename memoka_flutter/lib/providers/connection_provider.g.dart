@@ -6,7 +6,7 @@ part of 'connection_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$connectionStreamHash() => r'e4e5227859ef4d083a5496001f655608344a9776';
+String _$connectionStreamHash() => r'f0635494ebfe45fc977ffd4cc3c571d3e7500bfb';
 
 /// Monitors the connectivity state of the Serverpod client.
 /// For MVP, always returns connected. Serverpod handles reconnection internally.

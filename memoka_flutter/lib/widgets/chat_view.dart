@@ -13,7 +13,7 @@ import '../main.dart' show serverUrl, client;
 import '../providers/notes_provider.dart';
 import '../providers/archive_items_provider.dart';
 import '../providers/current_channel_provider.dart';
-import '../providers/media_provider.dart';
+import '../providers/pending_uploads_provider.dart';
 import '../providers/scroll_to_note_provider.dart';
 import '../providers/background_provider.dart';
 import '../utils/toast_utils.dart';
@@ -22,6 +22,7 @@ import '../models/upload_file_data.dart';
 import 'file_upload_dialog.dart';
 import 'note_item.dart';
 import 'multi_file_upload_dialog.dart';
+import 'pending_note_widget.dart';
 
 // Cross-platform HTML imports
 import 'package:universal_html/html.dart' as html;
@@ -141,7 +142,12 @@ class _ChatViewState extends ConsumerState<ChatView>
 
     // In a reversed list, higher indices = older notes (top of screen).
     // Load more when within 10 items of the oldest loaded note.
-    if (maxIndex >= notes.length - 10) {
+    // Offset by pending count since pending items occupy the lowest indices.
+    final pending = ref.read(pendingUploadsProvider)
+        .where((p) => p.channelId == channelId)
+        .toList();
+    final noteIndex = maxIndex - pending.length;
+    if (noteIndex >= notes.length - 10) {
       ref.read(notesProvider(channelId).notifier).loadMore();
     }
   }
@@ -152,11 +158,15 @@ class _ChatViewState extends ConsumerState<ChatView>
     final notes = ref.read(notesProvider(channelId)).value;
     if (notes == null) return;
 
+    final pending = ref.read(pendingUploadsProvider)
+        .where((p) => p.channelId == channelId)
+        .toList();
+
     final index = notes.indexWhere((n) => n.id == noteId);
     if (index == -1) return;
 
     _itemScrollController.scrollTo(
-      index: index,
+      index: index + pending.length,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
       alignment: 0.0,
@@ -192,9 +202,13 @@ class _ChatViewState extends ConsumerState<ChatView>
     if (channelId == -1) return _buildArchiveView();
 
     final notesAsync = ref.watch(notesProvider(channelId));
+    final pending = ref.watch(pendingUploadsProvider)
+        .where((p) => p.channelId == channelId)
+        .toList();
+
     return notesAsync.when(
       data: (notes) {
-        if (notes.isEmpty) {
+        if (notes.isEmpty && pending.isEmpty) {
           return Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -227,16 +241,29 @@ class _ChatViewState extends ConsumerState<ChatView>
                 .map((a) => FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash)))
             .toList();
 
+        // Total items = pending ghost notes + real notes.
+        // In the reversed list, index 0 is the bottom (newest).
+        // Pending uploads occupy indices 0..<pending.length>,
+        // real notes occupy indices pending.length..<totalItems>.
+        final totalItems = notes.length + pending.length;
+
         return ScrollablePositionedList.builder(
           itemScrollController: _itemScrollController,
           itemPositionsListener: _itemPositionsListener,
           physics: const ClampingScrollPhysics(),
           reverse: true,
           padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: notes.length,
+          itemCount: totalItems,
           itemBuilder: (context, index) {
-            final note = notes[index];
-            final previousNote = index > 0 ? notes[index - 1] : null;
+            // Pending ghost notes at bottom (lowest indices in reversed list)
+            if (index < pending.length) {
+              return PendingNoteWidget(upload: pending[index]);
+            }
+
+            // Real notes
+            final noteIndex = index - pending.length;
+            final note = notes[noteIndex];
+            final previousNote = noteIndex > 0 ? notes[noteIndex - 1] : null;
             final needsSeparator = previousNote != null &&
                 !_isSameDay(note.createdAt, previousNote.createdAt);
             final isHighlighted = _highlightedNoteId == note.id;
@@ -762,11 +789,7 @@ class _ChatViewState extends ConsumerState<ChatView>
       if (uploadFiles.isEmpty) return;
 
       if (uploadFiles.length == 1) {
-        await _showFileUploadDialog(
-          uploadFiles.first.bytes,
-          uploadFiles.first.fileName,
-          uploadFiles.first.extension,
-        );
+        await _showFileUploadDialog(uploadFiles.first);
       } else {
         await _showMultiFileUploadDialog(uploadFiles);
       }
@@ -819,11 +842,7 @@ class _ChatViewState extends ConsumerState<ChatView>
       if (uploadFiles.isEmpty) return;
 
       if (uploadFiles.length == 1) {
-        await _showFileUploadDialog(
-          uploadFiles.first.bytes,
-          uploadFiles.first.fileName,
-          uploadFiles.first.extension,
-        );
+        await _showFileUploadDialog(uploadFiles.first);
       } else {
         await _showMultiFileUploadDialog(uploadFiles);
       }
@@ -832,37 +851,24 @@ class _ChatViewState extends ConsumerState<ChatView>
     }
   }
 
-  Future<void> _showFileUploadDialog(Uint8List fileBytes, String fileName, String extension) async {
+  Future<void> _showFileUploadDialog(UploadFileData file) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
 
     await showDialog(
       context: context,
       builder: (_) => FileUploadDialog(
-        fileBytes: fileBytes,
-        fileName: fileName,
-        fileExtension: extension,
-        onSend: (compress) async {
-          try {
-            // Upload file and create note with empty content
-            await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
-              channelId: channelId,
-              noteContent: '',
-              imageBytes: fileBytes,
-              fileName: fileName,
-              compress: compress,
-            );
-
-            // Show success message
-            if (mounted) {
-              ToastUtils.show(context, 'File uploaded successfully', type: ToastType.success);
-            }
-          } catch (e) {
-            // Show error message
-            if (mounted) {
-              ToastUtils.show(context, 'Upload failed: $e', type: ToastType.error);
-            }
-          }
+        file: file,
+        onSend: (compress) {
+          // Enqueue optimistic upload — fire-and-forget
+          ref.read(pendingUploadsProvider.notifier).enqueue(
+                channelId: channelId,
+                filePath: file.filePath,
+                fileBytes: file.bytes,
+                fileName: file.fileName,
+                noteContent: '',
+                compress: compress,
+              );
         },
       ),
     );
@@ -876,29 +882,20 @@ class _ChatViewState extends ConsumerState<ChatView>
       context: context,
       builder: (_) => MultiFileUploadDialog(
         files: uploadFiles,
-        onSend: (files) async {
+        onSend: (files) {
           for (final file in files) {
-            try {
-              await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
-                channelId: channelId,
-                noteContent: '',
-                imageBytes: file.bytes,
-                fileName: file.fileName,
-                compress: file.compress,
-              );
-            } catch (e) {
-              if (mounted) {
-                ToastUtils.show(context, 'Upload failed for ${file.fileName}: $e', type: ToastType.error);
-              }
-            }
+            ref.read(pendingUploadsProvider.notifier).enqueue(
+                  channelId: channelId,
+                  filePath: file.filePath,
+                  fileBytes: file.bytes,
+                  fileName: file.fileName,
+                  noteContent: '',
+                  compress: file.compress,
+                );
           }
         },
       ),
     );
-
-    if (mounted) {
-      ToastUtils.show(context, '${uploadFiles.length} files uploaded', type: ToastType.success);
-    }
   }
 
   @override

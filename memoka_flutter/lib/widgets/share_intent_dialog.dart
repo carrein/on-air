@@ -5,8 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../providers/channels_provider.dart';
-import '../providers/media_provider.dart';
 import '../providers/notes_provider.dart';
+import '../providers/pending_uploads_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/toast_utils.dart';
 
@@ -27,7 +27,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
 
   int? _selectedChannelId;
   final _textController = TextEditingController();
-  bool _sending = false;
+  final bool _sending = false;
   bool _compress = false;
 
   @override
@@ -64,40 +64,30 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
   Future<void> _send() async {
     if (_selectedChannelId == null) return;
 
-    setState(() => _sending = true);
+    final channelId = _selectedChannelId!;
+    final text = _textController.text.trim();
 
-    try {
-      final channelId = _selectedChannelId!;
-      final text = _textController.text.trim();
-
-      if (_hasMediaFiles) {
-        // Upload each media file
-        for (final file in _mediaFiles) {
-          final bytes = await File(file.path).readAsBytes();
-          final fileName = file.path.split('/').last;
-
-          await ref.read(mediaUploadProvider.notifier).uploadImageAndCreateNote(
-                channelId: channelId,
-                noteContent: text.isNotEmpty && file == _mediaFiles.first ? text : '',
-                imageBytes: bytes,
-                fileName: fileName,
-                compress: _compress,
-              );
-        }
-      } else if (text.isNotEmpty) {
-        // Text-only share
-        await ref.read(notesProvider(channelId).notifier).createNote(text);
+    if (_hasMediaFiles) {
+      // Enqueue each media file for optimistic upload — uses file path
+      // directly (no readAsBytes OOM risk).
+      for (final file in _mediaFiles) {
+        final fileName = file.path.split('/').last;
+        ref.read(pendingUploadsProvider.notifier).enqueue(
+              channelId: channelId,
+              filePath: file.path,
+              fileName: fileName,
+              noteContent: text.isNotEmpty && file == _mediaFiles.first ? text : '',
+              compress: _compress,
+            );
       }
+    } else if (text.isNotEmpty) {
+      // Text-only share
+      await ref.read(notesProvider(channelId).notifier).createNote(text);
+    }
 
-      if (mounted) {
-        Navigator.of(context).pop(true);
-        ToastUtils.show(context, 'Shared successfully', type: ToastType.success);
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _sending = false);
-        ToastUtils.show(context, 'Share failed: $e', type: ToastType.error);
-      }
+    if (mounted) {
+      Navigator.of(context).pop(true);
+      ToastUtils.show(context, 'Shared successfully', type: ToastType.success);
     }
   }
 

@@ -1,29 +1,28 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'media_provider.dart';
+part of 'pending_uploads_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mediaUploadHash() => r'6aae4de1f00edf7c812117bd489c0c8eb07c7613';
+String _$pendingUploadsHash() => r'4af8cbfde97067c76c0cfed438dd76cd6e2b614d';
 
-/// Legacy provider — upload operations now go through [PendingUploads].
-/// Kept to avoid breaking generated code references.
+/// Manages optimistic uploads with progress tracking and retry.
 ///
-/// Copied from [MediaUpload].
-@ProviderFor(MediaUpload)
-final mediaUploadProvider =
-    AutoDisposeAsyncNotifierProvider<MediaUpload, void>.internal(
-      MediaUpload.new,
-      name: r'mediaUploadProvider',
+/// Copied from [PendingUploads].
+@ProviderFor(PendingUploads)
+final pendingUploadsProvider =
+    NotifierProvider<PendingUploads, List<PendingUpload>>.internal(
+      PendingUploads.new,
+      name: r'pendingUploadsProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$mediaUploadHash,
+          : _$pendingUploadsHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$MediaUpload = AutoDisposeAsyncNotifier<void>;
+typedef _$PendingUploads = Notifier<List<PendingUpload>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
