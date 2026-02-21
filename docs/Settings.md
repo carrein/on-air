@@ -21,6 +21,10 @@ Displayed only on non-web platforms (`!kIsWeb`).
 - **Server URL**: Shows the current server URL from `serverUrl` global
 - **Change button**: Opens `ServerSetupScreen` (editing mode) via `Navigator.push`
 
+### About
+
+- **Version**: Displays the running app version (e.g. `1.0.0`) read from `package_info_plus` at runtime. On release builds the version matches the GitHub release tag stamped via `--build-name` during CI. Read-only, no interaction.
+
 ### Chat Background
 
 Horizontal scrolling grid of background thumbnails (120px wide cards, 180px tall row).

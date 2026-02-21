@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import '../main.dart' show serverUrl, client;
 import '../providers/notes_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/note_selection_provider.dart';
+import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
 import 'link_preview_card.dart';
@@ -191,6 +193,21 @@ class NoteItem extends ConsumerWidget {
             ],
           ),
         ),
+        if (kIsWeb &&
+            (note.attachments?.any(
+                  (a) => a.mimeType.toLowerCase().startsWith('image/'),
+                ) ??
+                false))
+          PopupMenuItem(
+            value: 'copy_image',
+            child: Row(
+              children: [
+                PhosphorIcon(PhosphorIcons.image(), size: 18),
+                const SizedBox(width: 12),
+                const Text('Copy Image'),
+              ],
+            ),
+          ),
         if (!isArchive)
           PopupMenuItem(
             value: 'edit',
@@ -252,6 +269,9 @@ class NoteItem extends ConsumerWidget {
         case 'copy':
           _copyToClipboard(context, note.content);
           break;
+        case 'copy_image':
+          _copyImageToClipboard(context).ignore();
+          break;
         case 'edit':
           ref.read(editingNoteProvider.notifier).startEditing(note.id!);
           break;
@@ -276,6 +296,27 @@ class NoteItem extends ConsumerWidget {
         ? '${cleanContent.substring(0, 20)}...'
         : cleanContent;
     ToastUtils.show(context, 'Copied: $preview', type: ToastType.info);
+  }
+
+  Future<void> _copyImageToClipboard(BuildContext context) async {
+    MediaAttachment? imageAttachment;
+    for (final a in note.attachments ?? []) {
+      if (a.mimeType.toLowerCase().startsWith('image/')) {
+        imageAttachment = a;
+        break;
+      }
+    }
+    if (imageAttachment == null) return;
+    final url = FileUtils.buildMediaUrl(
+        serverUrl, imageAttachment.filePath, imageAttachment.contentHash);
+    final success = await copyImageToClipboard(url);
+    if (!context.mounted) return;
+    if (success) {
+      ToastUtils.show(context, 'Image copied to clipboard',
+          type: ToastType.success);
+    } else {
+      ToastUtils.show(context, 'Failed to copy image', type: ToastType.error);
+    }
   }
 
   Future<void> _restoreNote(BuildContext context, WidgetRef ref) async {
@@ -314,6 +355,30 @@ class _NoteFooter extends StatelessWidget {
     return '$month $day, $hour:$minute $period';
   }
 
+  void _onCopyTap(BuildContext context) {
+    // On web, copy the first image attachment if one exists.
+    if (kIsWeb) {
+      for (final a in note.attachments ?? []) {
+        if (a.mimeType.toLowerCase().startsWith('image/')) {
+          final url =
+              FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash);
+          copyImageToClipboard(url).then((success) {
+            if (!context.mounted) return;
+            ToastUtils.show(
+              context,
+              success ? 'Image copied to clipboard' : 'Failed to copy image',
+              type: success ? ToastType.success : ToastType.error,
+            );
+          });
+          return;
+        }
+      }
+    }
+    // Fallback: copy text content.
+    Clipboard.setData(ClipboardData(text: note.content));
+    ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isArchive = channelId == -1;
@@ -340,10 +405,7 @@ class _NoteFooter extends StatelessWidget {
             MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: note.content));
-                  ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
-                },
+                onTap: () => _onCopyTap(context),
                 child: PhosphorIcon(PhosphorIcons.copySimple(), size: 20, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
               ),
             ),

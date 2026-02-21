@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../utils/image_clipboard.dart';
+import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
 
 /// Full screen image viewer overlay with gallery support and keyboard navigation.
@@ -84,8 +87,25 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
       FocusScope.of(context).unfocus();
       Navigator.of(context).pop();
       return KeyEventResult.handled;
+    } else if (kIsWeb &&
+        event.logicalKey == LogicalKeyboardKey.keyC &&
+        (HardwareKeyboard.instance.isControlPressed ||
+            HardwareKeyboard.instance.isMetaPressed)) {
+      _copyCurrentImage().ignore();
+      return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  Future<void> _copyCurrentImage() async {
+    final url = widget.imageUrls[_currentIndex];
+    final success = await copyImageToClipboard(url);
+    if (!mounted) return;
+    ToastUtils.show(
+      context,
+      success ? 'Image copied to clipboard' : 'Failed to copy image',
+      type: success ? ToastType.success : ToastType.error,
+    );
   }
 
   @override

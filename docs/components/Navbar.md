@@ -76,7 +76,7 @@ Light popup menu anchored to the top-right corner.
 
 Shown when `isShowingSettings == true` or `currentChannelId == -1` (Archive).
 
-- **Padding**: `_padding` — horizontal 16px, vertical 8px
+- **Padding**: `_paddingDetail` — left 8px, right 16px, vertical 8px
 - **Layout**: `[back button]` + `[plain title (Expanded)]`
 - **Back button**: `PhosphorIcons.arrowCircleLeft()` via `IconButtonStyled` on the left
 - **Title**: plain `Text('Settings')` or `Text('Archive')` — no channel icon
@@ -129,7 +129,9 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 
 | Token              | Value                          | Usage                        |
 |--------------------|--------------------------------|------------------------------|
-| `_padding` | H: 16, V: 8 | All modes (uniform) |
+| `_padding` | H: 16, V: 8 | Selection mode |
+| `_paddingDetail` | L: 8, R: 16, V: 8 | Detail mode (settings/archive) |
+| `_paddingStandard` | L: 16, R: 8, V: 8 | Standard mode |
 
 ## Interactions
 

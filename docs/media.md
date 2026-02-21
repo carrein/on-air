@@ -483,7 +483,8 @@ Key display behavior:
 - **Fast fade-in**: `fadeInDuration: 150ms` so disk-cached images appear near-instantly (vs default 500ms)
 - **Aspect-ratio preservation**: `computeDisplaySize()` helper clamps to max constraints (600x500 for images, 400x300 for videos) while maintaining aspect ratio
 - **Fallback sizing**: If `width`/`height` metadata is null, falls back to 300x200
-- **Animated GIF handling**: Animated GIFs use `Image.network` (preserves animation); static images use `CachedNetworkImage` (disk caching with shimmer placeholder). The `attachment.animated` flag determines which widget to use.
+- **Animated GIF handling**: All images (including animated GIFs) use `CachedNetworkImage` for consistent disk caching and shimmer placeholder behaviour. The `attachment.animated` flag is retained for server-side processing logic (preserving original GIF vs compressing) but no longer affects the Flutter rendering path.
+- **Image precaching**: When notes load for the displayed channel, `chat_view.dart` fires `precacheImage()` for the 20 most recent image attachments into Flutter's `ImageCache`. On channel revisit, these images are served from memory cache synchronously — `CachedNetworkImage` skips the placeholder entirely and the shimmer does not appear.
 - **Media-only notes**: Notes with only media attachments and no text content render without the white chat bubble wrapper for a cleaner visual appearance. Detected via `_isMediaOnlyNote()` helper.
 
 **Video Lightbox:**
