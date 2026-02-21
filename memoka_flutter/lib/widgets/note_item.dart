@@ -114,7 +114,7 @@ class NoteItem extends ConsumerWidget {
     if (note.content.isNotEmpty) {
       parts.add(MarkdownBody(
         data: note.content,
-        selectable: true,
+        selectable: kIsWeb,
         onTapLink: (text, href, title) async {
           if (href != null) {
             final uri = Uri.tryParse(href);
