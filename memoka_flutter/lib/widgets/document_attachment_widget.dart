@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/download_utils.dart';
 import '../utils/file_utils.dart';
 import 'icon_button_styled.dart';
 
@@ -70,7 +71,7 @@ class DocumentAttachmentWidget extends StatelessWidget {
         const SizedBox(width: 4),
         IconButtonStyled(
           icon: PhosphorIcons.downloadSimple(),
-          onPressed: _handleDownload,
+          onPressed: () => _handleDownload(context),
           size: 20,
         ),
       ],
@@ -85,7 +86,7 @@ class DocumentAttachmentWidget extends StatelessWidget {
     }
   }
 
-  void _handleDownload() {
+  void _handleDownload(BuildContext context) {
     final url = _buildDocumentUrl();
     if (kIsWeb) {
       html.AnchorElement()
@@ -93,7 +94,7 @@ class DocumentAttachmentWidget extends StatelessWidget {
         ..setAttribute('download', attachment.originalFilename)
         ..click();
     } else {
-      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      DownloadUtils.downloadToDevice(context, url, attachment.originalFilename);
     }
   }
 }

@@ -10,6 +10,7 @@ import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/audio_player_provider.dart';
+import '../utils/download_utils.dart';
 import '../utils/file_utils.dart';
 import 'icon_button_styled.dart';
 
@@ -322,7 +323,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                           ..setAttribute('download', widget.attachment.originalFilename)
                           ..click();
                       } else {
-                        launchUrl(Uri.parse(_audioUrl), mode: LaunchMode.externalApplication);
+                        DownloadUtils.downloadToDevice(context, _audioUrl, widget.attachment.originalFilename);
                       }
                     },
                     size: 20,
