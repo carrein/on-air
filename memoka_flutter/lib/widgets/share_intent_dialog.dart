@@ -132,7 +132,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                 data: (channels) {
                   _selectedChannelId ??= channels.firstOrNull?.id;
                   return DropdownButtonFormField<int>(
-                    value: _selectedChannelId,
+                    initialValue: _selectedChannelId,
                     decoration: InputDecoration(
                       labelText: 'Channel',
                       labelStyle: GoogleFonts.spaceGrotesk(),
@@ -195,7 +195,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: _mediaFiles.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final file = _mediaFiles[index];
                       return ClipRRect(

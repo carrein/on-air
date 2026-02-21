@@ -368,7 +368,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
 
     await showDialog(
       context: context,
-      builder: (context) => FileUploadDialog(
+      builder: (_) => FileUploadDialog(
         fileBytes: fileBytes,
         fileName: fileName,
         fileExtension: extension,
@@ -416,7 +416,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
 
     await showDialog(
       context: context,
-      builder: (context) => MultiFileUploadDialog(
+      builder: (_) => MultiFileUploadDialog(
         files: uploadFiles,
         onSend: (files) async {
           for (final file in files) {

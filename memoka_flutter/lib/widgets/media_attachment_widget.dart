@@ -138,22 +138,7 @@ class _ImageAttachmentWidget extends StatelessWidget {
           SizedBox(
             width: displaySize.width,
             height: displaySize.height,
-            child: attachment.animated
-                ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return ShimmerPlaceholder(
-                        width: displaySize.width,
-                        height: displaySize.height,
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildErrorWidget(displaySize, error);
-                    },
-                  )
-                : CachedNetworkImage(
+            child: CachedNetworkImage(
               imageUrl: imageUrl,
               fit: BoxFit.cover,
               fadeInDuration: const Duration(milliseconds: 150),

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../main.dart';
@@ -7,7 +8,7 @@ part 'chat_stream_provider.g.dart';
 /// Provides the WebSocket stream for real-time chat events.
 /// Automatically reconnects with exponential backoff if the connection drops.
 @riverpod
-Stream<ChatEvent> chatStream(ChatStreamRef ref) async* {
+Stream<ChatEvent> chatStream(Ref ref) async* {
   var delay = 1;
   const maxDelay = 30;
 

@@ -247,6 +247,7 @@ class NoteItem extends ConsumerWidget {
       ],
     ).then((value) {
       if (value == null) return;
+      if (!context.mounted) return;
       switch (value) {
         case 'copy':
           _copyToClipboard(context, note.content);

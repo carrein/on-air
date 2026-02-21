@@ -47,7 +47,10 @@ jobs:
           EOF
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          flutter build apk --release --build-name="${VERSION}" --build-number="${{ github.run_number }}"
         working-directory: memoka_flutter
 
       - name: Upload APK to release

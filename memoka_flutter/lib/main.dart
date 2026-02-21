@@ -73,6 +73,10 @@ void main() async {
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
+  // Preload fonts before the first frame so CJK characters never hit the
+  // async-loading window that renders them as '?'.
+  await GoogleFonts.pendingFonts([GoogleFonts.spaceGrotesk()]);
+
   serverUrl = await getServerUrl();
 
   // Only create client if we have a URL (web always has one)

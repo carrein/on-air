@@ -17,7 +17,7 @@ class ChannelMediaData extends _$ChannelMediaData {
     return notesAsync.when(
       data: (notes) => _extractMedia(notes),
       loading: () => ChannelMedia.empty(),
-      error: (_, __) => ChannelMedia.empty(),
+      error: (_, _) => ChannelMedia.empty(),
     );
   }
 

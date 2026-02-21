@@ -1,4 +1,6 @@
+import 'dart:async' show unawaited;
 import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -167,6 +169,23 @@ class _ChatViewState extends ConsumerState<ChatView>
     });
   }
 
+  // Number of most-recent images to warm into the memory cache.
+  // Covers a typical viewport without over-allocating memory.
+  static const _kPrecacheImageCount = 20;
+
+  void _precacheRecentImages(List<Note> notes) {
+    var count = 0;
+    for (final note in notes) {
+      if (!mounted) return;
+      for (final attachment in note.attachments ?? []) {
+        if (!attachment.mimeType.toLowerCase().startsWith('image/')) continue;
+        final url = FileUtils.buildMediaUrl(serverUrl, attachment.filePath, attachment.contentHash);
+        unawaited(precacheImage(CachedNetworkImageProvider(url), context));
+        if (++count >= _kPrecacheImageCount) return;
+      }
+    }
+  }
+
   Widget _buildDisplayedContent() {
     final channelId = _displayedChannelId;
     if (channelId == null) return const Center(child: CircularProgressIndicator());
@@ -259,6 +278,14 @@ class _ChatViewState extends ConsumerState<ChatView>
         if (newId != _displayedChannelId) _animateChannelSwitch(newId);
       });
     });
+
+    // Precache the most recent images whenever notes load for the displayed channel
+    final displayedChannelId = _displayedChannelId;
+    if (displayedChannelId != null && displayedChannelId != -1) {
+      ref.listen(notesProvider(displayedChannelId), (_, next) {
+        next.whenData(_precacheRecentImages);
+      });
+    }
 
     // Listen for scroll-to-note requests from media panel
     ref.listen(scrollToNoteProvider, (prev, noteId) {
@@ -811,7 +838,7 @@ class _ChatViewState extends ConsumerState<ChatView>
 
     await showDialog(
       context: context,
-      builder: (context) => FileUploadDialog(
+      builder: (_) => FileUploadDialog(
         fileBytes: fileBytes,
         fileName: fileName,
         fileExtension: extension,
@@ -847,7 +874,7 @@ class _ChatViewState extends ConsumerState<ChatView>
 
     await showDialog(
       context: context,
-      builder: (context) => MultiFileUploadDialog(
+      builder: (_) => MultiFileUploadDialog(
         files: uploadFiles,
         onSend: (files) async {
           for (final file in files) {

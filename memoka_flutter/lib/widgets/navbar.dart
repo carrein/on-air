@@ -33,6 +33,7 @@ class Navbar extends ConsumerWidget {
   );
 
   static const _padding = EdgeInsets.symmetric(horizontal: 16, vertical: 8);
+  static const _paddingDetail = EdgeInsets.only(left: 8, right: 16, top: 8, bottom: 8);
   static const _paddingStandard = EdgeInsets.only(left: 16, right: 8, top: 8, bottom: 8);
 
   @override
@@ -59,7 +60,7 @@ class Navbar extends ConsumerWidget {
         : null;
 
     return Container(
-      padding: isInDetailMode ? _padding : _paddingStandard,
+      padding: isInDetailMode ? _paddingDetail : _paddingStandard,
       decoration: const BoxDecoration(
         color: _backgroundColor,
         border: Border(bottom: BorderSide(color: _borderColor, width: 1)),

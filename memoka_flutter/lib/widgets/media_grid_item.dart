@@ -186,7 +186,7 @@ class MediaGridItem extends ConsumerWidget {
     final duration = Duration(seconds: seconds.toInt());
     final minutes = duration.inMinutes;
     final secs = duration.inSeconds % 60;
-    return '${minutes}:${secs.toString().padLeft(2, '0')}';
+    return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 
   void _handleTap(BuildContext context, WidgetRef ref) {

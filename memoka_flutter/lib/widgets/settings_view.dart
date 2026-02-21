@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/background_provider.dart';
 import '../main.dart';
@@ -30,6 +31,8 @@ class SettingsView extends ConsumerWidget {
                 if (!kIsWeb) _buildServerSection(context),
                 // Chat Background section
                 _buildBackgroundSection(ref, currentBackground),
+                // About section
+                _buildAboutSection(),
               ],
             ),
           ),
@@ -111,6 +114,37 @@ class SettingsView extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildAboutSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            'About',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+          ),
+        ),
+        FutureBuilder<PackageInfo>(
+          future: PackageInfo.fromPlatform(),
+          builder: (context, snapshot) => ListTile(
+            leading: PhosphorIcon(PhosphorIcons.info(), color: const Color(0xFF00171F), size: 20),
+            title: const Text('Version', style: TextStyle(fontSize: 14)),
+            subtitle: Text(
+              snapshot.data?.version ?? '—',
+              style: TextStyle(fontSize: 12, color: const Color(0xFF00171F).withValues(alpha: 0.5)),
+            ),
+          ),
+        ),
       ],
     );
   }
