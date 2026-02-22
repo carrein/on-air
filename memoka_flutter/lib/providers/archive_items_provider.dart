@@ -30,9 +30,9 @@ class ArchiveItems extends _$ArchiveItems {
     });
 
     // Refetch when connectivity is restored.
-    ref.listen(connectionStreamProvider, (prev, next) {
-      if (prev?.valueOrNull != ConnectionState.connected &&
-          next.valueOrNull == ConnectionState.connected) {
+    ref.listen(connectionProvider, (prev, next) {
+      if (prev != ConnectionState.connected &&
+          next == ConnectionState.connected) {
         _refetchAndCache();
       }
     });

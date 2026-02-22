@@ -19,11 +19,11 @@ class SyncIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final connAsync = ref.watch(conn.connectionStreamProvider);
+    final connState = ref.watch(conn.connectionProvider);
     final countAsync = ref.watch(pendingMutationCountProvider);
     ref.watch(syncEngineProvider);
 
-    final isOnline = connAsync.valueOrNull == conn.ConnectionState.connected;
+    final isOnline = connState == conn.ConnectionState.connected;
     final count = countAsync.valueOrNull ?? 0;
 
     if (isOnline && count == 0) return const SizedBox.shrink();

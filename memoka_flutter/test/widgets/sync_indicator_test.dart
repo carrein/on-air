@@ -9,6 +9,14 @@ import 'package:memoka_flutter/providers/connection_provider.dart' as conn;
 import 'package:memoka_flutter/providers/pending_mutation_count_provider.dart';
 import 'package:memoka_flutter/widgets/sync_indicator.dart';
 
+class _TestConnection extends conn.Connection {
+  final conn.ConnectionState _initialState;
+  _TestConnection(this._initialState);
+
+  @override
+  conn.ConnectionState build() => _initialState;
+}
+
 void main() {
   // Shared in-memory database across tests to avoid drift's multiple-instance warning.
   late AppDatabase testDb;
@@ -26,8 +34,8 @@ void main() {
     return ProviderScope(
       overrides: [
         appDatabaseProvider.overrideWithValue(testDb),
-        conn.connectionStreamProvider.overrideWith(
-          (_) => Stream.value(connectionState),
+        conn.connectionProvider.overrideWith(
+          () => _TestConnection(connectionState),
         ),
         pendingMutationCountProvider.overrideWith(
           (_) => Stream.value(pendingCount),

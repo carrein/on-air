@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +20,8 @@ import '../providers/share_intent_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/chat_stream_provider.dart';
+import '../providers/connection_provider.dart' as conn;
 import '../providers/sync_engine_provider.dart';
 import '../utils/responsive_utils.dart';
 
@@ -29,8 +33,11 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen>
+    with WidgetsBindingObserver {
   static const _swipeVelocityThreshold = 300.0;
+
+  StreamSubscription<html.Event>? _visibilitySubscription;
 
   // Register on web and desktop (not mobile where physical keyboard is absent).
   static bool get _useKeyboardHandler =>
@@ -39,8 +46,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Eagerly start the sync engine so it watches connectivity from app launch.
+    WidgetsBinding.instance.addObserver(this);
+
+    // On web, kick reconnect when the tab becomes visible again.
+    // The browser may have suspended or dropped the WebSocket while hidden.
+    if (kIsWeb) {
+      _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
+        if (html.document.visibilityState == 'visible') {
+          _kickReconnectIfNeeded();
+        }
+      });
+    }
+
+    // Eagerly start the sync engine and chat stream so connectivity
+    // detection and real-time events work from app launch.
     ref.read(syncEngineProvider);
+    ref.read(chatStreamProvider);
+
     if (_useKeyboardHandler) {
       HardwareKeyboard.instance.addHandler(_handleHardwareKey);
     }
@@ -48,10 +70,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _visibilitySubscription?.cancel();
     if (_useKeyboardHandler) {
       HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
     }
     super.dispose();
+  }
+
+  /// Called when the app returns to the foreground (Android/iOS).
+  /// Kicks an immediate reconnect if we're disconnected, bypassing the
+  /// backoff timer that could otherwise delay recovery by up to 10s.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.resumed) {
+      _kickReconnectIfNeeded();
+    }
+  }
+
+  void _kickReconnectIfNeeded() {
+    if (ref.read(conn.connectionProvider) == conn.ConnectionState.disconnected) {
+      ref.invalidate(chatStreamProvider);
+    }
   }
 
   /// Returns true if a text field currently holds keyboard focus.

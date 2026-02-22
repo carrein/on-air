@@ -35,9 +35,9 @@ class Channels extends _$Channels {
     });
 
     // Refetch when connectivity is restored to catch missed WebSocket events.
-    ref.listen(connectionStreamProvider, (prev, next) {
-      if (prev?.valueOrNull != ConnectionState.connected &&
-          next.valueOrNull == ConnectionState.connected) {
+    ref.listen(connectionProvider, (prev, next) {
+      if (prev != ConnectionState.connected &&
+          next == ConnectionState.connected) {
         _refetchAndCache();
       }
     });
@@ -49,9 +49,8 @@ class Channels extends _$Channels {
     }
 
     // 2. Always try to fetch from server; fall back to cache if unreachable.
-    // Do not gate on _isOnline — connectionStreamProvider may not have
-    // resolved yet at startup (race condition), and channels must load
-    // even when the healthcheck probe fails.
+    // Do not gate on _isOnline — the WebSocket may not have connected yet
+    // at startup, and channels must load regardless.
     try {
       final serverChannels = await client.chat.getChannels();
       await db.cacheChannels(serverChannels);
@@ -61,10 +60,13 @@ class Channels extends _$Channels {
     }
   }
 
-  bool get _isOnline {
-    final conn = ref.read(connectionStreamProvider);
-    return conn.valueOrNull == ConnectionState.connected;
-  }
+  bool get _isOnline =>
+      ref.read(connectionProvider) == ConnectionState.connected;
+
+  /// Returns true for network-level failures (server unreachable, timeout).
+  /// These should fall back to the offline queue rather than surfacing an error.
+  bool _isNetworkError(Object e) =>
+      e is ServerpodClientException && e.statusCode == -1;
 
   Future<void> _refetchAndCache() async {
     try {
@@ -82,13 +84,18 @@ class Channels extends _$Channels {
     String emoji = 'chatCircle',
   }) async {
     if (_isOnline) {
-      final channel = await client.chat.createChannel(name, emoji: emoji);
-      final current = state.valueOrNull ?? [];
-      final updated = [...current, channel];
-      state = AsyncData(updated);
-      final db = ref.read(appDatabaseProvider);
-      await db.cacheChannels(updated);
-      return channel;
+      try {
+        final channel = await client.chat.createChannel(name, emoji: emoji);
+        final current = state.valueOrNull ?? [];
+        final updated = [...current, channel];
+        state = AsyncData(updated);
+        final db = ref.read(appDatabaseProvider);
+        await db.cacheChannels(updated);
+        return channel;
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to offline path
+      }
     }
 
     // Offline: enqueue mutation and add provisional channel
@@ -125,26 +132,31 @@ class Channels extends _$Channels {
     bool? pinned,
   }) async {
     if (_isOnline) {
-      await client.chat.updateChannel(
-        id,
-        name: name,
-        emoji: emoji,
-        pinned: pinned,
-      );
-      // Optimistic local update + cache so changes survive hard refresh
-      final current = state.valueOrNull ?? [];
-      final updated = current.map((c) {
-        if (c.id != id) return c;
-        return c.copyWith(
-          name: name ?? c.name,
-          emoji: emoji ?? c.emoji,
-          pinned: pinned ?? c.pinned,
+      try {
+        await client.chat.updateChannel(
+          id,
+          name: name,
+          emoji: emoji,
+          pinned: pinned,
         );
-      }).toList();
-      state = AsyncData(updated);
-      final db = ref.read(appDatabaseProvider);
-      await db.cacheChannels(updated);
-      return;
+        // Optimistic local update + cache so changes survive hard refresh
+        final current = state.valueOrNull ?? [];
+        final updated = current.map((c) {
+          if (c.id != id) return c;
+          return c.copyWith(
+            name: name ?? c.name,
+            emoji: emoji ?? c.emoji,
+            pinned: pinned ?? c.pinned,
+          );
+        }).toList();
+        state = AsyncData(updated);
+        final db = ref.read(appDatabaseProvider);
+        await db.cacheChannels(updated);
+        return;
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to offline path
+      }
     }
 
     // Offline: enqueue
@@ -181,7 +193,14 @@ class Channels extends _$Channels {
             'Cannot delete the last channel. Create another channel first.',
           );
         }
-        rethrow;
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to enqueue
+        final db = ref.read(appDatabaseProvider);
+        await db.enqueueMutation(
+          'deleteChannel',
+          null,
+          jsonEncode({'id': id}),
+        );
       }
     } else {
       final db = ref.read(appDatabaseProvider);
@@ -223,7 +242,17 @@ class Channels extends _$Channels {
 
     final db = ref.read(appDatabaseProvider);
     if (_isOnline) {
-      await client.chat.reorderChannels(channelIds);
+      try {
+        await client.chat.reorderChannels(channelIds);
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to enqueue
+        await db.enqueueMutation(
+          'reorderChannels',
+          null,
+          jsonEncode({'channelIds': channelIds}),
+        );
+      }
     } else {
       await db.enqueueMutation(
         'reorderChannels',
@@ -246,9 +275,18 @@ class Channels extends _$Channels {
             'Cannot archive the last channel. Create another channel first.',
           );
         }
-        rethrow;
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to enqueue
+        final db = ref.read(appDatabaseProvider);
+        await db.enqueueMutation('archiveChannel', id, jsonEncode({'id': id}));
+        // Optimistic local removal
+        final current = state.valueOrNull ?? [];
+        final updated = current.where((c) => c.id != id).toList();
+        state = AsyncData(updated);
+        await db.cacheChannels(updated);
+        return;
       }
-      // Remove from local state + cache so change survives hard refresh
+      // Online success: remove from local state + cache
       final current = state.valueOrNull ?? [];
       final updated = current.where((c) => c.id != id).toList();
       state = AsyncData(updated);

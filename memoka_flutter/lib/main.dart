@@ -15,7 +15,7 @@ late Client client;
 late String serverUrl;
 
 /// Web server URL (port 8082 in dev, same port otherwise).
-/// Used by upload route, healthcheck probe, etc.
+/// Used by upload route, media serving, etc.
 String getWebServerUrl() {
   final uri = Uri.parse(serverUrl);
   final port = uri.port == 8080 ? 8082 : uri.port;

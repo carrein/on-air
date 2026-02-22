@@ -6,27 +6,28 @@ part of 'connection_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$connectionStreamHash() => r'533fea0b9b58aab5baadffb5c1baac6547e52b75';
+String _$connectionHash() => r'565d049a15fbbdc62d4316b00572dd71d34d0ade';
 
-/// Monitors connectivity using connectivity_plus + periodic healthcheck probe.
-/// Polls the server every 5 seconds to detect both server going down and
-/// coming back up, since killing/restarting the server process doesn't
-/// trigger OS-level network change events.
+/// Tracks server connectivity via the WebSocket lifecycle and OS network events.
 ///
-/// Copied from [connectionStream].
-@ProviderFor(connectionStream)
-final connectionStreamProvider = StreamProvider<ConnectionState>.internal(
-  connectionStream,
-  name: r'connectionStreamProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$connectionStreamHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+/// - WebSocket connected (first event received) → [connected]
+/// - WebSocket dropped / stream error → [disconnected]
+/// - OS reports no network (airplane mode) → [disconnected]
+/// - OS reports network restored while disconnected → kicks WebSocket reconnect
+///
+/// Copied from [Connection].
+@ProviderFor(Connection)
+final connectionProvider =
+    NotifierProvider<Connection, ConnectionState>.internal(
+      Connection.new,
+      name: r'connectionProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$connectionHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ConnectionStreamRef = StreamProviderRef<ConnectionState>;
+typedef _$Connection = Notifier<ConnectionState>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

@@ -2,27 +2,47 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../main.dart';
+import 'connection_provider.dart';
 
 part 'chat_stream_provider.g.dart';
 
 /// Provides the WebSocket stream for real-time chat events.
-/// Automatically reconnects with exponential backoff if the connection drops.
-@riverpod
+///
+/// On each reconnect attempt:
+///   1. Pings the health endpoint to confirm server reachability.
+///   2. If reachable, marks [connectionProvider] as connected and opens
+///      the WebSocket stream.
+///   3. If unreachable or the stream drops, marks disconnected and retries
+///      with exponential backoff (max 10s).
+///
+/// A [cancelled] flag (set via [Ref.onDispose]) ensures the old generator
+/// terminates cleanly when the provider is invalidated, preventing stale
+/// setDisconnected/setConnected calls from racing with the new instance.
+@Riverpod(keepAlive: true)
 Stream<ChatEvent> chatStream(Ref ref) async* {
-  var delay = 1;
-  const maxDelay = 30;
+  var cancelled = false;
+  ref.onDispose(() => cancelled = true);
 
-  while (true) {
+  var delay = 1;
+  const maxDelay = 10;
+
+  while (!cancelled) {
     try {
+      await client.health.ping().timeout(const Duration(seconds: 4));
+      if (cancelled) break;
+      ref.read(connectionProvider.notifier).setConnected();
+
       await for (final event in client.chat.chat()) {
-        delay = 1; // Reset backoff on successful event
+        if (cancelled) break;
+        delay = 1;
         yield event;
       }
     } catch (_) {
-      // Stream errored — will reconnect below
+      // Ping failed or WebSocket dropped — fall through to setDisconnected.
     }
 
-    // Stream ended (timeout or error) — wait and reconnect
+    if (cancelled) break;
+    ref.read(connectionProvider.notifier).setDisconnected();
     await Future.delayed(Duration(seconds: delay));
     delay = (delay * 2).clamp(1, maxDelay);
   }

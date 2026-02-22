@@ -109,11 +109,9 @@ fields:
 - `getArchiveItems({beforeTimestamp?, limit=50})` → `List<ArchiveItem>` (mixed notes + channels)
 - `getArchivedChannelNoteCount(channelId)` → `int`
 
-**REST Endpoints** (Media)
+**HTTP Routes** (Media)
 
-- `uploadMediaAndCreateNote(channelId, ...)` → `Note` (image/document upload with note creation)
-- `uploadMedia(noteId, channelId, ...)` → `MediaAttachment` (add media to existing note)
-- `deleteAttachment(attachmentId)` → void
+- `POST /media/upload` → streams multipart body directly to disk (zero in-memory buffering), processes image/video server-side, creates DB record, broadcasts WebSocket event. Not a Serverpod RPC endpoint.
 
 **WebSocket Protocol** (Streaming endpoint: `chat`)
 Client subscribes to global stream. Server broadcasts:
@@ -122,16 +120,24 @@ Client subscribes to global stream. Server broadcasts:
 {"type": "noteCreated", "note": {...}}
 {"type": "noteUpdated", "note": {...}}
 {"type": "noteDeleted", "noteId": 123, "channelId": 1}
+{"type": "noteArchived", "noteId": 123, "channelId": 1}
+{"type": "noteRestored", "note": {...}, "channelId": 1}
 {"type": "noteLinkPreviewReady", "note": {...}}
 {"type": "channelCreated", "channel": {...}}
+{"type": "channelUpdated", "channel": {...}}
 {"type": "channelDeleted", "channelId": 1}
+{"type": "channelArchived", "channelId": 1}
+{"type": "channelRestored", "channel": {...}}
 ```
 
 **Resilience**
 
-- Exponential backoff reconnect: 1s, 2s, 4s... max 30s
-- "Offline" banner after 3s disconnected
-- Reconnect on app resume (mobile) or page visibility change (web)
+- Connectivity derived from WebSocket stream — `chatStreamProvider` pings `client.health.ping()` once per reconnect attempt, then opens the WebSocket; state transitions via `connectionProvider` Notifier
+- Exponential backoff reconnect: 1s, 2s, 4s... max 10s
+- "Offline" banner shown when `connectionProvider` is `disconnected`
+- Immediate reconnect on app foreground (Android `WidgetsBindingObserver`) or tab focus (web `visibilitychange`), bypassing the backoff timer
+- OS network restore (`connectivity_plus`) also kicks immediate reconnect
+- Failed online mutations (server dies mid-call) fall through to the offline queue via `_isNetworkError()` check
 
 **UI Specifications**
 
@@ -220,6 +226,6 @@ _Delete Behavior_
 - `notesProvider(channelId)`: AsyncNotifier managing paginated notes
 - `currentChannelIdProvider`: StateProvider<int>
 - `editingNoteIdProvider`: StateProvider<int?> (null = create mode)
-- `connectionStateProvider`: StreamProvider<ConnectionState>
+- `connectionProvider`: Notifier<ConnectionState> (keepAlive) — set by `chatStreamProvider` ping + WebSocket lifecycle
 - `channelMediaProvider(channelId)`: Family provider for media panel data
 - `mediaPanelVisibleProvider`: Global state for media panel visibility on mobile/tablet
