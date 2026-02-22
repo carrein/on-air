@@ -12,6 +12,7 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/chat_endpoint.dart' as _i2;
+import '../health_endpoint.dart' as _i3;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -21,6 +22,12 @@ class Endpoints extends _i1.EndpointDispatch {
         ..initialize(
           server,
           'chat',
+          null,
+        ),
+      'health': _i3.HealthEndpoint()
+        ..initialize(
+          server,
+          'health',
           null,
         ),
     };
@@ -178,6 +185,11 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'clientMutationId': _i1.ParameterDescription(
+              name: 'clientMutationId',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
           },
           call:
               (
@@ -187,6 +199,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 session,
                 params['channelId'],
                 params['content'],
+                clientMutationId: params['clientMutationId'],
               ),
         ),
         'updateNote': _i1.MethodConnector(
@@ -334,6 +347,22 @@ class Endpoints extends _i1.EndpointDispatch {
                 Map<String, dynamic> params,
                 Map<String, Stream> streamParams,
               ) => (endpoints['chat'] as _i2.ChatEndpoint).chat(session),
+        ),
+      },
+    );
+    connectors['health'] = _i1.EndpointConnector(
+      name: 'health',
+      endpoint: endpoints['health']!,
+      methodConnectors: {
+        'ping': _i1.MethodConnector(
+          name: 'ping',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['health'] as _i3.HealthEndpoint).ping(session),
         ),
       },
     );

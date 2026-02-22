@@ -52,10 +52,13 @@ class Notes extends _$Notes {
     }
   }
 
-  bool get _isOnline {
-    final conn = ref.read(connectionStreamProvider);
-    return conn.valueOrNull == ConnectionState.connected;
-  }
+  bool get _isOnline =>
+      ref.read(connectionProvider) == ConnectionState.connected;
+
+  /// Returns true for network-level failures (server unreachable, timeout).
+  /// These should fall back to the offline queue rather than surfacing an error.
+  bool _isNetworkError(Object e) =>
+      e is ServerpodClientException && e.statusCode == -1;
 
   Future<List<Note>> _loadInitialNotes(int channelId) async {
     final notes = await client.chat.getNotes(channelId, limit: 50);
@@ -78,8 +81,26 @@ class Notes extends _$Notes {
     switch (event.type) {
       case 'noteCreated':
         if (event.note?.channelId == channelId) {
-          if (currentState.any((n) => n.id == event.note!.id)) break;
-          _notes = [event.note!, ...currentState];
+          final incoming = event.note!;
+          // Replace provisional note that matches by clientMutationId (offline path)
+          if (incoming.clientMutationId != null) {
+            final idx = _notes.indexWhere(
+              (n) => n.clientMutationId == incoming.clientMutationId,
+            );
+            if (idx != -1) {
+              _notes = [
+                ..._notes.sublist(0, idx),
+                incoming,
+                ..._notes.sublist(idx + 1),
+              ];
+              state = AsyncValue.data(_notes);
+              db.cacheNotes(channelId, _notes);
+              break;
+            }
+          }
+          // Fallback: dedup by server ID (online-created notes)
+          if (_notes.any((n) => n.id == incoming.id)) break;
+          _notes = [incoming, ..._notes];
           state = AsyncValue.data(_notes);
           db.cacheNotes(channelId, _notes);
         }
@@ -161,29 +182,36 @@ class Notes extends _$Notes {
 
   Future<void> createNote(String content) async {
     if (_isOnline) {
-      final note = await client.chat.createNote(channelId, content);
-      final current = state.value ?? [];
-      if (!current.any((n) => n.id == note.id)) {
-        _notes = [note, ...current];
-        state = AsyncValue.data(_notes);
+      try {
+        final note = await client.chat.createNote(channelId, content);
+        final current = state.value ?? [];
+        if (!current.any((n) => n.id == note.id)) {
+          _notes = [note, ...current];
+          state = AsyncValue.data(_notes);
+        }
+        final db = ref.read(appDatabaseProvider);
+        await db.cacheNotes(channelId, _notes);
+        return;
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to offline path
       }
-      final db = ref.read(appDatabaseProvider);
-      await db.cacheNotes(channelId, _notes);
-      return;
     }
 
     // Offline: enqueue mutation and add provisional note
     final db = ref.read(appDatabaseProvider);
+    final mutationId = const Uuid().v4();
     await db.enqueueMutation(
       'createNote',
       channelId,
-      jsonEncode({'content': content}),
+      jsonEncode({'content': content, 'clientMutationId': mutationId}),
     );
 
     final provisional = Note(
       id: _nextProvisionalId--,
       channelId: channelId,
       content: content,
+      clientMutationId: mutationId,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -199,12 +227,17 @@ class Notes extends _$Notes {
     final db = ref.read(appDatabaseProvider);
 
     if (_isOnline) {
-      final updated = await client.chat.updateNote(id, content);
-      final current = state.value ?? [];
-      _notes = current.map((n) => n.id == id ? updated : n).toList();
-      state = AsyncValue.data(_notes);
-      await db.cacheNotes(channelId, _notes);
-      return;
+      try {
+        final updated = await client.chat.updateNote(id, content);
+        final current = state.value ?? [];
+        _notes = current.map((n) => n.id == id ? updated : n).toList();
+        state = AsyncValue.data(_notes);
+        await db.cacheNotes(channelId, _notes);
+        return;
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to offline path
+      }
     }
 
     // Offline: enqueue and optimistic update
@@ -227,10 +260,21 @@ class Notes extends _$Notes {
   }
 
   Future<void> deleteNote(int id) async {
+    final db = ref.read(appDatabaseProvider);
+
     if (_isOnline) {
-      await client.chat.deleteNote(id);
+      try {
+        await client.chat.deleteNote(id);
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Network error — fall through to enqueue
+        await db.enqueueMutation(
+          'deleteNote',
+          channelId,
+          jsonEncode({'noteId': id}),
+        );
+      }
     } else {
-      final db = ref.read(appDatabaseProvider);
       await db.enqueueMutation(
         'deleteNote',
         channelId,
@@ -241,8 +285,6 @@ class Notes extends _$Notes {
     final current = state.value ?? [];
     _notes = current.where((n) => n.id != id).toList();
     state = AsyncValue.data(_notes);
-
-    final db = ref.read(appDatabaseProvider);
     await db.deleteCachedNote(id);
   }
 }

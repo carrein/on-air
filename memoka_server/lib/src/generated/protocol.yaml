@@ -14,3 +14,5 @@ chat:
   - getArchiveItems:
   - getArchivedChannelNoteCount:
   - chat:
+health:
+  - ping:

@@ -363,6 +363,12 @@ class Protocol extends _i1.SerializationManagerServer {
           dartType: 'DateTime',
           columnDefault: 'CURRENT_TIMESTAMP',
         ),
+        _i2.ColumnDefinition(
+          name: 'clientMutationId',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
       ],
       foreignKeys: [
         _i2.ForeignKeyDefinition(
@@ -422,6 +428,19 @@ class Protocol extends _i1.SerializationManagerServer {
           ],
           type: 'btree',
           isUnique: false,
+          isPrimary: false,
+        ),
+        _i2.IndexDefinition(
+          indexName: 'client_mutation_idx',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'clientMutationId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
           isPrimary: false,
         ),
       ],

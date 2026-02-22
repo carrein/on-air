@@ -1,0 +1,69 @@
+{
+  "__className__": "serverpod.DatabaseMigration",
+  "actions": [
+    {
+      "__className__": "serverpod.DatabaseMigrationAction",
+      "type": "alterTable",
+      "alterTable": {
+        "__className__": "serverpod.TableMigration",
+        "name": "notes",
+        "schema": "public",
+        "addColumns": [
+          {
+            "__className__": "serverpod.ColumnDefinition",
+            "name": "clientMutationId",
+            "columnType": 0,
+            "isNullable": true,
+            "dartType": "String?"
+          }
+        ],
+        "deleteColumns": [],
+        "modifyColumns": [],
+        "addIndexes": [
+          {
+            "__className__": "serverpod.IndexDefinition",
+            "indexName": "client_mutation_idx",
+            "elements": [
+              {
+                "__className__": "serverpod.IndexElementDefinition",
+                "type": 0,
+                "definition": "clientMutationId"
+              }
+            ],
+            "type": "btree",
+            "isUnique": true,
+            "isPrimary": false
+          }
+        ],
+        "deleteIndexes": [],
+        "addForeignKeys": [],
+        "deleteForeignKeys": [],
+        "warnings": [
+          {
+            "__className__": "serverpod.DatabaseMigrationWarning",
+            "type": "uniqueIndexCreated",
+            "message": "Unique index \"client_mutation_idx\" is added to table \"notes\". If there are existing rows with duplicate values, this migration will fail.",
+            "table": "notes",
+            "columns": [
+              "clientMutationId"
+            ],
+            "destrucive": false
+          }
+        ]
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "__className__": "serverpod.DatabaseMigrationWarning",
+      "type": "uniqueIndexCreated",
+      "message": "Unique index \"client_mutation_idx\" is added to table \"notes\". If there are existing rows with duplicate values, this migration will fail.",
+      "table": "notes",
+      "columns": [
+        "clientMutationId"
+      ],
+      "destrucive": false
+    }
+  ],
+  "migrationApiVersion": 1
+}

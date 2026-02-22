@@ -237,11 +237,14 @@ class ChatEndpoint extends Endpoint {
   /// Creates a new note and broadcasts the event.
   /// Also updates the channel's updatedAt timestamp.
   /// Asynchronously fetches link preview if URL is detected in content.
+  /// [clientMutationId] is an optional idempotency key for offline-created notes.
+  /// If a note with this key already exists, it is returned without creating a duplicate.
   Future<Note> createNote(
     Session session,
     int channelId,
-    String content,
-  ) async {
+    String content, {
+    String? clientMutationId,
+  }) async {
     // Input validation
     if (content.trim().isEmpty) {
       throw Exception('Note content cannot be empty');
@@ -250,9 +253,19 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Note content too long (max 200,000 characters)');
     }
 
+    // Idempotency: if this mutation was already applied, return the existing note.
+    if (clientMutationId != null) {
+      final existing = await Note.db.findFirstRow(
+        session,
+        where: (n) => n.clientMutationId.equals(clientMutationId),
+      );
+      if (existing != null) return existing;
+    }
+
     final note = Note(
       channelId: channelId,
       content: content.trim(),
+      clientMutationId: clientMutationId,
     );
     final saved = await Note.db.insertRow(session, note);
 

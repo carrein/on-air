@@ -6,7 +6,7 @@ part of 'sync_engine_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$syncEngineHash() => r'1dc542651f381aa346240f5d7f54da825957b856';
+String _$syncEngineHash() => r'c2842207e3525b41159d0e911d0190f982da2b49';
 
 /// Drains the pending mutation queue when connectivity is restored.
 ///

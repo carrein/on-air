@@ -27,6 +27,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     this.archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.clientMutationId,
   }) : archived = archived ?? false,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -41,6 +42,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? clientMutationId,
   }) = _NoteImpl;
 
   factory Note.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -68,6 +70,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       updatedAt: jsonSerialization['updatedAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      clientMutationId: jsonSerialization['clientMutationId'] as String?,
     );
   }
 
@@ -102,6 +105,9 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   /// When the note was last updated.
   DateTime updatedAt;
 
+  /// Idempotency key for offline-created notes. NULL for online-created notes.
+  String? clientMutationId;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -118,6 +124,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? clientMutationId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -133,6 +140,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      if (clientMutationId != null) 'clientMutationId': clientMutationId,
     };
   }
 
@@ -152,6 +160,7 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      if (clientMutationId != null) 'clientMutationId': clientMutationId,
     };
   }
 
@@ -198,6 +207,7 @@ class _NoteImpl extends Note {
     DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? clientMutationId,
   }) : super._(
          id: id,
          channelId: channelId,
@@ -208,6 +218,7 @@ class _NoteImpl extends Note {
          archivedAt: archivedAt,
          createdAt: createdAt,
          updatedAt: updatedAt,
+         clientMutationId: clientMutationId,
        );
 
   /// Returns a shallow copy of this [Note]
@@ -224,6 +235,7 @@ class _NoteImpl extends Note {
     Object? archivedAt = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Object? clientMutationId = _Undefined,
   }) {
     return Note(
       id: id is int? ? id : this.id,
@@ -239,6 +251,9 @@ class _NoteImpl extends Note {
       archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      clientMutationId: clientMutationId is String?
+          ? clientMutationId
+          : this.clientMutationId,
     );
   }
 }
@@ -291,6 +306,12 @@ class NoteUpdateTable extends _i1.UpdateTable<NoteTable> {
         table.updatedAt,
         value,
       );
+
+  _i1.ColumnValue<String, String> clientMutationId(String? value) =>
+      _i1.ColumnValue(
+        table.clientMutationId,
+        value,
+      );
 }
 
 class NoteTable extends _i1.Table<int?> {
@@ -331,6 +352,10 @@ class NoteTable extends _i1.Table<int?> {
       this,
       hasDefault: true,
     );
+    clientMutationId = _i1.ColumnString(
+      'clientMutationId',
+      this,
+    );
   }
 
   late final NoteUpdateTable updateTable;
@@ -359,6 +384,9 @@ class NoteTable extends _i1.Table<int?> {
   /// When the note was last updated.
   late final _i1.ColumnDateTime updatedAt;
 
+  /// Idempotency key for offline-created notes. NULL for online-created notes.
+  late final _i1.ColumnString clientMutationId;
+
   @override
   List<_i1.Column> get columns => [
     id,
@@ -370,6 +398,7 @@ class NoteTable extends _i1.Table<int?> {
     archivedAt,
     createdAt,
     updatedAt,
+    clientMutationId,
   ];
 }
 

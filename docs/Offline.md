@@ -39,13 +39,19 @@ When upgrading drift or sqlite3, download matching WASM/worker files from the re
 
 `memoka_flutter/lib/providers/connection_provider.dart`
 
-Uses `connectivity_plus` to detect network changes, then probes the server's `/healthcheck` endpoint (4s timeout) to confirm actual reachability. The `OfflineBanner` widget already listens to this provider.
+`connectionProvider` is a `Notifier<ConnectionState>` (keepAlive). It starts as `disconnected` and transitions via two mechanisms:
 
-### Server Healthcheck
+1. **OS-level events** (`connectivity_plus`): When the OS reports no network interfaces, the notifier immediately sets `disconnected`. When any interface returns, it invalidates `chatStreamProvider` to kick an immediate reconnect attempt — bypassing the exponential backoff timer.
 
-`memoka_server/lib/src/web/routes/healthcheck_route.dart`
+2. **WebSocket lifecycle** (`chatStreamProvider`): Before opening the WebSocket each reconnect attempt, `chatStreamProvider` calls `client.health.ping()` (4s timeout). On success → `setConnected()`. If the ping fails or the WebSocket drops → `setDisconnected()`. This is one HTTP call per reconnect attempt, not a poll.
 
-Returns `200 OK` with CORS headers. Registered at `/healthcheck` on the web server.
+**Lifecycle handling** (`ChatScreen`): Implements `WidgetsBindingObserver` to detect app foreground (Android via `didChangeAppLifecycleState`) and web tab focus (via `document.visibilitychange`). Both call `_kickReconnectIfNeeded()`, which invalidates `chatStreamProvider` only when already `disconnected`, forcing an immediate reconnect rather than waiting for the next backoff tick.
+
+### Health Endpoint
+
+`memoka_server/lib/src/health_endpoint.dart`
+
+Lightweight Serverpod RPC endpoint. `ping()` returns `true`. Called by `chatStreamProvider` via `client.health.ping()` to confirm server reachability before opening the WebSocket stream. Unlike the old HTTP healthcheck route, this lives on the API server (port 8080) and is reachable regardless of reverse-proxy configuration.
 
 ## Data Flow
 
@@ -63,19 +69,25 @@ Returns `200 OK` with CORS headers. Registered at `/healthcheck` on the web serv
 
 ### User Creates Note (offline)
 
-1. Provisional note with negative ID prepended to Riverpod state → appears instantly
-2. `db.enqueueMutation('createNote', channelId, {content})` → persisted to SQLite
-3. `pendingMutationCount` stream increments → navbar sync indicator appears
+1. A UUID `clientMutationId` is generated and stored in both the queued payload and the provisional note
+2. Provisional note with negative ID prepended to Riverpod state → appears instantly
+3. `db.enqueueMutation('createNote', channelId, {content, clientMutationId})` → persisted to SQLite
+4. `pendingMutationCount` stream increments → navbar sync indicator appears
 
 ### Network Restored
 
-1. `connectionStreamProvider` emits `connected`
+1. `connectionProvider` transitions to `connected`
 2. `SyncEngine._drain()` reads all `PendingMutations` ordered by ID
 3. Each mutation executed sequentially against the server API
+   - `createNote` passes its `clientMutationId` — the server returns the existing note if it was already applied (idempotent replay)
 4. On success: `db.deleteMutation(id)`, continue to next
 5. On failure: stop drain (retry on next reconnect)
 6. After drain: `channelsProvider` and affected `notesProvider(channelId)` invalidated → fresh server data loaded + cached
 7. `pendingMutationCount` → 0 → sync indicator disappears
+
+### Failed Online Mutation
+
+If `_isOnline` is `true` at the moment of a mutation but the server becomes unreachable milliseconds later (race condition), the call throws a `ServerpodClientException` with `statusCode == -1`. Both `notes_provider.dart` and `channels_provider.dart` catch this via `_isNetworkError()` and fall through to the offline queue rather than propagating the error. Server-side business errors (e.g., "last remaining channel") are re-thrown as normal.
 
 ### WebSocket Events (online)
 
@@ -104,7 +116,11 @@ Shown in the navbar action row:
 
 ## Conflict Resolution
 
-Last-write-wins. When the queue drains, server state wins via WebSocket events that trigger a full refetch + cache update. Provisional items (negative IDs) are replaced by server-assigned IDs.
+Last-write-wins. When the queue drains, server state wins via WebSocket events that trigger a full refetch + cache update.
+
+**Provisional note replacement**: When the server broadcasts `noteCreated` for an offline-created note, `notesProvider` matches the incoming event by `clientMutationId` and replaces the provisional note in-place — preserving its position in the list with no flash or duplication. Online-created notes (no `clientMutationId`) fall back to dedup-by-server-ID as before.
+
+**Idempotent `createNote`**: The server stores `clientMutationId` in the `notes` table (unique nullable column). If the drain replays a mutation that was already applied (e.g., the client crashed between the server insert and the local `deleteMutation` call), the server returns the existing note rather than creating a duplicate.
 
 ## Web vs Native
 
@@ -112,15 +128,17 @@ Last-write-wins. When the queue drains, server state wins via WebSocket events t
 |---------|------------------|-----|
 | Cache persistence | SQLite on disk (survives restart) | WASM SQLite + IndexedDB (survives reload) |
 | Mutation queue | SQLite (survives force-kill) | WASM SQLite + IndexedDB (survives reload) |
-| Connectivity detection | connectivity_plus + healthcheck | connectivity_plus + healthcheck |
+| Connectivity detection | connectivity_plus + WebSocket ping | connectivity_plus + WebSocket ping |
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `memoka_server/lib/src/web/routes/healthcheck_route.dart` | Server healthcheck endpoint |
+| `memoka_server/lib/src/health_endpoint.dart` | `ping()` RPC endpoint — called once per reconnect attempt |
 | `memoka_flutter/lib/local_db/database.dart` | Drift database, tables, helpers |
-| `memoka_flutter/lib/providers/connection_provider.dart` | Real connectivity detection |
+| `memoka_flutter/lib/providers/connection_provider.dart` | `connectionProvider` Notifier — source of truth for online/offline |
+| `memoka_flutter/lib/providers/chat_stream_provider.dart` | WebSocket stream — drives connectivity state, exponential backoff |
+| `memoka_flutter/lib/screens/chat_screen.dart` | `WidgetsBindingObserver` + web `visibilitychange` for lifecycle reconnect |
 | `memoka_flutter/lib/providers/channels_provider.dart` | Local-first channel loading + offline mutations |
 | `memoka_flutter/lib/providers/notes_provider.dart` | Local-first note loading + offline mutations |
 | `memoka_flutter/lib/providers/sync_engine_provider.dart` | Drains pending mutations on reconnect |

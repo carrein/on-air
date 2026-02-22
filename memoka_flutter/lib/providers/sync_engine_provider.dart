@@ -5,6 +5,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../local_db/database.dart';
 import '../main.dart';
 import 'channels_provider.dart';
+import 'chat_stream_provider.dart';
 import 'connection_provider.dart';
 import 'notes_provider.dart';
 
@@ -13,17 +14,13 @@ part 'sync_engine_provider.g.dart';
 /// Drains the pending mutation queue when connectivity is restored.
 @Riverpod(keepAlive: true)
 class SyncEngine extends _$SyncEngine {
-  ConnectionState? _previousState;
-
   @override
   bool build() {
-    ref.listen(connectionStreamProvider, (_, next) {
-      final current = next.valueOrNull;
-      if (_previousState != ConnectionState.connected &&
-          current == ConnectionState.connected) {
+    ref.listen(connectionProvider, (prev, next) {
+      if (prev != ConnectionState.connected &&
+          next == ConnectionState.connected) {
         _drain();
       }
-      _previousState = current;
     });
     return false; // isDraining
   }
@@ -36,6 +33,13 @@ class SyncEngine extends _$SyncEngine {
     final affectedChannelIds = <int>{};
     final mutations = await db.getPendingMutations();
 
+    // Collect all affected channel IDs upfront so notes are always
+    // invalidated after drain, even if individual mutations fail.
+    for (final m in mutations) {
+      if (m.channelId != null) affectedChannelIds.add(m.channelId!);
+    }
+
+    var networkError = false;
     for (final m in mutations) {
       try {
         final payload = jsonDecode(m.payload) as Map<String, dynamic>;
@@ -44,8 +48,12 @@ class SyncEngine extends _$SyncEngine {
           case 'createNote':
             final channelId = m.channelId!;
             final content = payload['content'] as String;
-            await client.chat.createNote(channelId, content);
-            affectedChannelIds.add(channelId);
+            final mutationId = payload['clientMutationId'] as String?;
+            await client.chat.createNote(
+              channelId,
+              content,
+              clientMutationId: mutationId,
+            );
             break;
 
           case 'createChannel':
@@ -57,7 +65,6 @@ class SyncEngine extends _$SyncEngine {
           case 'deleteNote':
             final noteId = payload['noteId'] as int;
             await client.chat.deleteNote(noteId);
-            if (m.channelId != null) affectedChannelIds.add(m.channelId!);
             break;
 
           case 'updateChannel':
@@ -79,7 +86,6 @@ class SyncEngine extends _$SyncEngine {
             final noteId = payload['noteId'] as int;
             final content = payload['content'] as String;
             await client.chat.updateNote(noteId, content);
-            if (m.channelId != null) affectedChannelIds.add(m.channelId!);
             break;
 
           case 'deleteChannel':
@@ -95,8 +101,13 @@ class SyncEngine extends _$SyncEngine {
 
         await db.deleteMutation(m.id);
       } catch (e) {
-        // Network error (server unreachable) — stop drain, retry on reconnect.
-        if (e is ServerpodClientException && e.statusCode == -1) break;
+        // Network error (server unreachable) — stop drain and force a
+        // reconnect cycle so the drain retries on next connection.
+        // Without this, the connection stays "up" and drain never retries.
+        if (e is ServerpodClientException && e.statusCode == -1) {
+          networkError = true;
+          break;
+        }
 
         // Server error (4xx/5xx, e.g. "Note not found") — the mutation won't
         // succeed on retry either, so discard it and continue draining.
@@ -106,9 +117,15 @@ class SyncEngine extends _$SyncEngine {
 
     state = false;
 
+    if (networkError) {
+      // Force a full reconnect so drain retries when the connection is
+      // re-established. The cancelled flag in chatStreamProvider ensures
+      // the old generator exits cleanly.
+      ref.invalidate(chatStreamProvider);
+      return;
+    }
+
     // Always invalidate to force a fresh server fetch after reconnect.
-    // This also fixes the startup race where providers built before
-    // connectionStreamProvider resolved its first value.
     ref.invalidate(channelsProvider);
     for (final channelId in affectedChannelIds) {
       ref.invalidate(notesProvider(channelId));

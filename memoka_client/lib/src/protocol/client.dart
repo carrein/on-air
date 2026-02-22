@@ -101,15 +101,19 @@ class EndpointChat extends _i1.EndpointRef {
   /// Creates a new note and broadcasts the event.
   /// Also updates the channel's updatedAt timestamp.
   /// Asynchronously fetches link preview if URL is detected in content.
+  /// [clientMutationId] is an optional idempotency key for offline-created notes.
+  /// If a note with this key already exists, it is returned without creating a duplicate.
   _i2.Future<_i4.Note> createNote(
     int channelId,
-    String content,
-  ) => caller.callServerEndpoint<_i4.Note>(
+    String content, {
+    String? clientMutationId,
+  }) => caller.callServerEndpoint<_i4.Note>(
     'chat',
     'createNote',
     {
       'channelId': channelId,
       'content': content,
+      'clientMutationId': clientMutationId,
     },
   );
 
@@ -183,6 +187,22 @@ class EndpointChat extends _i1.EndpointRef {
       );
 }
 
+/// Lightweight endpoint used by the Flutter client to confirm server
+/// reachability before opening the WebSocket stream.
+/// {@category Endpoint}
+class EndpointHealth extends _i1.EndpointRef {
+  EndpointHealth(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'health';
+
+  _i2.Future<bool> ping() => caller.callServerEndpoint<bool>(
+    'health',
+    'ping',
+    {},
+  );
+}
+
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -213,12 +233,18 @@ class Client extends _i1.ServerpodClientShared {
              disconnectStreamsOnLostInternetConnection,
        ) {
     chat = EndpointChat(this);
+    health = EndpointHealth(this);
   }
 
   late final EndpointChat chat;
 
+  late final EndpointHealth health;
+
   @override
-  Map<String, _i1.EndpointRef> get endpointRefLookup => {'chat': chat};
+  Map<String, _i1.EndpointRef> get endpointRefLookup => {
+    'chat': chat,
+    'health': health,
+  };
 
   @override
   Map<String, _i1.ModuleEndpointCaller> get moduleLookup => {};

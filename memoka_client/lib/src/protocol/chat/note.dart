@@ -27,6 +27,7 @@ abstract class Note implements _i1.SerializableModel {
     this.archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.clientMutationId,
   }) : archived = archived ?? false,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -41,6 +42,7 @@ abstract class Note implements _i1.SerializableModel {
     DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? clientMutationId,
   }) = _NoteImpl;
 
   factory Note.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -68,6 +70,7 @@ abstract class Note implements _i1.SerializableModel {
       updatedAt: jsonSerialization['updatedAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      clientMutationId: jsonSerialization['clientMutationId'] as String?,
     );
   }
 
@@ -100,6 +103,9 @@ abstract class Note implements _i1.SerializableModel {
   /// When the note was last updated.
   DateTime updatedAt;
 
+  /// Idempotency key for offline-created notes. NULL for online-created notes.
+  String? clientMutationId;
+
   /// Returns a shallow copy of this [Note]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -113,6 +119,7 @@ abstract class Note implements _i1.SerializableModel {
     DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? clientMutationId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -128,6 +135,7 @@ abstract class Note implements _i1.SerializableModel {
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
+      if (clientMutationId != null) 'clientMutationId': clientMutationId,
     };
   }
 
@@ -150,6 +158,7 @@ class _NoteImpl extends Note {
     DateTime? archivedAt,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? clientMutationId,
   }) : super._(
          id: id,
          channelId: channelId,
@@ -160,6 +169,7 @@ class _NoteImpl extends Note {
          archivedAt: archivedAt,
          createdAt: createdAt,
          updatedAt: updatedAt,
+         clientMutationId: clientMutationId,
        );
 
   /// Returns a shallow copy of this [Note]
@@ -176,6 +186,7 @@ class _NoteImpl extends Note {
     Object? archivedAt = _Undefined,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Object? clientMutationId = _Undefined,
   }) {
     return Note(
       id: id is int? ? id : this.id,
@@ -191,6 +202,9 @@ class _NoteImpl extends Note {
       archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      clientMutationId: clientMutationId is String?
+          ? clientMutationId
+          : this.clientMutationId,
     );
   }
 }
