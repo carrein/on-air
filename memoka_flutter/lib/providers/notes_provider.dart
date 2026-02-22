@@ -63,15 +63,29 @@ class Notes extends _$Notes {
       e is ServerpodClientException && e.statusCode == -1;
 
   Future<List<Note>> _loadInitialNotes(int channelId) async {
-    final notes = await client.chat.getNotes(channelId, limit: 50);
-    _notes = notes;
+    final serverNotes = await client.chat.getNotes(channelId, limit: 50);
 
-    if (notes.isNotEmpty) {
-      _oldestNoteId = notes.last.id;
+    // Preserve provisional notes (negative IDs) that the server hasn't seen
+    // yet — these are pending-drain mutations. They'll be replaced in-place by
+    // noteCreated events when the drain flushes them. Without this, a server
+    // fetch that races ahead of the drain would wipe provisionals, causing a
+    // visible flash where notes disappear then reappear.
+    final pendingProvisionals = _notes
+        .where((n) => (n.id ?? 0) < 0)
+        .where(
+          (p) => !serverNotes.any((s) => s.clientMutationId == p.clientMutationId),
+        )
+        .toList();
+
+    _notes = [...pendingProvisionals, ...serverNotes];
+    _notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    _hasMore = serverNotes.length == 50;
+    if (serverNotes.isNotEmpty) {
+      _oldestNoteId = serverNotes.last.id;
     }
 
-    _hasMore = notes.length == 50;
-    return notes;
+    return _notes;
   }
 
   void _handleChatEvent(ChatEvent event, int channelId) {

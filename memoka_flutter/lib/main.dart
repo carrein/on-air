@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/chat_screen.dart';
@@ -65,8 +64,7 @@ bool get needsServerSetup => !kIsWeb && serverUrl.isEmpty;
 /// Update the server URL and reinitialize the client.
 Future<void> setServerUrl(String url) async {
   serverUrl = url;
-  client = Client(serverUrl)
-    ..connectivityMonitor = FlutterConnectivityMonitor();
+  client = Client(serverUrl);
 
   if (!kIsWeb) {
     final prefs = await SharedPreferences.getInstance();
@@ -89,8 +87,7 @@ void main() async {
 
   // Only create client if we have a URL (web always has one)
   if (serverUrl.isNotEmpty) {
-    client = Client(serverUrl)
-      ..connectivityMonitor = FlutterConnectivityMonitor();
+    client = Client(serverUrl);
   }
 
   runApp(const ProviderScope(child: MyApp()));

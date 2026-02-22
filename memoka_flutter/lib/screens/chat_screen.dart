@@ -38,6 +38,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   static const _swipeVelocityThreshold = 300.0;
 
   StreamSubscription<html.Event>? _visibilitySubscription;
+  StreamSubscription<html.Event>? _onlineSubscription;
 
   // Register on web and desktop (not mobile where physical keyboard is absent).
   static bool get _useKeyboardHandler =>
@@ -48,13 +49,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    // On web, kick reconnect when the tab becomes visible again.
-    // The browser may have suspended or dropped the WebSocket while hidden.
+    // On web, kick reconnect when the tab becomes visible again or when the
+    // browser goes online. Both events are more reliable than connectivity_plus
+    // alone after a hard refresh in an offline state.
     if (kIsWeb) {
       _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
         if (html.document.visibilityState == 'visible') {
           _kickReconnectIfNeeded();
         }
+      });
+      _onlineSubscription = html.window.onOnline.listen((_) {
+        _kickReconnectIfNeeded();
       });
     }
 
@@ -72,6 +77,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _visibilitySubscription?.cancel();
+    _onlineSubscription?.cancel();
     if (_useKeyboardHandler) {
       HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
     }
