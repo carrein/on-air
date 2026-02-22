@@ -16,21 +16,31 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
   Timer? _delayTimer;
 
   @override
-  Widget build(BuildContext context) {
-    ref.listen(conn.connectionStreamProvider, (prev, next) {
-      next.whenData((state) {
-        if (state == conn.ConnectionState.disconnected) {
-          // Show banner after 3s delay
-          _delayTimer?.cancel();
-          _delayTimer = Timer(const Duration(seconds: 3), () {
-            if (mounted) setState(() => _showBanner = true);
-          });
-        } else {
-          // Hide banner immediately when reconnected
-          _delayTimer?.cancel();
-          if (mounted) setState(() => _showBanner = false);
-        }
+  void initState() {
+    super.initState();
+    // ref.listen only fires on *changes*, not the initial value. If the app
+    // loads while already offline (e.g. hard refresh), kick the timer now.
+    if (ref.read(conn.connectionProvider) == conn.ConnectionState.disconnected) {
+      _delayTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _showBanner = true);
       });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(conn.connectionProvider, (prev, next) {
+      if (next == conn.ConnectionState.disconnected) {
+        // Show banner after 3s delay
+        _delayTimer?.cancel();
+        _delayTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _showBanner = true);
+        });
+      } else {
+        // Hide banner immediately when reconnected
+        _delayTimer?.cancel();
+        if (mounted) setState(() => _showBanner = false);
+      }
     });
 
     if (!_showBanner) return const SizedBox.shrink();

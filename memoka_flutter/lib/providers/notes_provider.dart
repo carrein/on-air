@@ -34,13 +34,15 @@ class Notes extends _$Notes {
       });
     });
 
-    // 1. Load from cache and emit immediately
+    // 1. Load from cache and emit immediately — even when empty, so the UI
+    // resolves to "It's quiet in here" rather than spinning until the server
+    // responds.
     final cached = await db.getCachedNotes(channelId);
+    _notes = cached;
     if (cached.isNotEmpty) {
-      _notes = cached;
       _oldestNoteId = cached.last.id;
-      state = AsyncData(cached);
     }
+    state = AsyncData(cached);
 
     // 2. Always try to fetch from server; fall back to cache if unreachable.
     try {
