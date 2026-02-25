@@ -277,6 +277,11 @@ class Navbar extends ConsumerWidget {
         ? channels.where((c) => c.id == currentChannelId).firstOrNull
         : null;
 
+    // Hide "Archive Channel" when only one non-system channel remains —
+    // matches the server-side guard that rejects the last-channel archive.
+    final canArchive =
+        channels.where((c) => !c.isSystemChannel).length > 1;
+
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final showMedia = !ResponsiveUtils.shouldShowMediaPanel(context);
 
@@ -302,19 +307,20 @@ class Navbar extends ConsumerWidget {
               ],
             ),
           ),
-          PopupMenuItem(
-            value: 'archive_channel',
-            child: Row(
-              children: [
-                Icon(PhosphorIcons.archive(), color: _textColor, size: 20),
-                const SizedBox(width: 12),
-                const Text(
-                  'Archive Channel',
-                  style: TextStyle(color: _textColor),
-                ),
-              ],
+          if (canArchive)
+            PopupMenuItem(
+              value: 'archive_channel',
+              child: Row(
+                children: [
+                  Icon(PhosphorIcons.archive(), color: _textColor, size: 20),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Archive Channel',
+                    style: TextStyle(color: _textColor),
+                  ),
+                ],
+              ),
             ),
-          ),
           const PopupMenuDivider(),
         ],
         // Global actions
