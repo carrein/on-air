@@ -148,13 +148,11 @@ class AppDatabase extends _$AppDatabase {
   Future<void> cacheChannels(List<proto.Channel> channels) async {
     await transaction(() async {
       // Preserve dirty rows — only replace clean entries
-      final dirtyRows = await (select(cachedChannels)
-            ..where((t) => t.dirty.equals(true)))
-          .get();
+      final dirtyRows = await (select(
+        cachedChannels,
+      )..where((t) => t.dirty.equals(true))).get();
       final dirtyIds = dirtyRows.map((r) => r.id).toSet();
-      await (delete(cachedChannels)
-            ..where((t) => t.dirty.equals(false)))
-          .go();
+      await (delete(cachedChannels)..where((t) => t.dirty.equals(false))).go();
       for (final ch in channels) {
         if (!dirtyIds.contains(ch.id)) {
           await into(cachedChannels).insert(

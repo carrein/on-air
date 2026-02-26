@@ -266,7 +266,13 @@ void main() {
 
       final now = DateTime.now();
       await db.upsertNoteDirty(
-        Note(id: 1, channelId: 1, content: 'Dirty', createdAt: now, updatedAt: now),
+        Note(
+          id: 1,
+          channelId: 1,
+          content: 'Dirty',
+          createdAt: now,
+          updatedAt: now,
+        ),
       );
       await Future.delayed(const Duration(milliseconds: 50));
 
