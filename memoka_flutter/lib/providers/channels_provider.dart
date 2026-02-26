@@ -34,14 +34,6 @@ class Channels extends _$Channels {
       });
     });
 
-    // Refetch when connectivity is restored to catch missed WebSocket events.
-    ref.listen(connectionProvider, (prev, next) {
-      if (prev != ConnectionState.connected &&
-          next == ConnectionState.connected) {
-        _refetchAndCache();
-      }
-    });
-
     // 1. Load from cache and emit immediately
     final cached = await db.getCachedChannels();
     if (cached.isNotEmpty) {
@@ -52,7 +44,9 @@ class Channels extends _$Channels {
     // Do not gate on _isOnline — the WebSocket may not have connected yet
     // at startup, and channels must load regardless.
     try {
-      final serverChannels = await client.chat.getChannels();
+      final serverChannels = await client.chat.getChannels().timeout(
+        const Duration(seconds: 5),
+      );
       await db.cacheChannels(serverChannels);
       return serverChannels;
     } catch (_) {
@@ -64,7 +58,6 @@ class Channels extends _$Channels {
       ref.read(connectionProvider) == ConnectionState.connected;
 
   /// Returns true for network-level failures (server unreachable, timeout).
-  /// These should fall back to the offline queue rather than surfacing an error.
   bool _isNetworkError(Object e) =>
       e is ServerpodClientException && e.statusCode == -1;
 
@@ -77,6 +70,17 @@ class Channels extends _$Channels {
     } catch (_) {
       // Keep current state on error
     }
+  }
+
+  /// Reload state directly from the local SQLite cache without a server round-trip.
+  ///
+  /// Used by the sync engine after a pull+push cycle so that the UI reflects
+  /// the reconciled cache without ever entering [AsyncLoading] state
+  /// (which would cause the navbar to flicker).
+  Future<void> refreshFromCache() async {
+    final db = ref.read(appDatabaseProvider);
+    final cached = await db.getCachedChannels();
+    state = AsyncData(cached);
   }
 
   Future<Channel> createChannel(
@@ -98,30 +102,27 @@ class Channels extends _$Channels {
       }
     }
 
-    // Offline: enqueue mutation and add provisional channel
+    // Offline: write provisional channel as dirty+isNew to cache
     final db = ref.read(appDatabaseProvider);
-    await db.enqueueMutation(
-      'createChannel',
-      null,
-      jsonEncode({'name': name, 'emoji': emoji}),
-    );
-
+    final mutationId = const Uuid().v4();
     final current = state.valueOrNull ?? [];
     final maxSort = current.fold<int>(
       0,
       (m, c) => c.sortOrder > m ? c.sortOrder : m,
     );
+    final provisionalId = _nextProvisionalId--;
     final provisional = Channel(
-      id: _nextProvisionalId--,
+      id: provisionalId,
       name: name,
       emoji: emoji,
       sortOrder: maxSort + 1,
     );
+    final provisionalJson = jsonEncode(provisional.toJson());
+
+    await db.insertOfflineChannel(provisionalId, provisionalJson, mutationId);
+
     final updated = [...current, provisional];
     state = AsyncData(updated);
-
-    // Persist to cache so provisional channels survive page refresh.
-    await db.cacheChannels(updated);
     return provisional;
   }
 
@@ -139,7 +140,7 @@ class Channels extends _$Channels {
           emoji: emoji,
           pinned: pinned,
         );
-        // Optimistic local update + cache so changes survive hard refresh
+        // Optimistic local update + cache
         final current = state.valueOrNull ?? [];
         final updated = current.map((c) {
           if (c.id != id) return c;
@@ -159,15 +160,7 @@ class Channels extends _$Channels {
       }
     }
 
-    // Offline: enqueue
-    final db = ref.read(appDatabaseProvider);
-    final payload = <String, dynamic>{'id': id};
-    if (name != null) payload['name'] = name;
-    if (emoji != null) payload['emoji'] = emoji;
-    if (pinned != null) payload['pinned'] = pinned;
-    await db.enqueueMutation('updateChannel', id, jsonEncode(payload));
-
-    // Optimistic local update
+    // Offline: update cached entry as dirty
     final current = state.valueOrNull ?? [];
     final updated = current.map((c) {
       if (c.id != id) return c;
@@ -179,8 +172,12 @@ class Channels extends _$Channels {
     }).toList();
     state = AsyncData(updated);
 
-    // Persist to cache so changes survive page refresh.
-    await db.cacheChannels(updated);
+    final db = ref.read(appDatabaseProvider);
+    final channel = updated.firstWhere(
+      (c) => c.id == id,
+      orElse: () => throw StateError('Channel $id not found'),
+    );
+    await db.upsertChannelDirty(channel);
   }
 
   Future<void> deleteChannel(int id) async {
@@ -194,28 +191,18 @@ class Channels extends _$Channels {
           );
         }
         if (!_isNetworkError(e)) rethrow;
-        // Network error — fall through to enqueue
+        // Network error — fall through to offline mark
         final db = ref.read(appDatabaseProvider);
-        await db.enqueueMutation(
-          'deleteChannel',
-          null,
-          jsonEncode({'id': id}),
-        );
+        await db.markChannelDeletedLocally(id);
       }
     } else {
       final db = ref.read(appDatabaseProvider);
-      await db.enqueueMutation(
-        'deleteChannel',
-        null,
-        jsonEncode({'id': id}),
-      );
+      await db.markChannelDeletedLocally(id);
     }
 
     final current = state.valueOrNull ?? [];
     final updated = current.where((c) => c.id != id).toList();
     state = AsyncData(updated);
-    final db = ref.read(appDatabaseProvider);
-    await db.cacheChannels(updated);
   }
 
   Future<void> reorderChannels(List<int> channelIds) async {
@@ -244,24 +231,20 @@ class Channels extends _$Channels {
     if (_isOnline) {
       try {
         await client.chat.reorderChannels(channelIds);
+        // Server apply succeeded — update cache with fresh server data
+        if (reordered != null) await db.cacheChannels(reordered);
+        return;
       } catch (e) {
         if (!_isNetworkError(e)) rethrow;
-        // Network error — fall through to enqueue
-        await db.enqueueMutation(
-          'reorderChannels',
-          null,
-          jsonEncode({'channelIds': channelIds}),
-        );
+        // Network error — fall through to offline mark
       }
-    } else {
-      await db.enqueueMutation(
-        'reorderChannels',
-        null,
-        jsonEncode({'channelIds': channelIds}),
-      );
     }
+
+    // Offline: mark each reordered channel as dirty
     if (reordered != null) {
-      await db.cacheChannels(reordered);
+      for (final ch in reordered.where((c) => channelIds.contains(c.id))) {
+        await db.upsertChannelDirty(ch);
+      }
     }
   }
 
@@ -276,33 +259,38 @@ class Channels extends _$Channels {
           );
         }
         if (!_isNetworkError(e)) rethrow;
-        // Network error — fall through to enqueue
-        final db = ref.read(appDatabaseProvider);
-        await db.enqueueMutation('archiveChannel', id, jsonEncode({'id': id}));
-        // Optimistic local removal
-        final current = state.valueOrNull ?? [];
-        final updated = current.where((c) => c.id != id).toList();
-        state = AsyncData(updated);
-        await db.cacheChannels(updated);
+        // Network error — mark as dirty offline
+        await _archiveChannelOffline(id);
         return;
       }
-      // Online success: remove from local state + cache
-      final current = state.valueOrNull ?? [];
-      final updated = current.where((c) => c.id != id).toList();
-      state = AsyncData(updated);
-      final db = ref.read(appDatabaseProvider);
-      await db.cacheChannels(updated);
+    } else {
+      await _archiveChannelOffline(id);
       return;
     }
 
-    // Offline: enqueue
-    final db = ref.read(appDatabaseProvider);
-    await db.enqueueMutation('archiveChannel', id, jsonEncode({'id': id}));
-
-    // Remove from local state and persist to cache
+    // Online success: remove from local state
     final current = state.valueOrNull ?? [];
     final updated = current.where((c) => c.id != id).toList();
     state = AsyncData(updated);
+    final db = ref.read(appDatabaseProvider);
     await db.cacheChannels(updated);
+  }
+
+  Future<void> _archiveChannelOffline(int id) async {
+    final current = state.valueOrNull ?? [];
+    final channel = current.firstWhere(
+      (c) => c.id == id,
+      orElse: () => throw StateError('Channel $id not found'),
+    );
+    final archived = channel.copyWith(
+      archived: true,
+      archivedAt: DateTime.now(),
+    );
+
+    final db = ref.read(appDatabaseProvider);
+    await db.upsertChannelDirty(archived);
+
+    final updated = current.where((c) => c.id != id).toList();
+    state = AsyncData(updated);
   }
 }

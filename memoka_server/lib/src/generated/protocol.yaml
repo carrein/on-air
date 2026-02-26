@@ -16,3 +16,6 @@ chat:
   - chat:
 health:
   - ping:
+sync:
+  - syncPull:
+  - syncPush:

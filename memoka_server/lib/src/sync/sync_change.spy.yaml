@@ -1,0 +1,16 @@
+### A single entity change to push to the server.
+class: SyncChange
+
+fields:
+  ### Entity type: "channel" or "note".
+  entityType: String
+  ### Full entity state as JSON string.
+  entityJson: String
+  ### Client's last known version of this entity (0 for creates).
+  baseVersion: int
+  ### Client temp ID for creates (negative integer as string). Null for updates/deletes.
+  tempId: String?
+  ### UUID idempotency key for offline creates. Null for updates/deletes.
+  clientMutationId: String?
+  ### True if this is a permanent delete (sets deletedAt tombstone on server).
+  deleted: bool, default=false

@@ -6,9 +6,15 @@ part of 'sync_engine_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$syncEngineHash() => r'c2842207e3525b41159d0e911d0190f982da2b49';
+String _$syncEngineHash() => r'26f706f1be0205c4a8cc4ac43cb5d78a6e6f6602';
 
-/// Drains the pending mutation queue when connectivity is restored.
+/// Pull-then-push sync engine driven by connectivity transitions.
+///
+/// On each reconnect:
+///  1. Pull phase — fetch server changes since lastSyncGlobalVersion and
+///     reconcile with the local cache.
+///  2. Push phase — send all dirty local entities to the server.
+///  3. Invalidate UI providers so fresh state is rendered.
 ///
 /// Copied from [SyncEngine].
 @ProviderFor(SyncEngine)

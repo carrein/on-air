@@ -238,6 +238,7 @@ class Navbar extends ConsumerWidget {
           return const Text('Archive', style: _titleStyle);
         }
         return channelsAsync.when(
+          skipLoadingOnReload: true,
           data: (channels) {
             final channel = channels
                 .where((c) => c.id == channelId)
@@ -279,8 +280,7 @@ class Navbar extends ConsumerWidget {
 
     // Hide "Archive Channel" when only one non-system channel remains —
     // matches the server-side guard that rejects the last-channel archive.
-    final canArchive =
-        channels.where((c) => !c.isSystemChannel).length > 1;
+    final canArchive = channels.where((c) => !c.isSystemChannel).length > 1;
 
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final showMedia = !ResponsiveUtils.shouldShowMediaPanel(context);

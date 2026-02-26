@@ -21,6 +21,10 @@ fields:
   updatedAt: DateTime, default=now
   ### Idempotency key for offline-created notes. NULL for online-created notes.
   clientMutationId: String?
+  ### Sync version — set to globalVersion on each mutation.
+  version: int, default=0
+  ### Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  deletedAt: DateTime?
 
 indexes:
   channel_created_idx:
@@ -30,3 +34,5 @@ indexes:
   client_mutation_idx:
     fields: clientMutationId
     unique: true
+  notes_version_idx:
+    fields: version

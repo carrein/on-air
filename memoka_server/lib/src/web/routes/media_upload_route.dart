@@ -10,6 +10,7 @@ import '../../generated/protocol.dart';
 import '../../media/image_processor.dart';
 import '../../media/video_processor.dart';
 import '../../shared/constants.dart';
+import '../../sync/version_helper.dart';
 
 /// HTTP route that accepts multipart file uploads.
 ///
@@ -330,11 +331,16 @@ class MediaUploadRoute extends Route {
         contentHash = digest.substring(0, 8);
       }
 
-      // Create note + attachment in transaction.
+      // Create note + attachment in transaction (with version increment).
       final note = await session.db.transaction((transaction) async {
+        final newVersion = await incrementGlobalVersion(
+          session,
+          transaction: transaction,
+        );
         final newNote = Note(
           channelId: channelId,
           content: noteContent!,
+          version: newVersion,
         );
         final savedNote = await Note.db.insertRow(
           session,
@@ -372,6 +378,7 @@ class MediaUploadRoute extends Route {
         savedNote.attachments = [attachment];
 
         channel.updatedAt = DateTime.now();
+        channel.version = newVersion;
         await Channel.db.updateRow(session, channel, transaction: transaction);
 
         return savedNote;

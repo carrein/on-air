@@ -1,0 +1,16 @@
+### Result for a single entity change from syncPush.
+class: SyncResult
+
+fields:
+  ### "applied", "rejected", or "already_applied".
+  status: String
+  ### Human-readable reason for rejection. Null if applied.
+  reason: String?
+  ### Client temp ID (echoed back for create mapping). Null for updates/deletes.
+  tempId: String?
+  ### Server-assigned ID (for creates). Null for updates/deletes.
+  serverId: int?
+  ### Entity type: "channel" or "note".
+  entityType: String
+  ### Current server entity JSON. Set on rejection so client can accept server state.
+  entityJson: String?

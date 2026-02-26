@@ -16,7 +16,10 @@ import 'package:memoka_client/src/protocol/chat/channel.dart' as _i3;
 import 'package:memoka_client/src/protocol/chat/note.dart' as _i4;
 import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i5;
 import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i6;
-import 'protocol.dart' as _i7;
+import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart' as _i7;
+import 'package:memoka_client/src/protocol/sync/sync_push_response.dart' as _i8;
+import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i9;
+import 'protocol.dart' as _i10;
 
 /// Endpoint for managing channels and notes with real-time updates.
 /// {@category Endpoint}
@@ -26,7 +29,8 @@ class EndpointChat extends _i1.EndpointRef {
   @override
   String get name => 'chat';
 
-  /// Returns all channels sorted by pinned first, then sortOrder, then updatedAt.
+  /// Returns all channels sorted by pinned first, then position, then updatedAt.
+  /// Excludes tombstoned channels (deletedAt IS NOT NULL).
   _i2.Future<List<_i3.Channel>> getChannels() =>
       caller.callServerEndpoint<List<_i3.Channel>>(
         'chat',
@@ -37,6 +41,7 @@ class EndpointChat extends _i1.EndpointRef {
   /// Returns notes for a channel with cursor-based pagination.
   /// Uses [beforeId] for loading older messages (scroll up behavior).
   /// Efficiently loads attachments with LEFT JOIN to prevent N+1 queries.
+  /// Excludes tombstoned notes (deletedAt IS NOT NULL).
   _i2.Future<List<_i4.Note>> getNotes(
     int channelId, {
     int? beforeId,
@@ -82,7 +87,9 @@ class EndpointChat extends _i1.EndpointRef {
   );
 
   /// Reorders channels within a group (pinned or unpinned).
-  /// Accepts an ordered list of channel IDs; assigns sortOrder = index.
+  /// Accepts an ordered list of channel IDs; assigns position = index + 1.
+  /// Normalises all positions to 1.0, 2.0, 3.0... when any two adjacent
+  /// positions differ by less than epsilon (1e-10).
   _i2.Future<void> reorderChannels(List<int> channelIds) =>
       caller.callServerEndpoint<void>(
         'chat',
@@ -90,8 +97,9 @@ class EndpointChat extends _i1.EndpointRef {
         {'channelIds': channelIds},
       );
 
-  /// Deletes a channel and cascades to delete its notes and media files.
-  /// Rejects if it's the last remaining active (non-archived) channel.
+  /// Tombstones a channel (sets deletedAt) instead of physically deleting it.
+  /// Also tombstones all notes in the channel. Rejects if it's the last channel.
+  /// Media file cleanup should happen in a background task.
   _i2.Future<void> deleteChannel(int id) => caller.callServerEndpoint<void>(
     'chat',
     'deleteChannel',
@@ -130,7 +138,8 @@ class EndpointChat extends _i1.EndpointRef {
     },
   );
 
-  /// Deletes a note - archives it if in a regular channel, permanently deletes if in Archive.
+  /// Deletes a note - archives it (soft-delete) if in a regular channel,
+  /// permanently tombstones it if already archived (from Archive view).
   _i2.Future<void> deleteNote(int id) => caller.callServerEndpoint<void>(
     'chat',
     'deleteNote',
@@ -161,6 +170,7 @@ class EndpointChat extends _i1.EndpointRef {
 
   /// Returns a mixed list of archived notes and archived channels,
   /// sorted by archivedAt descending (newest first).
+  /// Excludes tombstoned entities (deletedAt IS NOT NULL).
   _i2.Future<List<_i5.ArchiveItem>> getArchiveItems({required int limit}) =>
       caller.callServerEndpoint<List<_i5.ArchiveItem>>(
         'chat',
@@ -203,6 +213,40 @@ class EndpointHealth extends _i1.EndpointRef {
   );
 }
 
+/// Endpoint for state-based reconciliation sync.
+///
+/// Pull phase: client fetches all entities changed since its last known version.
+/// Push phase: client sends dirty local entities; server validates and applies.
+/// {@category Endpoint}
+class EndpointSync extends _i1.EndpointRef {
+  EndpointSync(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'sync';
+
+  /// Returns all channels and notes changed since [sinceVersion].
+  ///
+  /// Includes tombstoned entities (deletedAt != null) so clients can remove them.
+  /// Pass sinceVersion = 0 for a full sync (first launch / fresh install).
+  _i2.Future<_i7.SyncPullResponse> syncPull(int sinceVersion) =>
+      caller.callServerEndpoint<_i7.SyncPullResponse>(
+        'sync',
+        'syncPull',
+        {'sinceVersion': sinceVersion},
+      );
+
+  /// Processes a batch of local dirty entities and applies them to the server.
+  ///
+  /// Each change is processed in its own transaction — partial apply is supported.
+  /// Returns per-entity results: applied / rejected / already_applied.
+  _i2.Future<_i8.SyncPushResponse> syncPush(List<_i9.SyncChange> changes) =>
+      caller.callServerEndpoint<_i8.SyncPushResponse>(
+        'sync',
+        'syncPush',
+        {'changes': changes},
+      );
+}
+
 class Client extends _i1.ServerpodClientShared {
   Client(
     String host, {
@@ -223,7 +267,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i7.Protocol(),
+         _i10.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -234,16 +278,20 @@ class Client extends _i1.ServerpodClientShared {
        ) {
     chat = EndpointChat(this);
     health = EndpointHealth(this);
+    sync = EndpointSync(this);
   }
 
   late final EndpointChat chat;
 
   late final EndpointHealth health;
 
+  late final EndpointSync sync;
+
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'chat': chat,
     'health': health,
+    'sync': sync,
   };
 
   @override

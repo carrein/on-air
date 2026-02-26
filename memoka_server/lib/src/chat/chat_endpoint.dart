@@ -3,23 +3,25 @@ import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../shared/constants.dart';
+import '../sync/version_helper.dart';
 import 'link_preview_service.dart';
 
 /// Endpoint for managing channels and notes with real-time updates.
 class ChatEndpoint extends Endpoint {
-  /// Returns all channels sorted by pinned first, then sortOrder, then updatedAt.
+  /// Returns all channels sorted by pinned first, then position, then updatedAt.
+  /// Excludes tombstoned channels (deletedAt IS NOT NULL).
   Future<List<Channel>> getChannels(Session session) async {
     final channels = await Channel.db.find(
       session,
-      where: (t) => t.archived.equals(false),
+      where: (t) => t.archived.equals(false) & t.deletedAt.equals(null),
     );
 
-    // Sort: pinned first, then by sortOrder ascending, then by updatedAt descending
+    // Sort: pinned first, then by position ascending, then by updatedAt descending
     channels.sort((a, b) {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      final orderCmp = a.sortOrder.compareTo(b.sortOrder);
-      if (orderCmp != 0) return orderCmp;
+      final posCmp = a.position.compareTo(b.position);
+      if (posCmp != 0) return posCmp;
       return b.updatedAt.compareTo(a.updatedAt);
     });
 
@@ -29,6 +31,7 @@ class ChatEndpoint extends Endpoint {
   /// Returns notes for a channel with cursor-based pagination.
   /// Uses [beforeId] for loading older messages (scroll up behavior).
   /// Efficiently loads attachments with LEFT JOIN to prevent N+1 queries.
+  /// Excludes tombstoned notes (deletedAt IS NOT NULL).
   Future<List<Note>> getNotes(
     Session session,
     int channelId, {
@@ -64,7 +67,7 @@ class ChatEndpoint extends Endpoint {
         ) as attachments_json
       FROM notes n
       LEFT JOIN media_attachments ma ON ma."noteId" = n.id
-      WHERE n."channelId" = $channelId AND n.archived = false $beforeClause
+      WHERE n."channelId" = $channelId AND n.archived = false AND n."deletedAt" IS NULL $beforeClause
       GROUP BY n.id
       ORDER BY n."createdAt" DESC
       LIMIT $limit
@@ -109,22 +112,30 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Icon key too long (max 30 characters)');
     }
 
-    // Assign sortOrder as max + 1 so new channels appear at the bottom
+    // Assign sortOrder / position as max + 1 so new channels appear at bottom
     final existing = await Channel.db.find(
       session,
-      where: (t) => t.archived.equals(false),
+      where: (t) => t.archived.equals(false) & t.deletedAt.equals(null),
       orderBy: (t) => t.sortOrder,
       orderDescending: true,
       limit: 1,
     );
     final nextOrder = existing.isNotEmpty ? existing.first.sortOrder + 1 : 0;
+    final nextPosition = existing.isNotEmpty
+        ? existing.first.position + 1.0
+        : 1.0;
 
-    final channel = Channel(
-      name: name.trim(),
-      emoji: emoji,
-      sortOrder: nextOrder,
-    );
-    final saved = await Channel.db.insertRow(session, channel);
+    final saved = await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      final channel = Channel(
+        name: name.trim(),
+        emoji: emoji,
+        sortOrder: nextOrder,
+        position: nextPosition,
+        version: newVersion,
+      );
+      return Channel.db.insertRow(session, channel, transaction: tx);
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -166,7 +177,12 @@ class ChatEndpoint extends Endpoint {
     }
 
     channel.updatedAt = DateTime.now();
-    final updated = await Channel.db.updateRow(session, channel);
+
+    final updated = await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      channel.version = newVersion;
+      return Channel.db.updateRow(session, channel, transaction: tx);
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -180,17 +196,28 @@ class ChatEndpoint extends Endpoint {
   }
 
   /// Reorders channels within a group (pinned or unpinned).
-  /// Accepts an ordered list of channel IDs; assigns sortOrder = index.
+  /// Accepts an ordered list of channel IDs; assigns position = index + 1.
+  /// Normalises all positions to 1.0, 2.0, 3.0... when any two adjacent
+  /// positions differ by less than epsilon (1e-10).
   Future<void> reorderChannels(
     Session session,
     List<int> channelIds,
   ) async {
-    for (var i = 0; i < channelIds.length; i++) {
-      final channel = await Channel.db.findById(session, channelIds[i]);
-      if (channel == null) continue;
-      channel.sortOrder = i;
-      await Channel.db.updateRow(session, channel);
-    }
+    await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      for (var i = 0; i < channelIds.length; i++) {
+        final channel = await Channel.db.findById(
+          session,
+          channelIds[i],
+          transaction: tx,
+        );
+        if (channel == null) continue;
+        channel.sortOrder = i;
+        channel.position = (i + 1).toDouble();
+        channel.version = newVersion;
+        await Channel.db.updateRow(session, channel, transaction: tx);
+      }
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -198,32 +225,51 @@ class ChatEndpoint extends Endpoint {
     );
   }
 
-  /// Deletes a channel and cascades to delete its notes and media files.
-  /// Rejects if it's the last remaining active (non-archived) channel.
+  /// Tombstones a channel (sets deletedAt) instead of physically deleting it.
+  /// Also tombstones all notes in the channel. Rejects if it's the last channel.
+  /// Media file cleanup should happen in a background task.
   Future<void> deleteChannel(Session session, int id) async {
     final channel = await Channel.db.findById(session, id);
 
-    // Only check "last channel" for active (non-archived) channels
-    if (channel != null && !channel.archived) {
+    // Only check "last channel" for active (non-archived, non-deleted) channels
+    if (channel != null && !channel.archived && channel.deletedAt == null) {
       final activeCount = await Channel.db.count(
         session,
         where: (t) =>
-            t.archived.equals(false) & t.isSystemChannel.equals(false),
+            t.archived.equals(false) &
+            t.isSystemChannel.equals(false) &
+            t.deletedAt.equals(null),
       );
       if (activeCount <= 1) {
         throw Exception('Cannot delete the last remaining channel');
       }
     }
 
-    // Delete media files for this channel
+    // Delete media files for this channel (still immediate for disk cleanup)
     final mediaDir = Directory('${ServerConstants.mediaBaseDir}/channels/$id');
     if (await mediaDir.exists()) {
       await mediaDir.delete(recursive: true);
       session.log('Deleted media directory for channel $id');
     }
 
-    // Delete from database (cascade will handle notes and attachments)
-    await Channel.db.deleteWhere(session, where: (t) => t.id.equals(id));
+    // Tombstone: set deletedAt instead of physical delete.
+    // Also tombstone all notes in this channel.
+    final now = DateTime.now();
+    await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+
+      if (channel != null) {
+        channel.deletedAt = now;
+        channel.version = newVersion;
+        await Channel.db.updateRow(session, channel, transaction: tx);
+      }
+
+      // Tombstone all notes in the channel
+      await session.db.unsafeQuery(
+        'UPDATE "notes" SET "deletedAt" = \'${now.toIso8601String()}\', "version" = $newVersion WHERE "channelId" = $id',
+        transaction: tx,
+      );
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -262,19 +308,30 @@ class ChatEndpoint extends Endpoint {
       if (existing != null) return existing;
     }
 
-    final note = Note(
-      channelId: channelId,
-      content: content.trim(),
-      clientMutationId: clientMutationId,
-    );
-    final saved = await Note.db.insertRow(session, note);
+    final saved = await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      final note = Note(
+        channelId: channelId,
+        content: content.trim(),
+        clientMutationId: clientMutationId,
+        version: newVersion,
+      );
+      final savedNote = await Note.db.insertRow(session, note, transaction: tx);
 
-    // Update channel's updatedAt timestamp
-    final channel = await Channel.db.findById(session, channelId);
-    if (channel != null) {
-      channel.updatedAt = DateTime.now();
-      await Channel.db.updateRow(session, channel);
-    }
+      // Update channel's updatedAt + version
+      final channel = await Channel.db.findById(
+        session,
+        channelId,
+        transaction: tx,
+      );
+      if (channel != null) {
+        channel.updatedAt = DateTime.now();
+        channel.version = newVersion;
+        await Channel.db.updateRow(session, channel, transaction: tx);
+      }
+
+      return savedNote;
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -304,10 +361,18 @@ class ChatEndpoint extends Endpoint {
         return;
       }
 
-      // Update note with preview
+      // Update note with preview — bump version
       note.linkPreview = preview;
       note.updatedAt = DateTime.now();
-      final updated = await Note.db.updateRow(session, note);
+
+      final updated = await session.db.transaction((tx) async {
+        final newVersion = await incrementGlobalVersion(
+          session,
+          transaction: tx,
+        );
+        note.version = newVersion;
+        return Note.db.updateRow(session, note, transaction: tx);
+      });
 
       await ServerConstants.broadcastEvent(
         session,
@@ -343,7 +408,11 @@ class ChatEndpoint extends Endpoint {
     note.content = content.trim();
     note.updatedAt = DateTime.now();
 
-    final updated = await Note.db.updateRow(session, note);
+    final updated = await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      note.version = newVersion;
+      return Note.db.updateRow(session, note, transaction: tx);
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -356,7 +425,8 @@ class ChatEndpoint extends Endpoint {
     return updated;
   }
 
-  /// Deletes a note - archives it if in a regular channel, permanently deletes if in Archive.
+  /// Deletes a note - archives it (soft-delete) if in a regular channel,
+  /// permanently tombstones it if already archived (from Archive view).
   Future<void> deleteNote(Session session, int id) async {
     final note = await Note.db.findById(session, id);
     if (note == null) {
@@ -365,8 +435,8 @@ class ChatEndpoint extends Endpoint {
 
     // Check if already archived
     if (note.archived) {
-      // PERMANENT DELETE from Archive
-      await _permanentlyDeleteNote(session, note);
+      // PERMANENT DELETE from Archive — use tombstone
+      await _tombstoneNote(session, note);
     } else {
       // SOFT DELETE - mark as archived
       await _archiveNote(session, note);
@@ -378,7 +448,12 @@ class ChatEndpoint extends Endpoint {
     note.archived = true;
     note.archivedAt = DateTime.now();
     note.updatedAt = DateTime.now();
-    await Note.db.updateRow(session, note);
+
+    await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      note.version = newVersion;
+      await Note.db.updateRow(session, note, transaction: tx);
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -390,8 +465,8 @@ class ChatEndpoint extends Endpoint {
     );
   }
 
-  /// Permanently deletes a note, its media attachments, and broadcasts the event.
-  Future<void> _permanentlyDeleteNote(Session session, Note note) async {
+  /// Tombstones a note (sets deletedAt) and cleans up media files.
+  Future<void> _tombstoneNote(Session session, Note note) async {
     // Get all media attachments for this note
     final attachments = await MediaAttachment.db.find(
       session,
@@ -428,8 +503,15 @@ class ChatEndpoint extends Endpoint {
       }
     }
 
-    // Delete from database (cascade will delete attachment records)
-    await Note.db.deleteWhere(session, where: (t) => t.id.equals(note.id!));
+    // Tombstone: set deletedAt instead of physical delete
+    note.deletedAt = DateTime.now();
+    note.updatedAt = DateTime.now();
+
+    await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      note.version = newVersion;
+      await Note.db.updateRow(session, note, transaction: tx);
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -462,7 +544,12 @@ class ChatEndpoint extends Endpoint {
     note.archived = false;
     note.archivedAt = null;
     note.updatedAt = DateTime.now();
-    await Note.db.updateRow(session, note);
+
+    await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      note.version = newVersion;
+      await Note.db.updateRow(session, note, transaction: tx);
+    });
 
     final restoredNote = await Note.db.findById(session, note.id!);
     await ServerConstants.broadcastEvent(
@@ -492,7 +579,10 @@ class ChatEndpoint extends Endpoint {
     // Prevent archiving the last active channel
     final activeCount = await Channel.db.count(
       session,
-      where: (t) => t.archived.equals(false) & t.isSystemChannel.equals(false),
+      where: (t) =>
+          t.archived.equals(false) &
+          t.isSystemChannel.equals(false) &
+          t.deletedAt.equals(null),
     );
     if (activeCount <= 1) {
       throw Exception('Cannot archive the last remaining channel');
@@ -501,7 +591,12 @@ class ChatEndpoint extends Endpoint {
     channel.archived = true;
     channel.archivedAt = DateTime.now();
     channel.pinned = false;
-    await Channel.db.updateRow(session, channel);
+
+    await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      channel.version = newVersion;
+      await Channel.db.updateRow(session, channel, transaction: tx);
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -525,7 +620,10 @@ class ChatEndpoint extends Endpoint {
     // Check name conflict with active channels
     final existing = await Channel.db.find(
       session,
-      where: (t) => t.archived.equals(false) & t.name.equals(channel.name),
+      where: (t) =>
+          t.archived.equals(false) &
+          t.deletedAt.equals(null) &
+          t.name.equals(channel.name),
     );
     if (existing.isNotEmpty) {
       channel.name = '${channel.name} (Restored)';
@@ -535,7 +633,12 @@ class ChatEndpoint extends Endpoint {
     channel.archivedAt = null;
     channel.pinned = false;
     channel.updatedAt = DateTime.now();
-    final updated = await Channel.db.updateRow(session, channel);
+
+    final updated = await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+      channel.version = newVersion;
+      return Channel.db.updateRow(session, channel, transaction: tx);
+    });
 
     await ServerConstants.broadcastEvent(
       session,
@@ -550,23 +653,24 @@ class ChatEndpoint extends Endpoint {
 
   /// Returns a mixed list of archived notes and archived channels,
   /// sorted by archivedAt descending (newest first).
+  /// Excludes tombstoned entities (deletedAt IS NOT NULL).
   Future<List<ArchiveItem>> getArchiveItems(
     Session session, {
     int limit = 50,
   }) async {
-    // Fetch archived notes
+    // Fetch archived notes (exclude tombstoned)
     final archivedNotes = await Note.db.find(
       session,
-      where: (t) => t.archived.equals(true),
+      where: (t) => t.archived.equals(true) & t.deletedAt.equals(null),
       orderBy: (t) => t.archivedAt,
       orderDescending: true,
       limit: limit,
     );
 
-    // Fetch archived channels
+    // Fetch archived channels (exclude tombstoned)
     final archivedChannels = await Channel.db.find(
       session,
-      where: (t) => t.archived.equals(true),
+      where: (t) => t.archived.equals(true) & t.deletedAt.equals(null),
       orderBy: (t) => t.archivedAt,
       orderDescending: true,
       limit: limit,
@@ -613,7 +717,7 @@ class ChatEndpoint extends Endpoint {
   ) async {
     return await Note.db.count(
       session,
-      where: (t) => t.channelId.equals(channelId),
+      where: (t) => t.channelId.equals(channelId) & t.deletedAt.equals(null),
     );
   }
 

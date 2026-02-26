@@ -18,6 +18,11 @@ import 'package:memoka_server/src/generated/chat/channel.dart' as _i4;
 import 'package:memoka_server/src/generated/chat/note.dart' as _i5;
 import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i6;
 import 'package:memoka_server/src/generated/chat/chat_event.dart' as _i7;
+import 'package:memoka_server/src/generated/sync/sync_pull_response.dart'
+    as _i8;
+import 'package:memoka_server/src/generated/sync/sync_push_response.dart'
+    as _i9;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i10;
 import 'package:memoka_server/src/generated/protocol.dart';
 import 'package:memoka_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -128,6 +133,8 @@ class TestEndpoints {
   late final _ChatEndpoint chat;
 
   late final _HealthEndpoint health;
+
+  late final _SyncEndpoint sync;
 }
 
 class _InternalTestEndpoints extends TestEndpoints
@@ -142,6 +149,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     health = _HealthEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    sync = _SyncEndpoint(
       endpoints,
       serializationManager,
     );
@@ -680,6 +691,79 @@ class _HealthEndpoint {
                   _localCallContext.arguments,
                 )
                 as _i3.Future<bool>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _SyncEndpoint {
+  _SyncEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i8.SyncPullResponse> syncPull(
+    _i1.TestSessionBuilder sessionBuilder,
+    int sinceVersion,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'sync',
+            method: 'syncPull',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'sync',
+          methodName: 'syncPull',
+          parameters: _i1.testObjectToJson({'sinceVersion': sinceVersion}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i8.SyncPullResponse>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i9.SyncPushResponse> syncPush(
+    _i1.TestSessionBuilder sessionBuilder,
+    List<_i10.SyncChange> changes,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'sync',
+            method: 'syncPush',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'sync',
+          methodName: 'syncPush',
+          parameters: _i1.testObjectToJson({'changes': changes}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i9.SyncPushResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

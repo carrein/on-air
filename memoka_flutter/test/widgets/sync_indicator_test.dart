@@ -6,7 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:memoka_flutter/local_db/database.dart';
 import 'package:memoka_flutter/providers/chat_stream_provider.dart';
 import 'package:memoka_flutter/providers/connection_provider.dart' as conn;
-import 'package:memoka_flutter/providers/pending_mutation_count_provider.dart';
+import 'package:memoka_flutter/providers/dirty_sync_count_provider.dart';
 import 'package:memoka_flutter/widgets/sync_indicator.dart';
 
 class _TestConnection extends conn.Connection {
@@ -37,11 +37,9 @@ void main() {
         conn.connectionProvider.overrideWith(
           () => _TestConnection(connectionState),
         ),
-        pendingMutationCountProvider.overrideWith(
+        dirtySyncCountProvider.overrideWith(
           (_) => Stream.value(pendingCount),
         ),
-        // SyncEngine._drain() invalidates channelsProvider on reconnect,
-        // which would start chatStreamProvider (creating a reconnect timer).
         chatStreamProvider.overrideWith((_) => const Stream.empty()),
       ],
       child: const MaterialApp(

@@ -26,13 +26,19 @@ abstract class Channel
     int? sortOrder,
     bool? archived,
     this.archivedAt,
+    int? version,
+    this.deletedAt,
+    double? position,
+    this.clientMutationId,
   }) : emoji = emoji ?? 'chatCircle',
        pinned = pinned ?? false,
        isSystemChannel = isSystemChannel ?? false,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now(),
        sortOrder = sortOrder ?? 0,
-       archived = archived ?? false;
+       archived = archived ?? false,
+       version = version ?? 0,
+       position = position ?? 0.0;
 
   factory Channel({
     int? id,
@@ -45,6 +51,10 @@ abstract class Channel
     int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
+    int? version,
+    DateTime? deletedAt,
+    double? position,
+    String? clientMutationId,
   }) = _ChannelImpl;
 
   factory Channel.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -65,6 +75,12 @@ abstract class Channel
       archivedAt: jsonSerialization['archivedAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['archivedAt']),
+      version: jsonSerialization['version'] as int?,
+      deletedAt: jsonSerialization['deletedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['deletedAt']),
+      position: (jsonSerialization['position'] as num?)?.toDouble(),
+      clientMutationId: jsonSerialization['clientMutationId'] as String?,
     );
   }
 
@@ -93,7 +109,7 @@ abstract class Channel
   /// When the channel was last updated (e.g., when a note is posted).
   DateTime updatedAt;
 
-  /// Manual sort order within pinned/unpinned groups (lower = higher).
+  /// Manual sort order within pinned/unpinned groups (lower = higher). Kept for backward compat.
   int sortOrder;
 
   /// Whether this channel is archived (soft deleted).
@@ -101,6 +117,18 @@ abstract class Channel
 
   /// When the channel was archived.
   DateTime? archivedAt;
+
+  /// Sync version — set to globalVersion on each mutation.
+  int version;
+
+  /// Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  DateTime? deletedAt;
+
+  /// Fractional ordering position (replaces sortOrder for drag-to-reorder).
+  double position;
+
+  /// Idempotency key for offline-created channels. NULL for online-created channels.
+  String? clientMutationId;
 
   @override
   _i1.Table<int?> get table => t;
@@ -119,6 +147,10 @@ abstract class Channel
     int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
+    int? version,
+    DateTime? deletedAt,
+    double? position,
+    String? clientMutationId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -134,6 +166,10 @@ abstract class Channel
       'sortOrder': sortOrder,
       'archived': archived,
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
+      'version': version,
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
+      'position': position,
+      if (clientMutationId != null) 'clientMutationId': clientMutationId,
     };
   }
 
@@ -151,6 +187,10 @@ abstract class Channel
       'sortOrder': sortOrder,
       'archived': archived,
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
+      'version': version,
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
+      'position': position,
+      if (clientMutationId != null) 'clientMutationId': clientMutationId,
     };
   }
 
@@ -198,6 +238,10 @@ class _ChannelImpl extends Channel {
     int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
+    int? version,
+    DateTime? deletedAt,
+    double? position,
+    String? clientMutationId,
   }) : super._(
          id: id,
          name: name,
@@ -209,6 +253,10 @@ class _ChannelImpl extends Channel {
          sortOrder: sortOrder,
          archived: archived,
          archivedAt: archivedAt,
+         version: version,
+         deletedAt: deletedAt,
+         position: position,
+         clientMutationId: clientMutationId,
        );
 
   /// Returns a shallow copy of this [Channel]
@@ -226,6 +274,10 @@ class _ChannelImpl extends Channel {
     int? sortOrder,
     bool? archived,
     Object? archivedAt = _Undefined,
+    int? version,
+    Object? deletedAt = _Undefined,
+    double? position,
+    Object? clientMutationId = _Undefined,
   }) {
     return Channel(
       id: id is int? ? id : this.id,
@@ -238,6 +290,12 @@ class _ChannelImpl extends Channel {
       sortOrder: sortOrder ?? this.sortOrder,
       archived: archived ?? this.archived,
       archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
+      version: version ?? this.version,
+      deletedAt: deletedAt is DateTime? ? deletedAt : this.deletedAt,
+      position: position ?? this.position,
+      clientMutationId: clientMutationId is String?
+          ? clientMutationId
+          : this.clientMutationId,
     );
   }
 }
@@ -292,6 +350,28 @@ class ChannelUpdateTable extends _i1.UpdateTable<ChannelTable> {
         table.archivedAt,
         value,
       );
+
+  _i1.ColumnValue<int, int> version(int value) => _i1.ColumnValue(
+    table.version,
+    value,
+  );
+
+  _i1.ColumnValue<DateTime, DateTime> deletedAt(DateTime? value) =>
+      _i1.ColumnValue(
+        table.deletedAt,
+        value,
+      );
+
+  _i1.ColumnValue<double, double> position(double value) => _i1.ColumnValue(
+    table.position,
+    value,
+  );
+
+  _i1.ColumnValue<String, String> clientMutationId(String? value) =>
+      _i1.ColumnValue(
+        table.clientMutationId,
+        value,
+      );
 }
 
 class ChannelTable extends _i1.Table<int?> {
@@ -340,6 +420,24 @@ class ChannelTable extends _i1.Table<int?> {
       'archivedAt',
       this,
     );
+    version = _i1.ColumnInt(
+      'version',
+      this,
+      hasDefault: true,
+    );
+    deletedAt = _i1.ColumnDateTime(
+      'deletedAt',
+      this,
+    );
+    position = _i1.ColumnDouble(
+      'position',
+      this,
+      hasDefault: true,
+    );
+    clientMutationId = _i1.ColumnString(
+      'clientMutationId',
+      this,
+    );
   }
 
   late final ChannelUpdateTable updateTable;
@@ -362,7 +460,7 @@ class ChannelTable extends _i1.Table<int?> {
   /// When the channel was last updated (e.g., when a note is posted).
   late final _i1.ColumnDateTime updatedAt;
 
-  /// Manual sort order within pinned/unpinned groups (lower = higher).
+  /// Manual sort order within pinned/unpinned groups (lower = higher). Kept for backward compat.
   late final _i1.ColumnInt sortOrder;
 
   /// Whether this channel is archived (soft deleted).
@@ -370,6 +468,18 @@ class ChannelTable extends _i1.Table<int?> {
 
   /// When the channel was archived.
   late final _i1.ColumnDateTime archivedAt;
+
+  /// Sync version — set to globalVersion on each mutation.
+  late final _i1.ColumnInt version;
+
+  /// Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  late final _i1.ColumnDateTime deletedAt;
+
+  /// Fractional ordering position (replaces sortOrder for drag-to-reorder).
+  late final _i1.ColumnDouble position;
+
+  /// Idempotency key for offline-created channels. NULL for online-created channels.
+  late final _i1.ColumnString clientMutationId;
 
   @override
   List<_i1.Column> get columns => [
@@ -383,6 +493,10 @@ class ChannelTable extends _i1.Table<int?> {
     sortOrder,
     archived,
     archivedAt,
+    version,
+    deletedAt,
+    position,
+    clientMutationId,
   ];
 }
 

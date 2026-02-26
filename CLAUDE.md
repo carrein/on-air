@@ -16,7 +16,7 @@ u/docs/components/MediaPanel.md
 u/docs/components/Note.md
 u/docs/components/Preview.md
 u/docs/components/Audio.md
-u/docs/Offline.md
+u/docs/Sync.md
 
 # CLAUDE.md
 
@@ -45,7 +45,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Archive System**: Archive for soft-deleted notes, channel archiving with restore
 - **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
-- **Offline Mode**: Local-first reads from SQLite cache (Drift), offline mutation queue (create/delete notes, create/update/archive channels), sync engine drains on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Offline.md`)
+- **Offline Mode**: Local-first reads from SQLite cache (Drift), dirty-flag tracking replaces mutation queue, pull-then-push sync on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Sync.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -95,9 +95,9 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 
 ### Data Models
 
-**Channel** (`channels` table): name, emoji, pinned, isSystemChannel, createdAt, updatedAt, sortOrder, archived, archivedAt
+**Channel** (`channels` table): name, emoji, pinned, isSystemChannel, createdAt, updatedAt, sortOrder (kept for compat), position (double, fractional order), archived, archivedAt, version (sync version), deletedAt (tombstone), clientMutationId (offline idempotency)
 
-**Note** (`notes` table): channelId (FK → channels, cascade), content, linkPreview (LinkPreview?), attachments (List\<MediaAttachment\>?), archived, archivedAt, createdAt, updatedAt
+**Note** (`notes` table): channelId (FK → channels, cascade), content, linkPreview (LinkPreview?), attachments (List\<MediaAttachment\>?), archived, archivedAt, createdAt, updatedAt, version (sync version), deletedAt (tombstone), clientMutationId (offline idempotency)
 
 **MediaAttachment** (`media_attachments` table): noteId (FK → notes, cascade), channelId (FK → channels, cascade), filePath, originalFilename, mimeType, fileSize, width, height, duration, thumbnailPath, compressed, animated, contentHash, uploadedAt
 
@@ -106,6 +106,10 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 **ChatEvent** (non-table): type, note, noteId, channelId, channel
 
 **ArchiveItem** (non-table): type, note, channel, archivedAt
+
+**Sync protocol models** (non-table): SyncChange, SyncPullResponse, SyncPushResponse, SyncResult — see `docs/Sync.md`
+
+**sync_state** (server-only singleton table): globalVersion (monotonic counter, incremented on every mutation)
 
 ## Common Commands
 
@@ -249,6 +253,9 @@ Server serves:
   - Archive: getArchiveItems, getArchivedChannelNoteCount
   - Link previews: automatic URL detection and metadata fetching (see `docs/components/Preview.md`)
   - Real-time streaming: WebSocket events for live updates
+- `sync`: State-based reconciliation sync
+  - `syncPull(sinceVersion)` — returns all entities changed since version N
+  - `syncPush(changes)` — applies dirty local entities with version checks (partial apply)
 - File uploads: HTTP route `POST /media/upload` (not RPC) — streams multipart body directly to disk, no in-memory buffering
 
 ## Git Workflow Policy
@@ -293,7 +300,7 @@ interactions, state management, and integration details.
 
 ## Architecture Guides
 
-- **Offline Mode**: `docs/Offline.md` — Local-first caching, mutation queue, sync engine, connectivity detection
+- **Sync Architecture**: `docs/Sync.md` — State-based reconciliation, versioned entities, pull-then-push sync, dirty tracking, tombstones, connectivity detection
 
 ## Platform Guides
 

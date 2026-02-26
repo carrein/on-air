@@ -6,6 +6,7 @@ import 'src/generated/protocol.dart';
 import 'src/shared/constants.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/cors_media_route.dart';
+import 'src/web/routes/healthcheck_route.dart';
 import 'src/web/routes/media_upload_route.dart';
 import 'src/web/routes/root.dart';
 
@@ -46,6 +47,10 @@ void run(List<String> args) async {
   // Multipart upload route (streams file to disk, no OOM)
   pod.webServer.addRoute(MediaUploadRoute(), '/media/upload');
 
+  // Healthcheck route — used by Flutter web as a connectivity probe.
+  // GET-based so the browser XHR timeout actually aborts the request.
+  pod.webServer.addRoute(HealthcheckRoute(), '/healthcheck');
+
   // Checks if the flutter web app has been built and serves it if it has.
   final appDir = Directory(Uri(path: 'web/app').toFilePath());
   if (appDir.existsSync()) {
@@ -82,14 +87,20 @@ Future<void> _ensureDefaultChannel(Serverpod pod) async {
   try {
     final count = await Channel.db.count(
       session,
-      where: (t) => t.archived.equals(false),
+      where: (t) => t.archived.equals(false) & t.deletedAt.equals(null),
     );
     if (count == 0) {
+      // Bump globalVersion so the new channel is visible to syncPull(0).
+      final versionResult = await session.db.unsafeQuery(
+        'UPDATE "sync_state" SET "globalVersion" = "globalVersion" + 1 RETURNING "globalVersion"',
+      );
+      final newVersion =
+          versionResult.first.toColumnMap()['globalVersion'] as int;
       await Channel.db.insertRow(
         session,
-        Channel(name: 'General', emoji: '💬'),
+        Channel(name: 'General', emoji: '💬', version: newVersion),
       );
-      session.log('Created default "General" channel');
+      session.log('Created default "General" channel (version: $newVersion)');
     }
   } finally {
     await session.close();

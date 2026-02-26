@@ -51,13 +51,19 @@ class ArchiveItems extends _$ArchiveItems {
       try {
         await db.cacheArchiveItems(items);
       } catch (_) {
-        // Cache write failed (e.g. migration pending); items still returned.
+        // Cache write failed; items still returned.
       }
       return items;
     } catch (_) {
       return state.valueOrNull ?? [];
     }
   }
+
+  bool get _isOnline =>
+      ref.read(connectionProvider) == ConnectionState.connected;
+
+  bool _isNetworkError(Object e) =>
+      e is ServerpodClientException && e.statusCode == -1;
 
   Future<void> _refetchAndCache() async {
     try {
@@ -73,7 +79,15 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> restoreNote(int noteId) async {
-    await client.chat.restoreNote(noteId);
+    if (_isOnline) {
+      try {
+        await client.chat.restoreNote(noteId);
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Offline: fall through — note stays in archive locally until sync
+      }
+    }
+    // Optimistic removal from archive list
     final current = state.value ?? [];
     final updated = current
         .where((item) => !(item.type == 'note' && item.note?.id == noteId))
@@ -84,7 +98,20 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> deleteNote(int noteId) async {
-    await client.chat.deleteNote(noteId);
+    if (_isOnline) {
+      try {
+        await client.chat.deleteNote(noteId);
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Offline: mark note as deleted locally for sync
+        final db = ref.read(appDatabaseProvider);
+        await db.markNoteDeletedLocally(noteId);
+      }
+    } else {
+      final db = ref.read(appDatabaseProvider);
+      await db.markNoteDeletedLocally(noteId);
+    }
+    // Optimistic removal
     final current = state.value ?? [];
     final updated = current
         .where((item) => !(item.type == 'note' && item.note?.id == noteId))
@@ -95,7 +122,14 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> restoreChannel(int channelId) async {
-    await client.chat.restoreChannel(channelId);
+    if (_isOnline) {
+      try {
+        await client.chat.restoreChannel(channelId);
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Offline: fall through
+      }
+    }
     final current = state.value ?? [];
     final updated = current
         .where(
@@ -108,7 +142,19 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> deleteChannel(int channelId) async {
-    await client.chat.deleteChannel(channelId);
+    if (_isOnline) {
+      try {
+        await client.chat.deleteChannel(channelId);
+      } catch (e) {
+        if (!_isNetworkError(e)) rethrow;
+        // Offline: mark channel as deleted locally for sync
+        final db = ref.read(appDatabaseProvider);
+        await db.markChannelDeletedLocally(channelId);
+      }
+    } else {
+      final db = ref.read(appDatabaseProvider);
+      await db.markChannelDeletedLocally(channelId);
+    }
     final current = state.value ?? [];
     final updated = current
         .where(

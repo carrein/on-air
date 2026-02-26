@@ -28,9 +28,12 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.clientMutationId,
+    int? version,
+    this.deletedAt,
   }) : archived = archived ?? false,
        createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+       updatedAt = updatedAt ?? DateTime.now(),
+       version = version ?? 0;
 
   factory Note({
     int? id,
@@ -43,6 +46,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? clientMutationId,
+    int? version,
+    DateTime? deletedAt,
   }) = _NoteImpl;
 
   factory Note.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -71,6 +76,10 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
       clientMutationId: jsonSerialization['clientMutationId'] as String?,
+      version: jsonSerialization['version'] as int?,
+      deletedAt: jsonSerialization['deletedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['deletedAt']),
     );
   }
 
@@ -108,6 +117,12 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
   /// Idempotency key for offline-created notes. NULL for online-created notes.
   String? clientMutationId;
 
+  /// Sync version — set to globalVersion on each mutation.
+  int version;
+
+  /// Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  DateTime? deletedAt;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -125,6 +140,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? clientMutationId,
+    int? version,
+    DateTime? deletedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -141,6 +158,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
       if (clientMutationId != null) 'clientMutationId': clientMutationId,
+      'version': version,
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
     };
   }
 
@@ -161,6 +180,8 @@ abstract class Note implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
       if (clientMutationId != null) 'clientMutationId': clientMutationId,
+      'version': version,
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
     };
   }
 
@@ -208,6 +229,8 @@ class _NoteImpl extends Note {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? clientMutationId,
+    int? version,
+    DateTime? deletedAt,
   }) : super._(
          id: id,
          channelId: channelId,
@@ -219,6 +242,8 @@ class _NoteImpl extends Note {
          createdAt: createdAt,
          updatedAt: updatedAt,
          clientMutationId: clientMutationId,
+         version: version,
+         deletedAt: deletedAt,
        );
 
   /// Returns a shallow copy of this [Note]
@@ -236,6 +261,8 @@ class _NoteImpl extends Note {
     DateTime? createdAt,
     DateTime? updatedAt,
     Object? clientMutationId = _Undefined,
+    int? version,
+    Object? deletedAt = _Undefined,
   }) {
     return Note(
       id: id is int? ? id : this.id,
@@ -254,6 +281,8 @@ class _NoteImpl extends Note {
       clientMutationId: clientMutationId is String?
           ? clientMutationId
           : this.clientMutationId,
+      version: version ?? this.version,
+      deletedAt: deletedAt is DateTime? ? deletedAt : this.deletedAt,
     );
   }
 }
@@ -312,6 +341,17 @@ class NoteUpdateTable extends _i1.UpdateTable<NoteTable> {
         table.clientMutationId,
         value,
       );
+
+  _i1.ColumnValue<int, int> version(int value) => _i1.ColumnValue(
+    table.version,
+    value,
+  );
+
+  _i1.ColumnValue<DateTime, DateTime> deletedAt(DateTime? value) =>
+      _i1.ColumnValue(
+        table.deletedAt,
+        value,
+      );
 }
 
 class NoteTable extends _i1.Table<int?> {
@@ -356,6 +396,15 @@ class NoteTable extends _i1.Table<int?> {
       'clientMutationId',
       this,
     );
+    version = _i1.ColumnInt(
+      'version',
+      this,
+      hasDefault: true,
+    );
+    deletedAt = _i1.ColumnDateTime(
+      'deletedAt',
+      this,
+    );
   }
 
   late final NoteUpdateTable updateTable;
@@ -387,6 +436,12 @@ class NoteTable extends _i1.Table<int?> {
   /// Idempotency key for offline-created notes. NULL for online-created notes.
   late final _i1.ColumnString clientMutationId;
 
+  /// Sync version — set to globalVersion on each mutation.
+  late final _i1.ColumnInt version;
+
+  /// Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  late final _i1.ColumnDateTime deletedAt;
+
   @override
   List<_i1.Column> get columns => [
     id,
@@ -399,6 +454,8 @@ class NoteTable extends _i1.Table<int?> {
     createdAt,
     updatedAt,
     clientMutationId,
+    version,
+    deletedAt,
   ];
 }
 

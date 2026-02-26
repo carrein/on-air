@@ -210,79 +210,80 @@ void main() {
     });
   });
 
-  group('Pending mutations', () {
-    test('enqueueMutation adds mutation and returns id', () async {
-      final id = await db.enqueueMutation(
-        'createNote',
-        10,
-        '{"content":"Hello"}',
+  group('Dirty tracking', () {
+    test('getDirtyChannels returns only dirty channels', () async {
+      await db.cacheChannels([
+        Channel(id: 1, name: 'Clean', emoji: 'chatCircle'),
+      ]);
+      await db.upsertChannelDirty(
+        Channel(id: 2, name: 'Dirty', emoji: 'briefcase'),
       );
 
-      expect(id, isPositive);
+      final dirty = await db.getDirtyChannels();
+      expect(dirty.length, 1);
+      expect(dirty.first.id, 2);
     });
 
-    test('getPendingMutations returns mutations in order', () async {
-      await db.enqueueMutation('createNote', 10, '{"content":"First"}');
-      await db.enqueueMutation('createNote', 10, '{"content":"Second"}');
-      await db.enqueueMutation('createChannel', null, '{"name":"New"}');
+    test('cacheChannels preserves dirty channels', () async {
+      // Create a dirty channel first
+      await db.insertOfflineChannel(-1, '{"id":-1,"name":"Offline"}', 'mut1');
 
-      final mutations = await db.getPendingMutations();
+      // Server refresh should not destroy the dirty row
+      await db.cacheChannels([
+        Channel(id: 1, name: 'Server', emoji: 'chatCircle'),
+      ]);
 
-      expect(mutations.length, 3);
-      expect(mutations[0].type, 'createNote');
-      expect(mutations[1].type, 'createNote');
-      expect(mutations[2].type, 'createChannel');
-      // IDs should be ascending
-      expect(mutations[0].id, lessThan(mutations[1].id));
-      expect(mutations[1].id, lessThan(mutations[2].id));
+      final dirty = await db.getDirtyChannels();
+      expect(dirty.length, 1);
+      expect(dirty.first.id, -1);
     });
 
-    test('deleteMutation removes specific mutation', () async {
-      await db.enqueueMutation('createNote', 10, '{"content":"First"}');
-      final id2 = await db.enqueueMutation(
-        'createNote',
-        10,
-        '{"content":"Second"}',
-      );
-      await db.enqueueMutation('createChannel', null, '{"name":"New"}');
+    test('markChannelDeletedLocally sets dirty and deletedLocally', () async {
+      await db.cacheChannels([
+        Channel(id: 1, name: 'General', emoji: 'chatCircle'),
+      ]);
+      await db.markChannelDeletedLocally(1);
 
-      await db.deleteMutation(id2);
+      final dirty = await db.getDirtyChannels();
+      expect(dirty.length, 1);
+      expect(dirty.first.deletedLocally, true);
 
-      final mutations = await db.getPendingMutations();
-      expect(mutations.length, 2);
-      expect(mutations.any((m) => m.id == id2), isFalse);
+      // Should be excluded from getCachedChannels
+      final channels = await db.getCachedChannels();
+      expect(channels, isEmpty);
     });
 
-    test('getPendingMutations returns empty when no mutations', () async {
-      final mutations = await db.getPendingMutations();
-      expect(mutations, isEmpty);
-    });
-
-    test('channelId is nullable for channel-level mutations', () async {
-      await db.enqueueMutation('createChannel', null, '{"name":"New"}');
-
-      final mutations = await db.getPendingMutations();
-      expect(mutations.first.channelId, isNull);
-    });
-
-    test('watchPendingCount emits count changes', () async {
+    test('watchDirtyCount emits count changes', () async {
       final counts = <int>[];
-      final sub = db.watchPendingCount().listen(counts.add);
+      final sub = db.watchDirtyCount().listen(counts.add);
 
-      // Give stream time to emit initial value
       await Future.delayed(const Duration(milliseconds: 50));
 
-      await db.enqueueMutation('createNote', 10, '{"content":"A"}');
+      await db.upsertChannelDirty(
+        Channel(id: 1, name: 'Dirty', emoji: 'chatCircle'),
+      );
       await Future.delayed(const Duration(milliseconds: 50));
 
-      await db.enqueueMutation('createNote', 10, '{"content":"B"}');
+      final now = DateTime.now();
+      await db.upsertNoteDirty(
+        Note(id: 1, channelId: 1, content: 'Dirty', createdAt: now, updatedAt: now),
+      );
       await Future.delayed(const Duration(milliseconds: 50));
 
       await sub.cancel();
 
-      // Should have emitted 0, then 1, then 2
       expect(counts.first, 0);
       expect(counts.last, 2);
+    });
+
+    test('clearChannelDirty resets flags and updates version', () async {
+      await db.upsertChannelDirty(
+        Channel(id: 1, name: 'Dirty', emoji: 'chatCircle'),
+      );
+      await db.clearChannelDirty(1, 42);
+
+      final dirty = await db.getDirtyChannels();
+      expect(dirty, isEmpty);
     });
   });
 }

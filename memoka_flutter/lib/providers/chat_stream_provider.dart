@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../main.dart';
+import '../utils/health_ping.dart';
 import 'connection_provider.dart';
 
 part 'chat_stream_provider.g.dart';
@@ -28,9 +30,19 @@ Stream<ChatEvent> chatStream(Ref ref) async* {
 
   while (!cancelled) {
     try {
-      await client.health.ping().timeout(const Duration(seconds: 4));
+      if (kIsWeb) {
+        await webHealthPing('${getWebServerUrl()}/healthcheck');
+      } else {
+        await client.health.ping().timeout(const Duration(seconds: 4));
+      }
       if (cancelled) break;
       ref.read(connectionProvider.notifier).setConnected();
+
+      // Yield one event-loop turn so FlutterConnectivityMonitor's listener
+      // (subscribed at Client creation) can flip hasConnection=true before we
+      // attempt to open the WebSocket.
+      await Future.delayed(Duration.zero);
+      if (cancelled) break;
 
       await for (final event in client.chat.chat()) {
         if (cancelled) break;

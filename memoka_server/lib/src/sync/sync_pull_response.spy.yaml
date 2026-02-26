@@ -1,0 +1,10 @@
+### Response from syncPull — all entities changed since sinceVersion.
+class: SyncPullResponse
+
+fields:
+  ### The current global version on the server at the time of the pull.
+  globalVersion: int
+  ### All channels with version > sinceVersion (includes archived, tombstoned).
+  channels: List<Channel>
+  ### All notes with version > sinceVersion (includes archived, tombstoned).
+  notes: List<Note>

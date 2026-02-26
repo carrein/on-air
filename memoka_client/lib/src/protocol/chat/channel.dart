@@ -25,13 +25,19 @@ abstract class Channel implements _i1.SerializableModel {
     int? sortOrder,
     bool? archived,
     this.archivedAt,
+    int? version,
+    this.deletedAt,
+    double? position,
+    this.clientMutationId,
   }) : emoji = emoji ?? 'chatCircle',
        pinned = pinned ?? false,
        isSystemChannel = isSystemChannel ?? false,
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now(),
        sortOrder = sortOrder ?? 0,
-       archived = archived ?? false;
+       archived = archived ?? false,
+       version = version ?? 0,
+       position = position ?? 0.0;
 
   factory Channel({
     int? id,
@@ -44,6 +50,10 @@ abstract class Channel implements _i1.SerializableModel {
     int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
+    int? version,
+    DateTime? deletedAt,
+    double? position,
+    String? clientMutationId,
   }) = _ChannelImpl;
 
   factory Channel.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -64,6 +74,12 @@ abstract class Channel implements _i1.SerializableModel {
       archivedAt: jsonSerialization['archivedAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['archivedAt']),
+      version: jsonSerialization['version'] as int?,
+      deletedAt: jsonSerialization['deletedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['deletedAt']),
+      position: (jsonSerialization['position'] as num?)?.toDouble(),
+      clientMutationId: jsonSerialization['clientMutationId'] as String?,
     );
   }
 
@@ -90,7 +106,7 @@ abstract class Channel implements _i1.SerializableModel {
   /// When the channel was last updated (e.g., when a note is posted).
   DateTime updatedAt;
 
-  /// Manual sort order within pinned/unpinned groups (lower = higher).
+  /// Manual sort order within pinned/unpinned groups (lower = higher). Kept for backward compat.
   int sortOrder;
 
   /// Whether this channel is archived (soft deleted).
@@ -98,6 +114,18 @@ abstract class Channel implements _i1.SerializableModel {
 
   /// When the channel was archived.
   DateTime? archivedAt;
+
+  /// Sync version — set to globalVersion on each mutation.
+  int version;
+
+  /// Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  DateTime? deletedAt;
+
+  /// Fractional ordering position (replaces sortOrder for drag-to-reorder).
+  double position;
+
+  /// Idempotency key for offline-created channels. NULL for online-created channels.
+  String? clientMutationId;
 
   /// Returns a shallow copy of this [Channel]
   /// with some or all fields replaced by the given arguments.
@@ -113,6 +141,10 @@ abstract class Channel implements _i1.SerializableModel {
     int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
+    int? version,
+    DateTime? deletedAt,
+    double? position,
+    String? clientMutationId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -128,6 +160,10 @@ abstract class Channel implements _i1.SerializableModel {
       'sortOrder': sortOrder,
       'archived': archived,
       if (archivedAt != null) 'archivedAt': archivedAt?.toJson(),
+      'version': version,
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
+      'position': position,
+      if (clientMutationId != null) 'clientMutationId': clientMutationId,
     };
   }
 
@@ -151,6 +187,10 @@ class _ChannelImpl extends Channel {
     int? sortOrder,
     bool? archived,
     DateTime? archivedAt,
+    int? version,
+    DateTime? deletedAt,
+    double? position,
+    String? clientMutationId,
   }) : super._(
          id: id,
          name: name,
@@ -162,6 +202,10 @@ class _ChannelImpl extends Channel {
          sortOrder: sortOrder,
          archived: archived,
          archivedAt: archivedAt,
+         version: version,
+         deletedAt: deletedAt,
+         position: position,
+         clientMutationId: clientMutationId,
        );
 
   /// Returns a shallow copy of this [Channel]
@@ -179,6 +223,10 @@ class _ChannelImpl extends Channel {
     int? sortOrder,
     bool? archived,
     Object? archivedAt = _Undefined,
+    int? version,
+    Object? deletedAt = _Undefined,
+    double? position,
+    Object? clientMutationId = _Undefined,
   }) {
     return Channel(
       id: id is int? ? id : this.id,
@@ -191,6 +239,12 @@ class _ChannelImpl extends Channel {
       sortOrder: sortOrder ?? this.sortOrder,
       archived: archived ?? this.archived,
       archivedAt: archivedAt is DateTime? ? archivedAt : this.archivedAt,
+      version: version ?? this.version,
+      deletedAt: deletedAt is DateTime? ? deletedAt : this.deletedAt,
+      position: position ?? this.position,
+      clientMutationId: clientMutationId is String?
+          ? clientMutationId
+          : this.clientMutationId,
     );
   }
 }

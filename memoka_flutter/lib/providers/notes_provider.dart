@@ -58,22 +58,19 @@ class Notes extends _$Notes {
       ref.read(connectionProvider) == ConnectionState.connected;
 
   /// Returns true for network-level failures (server unreachable, timeout).
-  /// These should fall back to the offline queue rather than surfacing an error.
   bool _isNetworkError(Object e) =>
       e is ServerpodClientException && e.statusCode == -1;
 
   Future<List<Note>> _loadInitialNotes(int channelId) async {
     final serverNotes = await client.chat.getNotes(channelId, limit: 50);
 
-    // Preserve provisional notes (negative IDs) that the server hasn't seen
-    // yet — these are pending-drain mutations. They'll be replaced in-place by
-    // noteCreated events when the drain flushes them. Without this, a server
-    // fetch that races ahead of the drain would wipe provisionals, causing a
-    // visible flash where notes disappear then reappear.
+    // Preserve provisional notes (negative IDs) that are dirty in the cache.
+    // They'll be replaced in-place by noteCreated events when sync completes.
     final pendingProvisionals = _notes
         .where((n) => (n.id ?? 0) < 0)
         .where(
-          (p) => !serverNotes.any((s) => s.clientMutationId == p.clientMutationId),
+          (p) =>
+              !serverNotes.any((s) => s.clientMutationId == p.clientMutationId),
         )
         .toList();
 
@@ -214,33 +211,60 @@ class Notes extends _$Notes {
       }
     }
 
-    // Offline: enqueue mutation and add provisional note
+    // Offline: insert provisional note as dirty+isNew
     final db = ref.read(appDatabaseProvider);
     final mutationId = const Uuid().v4();
-    await db.enqueueMutation(
-      'createNote',
-      channelId,
-      jsonEncode({'content': content, 'clientMutationId': mutationId}),
-    );
-
+    final now = DateTime.now();
+    final provisionalId = _nextProvisionalId--;
     final provisional = Note(
-      id: _nextProvisionalId--,
+      id: provisionalId,
       channelId: channelId,
       content: content,
       clientMutationId: mutationId,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
+      createdAt: now,
+      updatedAt: now,
     );
+
+    await db.insertOfflineNote(
+      provisionalId,
+      channelId,
+      now,
+      jsonEncode(provisional.toJson()),
+      mutationId,
+    );
+
     final current = state.value ?? [];
     _notes = [provisional, ...current];
     state = AsyncValue.data(_notes);
-
-    // Persist to cache so provisional notes survive page refresh.
-    await db.cacheNotes(channelId, _notes);
   }
 
   Future<void> updateNote(int id, String content) async {
     final db = ref.read(appDatabaseProvider);
+
+    // Provisional note (negative ID): it hasn't reached the server yet.
+    // Update the cached JSON directly — no mutation queue needed.
+    if (id < 0) {
+      final current = state.value ?? [];
+      _notes = current
+          .map(
+            (n) => n.id == id
+                ? n.copyWith(content: content, updatedAt: DateTime.now())
+                : n,
+          )
+          .toList();
+      state = AsyncValue.data(_notes);
+
+      // Update the cached JSON for the provisional note
+      final updated = _notes.firstWhere((n) => n.id == id);
+      await db.insertOfflineNote(
+        id,
+        channelId,
+        updated.createdAt,
+        jsonEncode(updated.toJson()),
+        updated.clientMutationId,
+      );
+      return;
+    }
 
     if (_isOnline) {
       try {
@@ -256,13 +280,7 @@ class Notes extends _$Notes {
       }
     }
 
-    // Offline: enqueue and optimistic update
-    await db.enqueueMutation(
-      'updateNote',
-      channelId,
-      jsonEncode({'noteId': id, 'content': content}),
-    );
-
+    // Offline: update cached JSON as dirty
     final current = state.value ?? [];
     _notes = current
         .map(
@@ -272,35 +290,39 @@ class Notes extends _$Notes {
         )
         .toList();
     state = AsyncValue.data(_notes);
-    await db.cacheNotes(channelId, _notes);
+
+    final updatedNote = _notes.firstWhere((n) => n.id == id);
+    await db.upsertNoteDirty(updatedNote);
   }
 
   Future<void> deleteNote(int id) async {
     final db = ref.read(appDatabaseProvider);
+
+    // Provisional note (negative ID): never reached the server.
+    // Just remove from cache — no push needed.
+    if (id < 0) {
+      final current = state.value ?? [];
+      _notes = current.where((n) => n.id != id).toList();
+      state = AsyncValue.data(_notes);
+      await db.deleteCachedNote(id);
+      return;
+    }
 
     if (_isOnline) {
       try {
         await client.chat.deleteNote(id);
       } catch (e) {
         if (!_isNetworkError(e)) rethrow;
-        // Network error — fall through to enqueue
-        await db.enqueueMutation(
-          'deleteNote',
-          channelId,
-          jsonEncode({'noteId': id}),
-        );
+        // Network error — mark as deleted locally
+        await db.markNoteDeletedLocally(id);
       }
     } else {
-      await db.enqueueMutation(
-        'deleteNote',
-        channelId,
-        jsonEncode({'noteId': id}),
-      );
+      await db.markNoteDeletedLocally(id);
     }
 
     final current = state.value ?? [];
     _notes = current.where((n) => n.id != id).toList();
     state = AsyncValue.data(_notes);
-    await db.deleteCachedNote(id);
+    // Note stays in cache as dirty+deletedLocally — sync engine will push tombstone
   }
 }

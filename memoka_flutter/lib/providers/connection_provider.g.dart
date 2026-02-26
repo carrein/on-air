@@ -6,7 +6,7 @@ part of 'connection_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$connectionHash() => r'565d049a15fbbdc62d4316b00572dd71d34d0ade';
+String _$connectionHash() => r'0160ff646ca4a8deff955adb061d281245ed893f';
 
 /// Tracks server connectivity via the WebSocket lifecycle and OS network events.
 ///

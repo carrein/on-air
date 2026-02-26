@@ -1,0 +1,8 @@
+### Response from syncPush — results for each submitted change.
+class: SyncPushResponse
+
+fields:
+  ### The current global version on the server after all applied changes.
+  globalVersion: int
+  ### Per-change results in the same order as the submitted changes.
+  results: List<SyncResult>

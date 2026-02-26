@@ -20,7 +20,8 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
     super.initState();
     // ref.listen only fires on *changes*, not the initial value. If the app
     // loads while already offline (e.g. hard refresh), kick the timer now.
-    if (ref.read(conn.connectionProvider) == conn.ConnectionState.disconnected) {
+    if (ref.read(conn.connectionProvider) ==
+        conn.ConnectionState.disconnected) {
       _delayTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _showBanner = true);
       });

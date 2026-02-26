@@ -27,8 +27,80 @@ class $CachedChannelsTable extends CachedChannels
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, json];
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _deletedLocallyMeta = const VerificationMeta(
+    'deletedLocally',
+  );
+  @override
+  late final GeneratedColumn<bool> deletedLocally = GeneratedColumn<bool>(
+    'deleted_locally',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted_locally" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isNewMeta = const VerificationMeta('isNew');
+  @override
+  late final GeneratedColumn<bool> isNew = GeneratedColumn<bool>(
+    'is_new',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_new" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _clientMutationIdMeta = const VerificationMeta(
+    'clientMutationId',
+  );
+  @override
+  late final GeneratedColumn<String> clientMutationId = GeneratedColumn<String>(
+    'client_mutation_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    json,
+    version,
+    dirty,
+    deletedLocally,
+    isNew,
+    clientMutationId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -52,6 +124,42 @@ class $CachedChannelsTable extends CachedChannels
     } else if (isInserting) {
       context.missing(_jsonMeta);
     }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted_locally')) {
+      context.handle(
+        _deletedLocallyMeta,
+        deletedLocally.isAcceptableOrUnknown(
+          data['deleted_locally']!,
+          _deletedLocallyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_new')) {
+      context.handle(
+        _isNewMeta,
+        isNew.isAcceptableOrUnknown(data['is_new']!, _isNewMeta),
+      );
+    }
+    if (data.containsKey('client_mutation_id')) {
+      context.handle(
+        _clientMutationIdMeta,
+        clientMutationId.isAcceptableOrUnknown(
+          data['client_mutation_id']!,
+          _clientMutationIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -69,6 +177,26 @@ class $CachedChannelsTable extends CachedChannels
         DriftSqlType.string,
         data['${effectivePrefix}json'],
       )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deletedLocally: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted_locally'],
+      )!,
+      isNew: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_new'],
+      )!,
+      clientMutationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_mutation_id'],
+      ),
     );
   }
 
@@ -81,17 +209,47 @@ class $CachedChannelsTable extends CachedChannels
 class CachedChannel extends DataClass implements Insertable<CachedChannel> {
   final int id;
   final String json;
-  const CachedChannel({required this.id, required this.json});
+  final int version;
+  final bool dirty;
+  final bool deletedLocally;
+  final bool isNew;
+  final String? clientMutationId;
+  const CachedChannel({
+    required this.id,
+    required this.json,
+    required this.version,
+    required this.dirty,
+    required this.deletedLocally,
+    required this.isNew,
+    this.clientMutationId,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['json'] = Variable<String>(json);
+    map['version'] = Variable<int>(version);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted_locally'] = Variable<bool>(deletedLocally);
+    map['is_new'] = Variable<bool>(isNew);
+    if (!nullToAbsent || clientMutationId != null) {
+      map['client_mutation_id'] = Variable<String>(clientMutationId);
+    }
     return map;
   }
 
   CachedChannelsCompanion toCompanion(bool nullToAbsent) {
-    return CachedChannelsCompanion(id: Value(id), json: Value(json));
+    return CachedChannelsCompanion(
+      id: Value(id),
+      json: Value(json),
+      version: Value(version),
+      dirty: Value(dirty),
+      deletedLocally: Value(deletedLocally),
+      isNew: Value(isNew),
+      clientMutationId: clientMutationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clientMutationId),
+    );
   }
 
   factory CachedChannel.fromJson(
@@ -102,6 +260,11 @@ class CachedChannel extends DataClass implements Insertable<CachedChannel> {
     return CachedChannel(
       id: serializer.fromJson<int>(json['id']),
       json: serializer.fromJson<String>(json['json']),
+      version: serializer.fromJson<int>(json['version']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
+      isNew: serializer.fromJson<bool>(json['isNew']),
+      clientMutationId: serializer.fromJson<String?>(json['clientMutationId']),
     );
   }
   @override
@@ -110,15 +273,46 @@ class CachedChannel extends DataClass implements Insertable<CachedChannel> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'json': serializer.toJson<String>(json),
+      'version': serializer.toJson<int>(version),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deletedLocally': serializer.toJson<bool>(deletedLocally),
+      'isNew': serializer.toJson<bool>(isNew),
+      'clientMutationId': serializer.toJson<String?>(clientMutationId),
     };
   }
 
-  CachedChannel copyWith({int? id, String? json}) =>
-      CachedChannel(id: id ?? this.id, json: json ?? this.json);
+  CachedChannel copyWith({
+    int? id,
+    String? json,
+    int? version,
+    bool? dirty,
+    bool? deletedLocally,
+    bool? isNew,
+    Value<String?> clientMutationId = const Value.absent(),
+  }) => CachedChannel(
+    id: id ?? this.id,
+    json: json ?? this.json,
+    version: version ?? this.version,
+    dirty: dirty ?? this.dirty,
+    deletedLocally: deletedLocally ?? this.deletedLocally,
+    isNew: isNew ?? this.isNew,
+    clientMutationId: clientMutationId.present
+        ? clientMutationId.value
+        : this.clientMutationId,
+  );
   CachedChannel copyWithCompanion(CachedChannelsCompanion data) {
     return CachedChannel(
       id: data.id.present ? data.id.value : this.id,
       json: data.json.present ? data.json.value : this.json,
+      version: data.version.present ? data.version.value : this.version,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deletedLocally: data.deletedLocally.present
+          ? data.deletedLocally.value
+          : this.deletedLocally,
+      isNew: data.isNew.present ? data.isNew.value : this.isNew,
+      clientMutationId: data.clientMutationId.present
+          ? data.clientMutationId.value
+          : this.clientMutationId,
     );
   }
 
@@ -126,44 +320,103 @@ class CachedChannel extends DataClass implements Insertable<CachedChannel> {
   String toString() {
     return (StringBuffer('CachedChannel(')
           ..write('id: $id, ')
-          ..write('json: $json')
+          ..write('json: $json, ')
+          ..write('version: $version, ')
+          ..write('dirty: $dirty, ')
+          ..write('deletedLocally: $deletedLocally, ')
+          ..write('isNew: $isNew, ')
+          ..write('clientMutationId: $clientMutationId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, json);
+  int get hashCode => Object.hash(
+    id,
+    json,
+    version,
+    dirty,
+    deletedLocally,
+    isNew,
+    clientMutationId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CachedChannel &&
           other.id == this.id &&
-          other.json == this.json);
+          other.json == this.json &&
+          other.version == this.version &&
+          other.dirty == this.dirty &&
+          other.deletedLocally == this.deletedLocally &&
+          other.isNew == this.isNew &&
+          other.clientMutationId == this.clientMutationId);
 }
 
 class CachedChannelsCompanion extends UpdateCompanion<CachedChannel> {
   final Value<int> id;
   final Value<String> json;
+  final Value<int> version;
+  final Value<bool> dirty;
+  final Value<bool> deletedLocally;
+  final Value<bool> isNew;
+  final Value<String?> clientMutationId;
   const CachedChannelsCompanion({
     this.id = const Value.absent(),
     this.json = const Value.absent(),
+    this.version = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deletedLocally = const Value.absent(),
+    this.isNew = const Value.absent(),
+    this.clientMutationId = const Value.absent(),
   });
   CachedChannelsCompanion.insert({
     this.id = const Value.absent(),
     required String json,
+    this.version = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deletedLocally = const Value.absent(),
+    this.isNew = const Value.absent(),
+    this.clientMutationId = const Value.absent(),
   }) : json = Value(json);
   static Insertable<CachedChannel> custom({
     Expression<int>? id,
     Expression<String>? json,
+    Expression<int>? version,
+    Expression<bool>? dirty,
+    Expression<bool>? deletedLocally,
+    Expression<bool>? isNew,
+    Expression<String>? clientMutationId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (json != null) 'json': json,
+      if (version != null) 'version': version,
+      if (dirty != null) 'dirty': dirty,
+      if (deletedLocally != null) 'deleted_locally': deletedLocally,
+      if (isNew != null) 'is_new': isNew,
+      if (clientMutationId != null) 'client_mutation_id': clientMutationId,
     });
   }
 
-  CachedChannelsCompanion copyWith({Value<int>? id, Value<String>? json}) {
-    return CachedChannelsCompanion(id: id ?? this.id, json: json ?? this.json);
+  CachedChannelsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? json,
+    Value<int>? version,
+    Value<bool>? dirty,
+    Value<bool>? deletedLocally,
+    Value<bool>? isNew,
+    Value<String?>? clientMutationId,
+  }) {
+    return CachedChannelsCompanion(
+      id: id ?? this.id,
+      json: json ?? this.json,
+      version: version ?? this.version,
+      dirty: dirty ?? this.dirty,
+      deletedLocally: deletedLocally ?? this.deletedLocally,
+      isNew: isNew ?? this.isNew,
+      clientMutationId: clientMutationId ?? this.clientMutationId,
+    );
   }
 
   @override
@@ -175,6 +428,21 @@ class CachedChannelsCompanion extends UpdateCompanion<CachedChannel> {
     if (json.present) {
       map['json'] = Variable<String>(json.value);
     }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deletedLocally.present) {
+      map['deleted_locally'] = Variable<bool>(deletedLocally.value);
+    }
+    if (isNew.present) {
+      map['is_new'] = Variable<bool>(isNew.value);
+    }
+    if (clientMutationId.present) {
+      map['client_mutation_id'] = Variable<String>(clientMutationId.value);
+    }
     return map;
   }
 
@@ -182,7 +450,12 @@ class CachedChannelsCompanion extends UpdateCompanion<CachedChannel> {
   String toString() {
     return (StringBuffer('CachedChannelsCompanion(')
           ..write('id: $id, ')
-          ..write('json: $json')
+          ..write('json: $json, ')
+          ..write('version: $version, ')
+          ..write('dirty: $dirty, ')
+          ..write('deletedLocally: $deletedLocally, ')
+          ..write('isNew: $isNew, ')
+          ..write('clientMutationId: $clientMutationId')
           ..write(')'))
         .toString();
   }
@@ -234,8 +507,82 @@ class $CachedNotesTable extends CachedNotes
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, channelId, createdAt, json];
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _dirtyMeta = const VerificationMeta('dirty');
+  @override
+  late final GeneratedColumn<bool> dirty = GeneratedColumn<bool>(
+    'dirty',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("dirty" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _deletedLocallyMeta = const VerificationMeta(
+    'deletedLocally',
+  );
+  @override
+  late final GeneratedColumn<bool> deletedLocally = GeneratedColumn<bool>(
+    'deleted_locally',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("deleted_locally" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isNewMeta = const VerificationMeta('isNew');
+  @override
+  late final GeneratedColumn<bool> isNew = GeneratedColumn<bool>(
+    'is_new',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_new" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _clientMutationIdMeta = const VerificationMeta(
+    'clientMutationId',
+  );
+  @override
+  late final GeneratedColumn<String> clientMutationId = GeneratedColumn<String>(
+    'client_mutation_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    channelId,
+    createdAt,
+    json,
+    version,
+    dirty,
+    deletedLocally,
+    isNew,
+    clientMutationId,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -275,6 +622,42 @@ class $CachedNotesTable extends CachedNotes
     } else if (isInserting) {
       context.missing(_jsonMeta);
     }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('dirty')) {
+      context.handle(
+        _dirtyMeta,
+        dirty.isAcceptableOrUnknown(data['dirty']!, _dirtyMeta),
+      );
+    }
+    if (data.containsKey('deleted_locally')) {
+      context.handle(
+        _deletedLocallyMeta,
+        deletedLocally.isAcceptableOrUnknown(
+          data['deleted_locally']!,
+          _deletedLocallyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_new')) {
+      context.handle(
+        _isNewMeta,
+        isNew.isAcceptableOrUnknown(data['is_new']!, _isNewMeta),
+      );
+    }
+    if (data.containsKey('client_mutation_id')) {
+      context.handle(
+        _clientMutationIdMeta,
+        clientMutationId.isAcceptableOrUnknown(
+          data['client_mutation_id']!,
+          _clientMutationIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -300,6 +683,26 @@ class $CachedNotesTable extends CachedNotes
         DriftSqlType.string,
         data['${effectivePrefix}json'],
       )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      dirty: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}dirty'],
+      )!,
+      deletedLocally: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}deleted_locally'],
+      )!,
+      isNew: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_new'],
+      )!,
+      clientMutationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_mutation_id'],
+      ),
     );
   }
 
@@ -314,11 +717,21 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
   final int channelId;
   final DateTime createdAt;
   final String json;
+  final int version;
+  final bool dirty;
+  final bool deletedLocally;
+  final bool isNew;
+  final String? clientMutationId;
   const CachedNote({
     required this.id,
     required this.channelId,
     required this.createdAt,
     required this.json,
+    required this.version,
+    required this.dirty,
+    required this.deletedLocally,
+    required this.isNew,
+    this.clientMutationId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -327,6 +740,13 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
     map['channel_id'] = Variable<int>(channelId);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['json'] = Variable<String>(json);
+    map['version'] = Variable<int>(version);
+    map['dirty'] = Variable<bool>(dirty);
+    map['deleted_locally'] = Variable<bool>(deletedLocally);
+    map['is_new'] = Variable<bool>(isNew);
+    if (!nullToAbsent || clientMutationId != null) {
+      map['client_mutation_id'] = Variable<String>(clientMutationId);
+    }
     return map;
   }
 
@@ -336,6 +756,13 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
       channelId: Value(channelId),
       createdAt: Value(createdAt),
       json: Value(json),
+      version: Value(version),
+      dirty: Value(dirty),
+      deletedLocally: Value(deletedLocally),
+      isNew: Value(isNew),
+      clientMutationId: clientMutationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clientMutationId),
     );
   }
 
@@ -349,6 +776,11 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
       channelId: serializer.fromJson<int>(json['channelId']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       json: serializer.fromJson<String>(json['json']),
+      version: serializer.fromJson<int>(json['version']),
+      dirty: serializer.fromJson<bool>(json['dirty']),
+      deletedLocally: serializer.fromJson<bool>(json['deletedLocally']),
+      isNew: serializer.fromJson<bool>(json['isNew']),
+      clientMutationId: serializer.fromJson<String?>(json['clientMutationId']),
     );
   }
   @override
@@ -359,6 +791,11 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
       'channelId': serializer.toJson<int>(channelId),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'json': serializer.toJson<String>(json),
+      'version': serializer.toJson<int>(version),
+      'dirty': serializer.toJson<bool>(dirty),
+      'deletedLocally': serializer.toJson<bool>(deletedLocally),
+      'isNew': serializer.toJson<bool>(isNew),
+      'clientMutationId': serializer.toJson<String?>(clientMutationId),
     };
   }
 
@@ -367,11 +804,23 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
     int? channelId,
     DateTime? createdAt,
     String? json,
+    int? version,
+    bool? dirty,
+    bool? deletedLocally,
+    bool? isNew,
+    Value<String?> clientMutationId = const Value.absent(),
   }) => CachedNote(
     id: id ?? this.id,
     channelId: channelId ?? this.channelId,
     createdAt: createdAt ?? this.createdAt,
     json: json ?? this.json,
+    version: version ?? this.version,
+    dirty: dirty ?? this.dirty,
+    deletedLocally: deletedLocally ?? this.deletedLocally,
+    isNew: isNew ?? this.isNew,
+    clientMutationId: clientMutationId.present
+        ? clientMutationId.value
+        : this.clientMutationId,
   );
   CachedNote copyWithCompanion(CachedNotesCompanion data) {
     return CachedNote(
@@ -379,6 +828,15 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
       channelId: data.channelId.present ? data.channelId.value : this.channelId,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       json: data.json.present ? data.json.value : this.json,
+      version: data.version.present ? data.version.value : this.version,
+      dirty: data.dirty.present ? data.dirty.value : this.dirty,
+      deletedLocally: data.deletedLocally.present
+          ? data.deletedLocally.value
+          : this.deletedLocally,
+      isNew: data.isNew.present ? data.isNew.value : this.isNew,
+      clientMutationId: data.clientMutationId.present
+          ? data.clientMutationId.value
+          : this.clientMutationId,
     );
   }
 
@@ -388,13 +846,28 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
           ..write('id: $id, ')
           ..write('channelId: $channelId, ')
           ..write('createdAt: $createdAt, ')
-          ..write('json: $json')
+          ..write('json: $json, ')
+          ..write('version: $version, ')
+          ..write('dirty: $dirty, ')
+          ..write('deletedLocally: $deletedLocally, ')
+          ..write('isNew: $isNew, ')
+          ..write('clientMutationId: $clientMutationId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, channelId, createdAt, json);
+  int get hashCode => Object.hash(
+    id,
+    channelId,
+    createdAt,
+    json,
+    version,
+    dirty,
+    deletedLocally,
+    isNew,
+    clientMutationId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -402,7 +875,12 @@ class CachedNote extends DataClass implements Insertable<CachedNote> {
           other.id == this.id &&
           other.channelId == this.channelId &&
           other.createdAt == this.createdAt &&
-          other.json == this.json);
+          other.json == this.json &&
+          other.version == this.version &&
+          other.dirty == this.dirty &&
+          other.deletedLocally == this.deletedLocally &&
+          other.isNew == this.isNew &&
+          other.clientMutationId == this.clientMutationId);
 }
 
 class CachedNotesCompanion extends UpdateCompanion<CachedNote> {
@@ -410,17 +888,32 @@ class CachedNotesCompanion extends UpdateCompanion<CachedNote> {
   final Value<int> channelId;
   final Value<DateTime> createdAt;
   final Value<String> json;
+  final Value<int> version;
+  final Value<bool> dirty;
+  final Value<bool> deletedLocally;
+  final Value<bool> isNew;
+  final Value<String?> clientMutationId;
   const CachedNotesCompanion({
     this.id = const Value.absent(),
     this.channelId = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.json = const Value.absent(),
+    this.version = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deletedLocally = const Value.absent(),
+    this.isNew = const Value.absent(),
+    this.clientMutationId = const Value.absent(),
   });
   CachedNotesCompanion.insert({
     this.id = const Value.absent(),
     required int channelId,
     required DateTime createdAt,
     required String json,
+    this.version = const Value.absent(),
+    this.dirty = const Value.absent(),
+    this.deletedLocally = const Value.absent(),
+    this.isNew = const Value.absent(),
+    this.clientMutationId = const Value.absent(),
   }) : channelId = Value(channelId),
        createdAt = Value(createdAt),
        json = Value(json);
@@ -429,12 +922,22 @@ class CachedNotesCompanion extends UpdateCompanion<CachedNote> {
     Expression<int>? channelId,
     Expression<DateTime>? createdAt,
     Expression<String>? json,
+    Expression<int>? version,
+    Expression<bool>? dirty,
+    Expression<bool>? deletedLocally,
+    Expression<bool>? isNew,
+    Expression<String>? clientMutationId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (channelId != null) 'channel_id': channelId,
       if (createdAt != null) 'created_at': createdAt,
       if (json != null) 'json': json,
+      if (version != null) 'version': version,
+      if (dirty != null) 'dirty': dirty,
+      if (deletedLocally != null) 'deleted_locally': deletedLocally,
+      if (isNew != null) 'is_new': isNew,
+      if (clientMutationId != null) 'client_mutation_id': clientMutationId,
     });
   }
 
@@ -443,12 +946,22 @@ class CachedNotesCompanion extends UpdateCompanion<CachedNote> {
     Value<int>? channelId,
     Value<DateTime>? createdAt,
     Value<String>? json,
+    Value<int>? version,
+    Value<bool>? dirty,
+    Value<bool>? deletedLocally,
+    Value<bool>? isNew,
+    Value<String?>? clientMutationId,
   }) {
     return CachedNotesCompanion(
       id: id ?? this.id,
       channelId: channelId ?? this.channelId,
       createdAt: createdAt ?? this.createdAt,
       json: json ?? this.json,
+      version: version ?? this.version,
+      dirty: dirty ?? this.dirty,
+      deletedLocally: deletedLocally ?? this.deletedLocally,
+      isNew: isNew ?? this.isNew,
+      clientMutationId: clientMutationId ?? this.clientMutationId,
     );
   }
 
@@ -467,6 +980,21 @@ class CachedNotesCompanion extends UpdateCompanion<CachedNote> {
     if (json.present) {
       map['json'] = Variable<String>(json.value);
     }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (dirty.present) {
+      map['dirty'] = Variable<bool>(dirty.value);
+    }
+    if (deletedLocally.present) {
+      map['deleted_locally'] = Variable<bool>(deletedLocally.value);
+    }
+    if (isNew.present) {
+      map['is_new'] = Variable<bool>(isNew.value);
+    }
+    if (clientMutationId.present) {
+      map['client_mutation_id'] = Variable<String>(clientMutationId.value);
+    }
     return map;
   }
 
@@ -476,7 +1004,12 @@ class CachedNotesCompanion extends UpdateCompanion<CachedNote> {
           ..write('id: $id, ')
           ..write('channelId: $channelId, ')
           ..write('createdAt: $createdAt, ')
-          ..write('json: $json')
+          ..write('json: $json, ')
+          ..write('version: $version, ')
+          ..write('dirty: $dirty, ')
+          ..write('deletedLocally: $deletedLocally, ')
+          ..write('isNew: $isNew, ')
+          ..write('clientMutationId: $clientMutationId')
           ..write(')'))
         .toString();
   }
@@ -734,83 +1267,44 @@ class CachedArchiveItemsCompanion extends UpdateCompanion<CachedArchiveItem> {
   }
 }
 
-class $PendingMutationsTable extends PendingMutations
-    with TableInfo<$PendingMutationsTable, PendingMutation> {
+class $SyncMetaTable extends SyncMeta
+    with TableInfo<$SyncMetaTable, SyncMetaData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $PendingMutationsTable(this.attachedDatabase, [this._alias]);
+  $SyncMetaTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
     'id',
     aliasedName,
     false,
-    hasAutoIncrement: true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
+    defaultValue: const Constant(1),
   );
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  static const VerificationMeta _globalVersionMeta = const VerificationMeta(
+    'globalVersion',
+  );
   @override
-  late final GeneratedColumn<String> type = GeneratedColumn<String>(
-    'type',
+  late final GeneratedColumn<int> globalVersion = GeneratedColumn<int>(
+    'global_version',
     aliasedName,
     false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _channelIdMeta = const VerificationMeta(
-    'channelId',
-  );
-  @override
-  late final GeneratedColumn<int> channelId = GeneratedColumn<int>(
-    'channel_id',
-    aliasedName,
-    true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-  );
-  static const VerificationMeta _payloadMeta = const VerificationMeta(
-    'payload',
+    defaultValue: const Constant(0),
   );
   @override
-  late final GeneratedColumn<String> payload = GeneratedColumn<String>(
-    'payload',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    type,
-    channelId,
-    payload,
-    createdAt,
-  ];
+  List<GeneratedColumn> get $columns => [id, globalVersion];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'pending_mutations';
+  static const String $name = 'sync_meta';
   @override
   VerificationContext validateIntegrity(
-    Insertable<PendingMutation> instance, {
+    Insertable<SyncMetaData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -818,35 +1312,14 @@ class $PendingMutationsTable extends PendingMutations
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
-    if (data.containsKey('type')) {
+    if (data.containsKey('global_version')) {
       context.handle(
-        _typeMeta,
-        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+        _globalVersionMeta,
+        globalVersion.isAcceptableOrUnknown(
+          data['global_version']!,
+          _globalVersionMeta,
+        ),
       );
-    } else if (isInserting) {
-      context.missing(_typeMeta);
-    }
-    if (data.containsKey('channel_id')) {
-      context.handle(
-        _channelIdMeta,
-        channelId.isAcceptableOrUnknown(data['channel_id']!, _channelIdMeta),
-      );
-    }
-    if (data.containsKey('payload')) {
-      context.handle(
-        _payloadMeta,
-        payload.isAcceptableOrUnknown(data['payload']!, _payloadMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_payloadMeta);
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
     }
     return context;
   }
@@ -854,87 +1327,53 @@ class $PendingMutationsTable extends PendingMutations
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  PendingMutation map(Map<String, dynamic> data, {String? tablePrefix}) {
+  SyncMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return PendingMutation(
+    return SyncMetaData(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      type: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}type'],
-      )!,
-      channelId: attachedDatabase.typeMapping.read(
+      globalVersion: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}channel_id'],
-      ),
-      payload: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}payload'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
+        data['${effectivePrefix}global_version'],
       )!,
     );
   }
 
   @override
-  $PendingMutationsTable createAlias(String alias) {
-    return $PendingMutationsTable(attachedDatabase, alias);
+  $SyncMetaTable createAlias(String alias) {
+    return $SyncMetaTable(attachedDatabase, alias);
   }
 }
 
-class PendingMutation extends DataClass implements Insertable<PendingMutation> {
+class SyncMetaData extends DataClass implements Insertable<SyncMetaData> {
   final int id;
-  final String type;
-  final int? channelId;
-  final String payload;
-  final DateTime createdAt;
-  const PendingMutation({
-    required this.id,
-    required this.type,
-    this.channelId,
-    required this.payload,
-    required this.createdAt,
-  });
+  final int globalVersion;
+  const SyncMetaData({required this.id, required this.globalVersion});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['type'] = Variable<String>(type);
-    if (!nullToAbsent || channelId != null) {
-      map['channel_id'] = Variable<int>(channelId);
-    }
-    map['payload'] = Variable<String>(payload);
-    map['created_at'] = Variable<DateTime>(createdAt);
+    map['global_version'] = Variable<int>(globalVersion);
     return map;
   }
 
-  PendingMutationsCompanion toCompanion(bool nullToAbsent) {
-    return PendingMutationsCompanion(
+  SyncMetaCompanion toCompanion(bool nullToAbsent) {
+    return SyncMetaCompanion(
       id: Value(id),
-      type: Value(type),
-      channelId: channelId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(channelId),
-      payload: Value(payload),
-      createdAt: Value(createdAt),
+      globalVersion: Value(globalVersion),
     );
   }
 
-  factory PendingMutation.fromJson(
+  factory SyncMetaData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return PendingMutation(
+    return SyncMetaData(
       id: serializer.fromJson<int>(json['id']),
-      type: serializer.fromJson<String>(json['type']),
-      channelId: serializer.fromJson<int?>(json['channelId']),
-      payload: serializer.fromJson<String>(json['payload']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      globalVersion: serializer.fromJson<int>(json['globalVersion']),
     );
   }
   @override
@@ -942,112 +1381,67 @@ class PendingMutation extends DataClass implements Insertable<PendingMutation> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'type': serializer.toJson<String>(type),
-      'channelId': serializer.toJson<int?>(channelId),
-      'payload': serializer.toJson<String>(payload),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'globalVersion': serializer.toJson<int>(globalVersion),
     };
   }
 
-  PendingMutation copyWith({
-    int? id,
-    String? type,
-    Value<int?> channelId = const Value.absent(),
-    String? payload,
-    DateTime? createdAt,
-  }) => PendingMutation(
+  SyncMetaData copyWith({int? id, int? globalVersion}) => SyncMetaData(
     id: id ?? this.id,
-    type: type ?? this.type,
-    channelId: channelId.present ? channelId.value : this.channelId,
-    payload: payload ?? this.payload,
-    createdAt: createdAt ?? this.createdAt,
+    globalVersion: globalVersion ?? this.globalVersion,
   );
-  PendingMutation copyWithCompanion(PendingMutationsCompanion data) {
-    return PendingMutation(
+  SyncMetaData copyWithCompanion(SyncMetaCompanion data) {
+    return SyncMetaData(
       id: data.id.present ? data.id.value : this.id,
-      type: data.type.present ? data.type.value : this.type,
-      channelId: data.channelId.present ? data.channelId.value : this.channelId,
-      payload: data.payload.present ? data.payload.value : this.payload,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      globalVersion: data.globalVersion.present
+          ? data.globalVersion.value
+          : this.globalVersion,
     );
   }
 
   @override
   String toString() {
-    return (StringBuffer('PendingMutation(')
+    return (StringBuffer('SyncMetaData(')
           ..write('id: $id, ')
-          ..write('type: $type, ')
-          ..write('channelId: $channelId, ')
-          ..write('payload: $payload, ')
-          ..write('createdAt: $createdAt')
+          ..write('globalVersion: $globalVersion')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, type, channelId, payload, createdAt);
+  int get hashCode => Object.hash(id, globalVersion);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is PendingMutation &&
+      (other is SyncMetaData &&
           other.id == this.id &&
-          other.type == this.type &&
-          other.channelId == this.channelId &&
-          other.payload == this.payload &&
-          other.createdAt == this.createdAt);
+          other.globalVersion == this.globalVersion);
 }
 
-class PendingMutationsCompanion extends UpdateCompanion<PendingMutation> {
+class SyncMetaCompanion extends UpdateCompanion<SyncMetaData> {
   final Value<int> id;
-  final Value<String> type;
-  final Value<int?> channelId;
-  final Value<String> payload;
-  final Value<DateTime> createdAt;
-  const PendingMutationsCompanion({
+  final Value<int> globalVersion;
+  const SyncMetaCompanion({
     this.id = const Value.absent(),
-    this.type = const Value.absent(),
-    this.channelId = const Value.absent(),
-    this.payload = const Value.absent(),
-    this.createdAt = const Value.absent(),
+    this.globalVersion = const Value.absent(),
   });
-  PendingMutationsCompanion.insert({
+  SyncMetaCompanion.insert({
     this.id = const Value.absent(),
-    required String type,
-    this.channelId = const Value.absent(),
-    required String payload,
-    required DateTime createdAt,
-  }) : type = Value(type),
-       payload = Value(payload),
-       createdAt = Value(createdAt);
-  static Insertable<PendingMutation> custom({
+    this.globalVersion = const Value.absent(),
+  });
+  static Insertable<SyncMetaData> custom({
     Expression<int>? id,
-    Expression<String>? type,
-    Expression<int>? channelId,
-    Expression<String>? payload,
-    Expression<DateTime>? createdAt,
+    Expression<int>? globalVersion,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (type != null) 'type': type,
-      if (channelId != null) 'channel_id': channelId,
-      if (payload != null) 'payload': payload,
-      if (createdAt != null) 'created_at': createdAt,
+      if (globalVersion != null) 'global_version': globalVersion,
     });
   }
 
-  PendingMutationsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? type,
-    Value<int?>? channelId,
-    Value<String>? payload,
-    Value<DateTime>? createdAt,
-  }) {
-    return PendingMutationsCompanion(
+  SyncMetaCompanion copyWith({Value<int>? id, Value<int>? globalVersion}) {
+    return SyncMetaCompanion(
       id: id ?? this.id,
-      type: type ?? this.type,
-      channelId: channelId ?? this.channelId,
-      payload: payload ?? this.payload,
-      createdAt: createdAt ?? this.createdAt,
+      globalVersion: globalVersion ?? this.globalVersion,
     );
   }
 
@@ -1057,29 +1451,17 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutation> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (type.present) {
-      map['type'] = Variable<String>(type.value);
-    }
-    if (channelId.present) {
-      map['channel_id'] = Variable<int>(channelId.value);
-    }
-    if (payload.present) {
-      map['payload'] = Variable<String>(payload.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
+    if (globalVersion.present) {
+      map['global_version'] = Variable<int>(globalVersion.value);
     }
     return map;
   }
 
   @override
   String toString() {
-    return (StringBuffer('PendingMutationsCompanion(')
+    return (StringBuffer('SyncMetaCompanion(')
           ..write('id: $id, ')
-          ..write('type: $type, ')
-          ..write('channelId: $channelId, ')
-          ..write('payload: $payload, ')
-          ..write('createdAt: $createdAt')
+          ..write('globalVersion: $globalVersion')
           ..write(')'))
         .toString();
   }
@@ -1092,9 +1474,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CachedNotesTable cachedNotes = $CachedNotesTable(this);
   late final $CachedArchiveItemsTable cachedArchiveItems =
       $CachedArchiveItemsTable(this);
-  late final $PendingMutationsTable pendingMutations = $PendingMutationsTable(
-    this,
-  );
+  late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1103,14 +1483,30 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedChannels,
     cachedNotes,
     cachedArchiveItems,
-    pendingMutations,
+    syncMeta,
   ];
 }
 
 typedef $$CachedChannelsTableCreateCompanionBuilder =
-    CachedChannelsCompanion Function({Value<int> id, required String json});
+    CachedChannelsCompanion Function({
+      Value<int> id,
+      required String json,
+      Value<int> version,
+      Value<bool> dirty,
+      Value<bool> deletedLocally,
+      Value<bool> isNew,
+      Value<String?> clientMutationId,
+    });
 typedef $$CachedChannelsTableUpdateCompanionBuilder =
-    CachedChannelsCompanion Function({Value<int> id, Value<String> json});
+    CachedChannelsCompanion Function({
+      Value<int> id,
+      Value<String> json,
+      Value<int> version,
+      Value<bool> dirty,
+      Value<bool> deletedLocally,
+      Value<bool> isNew,
+      Value<String?> clientMutationId,
+    });
 
 class $$CachedChannelsTableFilterComposer
     extends Composer<_$AppDatabase, $CachedChannelsTable> {
@@ -1128,6 +1524,31 @@ class $$CachedChannelsTableFilterComposer
 
   ColumnFilters<String> get json => $composableBuilder(
     column: $table.json,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deletedLocally => $composableBuilder(
+    column: $table.deletedLocally,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isNew => $composableBuilder(
+    column: $table.isNew,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientMutationId => $composableBuilder(
+    column: $table.clientMutationId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1150,6 +1571,31 @@ class $$CachedChannelsTableOrderingComposer
     column: $table.json,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deletedLocally => $composableBuilder(
+    column: $table.deletedLocally,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isNew => $composableBuilder(
+    column: $table.isNew,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientMutationId => $composableBuilder(
+    column: $table.clientMutationId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CachedChannelsTableAnnotationComposer
@@ -1166,6 +1612,25 @@ class $$CachedChannelsTableAnnotationComposer
 
   GeneratedColumn<String> get json =>
       $composableBuilder(column: $table.json, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deletedLocally => $composableBuilder(
+    column: $table.deletedLocally,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isNew =>
+      $composableBuilder(column: $table.isNew, builder: (column) => column);
+
+  GeneratedColumn<String> get clientMutationId => $composableBuilder(
+    column: $table.clientMutationId,
+    builder: (column) => column,
+  );
 }
 
 class $$CachedChannelsTableTableManager
@@ -1203,10 +1668,38 @@ class $$CachedChannelsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> json = const Value.absent(),
-              }) => CachedChannelsCompanion(id: id, json: json),
+                Value<int> version = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deletedLocally = const Value.absent(),
+                Value<bool> isNew = const Value.absent(),
+                Value<String?> clientMutationId = const Value.absent(),
+              }) => CachedChannelsCompanion(
+                id: id,
+                json: json,
+                version: version,
+                dirty: dirty,
+                deletedLocally: deletedLocally,
+                isNew: isNew,
+                clientMutationId: clientMutationId,
+              ),
           createCompanionCallback:
-              ({Value<int> id = const Value.absent(), required String json}) =>
-                  CachedChannelsCompanion.insert(id: id, json: json),
+              ({
+                Value<int> id = const Value.absent(),
+                required String json,
+                Value<int> version = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deletedLocally = const Value.absent(),
+                Value<bool> isNew = const Value.absent(),
+                Value<String?> clientMutationId = const Value.absent(),
+              }) => CachedChannelsCompanion.insert(
+                id: id,
+                json: json,
+                version: version,
+                dirty: dirty,
+                deletedLocally: deletedLocally,
+                isNew: isNew,
+                clientMutationId: clientMutationId,
+              ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
@@ -1238,6 +1731,11 @@ typedef $$CachedNotesTableCreateCompanionBuilder =
       required int channelId,
       required DateTime createdAt,
       required String json,
+      Value<int> version,
+      Value<bool> dirty,
+      Value<bool> deletedLocally,
+      Value<bool> isNew,
+      Value<String?> clientMutationId,
     });
 typedef $$CachedNotesTableUpdateCompanionBuilder =
     CachedNotesCompanion Function({
@@ -1245,6 +1743,11 @@ typedef $$CachedNotesTableUpdateCompanionBuilder =
       Value<int> channelId,
       Value<DateTime> createdAt,
       Value<String> json,
+      Value<int> version,
+      Value<bool> dirty,
+      Value<bool> deletedLocally,
+      Value<bool> isNew,
+      Value<String?> clientMutationId,
     });
 
 class $$CachedNotesTableFilterComposer
@@ -1273,6 +1776,31 @@ class $$CachedNotesTableFilterComposer
 
   ColumnFilters<String> get json => $composableBuilder(
     column: $table.json,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get deletedLocally => $composableBuilder(
+    column: $table.deletedLocally,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isNew => $composableBuilder(
+    column: $table.isNew,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientMutationId => $composableBuilder(
+    column: $table.clientMutationId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1305,6 +1833,31 @@ class $$CachedNotesTableOrderingComposer
     column: $table.json,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get dirty => $composableBuilder(
+    column: $table.dirty,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get deletedLocally => $composableBuilder(
+    column: $table.deletedLocally,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isNew => $composableBuilder(
+    column: $table.isNew,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientMutationId => $composableBuilder(
+    column: $table.clientMutationId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CachedNotesTableAnnotationComposer
@@ -1327,6 +1880,25 @@ class $$CachedNotesTableAnnotationComposer
 
   GeneratedColumn<String> get json =>
       $composableBuilder(column: $table.json, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<bool> get dirty =>
+      $composableBuilder(column: $table.dirty, builder: (column) => column);
+
+  GeneratedColumn<bool> get deletedLocally => $composableBuilder(
+    column: $table.deletedLocally,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isNew =>
+      $composableBuilder(column: $table.isNew, builder: (column) => column);
+
+  GeneratedColumn<String> get clientMutationId => $composableBuilder(
+    column: $table.clientMutationId,
+    builder: (column) => column,
+  );
 }
 
 class $$CachedNotesTableTableManager
@@ -1364,11 +1936,21 @@ class $$CachedNotesTableTableManager
                 Value<int> channelId = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<String> json = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deletedLocally = const Value.absent(),
+                Value<bool> isNew = const Value.absent(),
+                Value<String?> clientMutationId = const Value.absent(),
               }) => CachedNotesCompanion(
                 id: id,
                 channelId: channelId,
                 createdAt: createdAt,
                 json: json,
+                version: version,
+                dirty: dirty,
+                deletedLocally: deletedLocally,
+                isNew: isNew,
+                clientMutationId: clientMutationId,
               ),
           createCompanionCallback:
               ({
@@ -1376,11 +1958,21 @@ class $$CachedNotesTableTableManager
                 required int channelId,
                 required DateTime createdAt,
                 required String json,
+                Value<int> version = const Value.absent(),
+                Value<bool> dirty = const Value.absent(),
+                Value<bool> deletedLocally = const Value.absent(),
+                Value<bool> isNew = const Value.absent(),
+                Value<String?> clientMutationId = const Value.absent(),
               }) => CachedNotesCompanion.insert(
                 id: id,
                 channelId: channelId,
                 createdAt: createdAt,
                 json: json,
+                version: version,
+                dirty: dirty,
+                deletedLocally: deletedLocally,
+                isNew: isNew,
+                clientMutationId: clientMutationId,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -1578,26 +2170,14 @@ typedef $$CachedArchiveItemsTableProcessedTableManager =
       CachedArchiveItem,
       PrefetchHooks Function()
     >;
-typedef $$PendingMutationsTableCreateCompanionBuilder =
-    PendingMutationsCompanion Function({
-      Value<int> id,
-      required String type,
-      Value<int?> channelId,
-      required String payload,
-      required DateTime createdAt,
-    });
-typedef $$PendingMutationsTableUpdateCompanionBuilder =
-    PendingMutationsCompanion Function({
-      Value<int> id,
-      Value<String> type,
-      Value<int?> channelId,
-      Value<String> payload,
-      Value<DateTime> createdAt,
-    });
+typedef $$SyncMetaTableCreateCompanionBuilder =
+    SyncMetaCompanion Function({Value<int> id, Value<int> globalVersion});
+typedef $$SyncMetaTableUpdateCompanionBuilder =
+    SyncMetaCompanion Function({Value<int> id, Value<int> globalVersion});
 
-class $$PendingMutationsTableFilterComposer
-    extends Composer<_$AppDatabase, $PendingMutationsTable> {
-  $$PendingMutationsTableFilterComposer({
+class $$SyncMetaTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1609,30 +2189,15 @@ class $$PendingMutationsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get type => $composableBuilder(
-    column: $table.type,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get channelId => $composableBuilder(
-    column: $table.channelId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get payload => $composableBuilder(
-    column: $table.payload,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
+  ColumnFilters<int> get globalVersion => $composableBuilder(
+    column: $table.globalVersion,
     builder: (column) => ColumnFilters(column),
   );
 }
 
-class $$PendingMutationsTableOrderingComposer
-    extends Composer<_$AppDatabase, $PendingMutationsTable> {
-  $$PendingMutationsTableOrderingComposer({
+class $$SyncMetaTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1644,30 +2209,15 @@ class $$PendingMutationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get type => $composableBuilder(
-    column: $table.type,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get channelId => $composableBuilder(
-    column: $table.channelId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get payload => $composableBuilder(
-    column: $table.payload,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
+  ColumnOrderings<int> get globalVersion => $composableBuilder(
+    column: $table.globalVersion,
     builder: (column) => ColumnOrderings(column),
   );
 }
 
-class $$PendingMutationsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $PendingMutationsTable> {
-  $$PendingMutationsTableAnnotationComposer({
+class $$SyncMetaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -1677,81 +2227,53 @@ class $$PendingMutationsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get type =>
-      $composableBuilder(column: $table.type, builder: (column) => column);
-
-  GeneratedColumn<int> get channelId =>
-      $composableBuilder(column: $table.channelId, builder: (column) => column);
-
-  GeneratedColumn<String> get payload =>
-      $composableBuilder(column: $table.payload, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+  GeneratedColumn<int> get globalVersion => $composableBuilder(
+    column: $table.globalVersion,
+    builder: (column) => column,
+  );
 }
 
-class $$PendingMutationsTableTableManager
+class $$SyncMetaTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $PendingMutationsTable,
-          PendingMutation,
-          $$PendingMutationsTableFilterComposer,
-          $$PendingMutationsTableOrderingComposer,
-          $$PendingMutationsTableAnnotationComposer,
-          $$PendingMutationsTableCreateCompanionBuilder,
-          $$PendingMutationsTableUpdateCompanionBuilder,
+          $SyncMetaTable,
+          SyncMetaData,
+          $$SyncMetaTableFilterComposer,
+          $$SyncMetaTableOrderingComposer,
+          $$SyncMetaTableAnnotationComposer,
+          $$SyncMetaTableCreateCompanionBuilder,
+          $$SyncMetaTableUpdateCompanionBuilder,
           (
-            PendingMutation,
-            BaseReferences<
-              _$AppDatabase,
-              $PendingMutationsTable,
-              PendingMutation
-            >,
+            SyncMetaData,
+            BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
           ),
-          PendingMutation,
+          SyncMetaData,
           PrefetchHooks Function()
         > {
-  $$PendingMutationsTableTableManager(
-    _$AppDatabase db,
-    $PendingMutationsTable table,
-  ) : super(
+  $$SyncMetaTableTableManager(_$AppDatabase db, $SyncMetaTable table)
+    : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$PendingMutationsTableFilterComposer($db: db, $table: table),
+              $$SyncMetaTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$PendingMutationsTableOrderingComposer($db: db, $table: table),
+              $$SyncMetaTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$PendingMutationsTableAnnotationComposer($db: db, $table: table),
+              $$SyncMetaTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<String> type = const Value.absent(),
-                Value<int?> channelId = const Value.absent(),
-                Value<String> payload = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-              }) => PendingMutationsCompanion(
-                id: id,
-                type: type,
-                channelId: channelId,
-                payload: payload,
-                createdAt: createdAt,
-              ),
+                Value<int> globalVersion = const Value.absent(),
+              }) => SyncMetaCompanion(id: id, globalVersion: globalVersion),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required String type,
-                Value<int?> channelId = const Value.absent(),
-                required String payload,
-                required DateTime createdAt,
-              }) => PendingMutationsCompanion.insert(
+                Value<int> globalVersion = const Value.absent(),
+              }) => SyncMetaCompanion.insert(
                 id: id,
-                type: type,
-                channelId: channelId,
-                payload: payload,
-                createdAt: createdAt,
+                globalVersion: globalVersion,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -1761,21 +2283,21 @@ class $$PendingMutationsTableTableManager
       );
 }
 
-typedef $$PendingMutationsTableProcessedTableManager =
+typedef $$SyncMetaTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $PendingMutationsTable,
-      PendingMutation,
-      $$PendingMutationsTableFilterComposer,
-      $$PendingMutationsTableOrderingComposer,
-      $$PendingMutationsTableAnnotationComposer,
-      $$PendingMutationsTableCreateCompanionBuilder,
-      $$PendingMutationsTableUpdateCompanionBuilder,
+      $SyncMetaTable,
+      SyncMetaData,
+      $$SyncMetaTableFilterComposer,
+      $$SyncMetaTableOrderingComposer,
+      $$SyncMetaTableAnnotationComposer,
+      $$SyncMetaTableCreateCompanionBuilder,
+      $$SyncMetaTableUpdateCompanionBuilder,
       (
-        PendingMutation,
-        BaseReferences<_$AppDatabase, $PendingMutationsTable, PendingMutation>,
+        SyncMetaData,
+        BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
       ),
-      PendingMutation,
+      SyncMetaData,
       PrefetchHooks Function()
     >;
 
@@ -1788,8 +2310,8 @@ class $AppDatabaseManager {
       $$CachedNotesTableTableManager(_db, _db.cachedNotes);
   $$CachedArchiveItemsTableTableManager get cachedArchiveItems =>
       $$CachedArchiveItemsTableTableManager(_db, _db.cachedArchiveItems);
-  $$PendingMutationsTableTableManager get pendingMutations =>
-      $$PendingMutationsTableTableManager(_db, _db.pendingMutations);
+  $$SyncMetaTableTableManager get syncMeta =>
+      $$SyncMetaTableTableManager(_db, _db.syncMeta);
 }
 
 // **************************************************************************

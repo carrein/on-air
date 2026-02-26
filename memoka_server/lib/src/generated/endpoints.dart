@@ -13,6 +13,8 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/chat_endpoint.dart' as _i2;
 import '../health_endpoint.dart' as _i3;
+import '../sync/sync_endpoint.dart' as _i4;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i5;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -28,6 +30,12 @@ class Endpoints extends _i1.EndpointDispatch {
         ..initialize(
           server,
           'health',
+          null,
+        ),
+      'sync': _i4.SyncEndpoint()
+        ..initialize(
+          server,
+          'sync',
           null,
         ),
     };
@@ -363,6 +371,48 @@ class Endpoints extends _i1.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async =>
                   (endpoints['health'] as _i3.HealthEndpoint).ping(session),
+        ),
+      },
+    );
+    connectors['sync'] = _i1.EndpointConnector(
+      name: 'sync',
+      endpoint: endpoints['sync']!,
+      methodConnectors: {
+        'syncPull': _i1.MethodConnector(
+          name: 'syncPull',
+          params: {
+            'sinceVersion': _i1.ParameterDescription(
+              name: 'sinceVersion',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sync'] as _i4.SyncEndpoint).syncPull(
+                session,
+                params['sinceVersion'],
+              ),
+        ),
+        'syncPush': _i1.MethodConnector(
+          name: 'syncPush',
+          params: {
+            'changes': _i1.ParameterDescription(
+              name: 'changes',
+              type: _i1.getType<List<_i5.SyncChange>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['sync'] as _i4.SyncEndpoint).syncPush(
+                session,
+                params['changes'],
+              ),
         ),
       },
     );

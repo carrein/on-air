@@ -16,6 +16,7 @@ import '../providers/current_channel_provider.dart';
 import '../providers/pending_uploads_provider.dart';
 import '../providers/scroll_to_note_provider.dart';
 import '../providers/background_provider.dart';
+import '../providers/connection_provider.dart' as conn;
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
 import '../models/upload_file_data.dart';
@@ -208,6 +209,39 @@ class _ChatViewState extends ConsumerState<ChatView>
   Widget _buildDisplayedContent() {
     final channelId = _displayedChannelId;
     if (channelId == null) {
+      final isDisconnected =
+          ref.watch(conn.connectionProvider) ==
+          conn.ConnectionState.disconnected;
+      if (isDisconnected) {
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF6F0ED),
+              border: Border.all(color: const Color(0xFFCE2161), width: 1.0),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                PhosphorIcon(
+                  PhosphorIcons.plugs(),
+                  size: 48,
+                  color: Color(0xFF00171F),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Server unreachable...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF00171F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
       return const Center(child: CircularProgressIndicator());
     }
     if (channelId == -1) return _buildArchiveView();

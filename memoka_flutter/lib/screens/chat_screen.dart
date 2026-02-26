@@ -52,10 +52,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // On web, kick reconnect when the tab becomes visible again or when the
     // browser goes online. Both events are more reliable than connectivity_plus
     // alone after a hard refresh in an offline state.
+    //
+    // visibilitychange always force-reconnects (no disconnected check) because
+    // a laptop sleep/wake silently kills the WebSocket TCP connection without
+    // sending a close frame — the Dart stream never sees an error so
+    // connectionProvider stays "connected" even though the socket is dead.
     if (kIsWeb) {
       _visibilitySubscription = html.document.onVisibilityChange.listen((_) {
         if (html.document.visibilityState == 'visible') {
-          _kickReconnectIfNeeded();
+          ref.invalidate(chatStreamProvider);
         }
       });
       _onlineSubscription = html.window.onOnline.listen((_) {
@@ -85,17 +90,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   /// Called when the app returns to the foreground (Android/iOS).
-  /// Kicks an immediate reconnect if we're disconnected, bypassing the
-  /// backoff timer that could otherwise delay recovery by up to 10s.
+  /// Always force-reconnects on resume — the OS may have killed the WebSocket
+  /// while the app was backgrounded without sending a close frame.
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
     if (lifecycleState == AppLifecycleState.resumed) {
-      _kickReconnectIfNeeded();
+      ref.invalidate(chatStreamProvider);
     }
   }
 
   void _kickReconnectIfNeeded() {
-    if (ref.read(conn.connectionProvider) == conn.ConnectionState.disconnected) {
+    if (ref.read(conn.connectionProvider) ==
+        conn.ConnectionState.disconnected) {
       ref.invalidate(chatStreamProvider);
     }
   }

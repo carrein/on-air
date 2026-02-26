@@ -6,7 +6,7 @@ part of 'archive_items_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$archiveItemsHash() => r'69f9879f7d1365b0a66f47622967b9014271c803';
+String _$archiveItemsHash() => r'f07eeb971617b083f35f293414f232b0df7f8e84';
 
 /// Manages the mixed archive list (notes + channels) with real-time updates.
 ///

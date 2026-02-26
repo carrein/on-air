@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../providers/connection_provider.dart' as conn;
-import '../providers/pending_mutation_count_provider.dart';
+import '../providers/dirty_sync_count_provider.dart';
 import '../providers/sync_engine_provider.dart';
 
 /// Navbar indicator showing offline/syncing state.
@@ -20,7 +20,7 @@ class SyncIndicator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final connState = ref.watch(conn.connectionProvider);
-    final countAsync = ref.watch(pendingMutationCountProvider);
+    final countAsync = ref.watch(dirtySyncCountProvider);
     ref.watch(syncEngineProvider);
 
     final isOnline = connState == conn.ConnectionState.connected;

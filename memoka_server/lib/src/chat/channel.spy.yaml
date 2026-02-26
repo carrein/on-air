@@ -15,9 +15,24 @@ fields:
   createdAt: DateTime, default=now
   ### When the channel was last updated (e.g., when a note is posted).
   updatedAt: DateTime, default=now
-  ### Manual sort order within pinned/unpinned groups (lower = higher).
+  ### Manual sort order within pinned/unpinned groups (lower = higher). Kept for backward compat.
   sortOrder: int, default=0
   ### Whether this channel is archived (soft deleted).
   archived: bool, default=false
   ### When the channel was archived.
   archivedAt: DateTime?
+  ### Sync version — set to globalVersion on each mutation.
+  version: int, default=0
+  ### Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  deletedAt: DateTime?
+  ### Fractional ordering position (replaces sortOrder for drag-to-reorder).
+  position: double, default=0.0
+  ### Idempotency key for offline-created channels. NULL for online-created channels.
+  clientMutationId: String?
+
+indexes:
+  channels_version_idx:
+    fields: version
+  client_mutation_ch_idx:
+    fields: clientMutationId
+    unique: true

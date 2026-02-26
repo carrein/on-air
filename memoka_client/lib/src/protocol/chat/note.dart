@@ -28,9 +28,12 @@ abstract class Note implements _i1.SerializableModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.clientMutationId,
+    int? version,
+    this.deletedAt,
   }) : archived = archived ?? false,
        createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+       updatedAt = updatedAt ?? DateTime.now(),
+       version = version ?? 0;
 
   factory Note({
     int? id,
@@ -43,6 +46,8 @@ abstract class Note implements _i1.SerializableModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? clientMutationId,
+    int? version,
+    DateTime? deletedAt,
   }) = _NoteImpl;
 
   factory Note.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -71,6 +76,10 @@ abstract class Note implements _i1.SerializableModel {
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
       clientMutationId: jsonSerialization['clientMutationId'] as String?,
+      version: jsonSerialization['version'] as int?,
+      deletedAt: jsonSerialization['deletedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['deletedAt']),
     );
   }
 
@@ -106,6 +115,12 @@ abstract class Note implements _i1.SerializableModel {
   /// Idempotency key for offline-created notes. NULL for online-created notes.
   String? clientMutationId;
 
+  /// Sync version — set to globalVersion on each mutation.
+  int version;
+
+  /// Permanent delete tombstone. NULL = not deleted. Set instead of physical delete for sync protocol.
+  DateTime? deletedAt;
+
   /// Returns a shallow copy of this [Note]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -120,6 +135,8 @@ abstract class Note implements _i1.SerializableModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? clientMutationId,
+    int? version,
+    DateTime? deletedAt,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -136,6 +153,8 @@ abstract class Note implements _i1.SerializableModel {
       'createdAt': createdAt.toJson(),
       'updatedAt': updatedAt.toJson(),
       if (clientMutationId != null) 'clientMutationId': clientMutationId,
+      'version': version,
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
     };
   }
 
@@ -159,6 +178,8 @@ class _NoteImpl extends Note {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? clientMutationId,
+    int? version,
+    DateTime? deletedAt,
   }) : super._(
          id: id,
          channelId: channelId,
@@ -170,6 +191,8 @@ class _NoteImpl extends Note {
          createdAt: createdAt,
          updatedAt: updatedAt,
          clientMutationId: clientMutationId,
+         version: version,
+         deletedAt: deletedAt,
        );
 
   /// Returns a shallow copy of this [Note]
@@ -187,6 +210,8 @@ class _NoteImpl extends Note {
     DateTime? createdAt,
     DateTime? updatedAt,
     Object? clientMutationId = _Undefined,
+    int? version,
+    Object? deletedAt = _Undefined,
   }) {
     return Note(
       id: id is int? ? id : this.id,
@@ -205,6 +230,8 @@ class _NoteImpl extends Note {
       clientMutationId: clientMutationId is String?
           ? clientMutationId
           : this.clientMutationId,
+      version: version ?? this.version,
+      deletedAt: deletedAt is DateTime? ? deletedAt : this.deletedAt,
     );
   }
 }
