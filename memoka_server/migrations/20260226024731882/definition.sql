@@ -281,6 +281,16 @@ CREATE INDEX "serverpod_session_log_touched_idx" ON "serverpod_session_log" USIN
 CREATE INDEX "serverpod_session_log_isopen_idx" ON "serverpod_session_log" USING btree ("isOpen");
 
 --
+-- Manual: sync_state singleton — global version counter (not ORM-managed)
+--
+CREATE TABLE "sync_state" (
+    "id" bigint PRIMARY KEY DEFAULT 1,
+    "globalVersion" bigint NOT NULL DEFAULT 0,
+    CONSTRAINT "sync_state_singleton" CHECK ("id" = 1)
+);
+INSERT INTO "sync_state" ("id", "globalVersion") VALUES (1, 0);
+
+--
 -- Foreign relations for "media_attachments" table
 --
 ALTER TABLE ONLY "media_attachments"
