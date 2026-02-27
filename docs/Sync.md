@@ -215,8 +215,8 @@ Migration v2→v3 drops the `PendingMutations` table. Any queued mutations at up
 
 Shown in the navbar action row (leftmost position):
 - **Hidden** when connected with zero dirty entities, or during initial `connecting` phase
-- **Brand-accent plugs icon** (`PhosphorIcons.plugs()`, `#CE2161`) with circle count badge when offline (count = dirty entity count; white text on `#CE2161` circle)
-- **Spinning arrows icon** when online and syncing
+- **Rounded-square badge** with dirty count when offline (white text on `#CE2161`, 2px border radius)
+- **Spinning `spinnerGap` icon** (`#CE2161`) when online and syncing
 
 Count driven by `dirtySyncCountProvider` which watches `db.watchDirtyCount()` — a reactive Drift stream.
 

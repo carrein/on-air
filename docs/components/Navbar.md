@@ -36,8 +36,8 @@ Left-aligned icon + text showing the current channel.
 Leftmost item in the action row. Renders `SyncIndicator` widget.
 
 - **Hidden** when connected with zero dirty entities, or during initial `connecting` phase
-- **Offline**: `PhosphorIcons.plugs()` in `brand.primary` (`#CE2161`) + circle badge with dirty count (white text on `#CE2161`)
-- **Syncing** (online with pending): spinning `arrowsClockwise` icon
+- **Offline**: rounded-square badge with dirty count (white text on `brand.primary` `#CE2161`, 2px border radius)
+- **Syncing** (online with pending): spinning `PhosphorIcons.spinnerGap()` icon in `brand.primary`
 
 #### Pin Button
 

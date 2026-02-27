@@ -66,7 +66,7 @@ All values follow `docs/DesignSystem.md` tokens.
 | Gap between content sections | 12px |
 | Gap between footer and content | 12px |
 | Outer padding | 14px all sides |
-| Min width | 300px |
+| Min width | 350px |
 | Max width | 600px |
 | Footer icon size | 20px |
 | Footer icon color | `#00171F` at 50% opacity |

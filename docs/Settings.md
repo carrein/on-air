@@ -23,7 +23,7 @@ Displayed only on non-web platforms (`!kIsWeb`).
 
 ### About
 
-- **Version**: Displays the running app version (e.g. `1.0.0`) read from `package_info_plus` at runtime. On release builds the version matches the GitHub release tag stamped via `--build-name` during CI. Read-only, no interaction.
+- **Version**: Three-tier resolution: (1) build-time `--dart-define=APP_VERSION=x.y.z` override, (2) `PackageInfo.fromPlatform()` on native, (3) fallback `—`. On web, use `--dart-define` at build time. On Android, `PackageInfo` reads the version from pubspec.yaml baked into the APK. Read-only, no interaction.
 
 ### Chat Background
 
