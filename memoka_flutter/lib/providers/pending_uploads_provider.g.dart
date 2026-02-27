@@ -6,7 +6,7 @@ part of 'pending_uploads_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$pendingUploadsHash() => r'fcfeb56b3547e14e9c4d8044991dff0eb91931ef';
+String _$pendingUploadsHash() => r'f3111ed0f95b30a488bc650aa7cf2bee5b1bf89d';
 
 /// Manages optimistic uploads with progress tracking and retry.
 ///

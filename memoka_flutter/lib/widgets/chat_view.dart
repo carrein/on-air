@@ -498,15 +498,15 @@ class _ChatViewState extends ConsumerState<ChatView>
         margin: const EdgeInsets.symmetric(vertical: 16),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFDADDD8).withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
+          color: const Color(0xFFCE2161),
+          borderRadius: BorderRadius.circular(50),
         ),
         child: Text(
           dateText,
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: Color(0xFF00171F),
+            color: Color(0xFFFFFFFF),
           ),
         ),
       ),

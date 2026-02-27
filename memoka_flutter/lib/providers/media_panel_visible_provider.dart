@@ -1,13 +1,14 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'media_panel_visible_provider.g.dart';
 
-/// Manages the visibility state of the media panel on mobile/tablet devices.
-/// On desktop, the panel is always visible and this state is not used.
+/// Manages the visibility state of the media panel.
+/// Defaults to visible on web (desktop), hidden on native (mobile).
 @riverpod
 class MediaPanelVisible extends _$MediaPanelVisible {
   @override
-  bool build() => false;
+  bool build() => kIsWeb;
 
   void toggle() {
     state = !state;

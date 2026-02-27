@@ -6,10 +6,10 @@ part of 'media_panel_visible_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mediaPanelVisibleHash() => r'754889006bd870674f6ab6bcb14394d737bd7192';
+String _$mediaPanelVisibleHash() => r'efa308357adc5d3b8e684024ded4920405cb3b52';
 
-/// Manages the visibility state of the media panel on mobile/tablet devices.
-/// On desktop, the panel is always visible and this state is not used.
+/// Manages the visibility state of the media panel.
+/// Defaults to visible on web (desktop), hidden on native (mobile).
 ///
 /// Copied from [MediaPanelVisible].
 @ProviderFor(MediaPanelVisible)
