@@ -29,6 +29,10 @@ Stream<ChatEvent> chatStream(Ref ref) async* {
   const maxDelay = 10;
 
   while (!cancelled) {
+    // Reset to connecting immediately so the UI hides the offline banner
+    // while the health ping is in flight (prevents brief flash on resume).
+    ref.read(connectionProvider.notifier).setConnecting();
+
     try {
       if (kIsWeb) {
         await webHealthPing('${getWebServerUrl()}/healthcheck');

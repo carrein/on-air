@@ -49,6 +49,12 @@ class Connection extends _$Connection {
     return ConnectionState.connecting;
   }
 
+  void setConnecting() {
+    if (state != ConnectionState.connecting) {
+      state = ConnectionState.connecting;
+    }
+  }
+
   void setConnected() {
     _reconnectScheduled = false;
     if (state != ConnectionState.connected) {

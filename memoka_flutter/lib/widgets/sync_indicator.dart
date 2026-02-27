@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../providers/connection_provider.dart' as conn;
+import '../providers/debounced_connection_provider.dart';
 import '../providers/dirty_sync_count_provider.dart';
 import '../providers/sync_engine_provider.dart';
 
@@ -18,7 +19,7 @@ class SyncIndicator extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final connState = ref.watch(conn.connectionProvider);
+    final connState = ref.watch(debouncedConnectionProvider);
     final countAsync = ref.watch(dirtySyncCountProvider);
     ref.watch(syncEngineProvider);
 

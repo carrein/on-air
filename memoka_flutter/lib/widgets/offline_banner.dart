@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/connection_provider.dart' as conn;
+import '../providers/debounced_connection_provider.dart';
 
 /// Banner displayed when the server connection is lost.
 ///
-/// Purely reactive — watches [connectionProvider] and shows the banner only
-/// when the state is [ConnectionState.disconnected]. Hidden during the initial
-/// [connecting] phase (before the first health ping completes) and when
-/// [connected].
+/// Watches [debouncedConnectionProvider] which delays the transition to
+/// [disconnected] by 1.5s, preventing a brief flash when the app resumes
+/// from background and the health ping hasn't completed yet.
 class OfflineBanner extends ConsumerWidget {
   const OfflineBanner({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(conn.connectionProvider);
+    final state = ref.watch(debouncedConnectionProvider);
 
     if (state != conn.ConnectionState.disconnected) {
       return const SizedBox.shrink();
