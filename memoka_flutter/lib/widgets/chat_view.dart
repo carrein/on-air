@@ -504,7 +504,7 @@ class _ChatViewState extends ConsumerState<ChatView>
         child: Text(
           dateText,
           style: const TextStyle(
-            fontSize: 14,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
             color: Color(0xFFFFFFFF),
           ),
