@@ -144,19 +144,19 @@ class SettingsView extends ConsumerWidget {
           ),
         ),
         ListTile(
-            leading: PhosphorIcon(
-              PhosphorIcons.info(),
-              color: const Color(0xFF00171F),
-              size: 20,
+          leading: PhosphorIcon(
+            PhosphorIcons.info(),
+            color: const Color(0xFF00171F),
+            size: 20,
+          ),
+          title: const Text('Version', style: TextStyle(fontSize: 14)),
+          subtitle: Text(
+            _appVersion,
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF00171F).withValues(alpha: 0.5),
             ),
-            title: const Text('Version', style: TextStyle(fontSize: 14)),
-            subtitle: Text(
-              _appVersion,
-              style: TextStyle(
-                fontSize: 12,
-                color: const Color(0xFF00171F).withValues(alpha: 0.5),
-              ),
-            ),
+          ),
         ),
       ],
     );
