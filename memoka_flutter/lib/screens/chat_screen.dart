@@ -39,7 +39,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   StreamSubscription<html.Event>? _visibilitySubscription;
   StreamSubscription<html.Event>? _onlineSubscription;
-  StreamSubscription<html.Event>? _popStateSubscription;
 
   // Register on web and desktop (not mobile where physical keyboard is absent).
   static bool get _useKeyboardHandler =>
@@ -67,23 +66,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _onlineSubscription = html.window.onOnline.listen((_) {
         _kickReconnectIfNeeded();
       });
-
-      // If the URL contains /settings, push /app/ first so browser back
-      // has somewhere to go, then push /settings on top.
-      if (Uri.base.path.contains('/settings')) {
-        html.window.history.replaceState(null, '', '/app/');
-        html.window.history.pushState(null, '', '/app/settings');
-        ref.read(settingsVisibilityProvider.notifier).setWithoutPush(true);
-      }
-
-      // Handle browser back/forward button to toggle settings.
-      _popStateSubscription = html.window.onPopState.listen((_) {
-        final isSettings =
-            html.window.location.pathname?.contains('/settings') ?? false;
-        ref
-            .read(settingsVisibilityProvider.notifier)
-            .setWithoutPush(isSettings);
-      });
     }
 
     // Eagerly start the sync engine and chat stream so connectivity
@@ -101,7 +83,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     WidgetsBinding.instance.removeObserver(this);
     _visibilitySubscription?.cancel();
     _onlineSubscription?.cancel();
-    _popStateSubscription?.cancel();
     if (_useKeyboardHandler) {
       HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
     }
@@ -318,51 +299,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
-      child: PopScope(
-        canPop: !isInDetailMode,
-        onPopInvokedWithResult: (didPop, _) {
-          if (didPop) return;
-          // Close settings or archive instead of exiting the app.
-          if (isShowingSettings) {
-            ref.read(settingsVisibilityProvider.notifier).hide();
-          } else if (isArchive) {
-            final previousId = ref.read(previousChannelProvider);
-            if (previousId != null) {
-              ref
-                  .read(currentChannelProvider.notifier)
-                  .switchChannel(previousId);
-              ref.read(previousChannelProvider.notifier).state = null;
-            } else {
-              final chs = ref.read(channelsProvider).valueOrNull ?? [];
-              final first = chs.where((c) => !c.isSystemChannel).firstOrNull;
-              if (first != null) {
-                ref
-                    .read(currentChannelProvider.notifier)
-                    .switchChannel(first.id!);
-              }
-            }
-          }
-        },
-        child: Scaffold(
-          backgroundColor: const Color(0xFFF6F0ED),
-          body: SafeArea(
-            child: Column(
-              children: [
-                const OfflineBanner(),
-                const Navbar(),
-                Expanded(
-                  child: Row(
-                    children: [
-                      if (!isInDetailMode) const ChannelList(),
-                      buildContentColumn(),
-                      if (showMediaPanel && !isInDetailMode) const MediaPanel(),
-                    ],
-                  ),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6F0ED),
+        body: SafeArea(
+          child: Column(
+            children: [
+              const OfflineBanner(),
+              const Navbar(),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (!isInDetailMode) const ChannelList(),
+                    buildContentColumn(),
+                    if (showMediaPanel && !isInDetailMode) const MediaPanel(),
+                  ],
                 ),
-                if (isMobile && !isArchive && !isShowingSettings)
-                  const NoteInput(),
-              ],
-            ),
+              ),
+              if (isMobile && !isArchive && !isShowingSettings)
+                const NoteInput(),
+            ],
           ),
         ),
       ),
