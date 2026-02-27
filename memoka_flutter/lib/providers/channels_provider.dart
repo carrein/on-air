@@ -132,37 +132,10 @@ class Channels extends _$Channels {
     String? emoji,
     bool? pinned,
   }) async {
-    if (_isOnline) {
-      try {
-        await client.chat.updateChannel(
-          id,
-          name: name,
-          emoji: emoji,
-          pinned: pinned,
-        );
-        // Optimistic local update + cache
-        final current = state.valueOrNull ?? [];
-        final updated = current.map((c) {
-          if (c.id != id) return c;
-          return c.copyWith(
-            name: name ?? c.name,
-            emoji: emoji ?? c.emoji,
-            pinned: pinned ?? c.pinned,
-          );
-        }).toList();
-        state = AsyncData(updated);
-        final db = ref.read(appDatabaseProvider);
-        await db.cacheChannels(updated);
-        return;
-      } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
-        // Network error — fall through to offline path
-      }
-    }
-
-    // Offline: update cached entry as dirty
-    final current = state.valueOrNull ?? [];
-    final updated = current.map((c) {
+    // Optimistic local update FIRST — prevents flicker from the WebSocket
+    // echo that arrives while the network call is in flight.
+    final previous = state.valueOrNull ?? [];
+    final updated = previous.map((c) {
       if (c.id != id) return c;
       return c.copyWith(
         name: name ?? c.name,
@@ -172,6 +145,28 @@ class Channels extends _$Channels {
     }).toList();
     state = AsyncData(updated);
 
+    if (_isOnline) {
+      try {
+        await client.chat.updateChannel(
+          id,
+          name: name,
+          emoji: emoji,
+          pinned: pinned,
+        );
+        final db = ref.read(appDatabaseProvider);
+        await db.cacheChannels(updated);
+        return;
+      } catch (e) {
+        if (!_isNetworkError(e)) {
+          // Revert optimistic update on non-network error
+          state = AsyncData(previous);
+          rethrow;
+        }
+        // Network error — fall through to offline path
+      }
+    }
+
+    // Offline: persist as dirty
     final db = ref.read(appDatabaseProvider);
     final channel = updated.firstWhere(
       (c) => c.id == id,

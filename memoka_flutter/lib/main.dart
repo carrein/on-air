@@ -102,11 +102,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Memoka',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
         fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: const Color(0xFFCE2161),
+          selectionColor: const Color(0xFFCE2161).withValues(alpha: 0.3),
+          selectionHandleColor: const Color(0xFFCE2161),
+        ),
       ),
       home: needsServerSetup ? const ServerSetupScreen() : const ChatScreen(),
     );

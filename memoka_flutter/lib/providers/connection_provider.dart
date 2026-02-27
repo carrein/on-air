@@ -5,7 +5,7 @@ import 'chat_stream_provider.dart';
 
 part 'connection_provider.g.dart';
 
-enum ConnectionState { connected, disconnected }
+enum ConnectionState { connecting, connected, disconnected }
 
 /// Tracks server connectivity via the WebSocket lifecycle and OS network events.
 ///
@@ -44,8 +44,9 @@ class Connection extends _$Connection {
 
     ref.onDispose(sub.cancel);
 
-    // Start disconnected; WebSocket will confirm once connected.
-    return ConnectionState.disconnected;
+    // Start in connecting state; WebSocket lifecycle will transition to
+    // connected or disconnected after the first health ping completes.
+    return ConnectionState.connecting;
   }
 
   void setConnected() {

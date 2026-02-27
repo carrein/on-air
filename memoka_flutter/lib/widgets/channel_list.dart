@@ -395,7 +395,7 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                           )
                         : PhosphorIcon(
                             getChannelIcon(channel.emoji),
-                            size: 22,
+                            size: 20,
                             color: isSelected ? Colors.white : _textColor,
                           ),
                   ),

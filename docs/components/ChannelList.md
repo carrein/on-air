@@ -38,7 +38,7 @@ Individual channel row within the channel list.
 - **Gap** between icon and text: 8px
 
 **Compact (mobile — 64px sidebar):**
-- Channel icon only (22px), vertically centred, no text or preview
+- Channel icon only (20px), vertically centred, no text or preview
 - **Pinned indicator**: same circle border treatment as desktop (38×38px, 1.5px border)
 - Selected state: full-row `brand.primary` background with white icon; circle border turns white
 

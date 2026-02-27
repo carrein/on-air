@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -15,14 +16,20 @@ import '../utils/icon_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
+import 'icon_picker.dart';
 import 'media_panel.dart';
 import 'new_channel_modal.dart';
 import 'sync_indicator.dart';
 
 /// Navbar displaying the current channel name and a menu button.
-class Navbar extends ConsumerWidget {
+class Navbar extends ConsumerStatefulWidget {
   const Navbar({super.key});
 
+  @override
+  ConsumerState<Navbar> createState() => _NavbarState();
+}
+
+class _NavbarState extends ConsumerState<Navbar> {
   static const _backgroundColor = Color(0xFFF6F0ED);
   static const _borderColor = Color(0xFFCE2161);
   static const _textColor = Color(0xFF00171F);
@@ -46,8 +53,90 @@ class Navbar extends ConsumerWidget {
     bottom: 8,
   );
 
+  // -- Inline rename (web only) --
+  bool _isRenaming = false;
+  final _renameController = TextEditingController();
+  final _renameFocusNode = FocusNode();
+
+  // Cache the last known channel to prevent title flicker during provider updates.
+  Channel? _lastChannel;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    _renameFocusNode.addListener(_onRenameFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _renameFocusNode.removeListener(_onRenameFocusChange);
+    _renameFocusNode.dispose();
+    _renameController.dispose();
+    super.dispose();
+  }
+
+  void _startRename(Channel channel) {
+    setState(() {
+      _isRenaming = true;
+      _renameController.text = channel.name;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _renameFocusNode.requestFocus();
+      _renameController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _renameController.text.length,
+      );
+    });
+  }
+
+  Future<void> _commitRename() async {
+    if (!_isRenaming) return;
+    _isRenaming = false; // Prevent re-entry from concurrent handlers
+    final name = _renameController.text.trim();
+    final channelId = ref.read(currentChannelProvider).valueOrNull;
+    if (name.isNotEmpty && channelId != null) {
+      // Await so the provider state is updated before we rebuild.
+      // This avoids a flicker where the old name briefly appears.
+      await ref
+          .read(channelsProvider.notifier)
+          .updateChannel(channelId, name: name);
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _cancelRename() {
+    setState(() => _isRenaming = false);
+  }
+
+  void _onRenameFocusChange() {
+    if (!_renameFocusNode.hasFocus && _isRenaming) {
+      _commitRename();
+    }
+  }
+
+  void _createChannel() {
+    NewChannelModal.show(
+      context,
+      onConfirm: (name, emoji) async {
+        final ch = await ref
+            .read(channelsProvider.notifier)
+            .createChannel(name, emoji: emoji);
+        ref.read(currentChannelProvider.notifier).switchChannel(ch.id!);
+      },
+    );
+  }
+
+  void _onIconTap(Channel channel) async {
+    final key = await IconPicker.show(context, selectedKey: channel.emoji);
+    if (key != null && mounted) {
+      ref
+          .read(channelsProvider.notifier)
+          .updateChannel(channel.id!, emoji: key);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
     final channelsAsync = ref.watch(channelsProvider);
     final isShowingSettings = ref.watch(settingsVisibilityProvider);
@@ -57,7 +146,7 @@ class Navbar extends ConsumerWidget {
     final isDesktop = ResponsiveUtils.isDesktop(context);
 
     if (isSelectionMode) {
-      return _buildSelectionBar(context, ref, selection);
+      return _buildSelectionBar(selection);
     }
 
     final currentChannelId = currentChannelAsync.valueOrNull;
@@ -80,7 +169,7 @@ class Navbar extends ConsumerWidget {
           if (isInDetailMode) ...[
             IconButtonStyled(
               icon: PhosphorIcons.arrowCircleLeft(),
-              onPressed: () => _goBack(context, ref),
+              onPressed: _goBack,
             ),
             const SizedBox(width: 4),
           ],
@@ -95,36 +184,42 @@ class Navbar extends ConsumerWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                const SyncIndicator(),
+                const SizedBox(width: 2),
                 if (currentChannel != null) ...[
                   IconButtonStyled(
                     icon: currentChannel.pinned
                         ? PhosphorIcons.pushPinSlash()
                         : PhosphorIcons.pushPin(),
                     onPressed: () => _togglePin(
-                      ref,
                       currentChannel.id!,
                       !currentChannel.pinned,
                     ),
                   ),
                   const SizedBox(width: 4),
                 ],
-                if (isDesktop) ...[
-                  Transform.rotate(
-                    angle: math.pi,
-                    child: IconButtonStyled(
-                      icon: mediaPanelVisible
-                          ? PhosphorIconsFill.sidebar
-                          : PhosphorIcons.sidebar(),
-                      onPressed: () =>
-                          ref.read(mediaPanelVisibleProvider.notifier).toggle(),
-                    ),
+                Transform.rotate(
+                  angle: math.pi,
+                  child: IconButtonStyled(
+                    icon: mediaPanelVisible
+                        ? PhosphorIconsFill.sidebar
+                        : PhosphorIcons.sidebar(),
+                    onPressed: isDesktop
+                        ? () => ref
+                              .read(mediaPanelVisibleProvider.notifier)
+                              .toggle()
+                        : _showMediaBottomSheet,
                   ),
-                  const SizedBox(width: 4),
-                ],
-                const SyncIndicator(),
+                ),
+                const SizedBox(width: 4),
                 IconButtonStyled(
-                  icon: PhosphorIcons.dotsThreeCircle(),
-                  onPressed: () => _showNavbarMenu(context, ref),
+                  icon: PhosphorIcons.plusSquare(),
+                  onPressed: _createChannel,
+                ),
+                const SizedBox(width: 4),
+                IconButtonStyled(
+                  icon: PhosphorIcons.dotsThreeOutline(),
+                  onPressed: _showNavbarMenu,
                 ),
               ],
             ),
@@ -133,11 +228,7 @@ class Navbar extends ConsumerWidget {
     );
   }
 
-  Widget _buildSelectionBar(
-    BuildContext context,
-    WidgetRef ref,
-    Set<int> selection,
-  ) {
+  Widget _buildSelectionBar(Set<int> selection) {
     return Container(
       padding: _paddingStandard,
       decoration: const BoxDecoration(
@@ -171,7 +262,7 @@ class Navbar extends ConsumerWidget {
           const Spacer(),
           IconButtonStyled(
             icon: PhosphorIcons.archive(),
-            onPressed: () => _archiveSelected(context, ref, selection),
+            onPressed: () => _archiveSelected(selection),
           ),
           const SizedBox(width: 4),
           IconButtonStyled(
@@ -183,11 +274,7 @@ class Navbar extends ConsumerWidget {
     );
   }
 
-  Future<void> _archiveSelected(
-    BuildContext context,
-    WidgetRef ref,
-    Set<int> selection,
-  ) async {
+  Future<void> _archiveSelected(Set<int> selection) async {
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
     final notifier = ref.read(notesProvider(channelId).notifier);
@@ -195,7 +282,7 @@ class Navbar extends ConsumerWidget {
       await notifier.deleteNote(noteId);
     }
     ref.read(noteSelectionProvider.notifier).clear();
-    if (context.mounted) {
+    if (mounted) {
       ToastUtils.show(
         context,
         '${selection.length} note${selection.length == 1 ? '' : 's'} archived',
@@ -204,7 +291,7 @@ class Navbar extends ConsumerWidget {
     }
   }
 
-  void _goBack(BuildContext context, WidgetRef ref) {
+  void _goBack() {
     if (ref.read(settingsVisibilityProvider)) {
       ref.read(settingsVisibilityProvider.notifier).hide();
     } else {
@@ -240,24 +327,72 @@ class Navbar extends ConsumerWidget {
         return channelsAsync.when(
           skipLoadingOnReload: true,
           data: (channels) {
-            final channel = channels
-                .where((c) => c.id == channelId)
-                .firstOrNull;
+            final channel =
+                channels.where((c) => c.id == channelId).firstOrNull ??
+                _lastChannel;
             if (channel == null) return const SizedBox.shrink();
+            _lastChannel = channel;
+            final isDesktopPlatform = ResponsiveUtils.isDesktopPlatform;
             return Row(
               children: [
-                PhosphorIcon(
-                  getChannelIcon(channel.emoji),
-                  color: _textColor,
-                  size: 22,
+                GestureDetector(
+                  onTap: () => _onIconTap(channel),
+                  child: isDesktopPlatform
+                      ? MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: PhosphorIcon(
+                            getChannelIcon(channel.emoji),
+                            color: _textColor,
+                            size: 22,
+                          ),
+                        )
+                      : PhosphorIcon(
+                          getChannelIcon(channel.emoji),
+                          color: _textColor,
+                          size: 22,
+                        ),
                 ),
                 const SizedBox(width: 10),
                 Flexible(
-                  child: Text(
-                    channel.name,
-                    style: _titleStyle,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: _isRenaming
+                      ? KeyboardListener(
+                          focusNode: FocusNode(),
+                          onKeyEvent: (event) {
+                            if (event is KeyDownEvent &&
+                                event.logicalKey == LogicalKeyboardKey.escape) {
+                              _cancelRename();
+                            }
+                          },
+                          child: TextField(
+                            controller: _renameController,
+                            focusNode: _renameFocusNode,
+                            style: _titleStyle,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              border: InputBorder.none,
+                            ),
+                            onSubmitted: (_) => _commitRename(),
+                            onTapOutside: (_) => _commitRename(),
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: () => _startRename(channel),
+                          child: isDesktopPlatform
+                              ? MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: Text(
+                                    channel.name,
+                                    style: _titleStyle,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                )
+                              : Text(
+                                  channel.name,
+                                  style: _titleStyle,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                        ),
                 ),
               ],
             );
@@ -271,7 +406,7 @@ class Navbar extends ConsumerWidget {
     );
   }
 
-  void _showNavbarMenu(BuildContext context, WidgetRef ref) async {
+  void _showNavbarMenu() async {
     final currentChannelId = ref.read(currentChannelProvider).value;
     final channels = ref.read(channelsProvider).value ?? [];
     final channel = (currentChannelId != null && currentChannelId != -1)
@@ -283,7 +418,6 @@ class Navbar extends ConsumerWidget {
     final canArchive = channels.where((c) => !c.isSystemChannel).length > 1;
 
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final showMedia = !ResponsiveUtils.shouldShowMediaPanel(context);
 
     final result = await showMenu<String>(
       context: context,
@@ -325,16 +459,6 @@ class Navbar extends ConsumerWidget {
         ],
         // Global actions
         PopupMenuItem(
-          value: 'new_channel',
-          child: Row(
-            children: [
-              Icon(PhosphorIcons.plusCircle(), color: _textColor, size: 20),
-              const SizedBox(width: 12),
-              const Text('New Channel', style: TextStyle(color: _textColor)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
           value: 'archive',
           child: Row(
             children: [
@@ -344,17 +468,6 @@ class Navbar extends ConsumerWidget {
             ],
           ),
         ),
-        if (showMedia)
-          PopupMenuItem(
-            value: 'media',
-            child: Row(
-              children: [
-                Icon(PhosphorIcons.images(), color: _textColor, size: 20),
-                const SizedBox(width: 12),
-                const Text('Media', style: TextStyle(color: _textColor)),
-              ],
-            ),
-          ),
         PopupMenuItem(
           value: 'settings',
           child: Row(
@@ -368,30 +481,16 @@ class Navbar extends ConsumerWidget {
       ],
     );
 
-    if (!context.mounted || result == null) return;
+    if (!mounted || result == null) return;
 
     switch (result) {
       case 'edit_channel':
-        if (channel != null) _showEditChannelDialog(context, ref, channel);
+        if (channel != null) _showEditChannelDialog(channel);
         break;
       case 'archive_channel':
-        if (channel != null && context.mounted) {
-          _archiveChannel(context, ref, channel.id!);
+        if (channel != null && mounted) {
+          _archiveChannel(channel.id!);
         }
-        break;
-      case 'new_channel':
-        NewChannelModal.show(
-          context,
-          onConfirm: (name, emoji) async {
-            final ch = await ref
-                .read(channelsProvider.notifier)
-                .createChannel(
-                  name,
-                  emoji: emoji,
-                );
-            ref.read(currentChannelProvider.notifier).switchChannel(ch.id!);
-          },
-        );
         break;
       case 'archive':
         ref.read(previousChannelProvider.notifier).state = ref
@@ -401,9 +500,6 @@ class Navbar extends ConsumerWidget {
         ref.read(settingsVisibilityProvider.notifier).hide();
         ref.read(currentChannelProvider.notifier).switchChannel(-1);
         break;
-      case 'media':
-        _showMediaBottomSheet(context);
-        break;
       case 'settings':
         ref.read(currentSettingsPageProvider.notifier).showMain();
         ref.read(settingsVisibilityProvider.notifier).show();
@@ -411,11 +507,7 @@ class Navbar extends ConsumerWidget {
     }
   }
 
-  void _showEditChannelDialog(
-    BuildContext context,
-    WidgetRef ref,
-    Channel channel,
-  ) {
+  void _showEditChannelDialog(Channel channel) {
     NewChannelModal.show(
       context,
       channel: channel,
@@ -431,17 +523,13 @@ class Navbar extends ConsumerWidget {
     );
   }
 
-  void _togglePin(WidgetRef ref, int channelId, bool pinned) {
+  void _togglePin(int channelId, bool pinned) {
     ref
         .read(channelsProvider.notifier)
         .updateChannel(channelId, pinned: pinned);
   }
 
-  void _archiveChannel(
-    BuildContext context,
-    WidgetRef ref,
-    int channelId,
-  ) async {
+  void _archiveChannel(int channelId) async {
     try {
       final currentId = ref.read(currentChannelProvider).value;
       await ref.read(channelsProvider.notifier).archiveChannel(channelId);
@@ -453,11 +541,11 @@ class Navbar extends ConsumerWidget {
               .switchChannel(chs.first.id!);
         }
       }
-      if (context.mounted) {
+      if (mounted) {
         ToastUtils.show(context, 'Channel archived', type: ToastType.success);
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ToastUtils.show(
           context,
           e.toString().replaceFirst('Exception: ', ''),
@@ -467,7 +555,7 @@ class Navbar extends ConsumerWidget {
     }
   }
 
-  void _showMediaBottomSheet(BuildContext context) {
+  void _showMediaBottomSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

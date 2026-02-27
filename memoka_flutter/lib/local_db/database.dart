@@ -179,7 +179,14 @@ class AppDatabase extends _$AppDatabase {
         )
         .where((ch) => !ch.archived)
         .toList();
-    channels.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    // Match server sort: pinned first, then position, then updatedAt desc
+    channels.sort((a, b) {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      final posCmp = a.position.compareTo(b.position);
+      if (posCmp != 0) return posCmp;
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
     return channels;
   }
 

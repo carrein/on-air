@@ -8,13 +8,13 @@ import '../providers/sync_engine_provider.dart';
 
 /// Navbar indicator showing offline/syncing state.
 ///
-/// - Hidden when connected with no pending mutations.
-/// - Amber cloud-slash icon when offline (with optional count badge).
+/// - Hidden when connected with no pending mutations, or during initial boot.
+/// - Brand-accent cloud-slash icon when offline (with optional count badge).
 /// - Spinning arrows icon when online and draining the queue.
 class SyncIndicator extends ConsumerWidget {
   const SyncIndicator({super.key});
 
-  static const _amberColor = Color(0xFFFFE236);
+  static const _accentColor = Color(0xFFCE2161);
   static const _textColor = Color(0xFF00171F);
 
   @override
@@ -23,54 +23,44 @@ class SyncIndicator extends ConsumerWidget {
     final countAsync = ref.watch(dirtySyncCountProvider);
     ref.watch(syncEngineProvider);
 
-    final isOnline = connState == conn.ConnectionState.connected;
+    final isOffline = connState == conn.ConnectionState.disconnected;
+    final isConnected = connState == conn.ConnectionState.connected;
     final count = countAsync.valueOrNull ?? 0;
 
-    if (isOnline && count == 0) return const SizedBox.shrink();
+    // Hide during initial connecting phase and when online with nothing to sync.
+    if (isConnected && count == 0) return const SizedBox.shrink();
+    if (!isConnected && !isOffline) return const SizedBox.shrink();
 
-    if (!isOnline) {
-      // Offline indicator
-      return _buildBadge(
-        icon: PhosphorIcons.cloudSlash(),
-        color: _amberColor,
-        count: count,
-      );
-    }
-
-    // Online but draining
-    return _SpinningIcon(
-      icon: PhosphorIcons.arrowsClockwise(),
-      color: _textColor,
-    );
-  }
-
-  Widget _buildBadge({
-    required IconData icon,
-    required Color color,
-    required int count,
-  }) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: PhosphorIcon(icon, color: color, size: 22),
-        ),
-        if (count > 0)
-          Positioned(
-            right: 2,
-            top: 2,
+    if (isOffline) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(
+              left: 8,
+              top: 8,
+              bottom: 8,
+              right: 4,
+            ),
+            child: PhosphorIcon(
+              PhosphorIcons.plugs(),
+              color: _accentColor,
+              size: 22,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
             child: Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: color,
+              padding: const EdgeInsets.all(5),
+              decoration: const BoxDecoration(
+                color: _accentColor,
                 shape: BoxShape.circle,
               ),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
               child: Text(
                 '$count',
                 style: const TextStyle(
-                  color: Color(0xFF00171F),
+                  color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -78,7 +68,14 @@ class SyncIndicator extends ConsumerWidget {
               ),
             ),
           ),
-      ],
+        ],
+      );
+    }
+
+    // Online but draining
+    return _SpinningIcon(
+      icon: PhosphorIcons.arrowsClockwise(),
+      color: _textColor,
     );
   }
 }

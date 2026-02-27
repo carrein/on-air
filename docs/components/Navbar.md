@@ -5,7 +5,7 @@
 The Navbar is the channel title bar displayed at the top of the screen. It renders in one of three modes depending on app state: **standard** (channel name + menu), **detail** (back button + plain title for settings/archive), or **selection** (bulk-action bar when notes are selected).
 
 **File**: `memoka_flutter/lib/widgets/navbar.dart`
-**Widget**: `Navbar` (ConsumerWidget)
+**Widget**: `Navbar` (ConsumerStatefulWidget)
 
 ## Modes
 
@@ -16,7 +16,7 @@ Shown when viewing a real channel (not archive, not settings).
 - **Background**: `core.surface` (`#F6F0ED`)
 - **Bottom border**: 1px `brand.primary` (`#CE2161`)
 - **Padding**: `_padding` — horizontal 16px, vertical 8px (uniform across all modes)
-- **Layout**: `[channel icon + name (Expanded)]` + `[pin button?]` + `[media panel toggle? desktop only]` + `[menu button]`
+- **Layout**: `[channel icon + name (Expanded)]` + `[sync indicator]` + `[pin button?]` + `[media panel toggle]` + `[new channel button]` + `[menu button]`
 
 #### Channel Title
 
@@ -24,6 +24,20 @@ Left-aligned icon + text showing the current channel.
 
 - Phosphor Fill icon (22px) + channel name at 20px bold, `core.text` (`#00171F`)
 - Ellipsis overflow for long names
+- **Tap icon**: opens `IconPicker` to change channel icon (all platforms)
+- **Tap name**: enters inline rename mode — replaces text with a borderless `TextField` pre-filled and fully selected (all platforms)
+  - Submit on Enter or tap outside to commit
+  - Escape to cancel (desktop/web)
+  - `MouseRegion` with click cursor on desktop/web platforms
+- Caches last known channel (`_lastChannel`) to prevent flicker during provider transitions
+
+#### Sync Indicator
+
+Leftmost item in the action row. Renders `SyncIndicator` widget.
+
+- **Hidden** when connected with zero dirty entities, or during initial `connecting` phase
+- **Offline**: `PhosphorIcons.plugs()` in `brand.primary` (`#CE2161`) + circle badge with dirty count (white text on `#CE2161`)
+- **Syncing** (online with pending): spinning `arrowsClockwise` icon
 
 #### Pin Button
 
@@ -33,19 +47,26 @@ Inline icon button, using `IconButtonStyled`.
 - Visible only when a real channel is active (hidden on Archive)
 - Tap immediately toggles the pinned state via `channelsProvider.notifier.updateChannel`
 
-#### Media Panel Toggle (desktop only)
+#### Media Panel Toggle
 
-Icon button between the pin button and three-dot menu, visible only on desktop.
+Icon button between the pin button and new channel button, always visible.
 
 - Icon: `PhosphorIcons.sidebar()` (rotated 180°) when panel is hidden; `PhosphorIconsFill.sidebar` (rotated 180°) when visible
-- Tap toggles `mediaPanelVisibleProvider`; panel defaults to hidden on startup
-- Hidden on mobile (media accessible via bottom sheet in the menu instead)
+- **Desktop**: tap toggles `mediaPanelVisibleProvider` sidebar panel; defaults to hidden on startup
+- **Mobile/tablet**: tap opens media bottom sheet (see below)
+
+#### New Channel Button
+
+Icon button to the left of the menu button.
+
+- Icon: `PhosphorIcons.plusSquare()`
+- Opens `NewChannelModal` in create mode; on confirm, switches to the new channel
 
 #### Menu Button
 
 Right-aligned button using `IconButtonStyled`.
 
-- Icon: `PhosphorIcons.dotsThreeCircle()`
+- Icon: `PhosphorIcons.dotsThreeOutline()`
 - Opens a popup menu on tap
 
 #### Popup Menu
@@ -67,9 +88,7 @@ Light popup menu anchored to the top-right corner.
 
 | Item | Icon | Action |
 |------|------|--------|
-| New Channel | `plusCircle` | Opens `NewChannelModal` in create mode |
 | Archive | `archive` | Navigates to the Archive channel (`-1`) |
-| Media | `images` | Opens media bottom sheet (mobile/tablet only) |
 | Settings | `gear` | Opens settings view |
 
 ### Detail Mode
@@ -122,7 +141,7 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 | Element       | Size  | Weight | Color      |
 |---------------|-------|--------|------------|
 | Channel title | 20px  | Bold   | `#00171F`  |
-| Selection count | 16px | w500  | `#00171F`  |
+| Selection count | 16px | w700 (number), w500 (label) | `#00171F`  |
 | Menu items    | 14px  | Normal | `#00171F`  |
 
 ### Dimensions
@@ -156,7 +175,7 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 - Draggable to resize between 50–95% of screen height
 - Tap outside the sheet to dismiss
 - Contains the same `MediaPanel` widget used on desktop, with `fixedWidth: false`
-- Only accessible from the menu on mobile/tablet (when `shouldShowMediaPanel` returns false)
+- On mobile/tablet, opened via the media panel toggle button in the navbar
 
 ## State Management
 
@@ -196,6 +215,8 @@ The `Navbar` is placed in the `ChatScreen` column above the main `Row` layout. I
 |------|-------------|
 | `lib/widgets/navbar.dart` | This component |
 | `lib/widgets/icon_button_styled.dart` | All icon buttons |
+| `lib/widgets/icon_picker.dart` | Icon selection dialog for channel icon |
+| `lib/widgets/sync_indicator.dart` | Offline/syncing indicator |
 | `lib/widgets/media_panel.dart` | Media content in bottom sheet |
 | `lib/widgets/new_channel_modal.dart` | Channel create/edit dialog |
 | `lib/screens/chat_screen.dart` | Parent layout |
