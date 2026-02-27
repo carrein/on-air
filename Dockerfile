@@ -14,8 +14,9 @@ COPY memoka_client/ ./memoka_client/
 
 # Build Flutter web app
 WORKDIR /build/memoka_flutter
+ARG APP_VERSION=DEV
 RUN flutter pub get
-RUN flutter build web --release --base-href /app/
+RUN flutter build web --release --base-href /app/ --dart-define=APP_VERSION=${APP_VERSION}
 
 # Stage 2: Serverpod Server Build
 FROM dart:stable AS server_builder

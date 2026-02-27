@@ -54,7 +54,7 @@ jobs:
         run: |
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"
-          flutter build apk --release --build-name="${VERSION}" --build-number="${{ github.run_number }}"
+          flutter build apk --release --build-name="${VERSION}" --build-number="${{ github.run_number }}" --dart-define=APP_VERSION="${VERSION}"
         working-directory: memoka_flutter
 
       - name: Upload APK to release
@@ -113,6 +113,13 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
+      # Extract version string (strip leading 'v')
+      - name: Set version
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          echo "app_version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
       # Build and push Docker image
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -121,5 +128,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.app_version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

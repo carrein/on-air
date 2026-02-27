@@ -1,22 +1,14 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/background_provider.dart';
 import '../main.dart';
 import '../screens/server_setup_screen.dart';
 
-/// Build-time version override via --dart-define=APP_VERSION=x.y.z.
-const _buildTimeVersion = String.fromEnvironment('APP_VERSION');
-
-/// Resolves app version: build-time override > PackageInfo > fallback.
-Future<String> _resolveAppVersion() async {
-  if (_buildTimeVersion.isNotEmpty) return _buildTimeVersion;
-  final info = await PackageInfo.fromPlatform();
-  if (info.version.isNotEmpty) return info.version;
-  return '—';
-}
+/// Build-time version via --dart-define=APP_VERSION=$(git describe --tags --abbrev=0).
+/// Shows the git tag version in production builds, "DEV" in local dev.
+const _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'DEV');
 
 /// Settings view widget (displayed in main content area)
 class SettingsView extends ConsumerWidget {
@@ -151,9 +143,7 @@ class SettingsView extends ConsumerWidget {
             ),
           ),
         ),
-        FutureBuilder<String>(
-          future: _resolveAppVersion(),
-          builder: (context, snapshot) => ListTile(
+        ListTile(
             leading: PhosphorIcon(
               PhosphorIcons.info(),
               color: const Color(0xFF00171F),
@@ -161,13 +151,12 @@ class SettingsView extends ConsumerWidget {
             ),
             title: const Text('Version', style: TextStyle(fontSize: 14)),
             subtitle: Text(
-              snapshot.data ?? '—',
+              _appVersion,
               style: TextStyle(
                 fontSize: 12,
                 color: const Color(0xFF00171F).withValues(alpha: 0.5),
               ),
             ),
-          ),
         ),
       ],
     );
