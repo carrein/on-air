@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:memoka_flutter/local_db/database.dart';
 import 'package:memoka_flutter/providers/chat_stream_provider.dart';
 import 'package:memoka_flutter/providers/connection_provider.dart' as conn;
+import 'package:memoka_flutter/providers/debounced_connection_provider.dart';
 import 'package:memoka_flutter/providers/dirty_sync_count_provider.dart';
 import 'package:memoka_flutter/widgets/sync_indicator.dart';
 
@@ -17,8 +18,16 @@ class _TestConnection extends conn.Connection {
   conn.ConnectionState build() => _initialState;
 }
 
+/// Bypasses the 1.5s debounce — passes through the raw connection state.
+class _TestDebouncedConnection extends DebouncedConnection {
+  final conn.ConnectionState _initialState;
+  _TestDebouncedConnection(this._initialState);
+
+  @override
+  conn.ConnectionState build() => _initialState;
+}
+
 void main() {
-  // Shared in-memory database across tests to avoid drift's multiple-instance warning.
   late AppDatabase testDb;
 
   setUp(() {
@@ -36,6 +45,9 @@ void main() {
         appDatabaseProvider.overrideWithValue(testDb),
         conn.connectionProvider.overrideWith(
           () => _TestConnection(connectionState),
+        ),
+        debouncedConnectionProvider.overrideWith(
+          () => _TestDebouncedConnection(connectionState),
         ),
         dirtySyncCountProvider.overrideWith(
           (_) => Stream.value(pendingCount),
@@ -60,11 +72,10 @@ void main() {
       );
       await tester.pump();
 
-      // SyncIndicator should render SizedBox.shrink (no visible icon)
       expect(find.byType(PhosphorIcon), findsNothing);
     });
 
-    testWidgets('shows cloud-slash icon when disconnected', (tester) async {
+    testWidgets('shows count badge when disconnected', (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
           connectionState: conn.ConnectionState.disconnected,
@@ -73,7 +84,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byType(PhosphorIcon), findsOneWidget);
+      // Offline state shows a count badge (text '0'), not a PhosphorIcon
+      expect(find.text('0'), findsOneWidget);
     });
 
     testWidgets('shows count badge when disconnected with pending mutations', (
@@ -101,7 +113,6 @@ void main() {
       );
       await tester.pump();
 
-      // Should show a RotationTransition with a PhosphorIcon inside
       expect(
         find.descendant(
           of: find.byType(SyncIndicator),
