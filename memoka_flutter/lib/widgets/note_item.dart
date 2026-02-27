@@ -417,7 +417,7 @@ class _NoteConstraints extends StatelessWidget {
     }
     return IntrinsicWidth(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, minWidth: 300),
+        constraints: const BoxConstraints(maxWidth: 600, minWidth: 350),
         child: child,
       ),
     );

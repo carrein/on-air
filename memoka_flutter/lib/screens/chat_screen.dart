@@ -244,19 +244,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final isInDetailMode = isShowingSettings || isArchive;
 
     Widget getMainContent() {
-      final key = ValueKey(
-        isShowingSettings ? 'settings' : (isArchive ? 'archive' : 'chat'),
-      );
       return Expanded(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          transitionBuilder: (child, animation) => FadeTransition(
-            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
-            child: child,
-          ),
-          child: isShowingSettings
-              ? SettingsView(key: key)
-              : ChatView(key: key),
+        child: Stack(
+          children: [
+            // ChatView stays mounted so notesProvider stays alive
+            Offstage(
+              offstage: isShowingSettings,
+              child: const ChatView(),
+            ),
+            if (isShowingSettings)
+              AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: const SettingsView(),
+              ),
+          ],
         ),
       );
     }
@@ -293,13 +296,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return Expanded(child: inner);
     }
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF00171F),
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
+    return PopScope(
+      canPop: !isInDetailMode,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (isShowingSettings) {
+          ref.read(settingsVisibilityProvider.notifier).hide();
+        } else if (isArchive) {
+          final previousId = ref.read(previousChannelProvider);
+          if (previousId != null) {
+            ref.read(currentChannelProvider.notifier).switchChannel(previousId);
+            ref.read(previousChannelProvider.notifier).state = null;
+          } else {
+            final chs = ref.read(channelsProvider).valueOrNull ?? [];
+            final first = chs.where((c) => !c.isSystemChannel).firstOrNull;
+            if (first != null) {
+              ref
+                  .read(currentChannelProvider.notifier)
+                  .switchChannel(first.id!);
+            }
+          }
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Color(0xFF00171F),
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
         backgroundColor: const Color(0xFFF6F0ED),
         body: SafeArea(
           child: Column(
@@ -318,6 +343,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               if (isMobile && !isArchive && !isShowingSettings)
                 const NoteInput(),
             ],
+          ),
           ),
         ),
       ),

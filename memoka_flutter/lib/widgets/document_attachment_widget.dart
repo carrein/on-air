@@ -7,9 +7,17 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/download_utils.dart';
 import '../utils/file_utils.dart';
+import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
 
-/// Widget to display document attachments (PDF, TXT, DOC, etc.)
+/// Widget to display document attachments (PDF, APK, ZIP, etc.)
+///
+/// Native (Android): three states:
+///   1. Not downloaded → download icon
+///   2. Downloading → X (cancel) icon + progress bar
+///   3. Downloaded → eye (open) icon + floppy disk (save) icon
+///
+/// Web: always shows eye (open in browser) + download (browser save).
 class DocumentAttachmentWidget extends StatefulWidget {
   final MediaAttachment attachment;
   final String serverUrl;
@@ -30,10 +38,12 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   static const _accent = Color(0xFFCE2161);
 
   DownloadHandle? _downloadHandle;
+  String? _cachedPath;
   int _receivedBytes = 0;
   int _totalBytes = -1;
 
   bool get _isDownloading => _downloadHandle != null;
+  bool get _isDownloaded => _cachedPath != null;
 
   String get _extension =>
       FileUtils.getExtension(widget.attachment.originalFilename);
@@ -50,9 +60,23 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) _checkCache();
+  }
+
+  @override
   void dispose() {
     _downloadHandle?.cancel();
     super.dispose();
+  }
+
+  Future<void> _checkCache() async {
+    final path =
+        await DownloadUtils.getCachedPath(widget.attachment.originalFilename);
+    if (path != null && mounted) {
+      setState(() => _cachedPath = path);
+    }
   }
 
   @override
@@ -90,21 +114,7 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
               ),
             ),
             const SizedBox(width: 16),
-            IconButtonStyled(
-              icon: PhosphorIcons.handEye(),
-              onPressed: _handlePreview,
-              size: 20,
-            ),
-            const SizedBox(width: 4),
-            IconButtonStyled(
-              icon: _isDownloading
-                  ? PhosphorIcons.x()
-                  : PhosphorIcons.downloadSimple(),
-              onPressed: _isDownloading
-                  ? _cancelDownload
-                  : () => _handleDownload(context),
-              size: 20,
-            ),
+            if (kIsWeb) ..._buildWebActions() else ..._buildNativeActions(),
           ],
         ),
         if (_isDownloading) ...[
@@ -129,12 +139,121 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
     );
   }
 
-  Future<void> _handlePreview() async {
+  // -- Web: eye (open in browser) + download (browser save) --
+
+  List<Widget> _buildWebActions() {
+    return [
+      IconButtonStyled(
+        icon: PhosphorIcons.eye(),
+        onPressed: _handleWebPreview,
+        size: 20,
+      ),
+      const SizedBox(width: 4),
+      IconButtonStyled(
+        icon: PhosphorIcons.downloadSimple(),
+        onPressed: _handleWebDownload,
+        size: 20,
+      ),
+    ];
+  }
+
+  Future<void> _handleWebPreview() async {
     final url = _buildDocumentUrl();
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  void _handleWebDownload() {
+    final url = _buildDocumentUrl();
+    html.AnchorElement()
+      ..href = url
+      ..setAttribute('download', widget.attachment.originalFilename)
+      ..click();
+  }
+
+  // -- Native: download → cancel → eye + floppy disk --
+
+  List<Widget> _buildNativeActions() {
+    if (_isDownloaded) {
+      // Downloaded: eye (open) + floppy disk (save to device)
+      return [
+        IconButtonStyled(
+          icon: PhosphorIcons.eye(),
+          onPressed: _handleOpen,
+          size: 20,
+        ),
+        const SizedBox(width: 4),
+        IconButtonStyled(
+          icon: PhosphorIcons.floppyDisk(),
+          onPressed: _handleSave,
+          size: 20,
+        ),
+      ];
+    }
+    if (_isDownloading) {
+      // Downloading: X (cancel)
+      return [
+        IconButtonStyled(
+          icon: PhosphorIcons.x(),
+          onPressed: _cancelDownload,
+          size: 20,
+        ),
+      ];
+    }
+    // Not downloaded: download icon
+    return [
+      IconButtonStyled(
+        icon: PhosphorIcons.downloadSimple(),
+        onPressed: _startDownload,
+        size: 20,
+      ),
+    ];
+  }
+
+  void _startDownload() {
+    final url = _buildDocumentUrl();
+    setState(() {
+      _receivedBytes = 0;
+      _totalBytes = -1;
+    });
+    _downloadHandle = DownloadUtils.downloadToCache(
+      url,
+      widget.attachment.originalFilename,
+      onProgress: (received, total) {
+        if (mounted) {
+          setState(() {
+            _receivedBytes = received;
+            _totalBytes = total;
+          });
+        }
+      },
+      onSuccess: (path) {
+        if (mounted) {
+          setState(() {
+            _cachedPath = path;
+            _downloadHandle = null;
+            _receivedBytes = 0;
+            _totalBytes = -1;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _downloadHandle = null;
+            _receivedBytes = 0;
+            _totalBytes = -1;
+          });
+          ToastUtils.show(
+            context,
+            'Download failed: $error',
+            type: ToastType.error,
+          );
+        }
+      },
+    );
   }
 
   void _cancelDownload() {
@@ -148,41 +267,26 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
     }
   }
 
-  void _handleDownload(BuildContext context) {
-    final url = _buildDocumentUrl();
-    if (kIsWeb) {
-      html.AnchorElement()
-        ..href = url
-        ..setAttribute('download', widget.attachment.originalFilename)
-        ..click();
-    } else {
-      setState(() {
-        _receivedBytes = 0;
-        _totalBytes = -1;
-      });
-      _downloadHandle = DownloadUtils.downloadToDevice(
-        context,
-        url,
-        widget.attachment.originalFilename,
-        mimeType: widget.attachment.mimeType,
-        onProgress: (received, total) {
-          if (mounted) {
-            setState(() {
-              _receivedBytes = received;
-              _totalBytes = total;
-            });
-          }
-        },
-        onComplete: () {
-          if (mounted) {
-            setState(() {
-              _downloadHandle = null;
-              _receivedBytes = 0;
-              _totalBytes = -1;
-            });
-          }
-        },
-      );
+  Future<void> _handleOpen() async {
+    if (_cachedPath == null) return;
+    final ok = await DownloadUtils.openFile(_cachedPath!);
+    if (!ok && mounted) {
+      ToastUtils.show(context, 'Could not open file', type: ToastType.error);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (_cachedPath == null) return;
+    final saved = await DownloadUtils.saveFile(
+      _cachedPath!,
+      widget.attachment.originalFilename,
+    );
+    if (mounted) {
+      if (saved) {
+        ToastUtils.show(context, 'File saved', type: ToastType.success);
+      } else {
+        ToastUtils.show(context, 'Save cancelled', type: ToastType.info);
+      }
     }
   }
 }

@@ -1,14 +1,24 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/background_provider.dart';
 import '../main.dart';
 import '../screens/server_setup_screen.dart';
 
-/// App version — overridden at build time via --dart-define=APP_VERSION=x.y.z.
-/// Default matches pubspec.yaml version.
-const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.2.5');
+/// Build-time version override via --dart-define=APP_VERSION=x.y.z.
+const _buildTimeVersion = String.fromEnvironment('APP_VERSION');
+
+/// Resolves app version: build-time override > PackageInfo (native) > fallback.
+Future<String> _resolveAppVersion() async {
+  if (_buildTimeVersion.isNotEmpty) return _buildTimeVersion;
+  if (!kIsWeb) {
+    final info = await PackageInfo.fromPlatform();
+    if (info.version.isNotEmpty) return info.version;
+  }
+  return '—';
+}
 
 /// Settings view widget (displayed in main content area)
 class SettingsView extends ConsumerWidget {
@@ -143,18 +153,21 @@ class SettingsView extends ConsumerWidget {
             ),
           ),
         ),
-        ListTile(
-          leading: PhosphorIcon(
-            PhosphorIcons.info(),
-            color: const Color(0xFF00171F),
-            size: 20,
-          ),
-          title: const Text('Version', style: TextStyle(fontSize: 14)),
-          subtitle: Text(
-            appVersion,
-            style: TextStyle(
-              fontSize: 12,
-              color: const Color(0xFF00171F).withValues(alpha: 0.5),
+        FutureBuilder<String>(
+          future: _resolveAppVersion(),
+          builder: (context, snapshot) => ListTile(
+            leading: PhosphorIcon(
+              PhosphorIcons.info(),
+              color: const Color(0xFF00171F),
+              size: 20,
+            ),
+            title: const Text('Version', style: TextStyle(fontSize: 14)),
+            subtitle: Text(
+              snapshot.data ?? '—',
+              style: TextStyle(
+                fontSize: 12,
+                color: const Color(0xFF00171F).withValues(alpha: 0.5),
+              ),
             ),
           ),
         ),

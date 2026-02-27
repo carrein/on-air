@@ -184,8 +184,6 @@ class _NavbarState extends ConsumerState<Navbar> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SyncIndicator(),
-                const SizedBox(width: 2),
                 if (currentChannel != null) ...[
                   IconButtonStyled(
                     icon: currentChannel.pinned
@@ -216,7 +214,7 @@ class _NavbarState extends ConsumerState<Navbar> {
                   icon: PhosphorIcons.plusSquare(),
                   onPressed: _createChannel,
                 ),
-                const SizedBox(width: 4),
+                const SyncIndicator(),
                 IconButtonStyled(
                   icon: PhosphorIcons.dotsThreeOutline(),
                   onPressed: _showNavbarMenu,

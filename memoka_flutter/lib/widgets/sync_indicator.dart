@@ -15,7 +15,6 @@ class SyncIndicator extends ConsumerWidget {
   const SyncIndicator({super.key});
 
   static const _accentColor = Color(0xFFCE2161);
-  static const _textColor = Color(0xFF00171F);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,25 +35,12 @@ class SyncIndicator extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.only(
-              left: 8,
-              top: 8,
-              bottom: 8,
-              right: 4,
-            ),
-            child: PhosphorIcon(
-              PhosphorIcons.plugs(),
-              color: _accentColor,
-              size: 22,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Container(
               padding: const EdgeInsets.all(5),
               decoration: const BoxDecoration(
                 color: _accentColor,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.all(Radius.circular(2)),
               ),
               constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
               child: Text(
@@ -74,8 +60,8 @@ class SyncIndicator extends ConsumerWidget {
 
     // Online but draining
     return _SpinningIcon(
-      icon: PhosphorIcons.arrowsClockwise(),
-      color: _textColor,
+      icon: PhosphorIcons.spinnerGap(),
+      color: _accentColor,
     );
   }
 }

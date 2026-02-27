@@ -3,6 +3,7 @@
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <application
         android:label="Memoka"
         android:name="${applicationName}"
@@ -87,6 +88,10 @@
         <intent>
             <action android:name="android.intent.action.VIEW"/>
             <data android:scheme="http"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.INSTALL_PACKAGE"/>
+            <data android:mimeType="application/vnd.android.package-archive"/>
         </intent>
     </queries>
 </manifest>
