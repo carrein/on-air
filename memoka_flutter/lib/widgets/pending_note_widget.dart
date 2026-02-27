@@ -190,19 +190,6 @@ class PendingNoteWidget extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        if (upload.status == UploadStatus.uploading)
-          LinearProgressIndicator(
-            value: upload.progress > 0 ? upload.progress : null,
-            color: _borderColor,
-            backgroundColor: _borderColor.withValues(alpha: 0.15),
-          ),
-        if (upload.status == UploadStatus.error)
-          LinearProgressIndicator(
-            value: 1.0,
-            color: Colors.red,
-            backgroundColor: Colors.red.withValues(alpha: 0.15),
-          ),
       ],
     );
   }

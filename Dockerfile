@@ -15,8 +15,9 @@ COPY memoka_client/ ./memoka_client/
 # Build Flutter web app
 WORKDIR /build/memoka_flutter
 ARG APP_VERSION=DEV
+ARG KLIPY_API_KEY=
 RUN flutter pub get
-RUN flutter build web --release --base-href /app/ --dart-define=APP_VERSION=${APP_VERSION}
+RUN flutter build web --release --base-href /app/ --dart-define=APP_VERSION=${APP_VERSION} --dart-define=KLIPY_API_KEY=${KLIPY_API_KEY}
 
 # Stage 2: Serverpod Server Build
 FROM dart:stable AS server_builder
