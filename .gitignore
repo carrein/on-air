@@ -4,6 +4,9 @@
 .LSOverride
 ._*
 
+# Claude Code
+.claude/
+
 # IDE - VSCode
 .vscode/
 *.code-workspace
