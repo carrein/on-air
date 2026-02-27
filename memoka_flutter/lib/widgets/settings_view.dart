@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/background_provider.dart';
 import '../main.dart';
 import '../screens/server_setup_screen.dart';
+
+/// App version — overridden at build time via --dart-define=APP_VERSION=x.y.z.
+/// Default matches pubspec.yaml version.
+const appVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.2.5');
 
 /// Settings view widget (displayed in main content area)
 class SettingsView extends ConsumerWidget {
@@ -140,29 +143,20 @@ class SettingsView extends ConsumerWidget {
             ),
           ),
         ),
-        FutureBuilder<PackageInfo>(
-          future: PackageInfo.fromPlatform(),
-          builder: (context, snapshot) {
-            const injected = String.fromEnvironment('APP_VERSION');
-            final version = injected.isNotEmpty
-                ? injected
-                : (snapshot.data?.version ?? '—');
-            return ListTile(
-              leading: PhosphorIcon(
-                PhosphorIcons.info(),
-                color: const Color(0xFF00171F),
-                size: 20,
-              ),
-              title: const Text('Version', style: TextStyle(fontSize: 14)),
-              subtitle: Text(
-                version,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: const Color(0xFF00171F).withValues(alpha: 0.5),
-                ),
-              ),
-            );
-          },
+        ListTile(
+          leading: PhosphorIcon(
+            PhosphorIcons.info(),
+            color: const Color(0xFF00171F),
+            size: 20,
+          ),
+          title: const Text('Version', style: TextStyle(fontSize: 14)),
+          subtitle: Text(
+            appVersion,
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF00171F).withValues(alpha: 0.5),
+            ),
+          ),
         ),
       ],
     );

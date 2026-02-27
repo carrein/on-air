@@ -68,8 +68,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _kickReconnectIfNeeded();
       });
 
-      // If the URL contains /settings, open settings view on load.
+      // If the URL contains /settings, push /app/ first so browser back
+      // has somewhere to go, then push /settings on top.
       if (Uri.base.path.contains('/settings')) {
+        html.window.history.replaceState(null, '', '/app/');
+        html.window.history.pushState(null, '', '/app/settings');
         ref.read(settingsVisibilityProvider.notifier).setWithoutPush(true);
       }
 
@@ -124,26 +127,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   /// Returns true if a text field currently holds keyboard focus.
   ///
-  /// Recursively walks the subtree because the EditableText may be nested
-  /// several levels below the focused widget's context.
+  /// When a text field has focus, the FocusNode's context is the Focus widget
+  /// that lives *inside* EditableText — so EditableText is an ancestor of
+  /// the focus context, not a child.
   bool _isTextFieldFocused() {
     final focus = FocusManager.instance.primaryFocus;
     if (focus == null) return false;
     final ctx = focus.context;
     if (ctx == null) return false;
     if (ctx.widget is EditableText) return true;
-    bool found = false;
-    void visit(Element element) {
-      if (found) return;
-      if (element.widget is EditableText) {
-        found = true;
-        return;
-      }
-      element.visitChildren(visit);
-    }
-
-    ctx.visitChildElements(visit);
-    return found;
+    return ctx.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 
   /// Global hardware key handler for channel cycling and modal dismissal.
@@ -325,25 +318,51 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
       ),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF6F0ED),
-        body: SafeArea(
-          child: Column(
-            children: [
-              const OfflineBanner(),
-              const Navbar(),
-              Expanded(
-                child: Row(
-                  children: [
-                    if (!isInDetailMode) const ChannelList(),
-                    buildContentColumn(),
-                    if (showMediaPanel && !isInDetailMode) const MediaPanel(),
-                  ],
+      child: PopScope(
+        canPop: !isInDetailMode,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          // Close settings or archive instead of exiting the app.
+          if (isShowingSettings) {
+            ref.read(settingsVisibilityProvider.notifier).hide();
+          } else if (isArchive) {
+            final previousId = ref.read(previousChannelProvider);
+            if (previousId != null) {
+              ref
+                  .read(currentChannelProvider.notifier)
+                  .switchChannel(previousId);
+              ref.read(previousChannelProvider.notifier).state = null;
+            } else {
+              final chs = ref.read(channelsProvider).valueOrNull ?? [];
+              final first = chs.where((c) => !c.isSystemChannel).firstOrNull;
+              if (first != null) {
+                ref
+                    .read(currentChannelProvider.notifier)
+                    .switchChannel(first.id!);
+              }
+            }
+          }
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF6F0ED),
+          body: SafeArea(
+            child: Column(
+              children: [
+                const OfflineBanner(),
+                const Navbar(),
+                Expanded(
+                  child: Row(
+                    children: [
+                      if (!isInDetailMode) const ChannelList(),
+                      buildContentColumn(),
+                      if (showMediaPanel && !isInDetailMode) const MediaPanel(),
+                    ],
+                  ),
                 ),
-              ),
-              if (isMobile && !isArchive && !isShowingSettings)
-                const NoteInput(),
-            ],
+                if (isMobile && !isArchive && !isShowingSettings)
+                  const NoteInput(),
+              ],
+            ),
           ),
         ),
       ),

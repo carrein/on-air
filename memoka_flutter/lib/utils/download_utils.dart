@@ -24,7 +24,7 @@ class DownloadHandle {
 
 /// Downloads a file from [url] to a temporary directory, then dispatches
 /// based on MIME type: images/videos → gallery, everything else → open with
-/// default handler.
+/// default handler.  Caches files so repeated taps skip the download.
 class DownloadUtils {
   /// Returns a [DownloadHandle] that can be used to cancel the download.
   ///
@@ -66,6 +66,16 @@ class DownloadUtils {
     VoidCallback? onComplete,
   }) async {
     try {
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$filename');
+
+      // Use cached file if it exists and has content.
+      if (file.existsSync() && file.lengthSync() > 0) {
+        client.close();
+        if (context.mounted) await _dispatch(context, file.path, mimeType);
+        return;
+      }
+
       final request = await client.getUrl(Uri.parse(url));
       final response = await request.close();
 
@@ -83,25 +93,8 @@ class DownloadUtils {
       if (handle.isCancelled) return;
       client.close();
 
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/$filename');
       await file.writeAsBytes(bytes);
-
-      // Dispatch based on MIME type
-      final mime = (mimeType ?? '').toLowerCase();
-      if (mime.startsWith('image/')) {
-        await Gal.putImage(file.path);
-        if (context.mounted) {
-          ToastUtils.show(context, 'Saved to gallery', type: ToastType.success);
-        }
-      } else if (mime.startsWith('video/')) {
-        await Gal.putVideo(file.path);
-        if (context.mounted) {
-          ToastUtils.show(context, 'Saved to gallery', type: ToastType.success);
-        }
-      } else {
-        await OpenFilex.open(file.path);
-      }
+      if (context.mounted) await _dispatch(context, file.path, mimeType);
     } catch (e) {
       if (handle.isCancelled) return;
       if (context.mounted) {
@@ -109,6 +102,28 @@ class DownloadUtils {
       }
     } finally {
       onComplete?.call();
+    }
+  }
+
+  /// Dispatch the downloaded file based on MIME type.
+  static Future<void> _dispatch(
+    BuildContext context,
+    String path,
+    String? mimeType,
+  ) async {
+    final mime = (mimeType ?? '').toLowerCase();
+    if (mime.startsWith('image/')) {
+      await Gal.putImage(path);
+      if (context.mounted) {
+        ToastUtils.show(context, 'Saved to gallery', type: ToastType.success);
+      }
+    } else if (mime.startsWith('video/')) {
+      await Gal.putVideo(path);
+      if (context.mounted) {
+        ToastUtils.show(context, 'Saved to gallery', type: ToastType.success);
+      }
+    } else {
+      await OpenFilex.open(path);
     }
   }
 }
