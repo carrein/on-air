@@ -16,7 +16,7 @@ import '../providers/note_selection_provider.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
-import 'icon_button_styled.dart';
+
 import 'link_preview_card.dart';
 import 'media_attachment_widget.dart';
 import 'pending_note_widget.dart' show kFooterHeight, NoteConstraints;
@@ -430,6 +430,17 @@ class _NoteFooter extends StatelessWidget {
   static const _iconColor = Color(0xFF00171F);
   static const _iconAlpha = 0.5;
 
+  bool get _isDocumentOnly {
+    final atts = note.attachments;
+    if (atts == null || atts.isEmpty) return false;
+    return !atts.any((a) {
+      final mime = a.mimeType.toLowerCase();
+      return mime.startsWith('image/') ||
+          mime.startsWith('video/') ||
+          mime.startsWith('audio/');
+    });
+  }
+
   void _onCopyTap(BuildContext context) {
     // On web, copy the first image attachment if one exists.
     if (kIsWeb) {
@@ -479,42 +490,64 @@ class _NoteFooter extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (!isArchive) ...[
-                IconButtonStyled(
-                  icon: PhosphorIcons.pencilSimple(),
-                  onPressed: onEdit,
-                  size: 20,
-                  padding: 2,
-                  color: color,
+              if (!isArchive && !_isDocumentOnly) ...[
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: onEdit,
+                    child: Icon(
+                      PhosphorIcons.pencilSimple(),
+                      size: 20,
+                      color: color,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 14),
               ],
-              IconButtonStyled(
-                icon: PhosphorIcons.copySimple(),
-                onPressed: () => _onCopyTap(context),
-                size: 20,
-                padding: 2,
-                color: color,
+              if (!_isDocumentOnly) ...[
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => _onCopyTap(context),
+                    child: Icon(
+                      PhosphorIcons.copySimple(),
+                      size: 20,
+                      color: color,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: isArchive ? onRestore : onArchive,
+                  child: Icon(
+                    isArchive
+                        ? PhosphorIcons.arrowCounterClockwise()
+                        : PhosphorIcons.archive(),
+                    size: 20,
+                    color: color,
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
-              IconButtonStyled(
-                icon: isArchive
-                    ? PhosphorIcons.arrowCounterClockwise()
-                    : PhosphorIcons.archive(),
-                onPressed: isArchive ? onRestore : onArchive,
-                size: 20,
-                padding: 2,
-                color: color,
-              ),
-              const SizedBox(width: 14),
-              IconButtonStyled(
-                icon: PhosphorIcons.shareNetwork(),
-                onPressed: note.content.isNotEmpty
-                    ? () => Share.share(note.content)
-                    : null,
-                size: 20,
-                padding: 2,
-                color: color,
+              MouseRegion(
+                cursor: note.content.isNotEmpty
+                    ? SystemMouseCursors.click
+                    : SystemMouseCursors.basic,
+                child: GestureDetector(
+                  onTap: note.content.isNotEmpty
+                      ? () => Share.share(note.content)
+                      : null,
+                  child: Icon(
+                    PhosphorIcons.shareNetwork(),
+                    size: 20,
+                    color: note.content.isNotEmpty
+                        ? color
+                        : color.withValues(alpha: 0.3),
+                  ),
+                ),
               ),
             ],
           ),
