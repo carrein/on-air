@@ -6,7 +6,7 @@ part of 'sync_engine_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$syncEngineHash() => r'31a57ffc212544fe7324a24d69ba2ed5ab705fb6';
+String _$syncEngineHash() => r'0bb17366a898c596b86159b24e00f70c7ee8f05e';
 
 /// Pull-then-push sync engine driven by connectivity transitions.
 ///
