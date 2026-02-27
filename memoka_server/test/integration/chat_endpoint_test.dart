@@ -289,6 +289,96 @@ void main() {
       });
     });
 
+    group('Boundary / edge cases', () {
+      test('createNote rejects content exceeding 200,000 characters', () async {
+        final channel = await endpoints.chat.createChannel(
+          sessionBuilder,
+          'Test Channel',
+          emoji: '💬',
+        );
+
+        expect(
+          () => endpoints.chat.createNote(
+            sessionBuilder,
+            channel.id!,
+            'a' * 200001,
+          ),
+          throwsException,
+        );
+      });
+
+      test('updateNote rejects content exceeding 200,000 characters', () async {
+        final channel = await endpoints.chat.createChannel(
+          sessionBuilder,
+          'Test Channel',
+          emoji: '💬',
+        );
+
+        final note = await endpoints.chat.createNote(
+          sessionBuilder,
+          channel.id!,
+          'Original content',
+        );
+
+        expect(
+          () => endpoints.chat.updateNote(
+            sessionBuilder,
+            note.id!,
+            'a' * 200001,
+          ),
+          throwsException,
+        );
+      });
+
+      test('createChannel rejects emoji exceeding 30 characters', () async {
+        expect(
+          () => endpoints.chat.createChannel(
+            sessionBuilder,
+            'Test Channel',
+            emoji: 'a' * 31,
+          ),
+          throwsException,
+        );
+      });
+
+      test(
+        'restoreNote throws for a note that is not archived',
+        () async {
+          final channel = await endpoints.chat.createChannel(
+            sessionBuilder,
+            'Test Channel',
+            emoji: '💬',
+          );
+
+          // Create a note but do NOT archive it
+          final note = await endpoints.chat.createNote(
+            sessionBuilder,
+            channel.id!,
+            'Not archived note',
+          );
+
+          expect(
+            () => endpoints.chat.restoreNote(sessionBuilder, note.id!),
+            throwsException,
+          );
+        },
+      );
+
+      test(
+        'createNote throws for a non-existent channel ID',
+        () async {
+          expect(
+            () => endpoints.chat.createNote(
+              sessionBuilder,
+              999999,
+              'Note for missing channel',
+            ),
+            throwsException,
+          );
+        },
+      );
+    });
+
     group('Cascade delete', () {
       test('deleting channel cascades to notes', () async {
         // Create two channels (need at least 2 to allow deletion)

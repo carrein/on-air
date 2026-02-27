@@ -16,8 +16,10 @@ import '../providers/note_selection_provider.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
+import 'icon_button_styled.dart';
 import 'link_preview_card.dart';
 import 'media_attachment_widget.dart';
+import 'pending_note_widget.dart' show kFooterHeight, NoteConstraints;
 
 /// Individual note card with content, footer actions, and context menu.
 class NoteItem extends ConsumerWidget {
@@ -69,7 +71,7 @@ class NoteItem extends ConsumerWidget {
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: _NoteConstraints(
+              child: NoteConstraints(
                 child: Listener(
                   onPointerDown: (event) {
                     if (event.buttons == 2) {
@@ -109,7 +111,13 @@ class NoteItem extends ConsumerWidget {
                           _NoteFooter(
                             note: note,
                             channelId: channelId,
-                            ref: ref,
+                            onEdit: () => ref
+                                .read(editingNoteProvider.notifier)
+                                .startEditing(note.id!),
+                            onArchive: () => ref
+                                .read(notesProvider(channelId).notifier)
+                                .deleteNote(note.id!),
+                            onRestore: () => _restoreNote(context, ref),
                           ),
                         ],
                       ),
@@ -404,62 +412,23 @@ class NoteItem extends ConsumerWidget {
   }
 }
 
-/// On mobile viewports, notes span full width; on desktop, capped at 600px.
-class _NoteConstraints extends StatelessWidget {
-  const _NoteConstraints({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    if (isMobile) {
-      return child;
-    }
-    return IntrinsicWidth(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, minWidth: 350),
-        child: child,
-      ),
-    );
-  }
-}
-
 class _NoteFooter extends StatelessWidget {
   const _NoteFooter({
     required this.note,
     required this.channelId,
-    required this.ref,
+    this.onEdit,
+    this.onArchive,
+    this.onRestore,
   });
 
   final Note note;
   final int channelId;
-  final WidgetRef ref;
+  final VoidCallback? onEdit;
+  final VoidCallback? onArchive;
+  final VoidCallback? onRestore;
 
-  static String _formatDateTime(DateTime dt) {
-    final localTime = dt.toLocal();
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final month = months[localTime.month - 1];
-    final day = localTime.day;
-    final hour = localTime.hour > 12
-        ? localTime.hour - 12
-        : (localTime.hour == 0 ? 12 : localTime.hour);
-    final minute = localTime.minute.toString().padLeft(2, '0');
-    final period = localTime.hour >= 12 ? 'PM' : 'AM';
-    return '$month $day, $hour:$minute $period';
-  }
+  static const _iconColor = Color(0xFF00171F);
+  static const _iconAlpha = 0.5;
 
   void _onCopyTap(BuildContext context) {
     // On web, copy the first image attachment if one exists.
@@ -491,103 +460,66 @@ class _NoteFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isArchive = channelId == -1;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Flexible(
-          child: Text(
-            _formatDateTime(note.createdAt),
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 12,
-              color: const Color(0xFF00171F).withValues(alpha: 0.5),
+    final color = _iconColor.withValues(alpha: _iconAlpha);
+    return SizedBox(
+      height: kFooterHeight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Text(
+              FileUtils.formatDateTime(note.createdAt),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+              ),
             ),
           ),
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isArchive) ...[
-              MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
-                  onTap: () => ref
-                      .read(editingNoteProvider.notifier)
-                      .startEditing(note.id!),
-                  child: PhosphorIcon(
-                    PhosphorIcons.pencilSimple(),
-                    size: 20,
-                    color: const Color(0xFF00171F).withValues(alpha: 0.5),
-                  ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isArchive) ...[
+                IconButtonStyled(
+                  icon: PhosphorIcons.pencilSimple(),
+                  onPressed: onEdit,
+                  size: 20,
+                  padding: 2,
+                  color: color,
                 ),
+                const SizedBox(width: 14),
+              ],
+              IconButtonStyled(
+                icon: PhosphorIcons.copySimple(),
+                onPressed: () => _onCopyTap(context),
+                size: 20,
+                padding: 2,
+                color: color,
               ),
               const SizedBox(width: 14),
+              IconButtonStyled(
+                icon: isArchive
+                    ? PhosphorIcons.arrowCounterClockwise()
+                    : PhosphorIcons.archive(),
+                onPressed: isArchive ? onRestore : onArchive,
+                size: 20,
+                padding: 2,
+                color: color,
+              ),
+              const SizedBox(width: 14),
+              IconButtonStyled(
+                icon: PhosphorIcons.shareNetwork(),
+                onPressed: note.content.isNotEmpty
+                    ? () => Share.share(note.content)
+                    : null,
+                size: 20,
+                padding: 2,
+                color: color,
+              ),
             ],
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => _onCopyTap(context),
-                child: PhosphorIcon(
-                  PhosphorIcons.copySimple(),
-                  size: 20,
-                  color: const Color(0xFF00171F).withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: isArchive
-                    ? () async {
-                        try {
-                          await client.chat.restoreNote(note.id!);
-                          if (context.mounted) {
-                            ToastUtils.show(
-                              context,
-                              'Note restored',
-                              type: ToastType.success,
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ToastUtils.show(
-                              context,
-                              'Failed to restore: $e',
-                              type: ToastType.error,
-                            );
-                          }
-                        }
-                      }
-                    : () => ref
-                          .read(notesProvider(channelId).notifier)
-                          .deleteNote(note.id!),
-                child: PhosphorIcon(
-                  isArchive
-                      ? PhosphorIcons.arrowCounterClockwise()
-                      : PhosphorIcons.archive(),
-                  size: 20,
-                  color: const Color(0xFF00171F).withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () {
-                  if (note.content.isNotEmpty) Share.share(note.content);
-                },
-                child: PhosphorIcon(
-                  PhosphorIcons.shareNetwork(),
-                  size: 20,
-                  color: const Color(0xFF00171F).withValues(alpha: 0.5),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }

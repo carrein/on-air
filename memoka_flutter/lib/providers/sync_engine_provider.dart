@@ -142,7 +142,7 @@ class SyncEngine extends _$SyncEngine {
       entityType: 'channel',
       entityJson: jsonEncode(entityMap),
       baseVersion: row.version,
-      tempId: row.isNew ? row.id.toString() : null,
+      tempId: row.isNew ? row.id : null,
       clientMutationId: row.clientMutationId,
       deleted: row.deletedLocally,
     );
@@ -156,7 +156,7 @@ class SyncEngine extends _$SyncEngine {
       entityType: 'note',
       entityJson: jsonEncode(entityMap),
       baseVersion: row.version,
-      tempId: row.isNew ? row.id.toString() : null,
+      tempId: row.isNew ? row.id : null,
       clientMutationId: row.clientMutationId,
       deleted: row.deletedLocally,
     );
@@ -166,16 +166,13 @@ class SyncEngine extends _$SyncEngine {
     if (result.status == 'applied' || result.status == 'already_applied') {
       if (result.tempId != null && result.serverId != null) {
         // Offline create: temp ID → server ID mapping
-        final tempIdInt = int.tryParse(result.tempId!);
-        if (tempIdInt != null) {
-          final serverVersion = _extractVersion(result.entityJson);
-          await db.replaceTemporaryChannelId(
-            tempIdInt,
-            result.serverId!,
-            result.entityJson ?? '{}',
-            serverVersion,
-          );
-        }
+        final serverVersion = _extractVersion(result.entityJson);
+        await db.replaceTemporaryChannelId(
+          result.tempId!,
+          result.serverId!,
+          result.entityJson ?? '{}',
+          serverVersion,
+        );
       } else {
         final id = result.serverId ?? _extractIdFromJson(result.entityJson);
         if (id != null) {
@@ -187,7 +184,7 @@ class SyncEngine extends _$SyncEngine {
       // Accept server version — overwrite local dirty state
       final id =
           result.serverId ??
-          (result.tempId != null ? int.tryParse(result.tempId!) : null) ??
+          result.tempId ??
           _extractIdFromJson(result.entityJson);
 
       if (id == null) return;
@@ -217,26 +214,23 @@ class SyncEngine extends _$SyncEngine {
   Future<void> _applyNoteResult(AppDatabase db, SyncResult result) async {
     if (result.status == 'applied' || result.status == 'already_applied') {
       if (result.tempId != null && result.serverId != null) {
-        final tempIdInt = int.tryParse(result.tempId!);
-        if (tempIdInt != null) {
-          final serverVersion = _extractVersion(result.entityJson);
-          int channelId = 0;
-          DateTime createdAt = DateTime.now();
-          if (result.entityJson != null) {
-            final map = jsonDecode(result.entityJson!) as Map<String, dynamic>;
-            channelId = (map['channelId'] as int?) ?? 0;
-            final raw = map['createdAt'];
-            if (raw is String) createdAt = DateTime.tryParse(raw) ?? createdAt;
-          }
-          await db.replaceTemporaryNoteId(
-            tempIdInt,
-            result.serverId!,
-            result.entityJson ?? '{}',
-            serverVersion,
-            channelId,
-            createdAt,
-          );
+        final serverVersion = _extractVersion(result.entityJson);
+        int channelId = 0;
+        DateTime createdAt = DateTime.now();
+        if (result.entityJson != null) {
+          final map = jsonDecode(result.entityJson!) as Map<String, dynamic>;
+          channelId = (map['channelId'] as int?) ?? 0;
+          final raw = map['createdAt'];
+          if (raw is String) createdAt = DateTime.tryParse(raw) ?? createdAt;
         }
+        await db.replaceTemporaryNoteId(
+          result.tempId!,
+          result.serverId!,
+          result.entityJson ?? '{}',
+          serverVersion,
+          channelId,
+          createdAt,
+        );
       } else {
         final id = result.serverId ?? _extractIdFromJson(result.entityJson);
         if (id != null) {
@@ -247,7 +241,7 @@ class SyncEngine extends _$SyncEngine {
     } else if (result.status == 'rejected') {
       final id =
           result.serverId ??
-          (result.tempId != null ? int.tryParse(result.tempId!) : null) ??
+          result.tempId ??
           _extractIdFromJson(result.entityJson);
 
       if (id == null) return;

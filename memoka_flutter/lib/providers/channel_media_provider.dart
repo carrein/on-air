@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../models/channel_media.dart';
+import '../utils/url_utils.dart';
 import 'notes_provider.dart';
 
 part 'channel_media_provider.g.dart';
@@ -92,11 +93,7 @@ class ChannelMediaData extends _$ChannelMediaData {
 
   /// Extract all URLs from note content
   List<String> _extractUrlsFromContent(String content) {
-    final urlRegex = RegExp(
-      r'https?://[^\s<>"{}|\\^`\[\]]+',
-      caseSensitive: false,
-    );
-    final matches = urlRegex.allMatches(content);
+    final matches = urlPattern.allMatches(content);
     return matches.map((match) => match.group(0)!).toSet().toList();
   }
 }

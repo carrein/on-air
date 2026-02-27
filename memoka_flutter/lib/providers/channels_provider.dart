@@ -5,7 +5,7 @@ import 'package:memoka_client/memoka_client.dart';
 import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
-import 'connection_provider.dart';
+import 'provider_utils.dart';
 
 part 'channels_provider.g.dart';
 
@@ -41,7 +41,7 @@ class Channels extends _$Channels {
     }
 
     // 2. Always try to fetch from server; fall back to cache if unreachable.
-    // Do not gate on _isOnline — the WebSocket may not have connected yet
+    // Do not gate on isOnline(ref) — the WebSocket may not have connected yet
     // at startup, and channels must load regardless.
     try {
       final serverChannels = await client.chat.getChannels().timeout(
@@ -53,13 +53,6 @@ class Channels extends _$Channels {
       return state.valueOrNull ?? [];
     }
   }
-
-  bool get _isOnline =>
-      ref.read(connectionProvider) == ConnectionState.connected;
-
-  /// Returns true for network-level failures (server unreachable, timeout).
-  bool _isNetworkError(Object e) =>
-      e is ServerpodClientException && e.statusCode == -1;
 
   Future<void> _refetchAndCache() async {
     try {
@@ -87,7 +80,7 @@ class Channels extends _$Channels {
     String name, {
     String emoji = 'chatCircle',
   }) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         final channel = await client.chat.createChannel(name, emoji: emoji);
         final current = state.valueOrNull ?? [];
@@ -97,7 +90,7 @@ class Channels extends _$Channels {
         await db.cacheChannels(updated);
         return channel;
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Network error — fall through to offline path
       }
     }
@@ -145,7 +138,7 @@ class Channels extends _$Channels {
     }).toList();
     state = AsyncData(updated);
 
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.updateChannel(
           id,
@@ -157,7 +150,7 @@ class Channels extends _$Channels {
         await db.cacheChannels(updated);
         return;
       } catch (e) {
-        if (!_isNetworkError(e)) {
+        if (!isNetworkError(e)) {
           // Revert optimistic update on non-network error
           state = AsyncData(previous);
           rethrow;
@@ -176,16 +169,17 @@ class Channels extends _$Channels {
   }
 
   Future<void> deleteChannel(int id) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.deleteChannel(id);
       } catch (e) {
+        // TODO: Replace string match with typed server error code
         if (e.toString().contains('last remaining channel')) {
           throw Exception(
             'Cannot delete the last channel. Create another channel first.',
           );
         }
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Network error — fall through to offline mark
         final db = ref.read(appDatabaseProvider);
         await db.markChannelDeletedLocally(id);
@@ -223,14 +217,14 @@ class Channels extends _$Channels {
     }
 
     final db = ref.read(appDatabaseProvider);
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.reorderChannels(channelIds);
         // Server apply succeeded — update cache with fresh server data
         if (reordered != null) await db.cacheChannels(reordered);
         return;
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Network error — fall through to offline mark
       }
     }
@@ -244,16 +238,17 @@ class Channels extends _$Channels {
   }
 
   Future<void> archiveChannel(int id) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.archiveChannel(id);
       } catch (e) {
+        // TODO: Replace string match with typed server error code
         if (e.toString().contains('last remaining channel')) {
           throw Exception(
             'Cannot archive the last channel. Create another channel first.',
           );
         }
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Network error — mark as dirty offline
         await _archiveChannelOffline(id);
         return;

@@ -69,9 +69,7 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: active
-                  ? widget.color.withValues(alpha: _isPressed ? 1.0 : 0.5)
-                  : Colors.transparent,
+              color: active ? widget.color : Colors.transparent,
               width: 1.5,
             ),
           ),

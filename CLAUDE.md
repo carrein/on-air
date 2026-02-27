@@ -1,3 +1,4 @@
+u/docs/Deployment.md
 u/docs/Android.md
 u/docs/Emulator.md
 u/docs/Channel.md
@@ -17,6 +18,7 @@ u/docs/components/Note.md
 u/docs/components/Preview.md
 u/docs/components/Audio.md
 u/docs/Sync.md
+u/docs/GIF.md
 
 # CLAUDE.md
 
@@ -46,6 +48,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
 - **Offline Mode**: Local-first reads from SQLite cache (Drift), dirty-flag tracking replaces mutation queue, pull-then-push sync on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Sync.md`)
+- **GIF Search**: Klipy API integration for GIF search and send; bottom sheet picker with trending, search, pagination; GIFs downloaded from CDN and uploaded to server as self-hosted media (see `docs/GIF.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -301,6 +304,7 @@ interactions, state management, and integration details.
 ## Architecture Guides
 
 - **Sync Architecture**: `docs/Sync.md` — State-based reconciliation, versioned entities, pull-then-push sync, dirty tracking, tombstones, connectivity detection
+- **GIF Integration**: `docs/GIF.md` — Klipy API search/featured, download-then-upload flow, build-time API key configuration
 
 ## Platform Guides
 

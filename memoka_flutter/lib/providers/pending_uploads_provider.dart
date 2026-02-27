@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
@@ -17,7 +19,7 @@ import 'notes_provider.dart';
 part 'pending_uploads_provider.g.dart';
 
 /// Upload status for a pending upload.
-enum UploadStatus { uploading, error }
+enum UploadStatus { uploading, error, uploaded }
 
 /// Represents a file being uploaded optimistically.
 class PendingUpload {
@@ -30,9 +32,14 @@ class PendingUpload {
   final String noteContent;
   final bool compress;
   final int fileSize;
+  final int? mediaWidth;
+  final int? mediaHeight;
   final double progress;
   final UploadStatus status;
   final String? errorMessage;
+  final String? serverImageUrl;
+  final DateTime? noteCreatedAt;
+  final int? serverNoteId;
 
   const PendingUpload({
     required this.id,
@@ -44,15 +51,23 @@ class PendingUpload {
     required this.noteContent,
     required this.compress,
     this.fileSize = 0,
+    this.mediaWidth,
+    this.mediaHeight,
     this.progress = 0.0,
     this.status = UploadStatus.uploading,
     this.errorMessage,
+    this.serverImageUrl,
+    this.noteCreatedAt,
+    this.serverNoteId,
   });
 
   PendingUpload copyWith({
     double? progress,
     UploadStatus? status,
     String? errorMessage,
+    String? serverImageUrl,
+    DateTime? noteCreatedAt,
+    int? serverNoteId,
   }) {
     return PendingUpload(
       id: id,
@@ -64,9 +79,14 @@ class PendingUpload {
       noteContent: noteContent,
       compress: compress,
       fileSize: fileSize,
+      mediaWidth: mediaWidth,
+      mediaHeight: mediaHeight,
       progress: progress ?? this.progress,
       status: status ?? this.status,
       errorMessage: errorMessage,
+      serverImageUrl: serverImageUrl ?? this.serverImageUrl,
+      noteCreatedAt: noteCreatedAt ?? this.noteCreatedAt,
+      serverNoteId: serverNoteId ?? this.serverNoteId,
     );
   }
 
@@ -112,6 +132,8 @@ class PendingUploads extends _$PendingUploads {
     required String fileName,
     required String noteContent,
     required bool compress,
+    int? mediaWidth,
+    int? mediaHeight,
   }) async {
     final id = const Uuid().v4();
     final mimeType = MediaService.getMimeTypeFromExtension(
@@ -140,6 +162,18 @@ class PendingUploads extends _$PendingUploads {
       fileSize = fileBytes.length;
     }
 
+    // Read image dimensions from file header if not provided.
+    if (mimeType.startsWith('image/') && mediaWidth == null) {
+      final dims = await _readImageDimensions(
+        filePath: localFilePath,
+        bytes: localBytes ?? fileBytes,
+      );
+      if (dims != null) {
+        mediaWidth = dims.$1;
+        mediaHeight = dims.$2;
+      }
+    }
+
     final pending = PendingUpload(
       id: id,
       channelId: channelId,
@@ -150,6 +184,8 @@ class PendingUploads extends _$PendingUploads {
       noteContent: noteContent,
       compress: compress,
       fileSize: fileSize,
+      mediaWidth: mediaWidth,
+      mediaHeight: mediaHeight,
     );
 
     // Prepend so newest ghost notes are first (they render at bottom of
@@ -184,6 +220,12 @@ class PendingUploads extends _$PendingUploads {
 
     // Remove ghost note and delete local file.
     remove(id);
+  }
+
+  /// Called by PendingNoteWidget when the server image has loaded.
+  /// Removes the ghost and lets NoteItem take over seamlessly.
+  void completeUpload(String id) {
+    state = state.where((p) => p.id != id).toList();
   }
 
   /// Dismiss a failed upload (remove ghost note).
@@ -299,20 +341,70 @@ class PendingUploads extends _$PendingUploads {
             ),
           );
       final statusCode = streamedResponse.statusCode;
-      await streamedResponse.stream.drain<void>();
+      final responseBytes = await streamedResponse.stream.toBytes();
 
       if (statusCode >= 200 && statusCode < 300) {
-        // Success — remove ghost note.
         // Delete the local copy.
         if (!kIsWeb && pending.localFilePath != null) {
           final f = File(pending.localFilePath!);
           if (await f.exists()) await f.delete();
         }
-        state = state.where((p) => p.id != id).toList();
 
-        // Invalidate notes so the real note appears even if the WebSocket
-        // event was missed (e.g. app was backgrounded).
-        ref.invalidate(notesProvider(pending.channelId));
+        if (pending.isImage) {
+          // Parse response to get the server image URL so the ghost note
+          // can load it in-place before handing off to NoteItem.
+          String? imageUrl;
+          DateTime? createdAt;
+          int? noteId;
+          try {
+            final json =
+                jsonDecode(utf8.decode(responseBytes)) as Map<String, dynamic>;
+            noteId = json['id'] as int?;
+            final createdAtStr = json['createdAt'] as String?;
+            if (createdAtStr != null) {
+              createdAt = DateTime.tryParse(createdAtStr);
+            }
+            final attachments = json['attachments'] as List?;
+            if (attachments != null && attachments.isNotEmpty) {
+              final att = attachments[0] as Map<String, dynamic>;
+              final filePath = att['filePath'] as String?;
+              final contentHash = att['contentHash'] as String?;
+              if (filePath != null) {
+                imageUrl =
+                    '${getWebServerUrl()}/media/$filePath?v=${contentHash ?? ''}';
+              }
+            }
+          } catch (_) {
+            // Parse failed — fall through to immediate removal.
+          }
+
+          if (imageUrl != null) {
+            // Keep ghost alive — PendingNoteWidget will load the server image
+            // and call completeUpload() when ready.
+            state = [
+              for (final p in state)
+                if (p.id == id)
+                  p.copyWith(
+                    status: UploadStatus.uploaded,
+                    serverImageUrl: imageUrl,
+                    noteCreatedAt: createdAt,
+                    serverNoteId: noteId,
+                  )
+                else
+                  p,
+            ];
+            // Start fetching notes so NoteItem is ready when ghost is removed.
+            ref.invalidate(notesProvider(pending.channelId));
+          } else {
+            // Couldn't parse — remove ghost immediately.
+            state = state.where((p) => p.id != id).toList();
+            ref.invalidate(notesProvider(pending.channelId));
+          }
+        } else {
+          // Non-image: remove ghost immediately.
+          state = state.where((p) => p.id != id).toList();
+          ref.invalidate(notesProvider(pending.channelId));
+        }
       } else {
         _setError(id, 'Server error ($statusCode)');
       }
@@ -377,6 +469,35 @@ class PendingUploads extends _$PendingUploads {
       }
     } catch (_) {
       // Ignore cleanup errors.
+    }
+  }
+
+  /// Reads image display dimensions (EXIF-aware).
+  ///
+  /// Uses [instantiateImageCodec] + first frame decode so the returned
+  /// width/height reflect EXIF orientation (portrait photos report correctly).
+  Future<(int, int)?> _readImageDimensions({
+    String? filePath,
+    Uint8List? bytes,
+  }) async {
+    try {
+      Uint8List data;
+      if (!kIsWeb && filePath != null) {
+        data = await File(filePath).readAsBytes();
+      } else if (bytes != null) {
+        data = bytes;
+      } else {
+        return null;
+      }
+      final codec = await ui.instantiateImageCodec(data);
+      final frame = await codec.getNextFrame();
+      final w = frame.image.width;
+      final h = frame.image.height;
+      frame.image.dispose();
+      codec.dispose();
+      return (w, h);
+    } catch (_) {
+      return null;
     }
   }
 }

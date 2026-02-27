@@ -91,8 +91,8 @@ class SyncEndpoint extends Endpoint {
       ..sort((a, b) {
         final typeCmp = a.entityType.compareTo(b.entityType);
         if (typeCmp != 0) return typeCmp;
-        final aId = a.tempId ?? _extractId(a.entityJson)?.toString() ?? '';
-        final bId = b.tempId ?? _extractId(b.entityJson)?.toString() ?? '';
+        final aId = a.tempId ?? _extractId(a.entityJson) ?? 0;
+        final bId = b.tempId ?? _extractId(b.entityJson) ?? 0;
         return aId.compareTo(bId);
       });
 

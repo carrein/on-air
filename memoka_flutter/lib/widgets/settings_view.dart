@@ -10,13 +10,11 @@ import '../screens/server_setup_screen.dart';
 /// Build-time version override via --dart-define=APP_VERSION=x.y.z.
 const _buildTimeVersion = String.fromEnvironment('APP_VERSION');
 
-/// Resolves app version: build-time override > PackageInfo (native) > fallback.
+/// Resolves app version: build-time override > PackageInfo > fallback.
 Future<String> _resolveAppVersion() async {
   if (_buildTimeVersion.isNotEmpty) return _buildTimeVersion;
-  if (!kIsWeb) {
-    final info = await PackageInfo.fromPlatform();
-    if (info.version.isNotEmpty) return info.version;
-  }
+  final info = await PackageInfo.fromPlatform();
+  if (info.version.isNotEmpty) return info.version;
   return '—';
 }
 

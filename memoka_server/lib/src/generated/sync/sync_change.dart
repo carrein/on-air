@@ -28,7 +28,7 @@ abstract class SyncChange
     required String entityType,
     required String entityJson,
     required int baseVersion,
-    String? tempId,
+    int? tempId,
     String? clientMutationId,
     bool? deleted,
   }) = _SyncChangeImpl;
@@ -38,7 +38,7 @@ abstract class SyncChange
       entityType: jsonSerialization['entityType'] as String,
       entityJson: jsonSerialization['entityJson'] as String,
       baseVersion: jsonSerialization['baseVersion'] as int,
-      tempId: jsonSerialization['tempId'] as String?,
+      tempId: jsonSerialization['tempId'] as int?,
       clientMutationId: jsonSerialization['clientMutationId'] as String?,
       deleted: jsonSerialization['deleted'] as bool?,
     );
@@ -53,8 +53,8 @@ abstract class SyncChange
   /// Client's last known version of this entity (0 for creates).
   int baseVersion;
 
-  /// Client temp ID for creates (negative integer as string). Null for updates/deletes.
-  String? tempId;
+  /// Client temp ID for creates (negative integer). Null for updates/deletes.
+  int? tempId;
 
   /// UUID idempotency key for offline creates. Null for updates/deletes.
   String? clientMutationId;
@@ -69,7 +69,7 @@ abstract class SyncChange
     String? entityType,
     String? entityJson,
     int? baseVersion,
-    String? tempId,
+    int? tempId,
     String? clientMutationId,
     bool? deleted,
   });
@@ -112,7 +112,7 @@ class _SyncChangeImpl extends SyncChange {
     required String entityType,
     required String entityJson,
     required int baseVersion,
-    String? tempId,
+    int? tempId,
     String? clientMutationId,
     bool? deleted,
   }) : super._(
@@ -140,7 +140,7 @@ class _SyncChangeImpl extends SyncChange {
       entityType: entityType ?? this.entityType,
       entityJson: entityJson ?? this.entityJson,
       baseVersion: baseVersion ?? this.baseVersion,
-      tempId: tempId is String? ? tempId : this.tempId,
+      tempId: tempId is int? ? tempId : this.tempId,
       clientMutationId: clientMutationId is String?
           ? clientMutationId
           : this.clientMutationId,

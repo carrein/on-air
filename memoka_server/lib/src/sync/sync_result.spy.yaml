@@ -7,7 +7,7 @@ fields:
   ### Human-readable reason for rejection. Null if applied.
   reason: String?
   ### Client temp ID (echoed back for create mapping). Null for updates/deletes.
-  tempId: String?
+  tempId: int?
   ### Server-assigned ID (for creates). Null for updates/deletes.
   serverId: int?
   ### Entity type: "channel" or "note".

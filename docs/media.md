@@ -41,7 +41,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 **Optimistic UI — `PendingUploads` + `PendingNoteWidget`:**
 - On Send: dialog dismisses instantly, file copied to `<docsDir>/pending_uploads/<uuid><ext>`, ghost note appears in chat immediately
 - `PendingNoteWidget` matches `NoteItem` card styling (border `#CE2161`, bg `#F6F0ED`, padding 12, maxWidth 600)
-- Images: `Image.file()` / `Image.memory()` preview (cacheWidth: 600) + `LinearProgressIndicator` below; dialog preview uses cacheWidth: 800
+- Images: shimmer skeleton sized to actual image dimensions + `LinearProgressIndicator` below; on upload complete, server image loads in-place behind shimmer then footer transitions to timestamp+actions
 - Videos/documents: file icon + filename + `LinearProgressIndicator`
 - Footer (uploading): "X MB / Y MB" progress text + **Cancel** button
 - Footer (error): "Upload failed" + **Retry** / **Dismiss** buttons
@@ -245,91 +245,6 @@ See `memoka_flutter/lib/providers/pending_uploads_provider.dart` for implementat
 
 > **Note:** The original `MediaEndpoint` Serverpod RPC class was removed. All uploads go through `MediaUploadRoute` — a plain HTTP multipart route at `POST /media/upload`. See `memoka_server/lib/src/web/routes/media_upload_route.dart` for the actual implementation.
 
-**Critical: Atomic Upload with Two-Phase Commit** (design reference — see route for real code)
-
-```dart
-// HISTORICAL DESIGN DOC — actual implementation in media_upload_route.dart
-class MediaEndpoint extends Endpoint {
-  Future<MediaAttachment> uploadMedia(
-    Session session,
-    int channelId,
-    bool compress,
-    Stream<List<int>> fileStream,  // Stream, NOT ByteData
-    String originalFilename,
-    String mimeType,
-  ) async {
-    // 1. Validate file type and size limit (1GB)
-    if (!_isValidMimeType(mimeType)) {
-      throw Exception('Invalid file type');
-    }
-    
-    // 2. Generate UUID for filename (no race conditions)
-    final uuid = Uuid().v4();
-    final ext = _getExtension(mimeType);
-    final tempFilename = '$uuid.tmp';
-    final finalFilename = '$uuid$ext';
-    
-    final channelDir = Directory('/app/media/channels/$channelId');
-    await channelDir.create(recursive: true);
-    
-    // 3. Stream to temporary file (memory-safe)
-    final tempFile = File('${channelDir.path}/$tempFilename');
-    int bytesWritten = 0;
-    final sink = tempFile.openWrite();
-    
-    try {
-      await for (final chunk in fileStream) {
-        bytesWritten += chunk.length;
-        if (bytesWritten > 1024 * 1024 * 1024) {  // 1GB limit
-          throw Exception('File exceeds 1GB limit');
-        }
-        sink.add(chunk);
-      }
-      await sink.close();
-      
-      // 4. Process image (compression, thumbnail, EXIF)
-      final processedData = await _processImage(
-        tempFile.path,
-        compress,
-        mimeType,
-      );
-      
-      // 5. Create MediaAttachment record in database
-      final attachment = MediaAttachment(
-        noteId: processedData.noteId,  // Created in transaction
-        channelId: channelId,
-        filePath: 'channels/$channelId/$finalFilename',
-        originalFilename: originalFilename,
-        mimeType: processedData.finalMimeType,
-        fileSize: processedData.fileSize,
-        width: processedData.width,
-        height: processedData.height,
-        thumbnailPath: processedData.thumbnailPath,
-        compressed: compress,
-        animated: processedData.animated,
-        contentHash: processedData.hash,
-      );
-      
-      final saved = await MediaAttachment.db.insertRow(session, attachment);
-      
-      // 6. Atomic rename: temp → final (only after DB insert succeeds)
-      final finalFile = File('${channelDir.path}/$finalFilename');
-      await tempFile.rename(finalFile.path);
-      
-      return saved;
-      
-    } catch (e) {
-      // 7. Cleanup: delete temp file on any error
-      await sink.close();
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
-      rethrow;
-    }
-  }
-}
-```
-
 **Image Processing (in Isolate):**
 
 ```dart
@@ -516,9 +431,8 @@ Key display behavior:
 - **Fast fade-in**: `fadeInDuration: 150ms` so disk-cached images appear near-instantly (vs default 500ms)
 - **Aspect-ratio preservation**: `computeDisplaySize()` helper clamps to max constraints (600x500 for images, 400x300 for videos) while maintaining aspect ratio
 - **Fallback sizing**: If `width`/`height` metadata is null, falls back to 300x200
-- **Animated GIF handling**: All images (including animated GIFs) use `CachedNetworkImage` for consistent disk caching and shimmer placeholder behaviour. The `attachment.animated` flag is retained for server-side processing logic (preserving original GIF vs compressing) but no longer affects the Flutter rendering path.
+- **Animated GIF handling**: GIFs use `Image.network` (not `CachedNetworkImage`) to preserve animation. Non-GIF images use `CachedNetworkImage` for disk caching. The `attachment.animated` flag is retained for server-side processing logic (preserving original GIF vs compressing) but does not affect the Flutter rendering path.
 - **Image precaching**: When notes load for the displayed channel, `chat_view.dart` fires `precacheImage()` for the 20 most recent image attachments into Flutter's `ImageCache`. On channel revisit, these images are served from memory cache synchronously — `CachedNetworkImage` skips the placeholder entirely and the shimmer does not appear.
-- **Media-only notes**: Notes with only media attachments and no text content render without the white chat bubble wrapper for a cleaner visual appearance. Detected via `_isMediaOnlyNote()` helper.
 
 **Video Lightbox:**
 
@@ -959,24 +873,6 @@ withServerpod('Given MediaUploadRoute', (sessionBuilder, endpoints) {
 
 ---
 
-## Implementation Phases
-
-### Phase 1 ✅ Basic Image Upload
-Single image upload, paste from clipboard, drag-drop, compression, thumbnails, EXIF stripping, JOIN query.
-
-### Phase 2 ✅ Multi-File, Documents, Video
-Multiple file selection, drag-drop multiple, document support (PDF/TXT/DOC/XLS/ZIP), video (MP4/MOV/WebM) with thumbnail + optional 720p server compression, per-file compress toggle.
-
-### Phase 3 ✅ Async Upload + Optimistic UI
-OOM fix (path-based streaming), `POST /media/upload` HTTP route, ghost notes with live progress, cancel/retry/dismiss, MIME detection fixes, client compression removed. See Phase 3 section above for full detail.
-
-### Future
-- Resumable uploads (chunked protocol)
-- Image editing (crop, rotate)
-- Storage analytics dashboard
-
----
-
 ## Performance Considerations
 
 ### Thumbnail Strategy
@@ -1005,85 +901,21 @@ OOM fix (path-based streaming), `POST /media/upload` HTTP route, ghost notes wit
 
 ---
 
-## Deferred Features (Phase 2+)
-
-### Not in Initial Implementation
-- ❌ Resumable uploads (Phase 2 - chunked protocol)
-- ❌ Multiple images per paste (Phase 2)
-- ❌ Individual image deletion (delete note to delete images)
-- ❌ Drag and drop upload (Phase 2)
-- ❌ Mobile camera integration (Phase 2)
-- ❌ Image editing before send (Phase 2)
-- ❌ Multiple image sizes/responsive images (Phase 3)
-- ❌ Video support (Phase 3)
-- ❌ File attachments (Phase 3)
-- ❌ Storage analytics dashboard (Phase 3)
-
----
-
-## Document Upload Implementation Status
-
-### Server-Side (Completed)
-**File**: `memoka_server/lib/src/media/media_endpoint.dart`
-
-Implemented features:
-- Document MIME type support (PDF, TXT, MD, DOC, DOCX, XLS, XLSX, ZIP)
-- Conditional processing logic:
-  - Images: Full processing (compression, thumbnails, EXIF stripping)
-  - Documents: Simple file storage with hash calculation
-- `_isImage()` helper method to detect file type
-- Extended `_getExtensionFromMimeType()` for all document types
-- `ImageProcessor.calculateHash()` public method for document hash calculation
-
-### Flutter-Side (Remaining Work)
-
-**Required Changes:**
-
-1. **Update Input** (`lib/widgets/note_input.dart`):
-   - Replace `_pickImage()` with `_pickFile()` using `file_picker` package
-   - Support all file extensions: jpg, png, pdf, txt, md, doc, docx, xls, xlsx, zip
-   - Change button icon from `Icons.image` to `Icons.attach_file`
-
-2. **Create Generic Upload Dialog** (`lib/widgets/file_upload_dialog.dart`):
-   - Detect file type (image vs document)
-   - For images: Show preview + compression option
-   - For documents: Show file info (name, size, type) + icon
-
-3. **Update Media Attachment Widget** (`lib/widgets/media_attachment_widget.dart`):
-   - Detect attachment MIME type
-   - If image: Show existing image widget
-   - If document: Show document card with file icon, filename, size, download button
-
-4. **Create Document Attachment Widget** (`lib/widgets/document_attachment_widget.dart`):
-   - Display document icon based on extension (PDF, TXT, DOC, etc.)
-   - Show filename and formatted file size
-   - Download button functionality
-
-5. **Update Chat View** (`lib/widgets/chat_view.dart`):
-   - Update `_handleWebDrop()` to accept all file types
-   - Route to appropriate dialog based on detected file type
-
-**Dependencies:**
-- Add `file_picker: ^8.1.4` to `memoka_flutter/pubspec.yaml` (already added)
-
 ## Related Files
 
 ### Server
 - `lib/src/media/media_attachment.spy.yaml`
-- `lib/src/media/media_endpoint.dart`
 - `lib/src/media/image_processor.dart`
 - `lib/src/chat/note.spy.yaml`
 - `lib/server.dart`
 
 ### Flutter
 - `lib/widgets/media_attachment_widget.dart`
-- `lib/widgets/image_upload_dialog.dart`
-- `lib/widgets/file_upload_dialog.dart` (to create)
-- `lib/widgets/document_attachment_widget.dart` (to create)
+- `lib/widgets/file_upload_dialog.dart`
+- `lib/widgets/document_attachment_widget.dart`
 - `lib/widgets/full_screen_image_view.dart`
 - `lib/widgets/chat_view.dart`
 - `lib/widgets/note_input.dart`
-- `lib/providers/media_provider.dart`
 
 ### Infrastructure
 - `memoka_server/docker-compose.yaml`

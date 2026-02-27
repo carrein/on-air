@@ -10,7 +10,6 @@ import '../providers/editing_note_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
-import '../providers/settings_page_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/responsive_utils.dart';
@@ -194,7 +193,7 @@ class _NavbarState extends ConsumerState<Navbar> {
                       !currentChannel.pinned,
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 2),
                 ],
                 Transform.rotate(
                   angle: math.pi,
@@ -209,11 +208,12 @@ class _NavbarState extends ConsumerState<Navbar> {
                         : _showMediaBottomSheet,
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 2),
                 IconButtonStyled(
                   icon: PhosphorIcons.plusSquare(),
                   onPressed: _createChannel,
                 ),
+                const SizedBox(width: 2),
                 const SyncIndicator(),
                 IconButtonStyled(
                   icon: PhosphorIcons.dotsThreeOutline(),
@@ -499,7 +499,6 @@ class _NavbarState extends ConsumerState<Navbar> {
         ref.read(currentChannelProvider.notifier).switchChannel(-1);
         break;
       case 'settings':
-        ref.read(currentSettingsPageProvider.notifier).showMain();
         ref.read(settingsVisibilityProvider.notifier).show();
         break;
     }

@@ -5,7 +5,7 @@ import 'package:memoka_client/memoka_client.dart';
 import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
-import 'connection_provider.dart';
+import 'provider_utils.dart';
 
 part 'notes_provider.g.dart';
 
@@ -53,13 +53,6 @@ class Notes extends _$Notes {
       return _notes;
     }
   }
-
-  bool get _isOnline =>
-      ref.read(connectionProvider) == ConnectionState.connected;
-
-  /// Returns true for network-level failures (server unreachable, timeout).
-  bool _isNetworkError(Object e) =>
-      e is ServerpodClientException && e.statusCode == -1;
 
   Future<List<Note>> _loadInitialNotes(int channelId) async {
     final serverNotes = await client.chat.getNotes(channelId, limit: 50);
@@ -194,7 +187,7 @@ class Notes extends _$Notes {
   }
 
   Future<void> createNote(String content) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         final note = await client.chat.createNote(channelId, content);
         final current = state.value ?? [];
@@ -206,7 +199,7 @@ class Notes extends _$Notes {
         await db.cacheNotes(channelId, _notes);
         return;
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Network error — fall through to offline path
       }
     }
@@ -266,7 +259,7 @@ class Notes extends _$Notes {
       return;
     }
 
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         final updated = await client.chat.updateNote(id, content);
         final current = state.value ?? [];
@@ -275,7 +268,7 @@ class Notes extends _$Notes {
         await db.cacheNotes(channelId, _notes);
         return;
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Network error — fall through to offline path
       }
     }
@@ -308,11 +301,11 @@ class Notes extends _$Notes {
       return;
     }
 
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.deleteNote(id);
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Network error — mark as deleted locally
         await db.markNoteDeletedLocally(id);
       }

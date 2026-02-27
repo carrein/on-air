@@ -26,7 +26,7 @@ abstract class SyncResult implements _i1.SerializableModel {
   factory SyncResult({
     required String status,
     String? reason,
-    String? tempId,
+    int? tempId,
     int? serverId,
     required String entityType,
     String? entityJson,
@@ -36,7 +36,7 @@ abstract class SyncResult implements _i1.SerializableModel {
     return SyncResult(
       status: jsonSerialization['status'] as String,
       reason: jsonSerialization['reason'] as String?,
-      tempId: jsonSerialization['tempId'] as String?,
+      tempId: jsonSerialization['tempId'] as int?,
       serverId: jsonSerialization['serverId'] as int?,
       entityType: jsonSerialization['entityType'] as String,
       entityJson: jsonSerialization['entityJson'] as String?,
@@ -50,7 +50,7 @@ abstract class SyncResult implements _i1.SerializableModel {
   String? reason;
 
   /// Client temp ID (echoed back for create mapping). Null for updates/deletes.
-  String? tempId;
+  int? tempId;
 
   /// Server-assigned ID (for creates). Null for updates/deletes.
   int? serverId;
@@ -67,7 +67,7 @@ abstract class SyncResult implements _i1.SerializableModel {
   SyncResult copyWith({
     String? status,
     String? reason,
-    String? tempId,
+    int? tempId,
     int? serverId,
     String? entityType,
     String? entityJson,
@@ -97,7 +97,7 @@ class _SyncResultImpl extends SyncResult {
   _SyncResultImpl({
     required String status,
     String? reason,
-    String? tempId,
+    int? tempId,
     int? serverId,
     required String entityType,
     String? entityJson,
@@ -125,7 +125,7 @@ class _SyncResultImpl extends SyncResult {
     return SyncResult(
       status: status ?? this.status,
       reason: reason is String? ? reason : this.reason,
-      tempId: tempId is String? ? tempId : this.tempId,
+      tempId: tempId is int? ? tempId : this.tempId,
       serverId: serverId is int? ? serverId : this.serverId,
       entityType: entityType ?? this.entityType,
       entityJson: entityJson is String? ? entityJson : this.entityJson,

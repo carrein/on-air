@@ -2,7 +2,7 @@
 
 ## Overview
 
-NoteInput is the note composition component pinned to the bottom of the screen. It handles creating new notes, editing existing notes, link preview detection, per-channel draft persistence, and file uploads (single and multi-file).
+NoteInput is the note composition component pinned to the bottom of the screen. It handles creating new notes, editing existing notes, link preview detection, and file uploads (single and multi-file).
 
 **File**: `memoka_flutter/lib/widgets/note_input.dart`
 **Widget**: `NoteInput` (ConsumerStatefulWidget)
@@ -40,6 +40,10 @@ Tappable icons using `IconButtonStyled` with regular Phosphor icons.
 
 - **Camera** (mobile only): `PhosphorIcons.camera()` — opens device camera
   - Fades out with `AnimatedOpacity` + collapses with `AnimatedSize` when text is entered
+- **GIF** (when `KLIPY_API_KEY` configured): `PhosphorIcons.cat()` — opens GIF picker bottom sheet
+  - Same fade+collapse animation as camera; hidden when text is entered
+  - Hidden entirely when `KlipyService.isAvailable` is false (no API key)
+  - See `docs/GIF.md` for full details
 - **Attachment**: `PhosphorIcons.paperclip()` — opens file picker
   - Zooms out via `AnimatedSwitcher` + `ScaleTransition` when text is entered
 - **Send**: `PhosphorIcons.paperPlaneRight()` — submits note
@@ -136,10 +140,7 @@ Appears above the NoteInput when a URL is detected in the text.
 
 ### Draft Persistence
 
-- On channel switch, the current text is saved as a draft for the previous channel
-- On arriving at a channel, any saved draft is loaded into the field
-- Drafts are not saved/loaded during edit mode
-- Drafts are cleared after a note is successfully sent
+Not yet implemented.
 
 ### Link Preview Detection
 
@@ -172,7 +173,6 @@ Appears above the NoteInput when a URL is detected in the text.
 | Provider                | Purpose                                |
 |-------------------------|----------------------------------------|
 | `editingNoteProvider`   | Populate field when entering edit mode |
-| `currentChannelProvider`| Save/load drafts on channel switch     |
 
 ### Providers Read (on interaction)
 
@@ -181,7 +181,6 @@ Appears above the NoteInput when a URL is detected in the text.
 | `notesProvider(channelId).notifier`  | Create or update notes              |
 | `currentChannelProvider`            | Get active channel for submissions  |
 | `editingNoteProvider.notifier`      | Cancel editing                      |
-| `draftsProvider.notifier`           | Save, load, clear per-channel drafts|
 | `pendingUploadsProvider.notifier`   | Enqueue file uploads (fire-and-forget optimistic) |
 
 ### Local Widget State
@@ -206,11 +205,12 @@ NoteInput is placed at the bottom of the `ChatScreen` layout. On desktop/web it 
 | `lib/widgets/input_link_preview.dart` | Link preview widget shown above bar |
 | `lib/widgets/file_upload_dialog.dart` | Single file upload dialog |
 | `lib/widgets/multi_file_upload_dialog.dart` | Multi-file upload dialog |
+| `lib/widgets/gif_picker_sheet.dart` | GIF picker bottom sheet (Klipy API) |
+| `lib/services/klipy_service.dart` | Klipy API HTTP client |
 | `lib/screens/chat_screen.dart` | Parent layout that hosts the NoteInput |
 | `lib/providers/notes_provider.dart` | Note CRUD operations |
 | `lib/providers/current_channel_provider.dart` | Active channel for submissions |
 | `lib/providers/editing_note_provider.dart` | Edit mode state |
-| `lib/providers/drafts_provider.dart` | Per-channel draft persistence |
 | `lib/providers/pending_uploads_provider.dart` | Optimistic upload queue (ghost notes, progress, retry, cancel) |
 | `lib/models/upload_file_data.dart` | Upload file data model |
 | `lib/utils/toast_utils.dart` | Success/error toast display |

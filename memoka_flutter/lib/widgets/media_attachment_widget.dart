@@ -11,6 +11,12 @@ import 'document_attachment_widget.dart';
 import 'full_screen_image_view.dart';
 import 'video_attachment_widget.dart';
 
+/// Max display width for inline images in chat.
+const kImageMaxWidth = 300.0;
+
+/// Max display height for inline images in chat.
+const kImageMaxHeight = 250.0;
+
 /// Compute display size from attachment metadata, clamped to max constraints.
 /// Maintains aspect ratio. Falls back to [fallback] if dimensions are null.
 Size computeDisplaySize({
@@ -110,26 +116,24 @@ class _ImageAttachmentWidget extends StatelessWidget {
     required this.initialImageIndex,
   });
 
+  bool get _isGif => attachment.mimeType.toLowerCase() == 'image/gif';
+
   @override
   Widget build(BuildContext context) {
     final imageUrl = _buildImageUrl(useThumbnail: false);
-    final fullImageUrl = _buildImageUrl(useThumbnail: false);
-
-    const double maxWidth = 300;
-    const double maxHeight = 250;
 
     final displaySize = computeDisplaySize(
       width: attachment.width,
       height: attachment.height,
-      maxWidth: maxWidth,
-      maxHeight: maxHeight,
+      maxWidth: kImageMaxWidth,
+      maxHeight: kImageMaxHeight,
     );
 
     return GestureDetector(
       onTap: () {
         FullScreenImageView.show(
           context,
-          imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [fullImageUrl],
+          imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [imageUrl],
           initialIndex: allImageUrls.isNotEmpty ? initialImageIndex : 0,
         );
       },
@@ -138,18 +142,36 @@ class _ImageAttachmentWidget extends StatelessWidget {
           SizedBox(
             width: displaySize.width,
             height: displaySize.height,
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              fadeInDuration: const Duration(milliseconds: 150),
-              placeholder: (context, url) => ShimmerPlaceholder(
-                width: displaySize.width,
-                height: displaySize.height,
-              ),
-              errorWidget: (context, url, error) {
-                return _buildErrorWidget(displaySize, error);
-              },
-            ),
+            child: _isGif
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    frameBuilder:
+                        (context, child, frame, wasSynchronouslyLoaded) {
+                          if (wasSynchronouslyLoaded || frame != null) {
+                            return child;
+                          }
+                          return ShimmerPlaceholder(
+                            width: displaySize.width,
+                            height: displaySize.height,
+                          );
+                        },
+                    errorBuilder: (context, error, stack) {
+                      return _buildErrorWidget(displaySize, error);
+                    },
+                  )
+                : CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    fadeInDuration: const Duration(milliseconds: 150),
+                    placeholder: (context, url) => ShimmerPlaceholder(
+                      width: displaySize.width,
+                      height: displaySize.height,
+                    ),
+                    errorWidget: (context, url, error) {
+                      return _buildErrorWidget(displaySize, error);
+                    },
+                  ),
           ),
           // Compressed indicator
           if (attachment.compressed)
@@ -232,11 +254,13 @@ class _ImageAttachmentWidget extends StatelessWidget {
 class ShimmerPlaceholder extends StatefulWidget {
   final double width;
   final double height;
+  final double borderRadius;
 
   const ShimmerPlaceholder({
     super.key,
     required this.width,
     required this.height,
+    this.borderRadius = 0,
   });
 
   @override
@@ -271,7 +295,7 @@ class _ShimmerPlaceholderState extends State<ShimmerPlaceholder>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(widget.borderRadius),
             gradient: LinearGradient(
               begin: Alignment(-1.0 + 2.0 * _controller.value, 0),
               end: Alignment(-1.0 + 2.0 * _controller.value + 1.0, 0),

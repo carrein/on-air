@@ -98,14 +98,53 @@ class ImageProcessor {
     final hash = sha256.convert(bytes);
     final contentHash = hash.toString().substring(0, 8);
 
-    // Decode image
-    img.Image? image = img.decodeImage(bytes);
+    // Decode image — some GIFs (especially from external APIs) use features
+    // that the `image` package cannot decode. Fall back gracefully.
+    img.Image? image;
+    try {
+      image = img.decodeImage(bytes);
+    } catch (_) {
+      // Decode failed — treat as an opaque binary (likely an exotic GIF).
+      image = null;
+    }
+
+    // GIF files: always preserve the original to keep animation intact.
+    // The `image` package often reports numFrames == 1 for animated GIFs,
+    // so we cannot rely on frame count to decide.
+    final ext = path.extension(params.finalFilePath).toLowerCase();
+    if (ext == '.gif') {
+      int gifWidth = 0;
+      int gifHeight = 0;
+      String? thumbPath;
+
+      if (image != null) {
+        final oriented = img.bakeOrientation(image);
+        gifWidth = oriented.width;
+        gifHeight = oriented.height;
+        try {
+          thumbPath = await _generateThumbnail(
+            oriented.frames.first,
+            params.channelDir,
+            path.basenameWithoutExtension(params.finalFilePath),
+          );
+        } catch (_) {}
+      }
+
+      await tempFile.rename(params.finalFilePath);
+      return ProcessedImageResult(
+        filePath: params.finalFilePath,
+        thumbnailPath: thumbPath,
+        width: gifWidth,
+        height: gifHeight,
+        contentHash: contentHash,
+        compressed: false,
+        animated: true,
+      );
+    }
+
     if (image == null) {
       throw Exception('Failed to decode image');
     }
-
-    // Check if animated (GIF with multiple frames)
-    final isAnimated = image.numFrames > 1;
 
     // Apply EXIF orientation BEFORE stripping metadata
     image = img.bakeOrientation(image);
@@ -114,48 +153,34 @@ class ImageProcessor {
     final originalHeight = image.height;
 
     bool wasCompressed = false;
-    String? thumbnailPath;
 
-    if (isAnimated) {
-      // For animated GIFs, preserve the original file
-      await tempFile.rename(params.finalFilePath);
+    // Strip EXIF metadata after applying orientation
+    image.exif.clear();
 
-      // Generate static thumbnail from first frame
-      final firstFrame = image.frames.first;
-      thumbnailPath = await _generateThumbnail(
-        firstFrame,
-        params.channelDir,
-        path.basenameWithoutExtension(params.finalFilePath),
-      );
-    } else {
-      // Strip EXIF metadata after applying orientation
-      image.exif.clear();
-
-      // Compress if requested
-      if (params.compress) {
-        image = _compressImage(image);
-        wasCompressed = true;
-      }
-
-      // Save processed image as JPEG (WebP encoding not available in this version)
-      final jpegBytes = img.encodeJpg(
-        image,
-        quality: compressionQuality,
-      );
-      await File(params.finalFilePath).writeAsBytes(jpegBytes);
-
-      // Delete temp file
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
-
-      // Generate thumbnail
-      thumbnailPath = await _generateThumbnail(
-        image,
-        params.channelDir,
-        path.basenameWithoutExtension(params.finalFilePath),
-      );
+    // Compress if requested
+    if (params.compress) {
+      image = _compressImage(image);
+      wasCompressed = true;
     }
+
+    // Save processed image as JPEG (WebP encoding not available in this version)
+    final jpegBytes = img.encodeJpg(
+      image,
+      quality: compressionQuality,
+    );
+    await File(params.finalFilePath).writeAsBytes(jpegBytes);
+
+    // Delete temp file
+    if (await tempFile.exists()) {
+      await tempFile.delete();
+    }
+
+    // Generate thumbnail
+    final thumbnailPath = await _generateThumbnail(
+      image,
+      params.channelDir,
+      path.basenameWithoutExtension(params.finalFilePath),
+    );
 
     return ProcessedImageResult(
       filePath: params.finalFilePath,
@@ -164,7 +189,7 @@ class ImageProcessor {
       height: originalHeight,
       contentHash: contentHash,
       compressed: wasCompressed,
-      animated: isAnimated,
+      animated: false,
     );
   }
 

@@ -115,6 +115,29 @@ class FileUtils {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  /// Format a [DateTime] as "MMM DD, H:MM AM/PM" (e.g. "Jan 5, 2:30 PM").
+  static String formatDateTime(DateTime dt) {
+    final t = dt.toLocal();
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final hour = t.hour > 12 ? t.hour - 12 : (t.hour == 0 ? 12 : t.hour);
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.hour >= 12 ? 'PM' : 'AM';
+    return '${months[t.month - 1]} ${t.day}, $hour:$minute $period';
+  }
+
   /// Build media URL with cache busting.
   /// Serverpod runs the API on port 8080 and the web server (which serves
   /// /media) on port 8082. If the server URL uses port 8080, swap to 8082.

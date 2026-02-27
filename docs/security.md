@@ -240,7 +240,7 @@ If deploying publicly or sharing with others, implement:
 
 ### Current Implementation
 
-**Upload Endpoint:** `media_endpoint.dart`
+**Upload Handler:** `memoka_server/lib/src/web/routes/media_upload_route.dart`
 
 **Security Measures:**
 
@@ -627,15 +627,15 @@ Current enforced limits:
 | Field | Max Length | Rationale |
 |-------|-----------|-----------|
 | Channel name | 100 chars | UI display constraints |
-| Channel emoji | 10 chars | Multi-byte emoji support |
-| Note content | 50,000 chars | ~10-20 pages, prevents abuse |
+| Channel emoji | 30 chars | Multi-byte emoji support |
+| Note content | 200,000 chars | ~40-80 pages, prevents abuse |
 | Filename | 255 chars | Filesystem limit |
 | File size | 50 MB | Balance usability vs resources |
 
 Customize in respective endpoint files:
 - Channel limits: `memoka_server/lib/src/chat/chat_endpoint.dart`
 - Note limits: `memoka_server/lib/src/chat/chat_endpoint.dart`
-- File limits: `memoka_server/lib/src/media/media_endpoint.dart`
+- File limits: `memoka_server/lib/src/web/routes/media_upload_route.dart`
 
 After changes, run `serverpod generate` from `memoka_server/`.
 
@@ -685,8 +685,8 @@ Recommended: Use secret management service (AWS Secrets Manager, Google Cloud Se
 
 **Test input validation:**
 ```dart
-// Test 50,001 character note (should fail)
-final tooLongContent = 'a' * 50001;
+// Test 200,001 character note (should fail)
+final tooLongContent = 'a' * 200001;
 try {
   await client.chat.createNote(channelId, tooLongContent);
   print('ERROR: Should have rejected long content');
@@ -764,12 +764,15 @@ If security breach suspected:
 ### ✅ Completed Fixes
 
 1. **Environment Variable Support** - Server reads from environment variables, `passwords.yaml.template` created
-2. **Rate Limiting** - Middleware configured with per-endpoint limits and IP-based throttling
-3. **Input Validation** - Max content lengths enforced (notes, channels, filenames)
-4. **Pre-commit Hooks** - `.pre-commit-config.yaml` configured with gitleaks secret scanning
-5. **Production Config Template** - `production.yaml.template` created with secure defaults
-6. **Database Security Scripts** - SQL script for dedicated user with minimal privileges
-7. **CORS Improvements** - Conditional CORS based on environment, strict production settings
+2. **Input Validation** - Max content lengths enforced (notes, channels, filenames)
+3. **Pre-commit Hooks** - `.pre-commit-config.yaml` configured with gitleaks secret scanning
+4. **Production Config Template** - `production.yaml.template` created with secure defaults
+
+### ❌ Not Implemented
+
+- **Rate Limiting** - No middleware or per-endpoint rate limiting exists; `cors_media_route.dart` is the only custom route middleware and it does not throttle
+- **Database Security Scripts** - No `config/create_db_user.sql` exists; the SQL snippet in section 3 is a recommendation only
+- **CORS Improvements** - `cors_media_route.dart` uses wildcard `Access-Control-Allow-Origin: *` unconditionally; no environment-conditional CORS logic is implemented
 
 ### ⏸️ Deferred (Requires Infrastructure)
 

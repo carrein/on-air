@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/pending_uploads_provider.dart';
+import '../services/klipy_service.dart';
 import '../utils/toast_utils.dart';
+import '../utils/url_utils.dart';
 import '../models/upload_file_data.dart';
 import 'input_link_preview.dart';
 import 'file_upload_dialog.dart';
+import 'gif_picker_sheet.dart';
 import 'multi_file_upload_dialog.dart';
 import 'icon_button_styled.dart';
 
@@ -52,11 +56,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
   bool _showPreview = true;
 
   String? _extractFirstUrl(String text) {
-    final urlRegex = RegExp(
-      r'https?://[^\s<>"{}|\\^`\[\]]+',
-      caseSensitive: false,
-    );
-    final match = urlRegex.firstMatch(text);
+    final match = urlPattern.firstMatch(text);
     return match?.group(0);
   }
 
@@ -263,8 +263,33 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                     ),
             ),
           ),
-        // Gap between camera and attachment/send
+        // Gap between camera and GIF
         if (!kIsWeb)
+          AnimatedSize(
+            duration: _animDuration,
+            curve: _animCurve,
+            child: hasText ? const SizedBox.shrink() : const SizedBox(width: 2),
+          ),
+        // GIF button — fades out when text is present
+        if (KlipyService.isAvailable)
+          AnimatedOpacity(
+            opacity: hasText ? 0.0 : 1.0,
+            duration: _animDuration,
+            curve: _animCurve,
+            child: AnimatedSize(
+              duration: _animDuration,
+              curve: _animCurve,
+              child: hasText
+                  ? const SizedBox.shrink()
+                  : IconButtonStyled(
+                      icon: PhosphorIcons.cat(),
+                      onPressed: _pickGif,
+                      size: _iconSize,
+                    ),
+            ),
+          ),
+        // Gap between GIF and attachment/send
+        if (KlipyService.isAvailable)
           AnimatedSize(
             duration: _animDuration,
             curve: _animCurve,
@@ -329,6 +354,56 @@ class _NoteInputState extends ConsumerState<NoteInput> {
     } catch (e) {
       if (mounted) {
         ToastUtils.show(context, 'Camera failed: $e', type: ToastType.error);
+      }
+    }
+  }
+
+  Future<void> _pickGif() async {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    final gif = await showModalBottomSheet<KlipyGif>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const GifPickerSheet(),
+    );
+    if (gif == null || !mounted) return;
+
+    try {
+      final response = await http.get(Uri.parse(gif.url));
+      if (response.statusCode != 200) {
+        if (mounted) {
+          ToastUtils.show(
+            context,
+            'Failed to download GIF',
+            type: ToastType.error,
+          );
+        }
+        return;
+      }
+
+      final fileName = '${gif.id}.gif';
+
+      ref
+          .read(pendingUploadsProvider.notifier)
+          .enqueue(
+            channelId: channelId,
+            fileBytes: response.bodyBytes,
+            fileName: fileName,
+            noteContent: '',
+            compress: false,
+            mediaWidth: gif.width,
+            mediaHeight: gif.height,
+          );
+    } catch (e) {
+      if (mounted) {
+        ToastUtils.show(
+          context,
+          'Failed to send GIF: $e',
+          type: ToastType.error,
+        );
       }
     }
   }

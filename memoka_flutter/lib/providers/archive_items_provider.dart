@@ -4,6 +4,7 @@ import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
 import 'connection_provider.dart';
+import 'provider_utils.dart';
 
 part 'archive_items_provider.g.dart';
 
@@ -59,12 +60,6 @@ class ArchiveItems extends _$ArchiveItems {
     }
   }
 
-  bool get _isOnline =>
-      ref.read(connectionProvider) == ConnectionState.connected;
-
-  bool _isNetworkError(Object e) =>
-      e is ServerpodClientException && e.statusCode == -1;
-
   Future<void> _refetchAndCache() async {
     try {
       final items = await client.chat.getArchiveItems(limit: 50);
@@ -79,11 +74,11 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> restoreNote(int noteId) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.restoreNote(noteId);
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Offline: fall through — note stays in archive locally until sync
       }
     }
@@ -98,11 +93,11 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> deleteNote(int noteId) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.deleteNote(noteId);
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Offline: mark note as deleted locally for sync
         final db = ref.read(appDatabaseProvider);
         await db.markNoteDeletedLocally(noteId);
@@ -122,11 +117,11 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> restoreChannel(int channelId) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.restoreChannel(channelId);
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Offline: fall through
       }
     }
@@ -142,11 +137,11 @@ class ArchiveItems extends _$ArchiveItems {
   }
 
   Future<void> deleteChannel(int channelId) async {
-    if (_isOnline) {
+    if (isOnline(ref)) {
       try {
         await client.chat.deleteChannel(channelId);
       } catch (e) {
-        if (!_isNetworkError(e)) rethrow;
+        if (!isNetworkError(e)) rethrow;
         // Offline: mark channel as deleted locally for sync
         final db = ref.read(appDatabaseProvider);
         await db.markChannelDeletedLocally(channelId);
