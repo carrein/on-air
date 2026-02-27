@@ -325,25 +325,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           statusBarBrightness: Brightness.dark,
         ),
         child: Scaffold(
-        backgroundColor: const Color(0xFFF6F0ED),
-        body: SafeArea(
-          child: Column(
-            children: [
-              const OfflineBanner(),
-              const Navbar(),
-              Expanded(
-                child: Row(
-                  children: [
-                    if (!isInDetailMode) const ChannelList(),
-                    buildContentColumn(),
-                    if (showMediaPanel && !isInDetailMode) const MediaPanel(),
-                  ],
+          backgroundColor: const Color(0xFFF6F0ED),
+          body: SafeArea(
+            child: Column(
+              children: [
+                const OfflineBanner(),
+                const Navbar(),
+                Expanded(
+                  child: Row(
+                    children: [
+                      if (!isInDetailMode) const ChannelList(),
+                      buildContentColumn(),
+                      if (showMediaPanel && !isInDetailMode) const MediaPanel(),
+                    ],
+                  ),
                 ),
-              ),
-              if (isMobile && !isArchive && !isShowingSettings)
-                const NoteInput(),
-            ],
-          ),
+                if (isMobile && !isArchive && !isShowingSettings)
+                  const NoteInput(),
+              ],
+            ),
           ),
         ),
       ),

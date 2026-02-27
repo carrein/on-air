@@ -72,8 +72,9 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   }
 
   Future<void> _checkCache() async {
-    final path =
-        await DownloadUtils.getCachedPath(widget.attachment.originalFilename);
+    final path = await DownloadUtils.getCachedPath(
+      widget.attachment.originalFilename,
+    );
     if (path != null && mounted) {
       setState(() => _cachedPath = path);
     }
