@@ -158,7 +158,7 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                     child: Text(
                       _error!,
                       style: GoogleFonts.spaceGrotesk(
-                        color: Colors.redAccent,
+                        color: const Color(0xFFDB0000),
                         fontSize: 13,
                       ),
                       textAlign: TextAlign.center,

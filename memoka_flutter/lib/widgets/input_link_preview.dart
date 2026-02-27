@@ -19,11 +19,15 @@ class InputLinkPreview extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color: const Color(0xFF0F52BA).withValues(alpha: 0.1),
       ),
       child: Row(
         children: [
-          PhosphorIcon(PhosphorIcons.link(), color: Colors.blue[700], size: 20),
+          PhosphorIcon(
+            PhosphorIcons.link(),
+            color: const Color(0xFF0F52BA),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -34,7 +38,7 @@ class InputLinkPreview extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: Colors.blue[700],
+                    color: const Color(0xFF0F52BA),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -42,7 +46,7 @@ class InputLinkPreview extends StatelessWidget {
                   url,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey[600],
+                    color: const Color(0xFF00171F).withValues(alpha: 0.6),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -52,7 +56,7 @@ class InputLinkPreview extends StatelessWidget {
                   'Preview will be generated after sending',
                   style: TextStyle(
                     fontSize: 10,
-                    color: Colors.grey[500],
+                    color: const Color(0xFF00171F).withValues(alpha: 0.6),
                   ),
                 ),
               ],

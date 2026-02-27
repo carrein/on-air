@@ -223,7 +223,7 @@ class _ImageAttachmentWidget extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Error: ${error.toString().substring(0, math.min(50, error.toString().length))}...',
-              style: const TextStyle(color: Colors.red, fontSize: 10),
+              style: const TextStyle(color: Color(0xFFDB0000), fontSize: 10),
               textAlign: TextAlign.center,
             ),
           ],

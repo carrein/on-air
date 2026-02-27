@@ -65,7 +65,7 @@ class SettingsView extends ConsumerWidget {
             serverUrl,
             style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF00171F).withValues(alpha: 0.5),
+              color: const Color(0xFF00171F).withValues(alpha: 0.6),
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -154,7 +154,7 @@ class SettingsView extends ConsumerWidget {
             _appVersion,
             style: TextStyle(
               fontSize: 12,
-              color: const Color(0xFF00171F).withValues(alpha: 0.5),
+              color: const Color(0xFF00171F).withValues(alpha: 0.6),
             ),
           ),
         ),

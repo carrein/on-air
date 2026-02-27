@@ -82,7 +82,9 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
                           PhosphorIcon(
                             PhosphorIcons.filmStrip(),
                             size: 64,
-                            color: Colors.grey[600],
+                            color: const Color(
+                              0xFF00171F,
+                            ).withValues(alpha: 0.6),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -93,7 +95,11 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
                           const SizedBox(height: 8),
                           Text(
                             _fileSizeFormatted,
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: TextStyle(
+                              color: const Color(
+                                0xFF00171F,
+                              ).withValues(alpha: 0.6),
+                            ),
                           ),
                         ],
                       ),
@@ -102,7 +108,13 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
                     Center(
                       child: Column(
                         children: [
-                          Icon(_fileIcon, size: 64, color: Colors.grey[600]),
+                          Icon(
+                            _fileIcon,
+                            size: 64,
+                            color: const Color(
+                              0xFF00171F,
+                            ).withValues(alpha: 0.6),
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             widget.file.fileName,
@@ -112,7 +124,11 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
                           const SizedBox(height: 8),
                           Text(
                             _fileSizeFormatted,
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: TextStyle(
+                              color: const Color(
+                                0xFF00171F,
+                              ).withValues(alpha: 0.6),
+                            ),
                           ),
                         ],
                       ),

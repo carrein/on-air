@@ -80,7 +80,11 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
                 ),
               )
             else
-              Icon(file.fileIcon, size: 40, color: Colors.grey[600]),
+              Icon(
+                file.fileIcon,
+                size: 40,
+                color: const Color(0xFF00171F).withValues(alpha: 0.6),
+              ),
 
             const SizedBox(width: 12),
 
@@ -102,7 +106,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
                   Text(
                     file.fileSizeFormatted,
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: const Color(0xFF00171F).withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                   ),

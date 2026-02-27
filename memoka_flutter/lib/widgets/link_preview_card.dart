@@ -41,7 +41,7 @@ class LinkPreviewCard extends StatelessWidget {
                     child: PhosphorIcon(
                       PhosphorIcons.imageBroken(),
                       size: 48,
-                      color: Colors.grey[400],
+                      color: const Color(0xFF00171F).withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -72,7 +72,7 @@ class LinkPreviewCard extends StatelessWidget {
                       preview.description!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: const Color(0xFF00171F).withValues(alpha: 0.6),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -99,7 +99,9 @@ class LinkPreviewCard extends StatelessWidget {
                           _extractDomain(preview.url),
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[500],
+                            color: const Color(
+                              0xFF00171F,
+                            ).withValues(alpha: 0.6),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

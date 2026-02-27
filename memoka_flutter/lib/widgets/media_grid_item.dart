@@ -141,7 +141,11 @@ class MediaGridItem extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(icon, size: 36, color: Colors.grey[700]),
+          Icon(
+            icon,
+            size: 36,
+            color: const Color(0xFF00171F).withValues(alpha: 0.6),
+          ),
           const SizedBox(height: 6),
           Flexible(
             child: Text(
@@ -155,7 +159,10 @@ class MediaGridItem extends ConsumerWidget {
           const SizedBox(height: 2),
           Text(
             sizeFormatted,
-            style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 9,
+              color: const Color(0xFF00171F).withValues(alpha: 0.6),
+            ),
           ),
         ],
       ),
@@ -177,11 +184,18 @@ class MediaGridItem extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 32, color: Colors.grey[400]),
+          Icon(
+            icon,
+            size: 32,
+            color: const Color(0xFF00171F).withValues(alpha: 0.6),
+          ),
           const SizedBox(height: 4),
           Text(
             message,
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+            style: TextStyle(
+              fontSize: 10,
+              color: const Color(0xFF00171F).withValues(alpha: 0.6),
+            ),
           ),
         ],
       ),

@@ -304,7 +304,10 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         'Audio error: $_error',
-                        style: const TextStyle(fontSize: 10, color: Colors.red),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFFDB0000),
+                        ),
                       ),
                     ),
 

@@ -41,36 +41,42 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
         final mediaAsync = ref.watch(channelMediaDataProvider(channelId));
 
         return Container(
-          width: widget.fixedWidth ? 300 : null,
+          width: widget.fixedWidth ? 340 : null,
           decoration: const BoxDecoration(
-            color: Color(0xFF00171F),
+            color: Color(0xFFF6F0ED),
+            border: Border(
+              left: BorderSide(color: Color(0xFFCE2161), width: 1),
+            ),
           ),
           child: Column(
             children: [
               // Tab bar — flush against content (no separator)
               Container(
-                color: const Color(0xFF00171F),
+                color: const Color(0xFFF6F0ED),
                 child: TabBar(
                   controller: _tabController,
                   labelColor: const Color(0xFFCE2161),
-                  unselectedLabelColor: Colors.grey[500],
+                  unselectedLabelColor: const Color(
+                    0xFF00171F,
+                  ).withValues(alpha: 0.6),
                   indicatorColor: const Color(0xFFCE2161),
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: const UnderlineTabIndicator(
                     borderRadius: BorderRadius.zero,
                     borderSide: BorderSide(color: Color(0xFFCE2161), width: 3),
                   ),
-                  dividerHeight: 0,
+                  dividerColor: const Color(0xFFCE2161).withValues(alpha: 0.2),
+                  dividerHeight: 1,
                   labelStyle: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
-                  unselectedLabelStyle: const TextStyle(fontSize: 11),
+                  unselectedLabelStyle: const TextStyle(fontSize: 14),
                   tabs: const [
-                    Tab(text: 'IMAGES'),
-                    Tab(text: 'VIDEOS'),
-                    Tab(text: 'DOCS'),
-                    Tab(text: 'LINKS'),
+                    Tab(text: 'Images'),
+                    Tab(text: 'Videos'),
+                    Tab(text: 'Docs'),
+                    Tab(text: 'Links'),
                   ],
                 ),
               ),
@@ -97,7 +103,7 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
                       padding: const EdgeInsets.all(16),
                       child: Text(
                         'Error loading media: $err',
-                        style: TextStyle(color: Colors.red[700]),
+                        style: const TextStyle(color: Color(0xFFDB0000)),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -110,16 +116,16 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
       },
       loading: () => Container(
         width: 300,
-        color: const Color(0xFF00171F),
+        color: const Color(0xFFF6F0ED),
         child: const Center(child: CircularProgressIndicator()),
       ),
       error: (err, stack) => Container(
         width: 300,
-        color: const Color(0xFF00171F),
+        color: const Color(0xFFF6F0ED),
         child: Center(
           child: Text(
             'Error: $err',
-            style: TextStyle(color: Colors.red[700]),
+            style: const TextStyle(color: Color(0xFFDB0000)),
           ),
         ),
       ),

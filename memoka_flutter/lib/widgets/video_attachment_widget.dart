@@ -276,7 +276,11 @@ class _VideoLightboxState extends State<_VideoLightbox> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PhosphorIcon(PhosphorIcons.warning(), color: Colors.red, size: 64),
+          PhosphorIcon(
+            PhosphorIcons.warning(),
+            color: const Color(0xFFDB0000),
+            size: 64,
+          ),
           const SizedBox(height: 16),
           const Text(
             'Failed to load video',

@@ -109,7 +109,7 @@ class _IconPickerState extends State<IconPicker> {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: const Color(0xFF00171F).withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(2),
           ),
         ),

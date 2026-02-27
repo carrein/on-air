@@ -50,15 +50,15 @@ class MediaGrid extends StatelessWidget {
 
     switch (type) {
       case MediaType.image:
-        message = 'No images in this channel yet';
+        message = 'No images';
         icon = PhosphorIcons.image();
         break;
       case MediaType.video:
-        message = 'No videos in this channel yet';
+        message = 'No videos';
         icon = PhosphorIcons.video();
         break;
       case MediaType.document:
-        message = 'No documents in this channel yet';
+        message = 'No documents';
         icon = PhosphorIcons.file();
         break;
     }
@@ -69,13 +69,17 @@ class MediaGrid extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
+            Icon(
+              icon,
+              size: 32,
+              color: const Color(0xFF00171F).withValues(alpha: 0.6),
+            ),
+            const SizedBox(height: 14),
             Text(
               message,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: const Color(0xFF00171F).withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

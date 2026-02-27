@@ -71,7 +71,7 @@ class _NotificationData {
   Color get backgroundColor {
     switch (type) {
       case ToastType.error:
-        return Colors.red[700]!;
+        return const Color(0xFFDB0000);
       case ToastType.success:
         return Colors.green[700]!;
       case ToastType.info:

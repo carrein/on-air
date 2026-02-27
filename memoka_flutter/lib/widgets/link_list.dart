@@ -37,15 +37,15 @@ class LinkList extends StatelessWidget {
           children: [
             PhosphorIcon(
               PhosphorIcons.linkBreak(),
-              size: 64,
-              color: Color(0xFF00171F).withValues(alpha: 0.4),
+              size: 32,
+              color: Color(0xFF00171F).withValues(alpha: 0.6),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             Text(
-              'No links in this channel yet',
+              'No links',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF00171F).withValues(alpha: 0.5),
+                color: Color(0xFF00171F).withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

@@ -40,7 +40,7 @@ class LinkListItem extends StatelessWidget {
                         return PhosphorIcon(
                           PhosphorIcons.globe(),
                           size: 16,
-                          color: Color(0xFF00171F).withValues(alpha: 0.5),
+                          color: const Color(0xFF00171F).withValues(alpha: 0.6),
                         );
                       },
                     ),
@@ -51,7 +51,7 @@ class LinkListItem extends StatelessWidget {
                       child: PhosphorIcon(
                         PhosphorIcons.globe(),
                         size: 16,
-                        color: Color(0xFF00171F).withValues(alpha: 0.5),
+                        color: const Color(0xFF00171F).withValues(alpha: 0.6),
                       ),
                     ),
                   Expanded(
@@ -70,7 +70,7 @@ class LinkListItem extends StatelessWidget {
                   PhosphorIcon(
                     PhosphorIcons.arrowSquareOut(),
                     size: 14,
-                    color: Color(0xFF00171F).withValues(alpha: 0.5),
+                    color: const Color(0xFF00171F).withValues(alpha: 0.6),
                   ),
                 ],
               ),
@@ -96,7 +96,7 @@ class LinkListItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF00171F).withValues(alpha: 0.5),
+                    color: const Color(0xFF00171F).withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -121,7 +121,7 @@ class LinkListItem extends StatelessWidget {
                 _formatDate(link.createdAt),
                 style: TextStyle(
                   fontSize: 10,
-                  color: Color(0xFF00171F).withValues(alpha: 0.5),
+                  color: const Color(0xFF00171F).withValues(alpha: 0.6),
                 ),
               ),
             ],

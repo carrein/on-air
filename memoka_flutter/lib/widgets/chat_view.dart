@@ -426,7 +426,7 @@ class _ChatViewState extends ConsumerState<ChatView>
         // Drag-over indicator
         if (_isDragOver)
           Container(
-            color: Colors.blue.withValues(alpha: 0.2),
+            color: const Color(0xFF0F52BA).withValues(alpha: 0.2),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -434,7 +434,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                   PhosphorIcon(
                     PhosphorIcons.uploadSimple(),
                     size: 64,
-                    color: Colors.blue,
+                    color: const Color(0xFF0F52BA),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -442,7 +442,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                      color: Color(0xFF0F52BA),
                     ),
                   ),
                 ],

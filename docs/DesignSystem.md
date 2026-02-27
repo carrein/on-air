@@ -12,50 +12,48 @@ Canonical style reference and interaction guidelines for the Memoka app. All com
 
 | Token            | Hex       | RGB              | Usage                                    |
 |------------------|-----------|------------------|------------------------------------------|
-| `core.background`| `#00171F` | `0, 23, 31`      | Dark surfaces: media panel, dialog headers, status bar |
-| `core.surface`   | `#F6F0ED` | `246, 240, 237`  | All UI surfaces: channel list, navbar, NoteInput, note cards, modals |
+| `core.background`| `#00171F` | `0, 23, 31`      | Dark surfaces: dialog headers, status bar, info toasts |
+| `core.surface`   | `#F6F0ED` | `246, 240, 237`  | All UI surfaces: channel list, navbar, NoteInput, note cards, modals, media panel |
 | `core.text`      | `#00171F` | `0, 23, 31`      | All body text on light surfaces          |
 | `core.textOnDark`| `#FFFFFF` | `255, 255, 255`  | Text/icons on dark (`core.background`) surfaces |
-| `core.textMuted` | `#00171F` @ 50% | —           | Timestamps, secondary text on light surfaces |
+| `core.textMuted` | `#00171F` @ 60% | —           | Timestamps, secondary text, muted icons, placeholders on light surfaces. Replaces all `Colors.grey[400-700]` usage. |
 
 #### Brand
 
 | Token              | Hex       | RGB              | Usage                                  |
 |--------------------|-----------|------------------|----------------------------------------|
-| `brand.primary`    | `#CE2161` | `206, 33, 97`    | Selected states, primary actions       |
-| `brand.accent`     | `#FF52A1` | `255, 82, 161`   | Reserved — do not use for borders; use `brand.primary` (#CE2161) for all borders and pink accents |
-| `brand.green`      | `#9BFF00` | `155, 255, 0`    | Archive notes border                   |
-| `brand.blue`       | `#48EEFF` | `72, 238, 255`   | Reserved (brand palette)               |
-| `brand.yellow`     | `#FFE236` | `255, 226, 54`   | Reserved (brand palette)               |
+| `brand.primary`    | `#CE2161` | `206, 33, 97`    | Selected states, primary actions, borders, tab indicators, date separator background |
 
 #### Semantic
 
 | Token               | Hex / Value          | Usage                          |
 |----------------------|----------------------|--------------------------------|
 | `semantic.selected`  | `brand.primary`     | Selected channel, active item  |
-| `semantic.divider`   | `brand.accent`      | Section dividers               |
-| `semantic.success`   | Toast system green   | Success toasts                 |
-| `semantic.error`     | Toast system red     | Error toasts                   |
-| `semantic.info`      | Toast system blue    | Info toasts                    |
+| `semantic.divider`   | `brand.primary` @ 20% | Tab bar divider lines, section dividers |
+| `semantic.link`      | `#0F52BA`           | Links, external URLs, link preview accents. Never use `Colors.blue`. |
+| `semantic.error`     | `#DB0000`           | Error text/icons, destructive actions, error toasts. Never use `Colors.red`. |
+| `semantic.warning`   | `#FFE236`           | Warning states, caution indicators. Never use `Colors.orange` or `Colors.yellow`. |
+| `semantic.success`   | `Colors.green[700]` | Success toasts                 |
+| `semantic.info`      | `core.background`   | Info toasts                    |
 
 ---
 
 ### Typography
 
-#### Font Families
+#### Font Family
 
 | Token              | Family         | Usage                             |
 |--------------------|----------------|-----------------------------------|
-| `font.display`     | Combo          | Logo text, button labels          |
-| `font.body`        | Space Grotesk  | Channel names, note text, UI text, all default text |
+| `font.body`        | Space Grotesk  | All text — channel names, note content, UI text, buttons, titles |
+
+Set globally via `GoogleFonts.spaceGrotesk()` in `main.dart`. No secondary font.
 
 #### Font Scale
 
 | Token              | Size  | Weight  | Usage                            |
 |--------------------|-------|---------|----------------------------------|
-| `type.logo`        | 32px  | Normal  | App name in sidebar header       |
-| `type.button`      | 16px  | Normal  | Sidebar action buttons           |
-| `type.body`        | 14px  | Normal  | Channel names, note content      |
+| `type.note`        | 16px  | Normal  | Note content (markdown body), selection bar text |
+| `type.body`        | 14px  | Normal  | Channel names, media panel tabs, date separator, general UI text |
 | `type.caption`     | 10px  | Normal  | Channel preview text             |
 
 ---
@@ -76,9 +74,9 @@ Canonical style reference and interaction guidelines for the Memoka app. All com
 
 | Token              | Value | Usage                                |
 |--------------------|-------|--------------------------------------|
-| `radius.note`      | 4px   | Chat bubble corners                  |
-| `radius.pill`      | 20px  | Date separator pills                 |
-| `divider.weight`   | 1px   | Sidebar section dividers             |
+| `radius.note`      | 0px   | Chat bubble corners (sharp)          |
+| `radius.pill`      | 50px  | Date separator pills                 |
+| `divider.weight`   | 1px   | Sidebar border, navbar border, note card borders |
 
 ---
 
@@ -88,7 +86,8 @@ Canonical style reference and interaction guidelines for the Memoka app. All com
 |------------------------|---------------------------|-----------------------------|
 | `fade.height`          | 60px                      | Sidebar scroll fade overlay |
 | `fade.stops`           | 0.0 / 0.5 / 1.0          | Gradient distribution       |
-| `shadow.note`          | Subtle box shadow         | Chat bubble elevation       |
+
+Note cards have no shadow or elevation.
 
 ---
 
@@ -96,17 +95,21 @@ Canonical style reference and interaction guidelines for the Memoka app. All com
 
 These rules apply to ALL widgets and screens in the app:
 
-1. **All UI surfaces** (note cards, channel list, navbar, NoteInput, modals, settings, link cards) use `core.surface` (`#F6F0ED`). Never use white (`#FFFFFF`) as a background for app surfaces.
+1. **All UI surfaces** (note cards, channel list, navbar, NoteInput, modals, settings, link cards, media panel) use `core.surface` (`#F6F0ED`). Never use white (`#FFFFFF`) as a background for app surfaces.
 
 2. **All body text on light surfaces** uses `core.text` (`#00171F`). Never use `Colors.black`, `Colors.black87`, `Colors.black54` etc. for text — always use `Color(0xFF00171F)` or `Color(0xFF00171F).withValues(alpha: X)`.
 
 3. **All borders on light surfaces** use `brand.primary` (`#CE2161`). Never use grey borders for note cards, link cards, or any UI container that has a border. The only exception is neutral drag handles and shimmer placeholders.
 
-4. **All brand/pink accents** (selected indicators, link URLs, action icons) use `brand.primary` (`#CE2161`). Never use `Colors.blue` for brand actions — use CE2161.
+4. **All brand/pink accents** (selected indicators, action icons) use `brand.primary` (`#CE2161`). Never use `Colors.blue` for brand actions — use CE2161.
 
-5. **Muted/secondary text** uses `Color(0xFF00171F).withValues(alpha: 0.5)`. This replaces `Colors.grey[500/600]` on light surfaces.
+5. **Muted/secondary text and icons** use `Color(0xFF00171F).withValues(alpha: 0.6)` (`core.textMuted`). Never use `Colors.grey[400]`, `Colors.grey[500]`, `Colors.grey[600]`, or `Colors.grey[700]` on light surfaces — always use `core.textMuted`.
 
-6. **Dark overlays** (lightbox barriers, image overlays, video player backgrounds) may use `Colors.black` with appropriate alpha — these are contextually correct as they overlay media content.
+6. **Links and external URLs** use `semantic.link` (`#0F52BA`). Never use `Colors.blue` for links.
+
+7. **Error states** use `semantic.error` (`#DB0000`). Never use `Colors.red` or `Colors.redAccent`.
+
+8. **Dark overlays** (lightbox barriers, image overlays, video player backgrounds) may use `Colors.black` with appropriate alpha — these are contextually correct as they overlay media content.
 
 ---
 
@@ -144,7 +147,7 @@ The sidebar supports two width states:
 - **Background**: `#F6F0ED` (core.surface)
 - **Selected channel**: `#CE2161` background, white icon/text
 - **Pin indicator** (full mode): Phosphor star icon (20px) rotated 15°, `#CE2161`
-- **Pin indicator** (compact, pinned but not selected): icon inside a 32×32px `#CE2161` circle
+- **Pin indicator** (compact, pinned but not selected): icon inside a 32x32px `#CE2161` circle
 
 #### Channel Item Structure (Full)
 
@@ -169,7 +172,7 @@ The sidebar supports two width states:
 
 - **Position**: Right end of channel item row (full mode)
 - **Icon**: Phosphor star Fill (20px), rotated 15°, `#CE2161`
-- **Compact pinned**: icon shown inside a 32×32px `#CE2161` circle (overridden by selected state)
+- **Compact pinned**: icon shown inside a 32x32px `#CE2161` circle (overridden by selected state)
 
 #### Message Preview
 
@@ -225,8 +228,8 @@ Channel actions are accessed via the **Navbar 3-dot menu** (not the sidebar). Se
 
 #### Triggering
 
-- **Mobile**: Long-press any note → enters selection mode with that note selected
-- **Desktop**: Right-click a note → "Select" menu item
+- **Mobile**: Long-press any note — enters selection mode with that note selected
+- **Desktop**: Right-click a note — "Select" menu item
 
 #### Behavior
 
@@ -234,7 +237,7 @@ Channel actions are accessed via the **Navbar 3-dot menu** (not the sidebar). Se
 - **Note appearance**: each note shows a `PhosphorIcons.circle()` / `PhosphorIcons.checkCircle()` checkbox on the left (pink, `#CE2161`)
 - **Toggle**: Tap a note in selection mode to toggle its checkbox
 - **Cancel**: Tap xCircle in Navbar to exit selection mode
-- **Bulk archive**: Tap archive icon in Navbar → archives all selected notes, clears selection, shows toast
+- **Bulk archive**: Tap archive icon in Navbar — archives all selected notes, clears selection, shows toast
 
 #### Selection Checkbox Icons
 
@@ -288,7 +291,7 @@ NoteInput is **hidden** in detail mode (archive and settings).
 - **Border radius**: 0px (sharp corners)
 - **Padding**: 12px all sides
 - **No shadow**
-- **Max width**: 75% of screen width
+- **Max width**: 600px max, 350px min (responsive via `NoteConstraints`)
 - **Outer padding**: 14px horizontal, 6px vertical between cards
 
 **Media-only notes** (attachments but no text) render without the container — no border or background, just the media + footer floating directly.
@@ -302,14 +305,22 @@ NoteInput is **hidden** in detail mode (archive and settings).
 
 The note footer is permanently visible below each note card. No hover state required.
 
-| Icon | Archive mode | Regular mode |
-|------|-------------|--------------|
-| Edit (`pencilSimple`) | hidden | visible |
-| Copy (`copySimple`) | visible | visible |
-| Archive/Restore (`archive` / `arrowCounterClockwise`) | restore | archive |
-| Share (`shareNetwork`) | visible | visible |
+| Icon | Archive mode | Regular mode | Document-only note |
+|------|-------------|--------------|-------------------|
+| Edit (`pencilSimple`) | hidden | visible | hidden |
+| Copy (`copySimple`) | visible | visible | hidden |
+| Archive/Restore (`archive` / `arrowCounterClockwise`) | restore | archive | archive |
+| Share (`shareNetwork`) | visible | visible | visible |
 
-All footer icons: 20px, `#00171F` at 50% opacity.
+All footer icons: 20px, `core.textMuted` (`#00171F` at 60% opacity).
+
+#### Date Separator
+
+- **Background**: `brand.primary` (`#CE2161`)
+- **Text**: `#FFFFFF`, 12px, medium weight (w500)
+- **Border radius**: 50px (pill)
+- **Padding**: 14px horizontal, 6px vertical
+- **Margin**: 16px vertical
 
 ### Input Behavior
 
@@ -362,14 +373,14 @@ All footer icons: 20px, `#00171F` at 50% opacity.
 
 #### Toast Types
 
-1. **Error** (Red background):
+1. **Error** (`semantic.error` `#DB0000` background):
    - Upload failures
    - Delete constraints (e.g., "Cannot delete last channel")
    - Network errors
-2. **Success** (Green background):
+2. **Success** (`semantic.success` green background):
    - File upload completed
    - Actions completed successfully
-3. **Info** (Grey background, default):
+3. **Info** (`core.background` `#00171F` background):
    - Copy confirmation: "Copied: [preview]"
    - General notifications
 
@@ -403,10 +414,22 @@ All footer icons: 20px, `#00171F` at 50% opacity.
 
 #### Background Picker
 
-- Accessible via Settings overlay → Background Picker screen
+- Accessible via Settings overlay — Background Picker screen
 - Selection of themed background patterns (flower, food, gift, leaves, light, memphis, morocco, pentagon, sakura, sun, terrazzo, tree, wheat, wormz)
 - Selected background is applied behind the chat view
 - Persisted via `BackgroundProvider` with Riverpod state management
+
+### Media Panel
+
+- **Width**: 340px (fixed on desktop), full-width in bottom sheet on mobile
+- **Background**: `core.surface` (`#F6F0ED`)
+- **Left border**: 1px `brand.primary` (`#CE2161`)
+- **Tabs**: Images, Videos, Docs, Links (Titlecase, 14px)
+- **Selected tab**: `brand.primary` with 3px underline indicator
+- **Unselected tab**: `core.textMuted`
+- **Tab divider**: `brand.primary` @ 20%, 1px
+- **Empty state**: 32px icon + "No images" / "No videos" / "No documents" / "No links" in `core.textMuted`
+- **Default visibility**: Open on web, closed on native
 
 ### Media Loading Behavior
 
@@ -414,7 +437,7 @@ All footer icons: 20px, `#00171F` at 50% opacity.
 
 - **Pre-sized**: Placeholders use server-provided `width` and `height` metadata to match the final image dimensions exactly
 - **No layout jump**: Since the placeholder is the same size as the loaded image, the chat list doesn't shift when images finish loading
-- **Animated shimmer**: Grey gradient sweep (grey[800] → grey[700] → grey[800]) with 1200ms cycle, 8px rounded corners
+- **Animated shimmer**: Grey gradient sweep (grey[800] -> grey[700] -> grey[800]) with 1200ms cycle, 8px rounded corners
 - **Fallback**: If dimensions are unavailable, defaults to 300x200
 
 #### Scroll Virtualization
@@ -458,6 +481,6 @@ All footer icons: 20px, `#00171F` at 50% opacity.
 
 ### Accessibility
 
-- Right-click (desktop) and long-press (mobile → selection mode) for note actions
+- Right-click (desktop) and long-press (mobile — selection mode) for note actions
 - Visual feedback for all interactions
 - Clear selection states with checkboxes

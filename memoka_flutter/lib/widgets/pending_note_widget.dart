@@ -105,12 +105,16 @@ class PendingNoteWidget extends ConsumerWidget {
         height: kFooterHeight,
         child: Row(
           children: [
-            PhosphorIcon(PhosphorIcons.warning(), size: 14, color: Colors.red),
+            PhosphorIcon(
+              PhosphorIcons.warning(),
+              size: 14,
+              color: const Color(0xFFDB0000),
+            ),
             const SizedBox(width: 4),
             Expanded(
               child: Text(
                 'Upload failed',
-                style: TextStyle(fontSize: 11, color: Colors.red[700]),
+                style: const TextStyle(fontSize: 11, color: Color(0xFFDB0000)),
               ),
             ),
             _FooterButton(
@@ -174,7 +178,11 @@ class PendingNoteWidget extends ConsumerWidget {
       children: [
         Row(
           children: [
-            PhosphorIcon(icon, size: 32, color: Colors.grey[600]),
+            PhosphorIcon(
+              icon,
+              size: 32,
+              color: const Color(0xFF00171F).withValues(alpha: 0.6),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(

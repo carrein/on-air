@@ -153,8 +153,8 @@ class NoteItem extends ConsumerWidget {
             p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
             a: const TextStyle(
               fontSize: 16,
-              color: Colors.blue,
-              decoration: TextDecoration.underline,
+              color: Color(0xFF0F52BA),
+              decoration: TextDecoration.none,
             ),
             h1: const TextStyle(
               fontSize: 24,
@@ -428,7 +428,7 @@ class _NoteFooter extends StatelessWidget {
   final VoidCallback? onRestore;
 
   static const _iconColor = Color(0xFF00171F);
-  static const _iconAlpha = 0.5;
+  static const _iconAlpha = 0.6;
 
   bool get _isDocumentOnly {
     final atts = note.attachments;

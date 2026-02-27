@@ -219,7 +219,9 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                                       file.type == SharedMediaType.video
                                           ? PhosphorIcons.video()
                                           : PhosphorIcons.file(),
-                                      color: Colors.grey[600],
+                                      color: const Color(
+                                        0xFF00171F,
+                                      ).withValues(alpha: 0.6),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
