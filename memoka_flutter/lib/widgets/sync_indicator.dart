@@ -14,7 +14,7 @@ import '../providers/sync_engine_provider.dart';
 class SyncIndicator extends ConsumerWidget {
   const SyncIndicator({super.key});
 
-  static const _amberColor = Color(0xFFD4920B);
+  static const _amberColor = Color(0xFFFFE236);
   static const _textColor = Color(0xFF00171F);
 
   @override
@@ -70,7 +70,7 @@ class SyncIndicator extends ConsumerWidget {
               child: Text(
                 '$count',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF00171F),
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),

@@ -39,6 +39,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   StreamSubscription<html.Event>? _visibilitySubscription;
   StreamSubscription<html.Event>? _onlineSubscription;
+  StreamSubscription<html.Event>? _popStateSubscription;
 
   // Register on web and desktop (not mobile where physical keyboard is absent).
   static bool get _useKeyboardHandler =>
@@ -66,6 +67,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _onlineSubscription = html.window.onOnline.listen((_) {
         _kickReconnectIfNeeded();
       });
+
+      // If the URL contains /settings, open settings view on load.
+      if (Uri.base.path.contains('/settings')) {
+        ref.read(settingsVisibilityProvider.notifier).setWithoutPush(true);
+      }
+
+      // Handle browser back/forward button to toggle settings.
+      _popStateSubscription = html.window.onPopState.listen((_) {
+        final isSettings =
+            html.window.location.pathname?.contains('/settings') ?? false;
+        ref
+            .read(settingsVisibilityProvider.notifier)
+            .setWithoutPush(isSettings);
+      });
     }
 
     // Eagerly start the sync engine and chat stream so connectivity
@@ -83,6 +98,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     WidgetsBinding.instance.removeObserver(this);
     _visibilitySubscription?.cancel();
     _onlineSubscription?.cancel();
+    _popStateSubscription?.cancel();
     if (_useKeyboardHandler) {
       HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
     }
@@ -108,9 +124,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   /// Returns true if a text field currently holds keyboard focus.
   ///
-  /// Checks both the focused widget and its immediate child, because Flutter
-  /// attaches the FocusNode to the wrapping Focus widget whose child is the
-  /// EditableText — so the focused context's widget is Focus, not EditableText.
+  /// Recursively walks the subtree because the EditableText may be nested
+  /// several levels below the focused widget's context.
   bool _isTextFieldFocused() {
     final focus = FocusManager.instance.primaryFocus;
     if (focus == null) return false;
@@ -118,9 +133,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     if (ctx == null) return false;
     if (ctx.widget is EditableText) return true;
     bool found = false;
-    ctx.visitChildElements((element) {
-      if (element.widget is EditableText) found = true;
-    });
+    void visit(Element element) {
+      if (found) return;
+      if (element.widget is EditableText) {
+        found = true;
+        return;
+      }
+      element.visitChildren(visit);
+    }
+
+    ctx.visitChildElements(visit);
     return found;
   }
 
@@ -160,7 +182,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     return false;
   }
 
-  /// Cycles to the next (+1) or previous (-1) channel in the list.
+  /// Cycles to the next (+1) or previous (-1) channel in the visual order.
+  ///
+  /// Builds the same pinned-then-unpinned ordering that [ChannelList] renders
+  /// so arrow keys / swipe gestures match what the user sees.
   void _cycleChannel(int delta) {
     final channelsAsync = ref.read(channelsProvider);
     final currentAsync = ref.read(currentChannelProvider);
@@ -169,17 +194,27 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       currentAsync.whenData((currentId) {
         // Don't cycle when in Archive
         if (currentId == -1) return;
-        if (channels.length <= 1) return;
 
-        final currentIndex = channels.indexWhere((c) => c.id == currentId);
+        // Match ChannelList visual order: pinned first, then unpinned,
+        // excluding system channels. Explicitly sort within each group.
+        final regular = channels.where((c) => !c.isSystemChannel).toList();
+        final pinned = regular.where((c) => c.pinned).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+        final unpinned = regular.where((c) => !c.pinned).toList()
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+        final ordered = [...pinned, ...unpinned];
+
+        if (ordered.length <= 1) return;
+
+        final currentIndex = ordered.indexWhere((c) => c.id == currentId);
         if (currentIndex == -1) return;
 
         ref.read(channelSwitchDirectionProvider.notifier).state = delta;
         final nextIndex =
-            (currentIndex + delta + channels.length) % channels.length;
+            (currentIndex + delta + ordered.length) % ordered.length;
         ref
             .read(currentChannelProvider.notifier)
-            .switchChannel(channels[nextIndex].id!);
+            .switchChannel(ordered[nextIndex].id!);
       });
     });
   }

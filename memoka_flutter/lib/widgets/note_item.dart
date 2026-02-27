@@ -69,55 +69,49 @@ class NoteItem extends ConsumerWidget {
           Expanded(
             child: Align(
               alignment: Alignment.centerLeft,
-              child: IntrinsicWidth(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    maxWidth: 600,
-                    minWidth: 300,
-                  ),
-                  child: Listener(
-                    onPointerDown: (event) {
-                      if (event.buttons == 2) {
-                        _showContextMenu(context, ref, event.position);
+              child: _NoteConstraints(
+                child: Listener(
+                  onPointerDown: (event) {
+                    if (event.buttons == 2) {
+                      _showContextMenu(context, ref, event.position);
+                    }
+                  },
+                  child: GestureDetector(
+                    onTap: isSelectionMode
+                        ? () => ref
+                              .read(noteSelectionProvider.notifier)
+                              .toggle(note.id!)
+                        : null,
+                    onLongPress: () {
+                      if (isSelectionMode) {
+                        ref
+                            .read(noteSelectionProvider.notifier)
+                            .toggle(note.id!);
+                      } else if (MediaQuery.of(context).size.width < 600) {
+                        ref
+                            .read(noteSelectionProvider.notifier)
+                            .select(note.id!);
+                      } else {
+                        _showContextMenu(context, ref, null);
                       }
                     },
-                    child: GestureDetector(
-                      onTap: isSelectionMode
-                          ? () => ref
-                                .read(noteSelectionProvider.notifier)
-                                .toggle(note.id!)
-                          : null,
-                      onLongPress: () {
-                        if (isSelectionMode) {
-                          ref
-                              .read(noteSelectionProvider.notifier)
-                              .toggle(note.id!);
-                        } else if (MediaQuery.of(context).size.width < 600) {
-                          ref
-                              .read(noteSelectionProvider.notifier)
-                              .select(note.id!);
-                        } else {
-                          _showContextMenu(context, ref, null);
-                        }
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6F0ED),
-                          border: Border.all(color: borderColor, width: 1.0),
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildContent(context, ref),
-                            const SizedBox(height: 12),
-                            _NoteFooter(
-                              note: note,
-                              channelId: channelId,
-                              ref: ref,
-                            ),
-                          ],
-                        ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF6F0ED),
+                        border: Border.all(color: borderColor, width: 1.0),
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildContent(context, ref),
+                          const SizedBox(height: 12),
+                          _NoteFooter(
+                            note: note,
+                            channelId: channelId,
+                            ref: ref,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -407,6 +401,26 @@ class NoteItem extends ConsumerWidget {
         );
       }
     }
+  }
+}
+
+/// On mobile viewports, notes span full width; on desktop, capped at 600px.
+class _NoteConstraints extends StatelessWidget {
+  const _NoteConstraints({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+    if (isMobile) {
+      return child;
+    }
+    return IntrinsicWidth(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600, minWidth: 300),
+        child: child,
+      ),
+    );
   }
 }
 

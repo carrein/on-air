@@ -51,8 +51,11 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
   bool _seeking = false;
   String? _error;
 
-  /// null = not downloading; 0.0–1.0 = download progress.
-  double? _downloadProgress;
+  DownloadHandle? _downloadHandle;
+  int _receivedBytes = 0;
+  int _totalBytes = -1;
+
+  bool get _isDownloading => _downloadHandle != null;
 
   final List<StreamSubscription<dynamic>> _subs = [];
 
@@ -142,6 +145,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
     for (final s in _subs) {
       s.cancel();
     }
+    _downloadHandle?.cancel();
     if (kIsWeb) {
       _webAudio?.pause();
       _webAudio?.src = '';
@@ -200,6 +204,56 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
 
   void _onActiveIdChanged(String? previous, String? next) {
     if (next != _audioId && _isPlaying) _pause();
+  }
+
+  // ── download ─────────────────────────────────────────────────────────────
+
+  void _cancelDownload() {
+    _downloadHandle?.cancel();
+    if (mounted) {
+      setState(() {
+        _downloadHandle = null;
+        _receivedBytes = 0;
+        _totalBytes = -1;
+      });
+    }
+  }
+
+  void _handleDownload(BuildContext context) {
+    if (kIsWeb) {
+      html.AnchorElement()
+        ..href = _audioUrl
+        ..setAttribute('download', widget.attachment.originalFilename)
+        ..click();
+    } else {
+      setState(() {
+        _receivedBytes = 0;
+        _totalBytes = -1;
+      });
+      _downloadHandle = DownloadUtils.downloadToDevice(
+        context,
+        _audioUrl,
+        widget.attachment.originalFilename,
+        mimeType: widget.attachment.mimeType,
+        onProgress: (received, total) {
+          if (mounted) {
+            setState(() {
+              _receivedBytes = received;
+              _totalBytes = total;
+            });
+          }
+        },
+        onComplete: () {
+          if (mounted) {
+            setState(() {
+              _downloadHandle = null;
+              _receivedBytes = 0;
+              _totalBytes = -1;
+            });
+          }
+        },
+      );
+    }
   }
 
   // ── helpers ───────────────────────────────────────────────────────────────
@@ -336,36 +390,12 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                       ),
                       const SizedBox(width: 4),
                       IconButtonStyled(
-                        icon: PhosphorIcons.downloadSimple(),
-                        onPressed: _downloadProgress == null
-                            ? () {
-                                if (kIsWeb) {
-                                  html.AnchorElement()
-                                    ..href = _audioUrl
-                                    ..setAttribute(
-                                      'download',
-                                      widget.attachment.originalFilename,
-                                    )
-                                    ..click();
-                                } else {
-                                  setState(() => _downloadProgress = 0.0);
-                                  DownloadUtils.downloadToDevice(
-                                    context,
-                                    _audioUrl,
-                                    widget.attachment.originalFilename,
-                                    onProgress: (p) {
-                                      if (mounted) {
-                                        setState(() => _downloadProgress = p);
-                                      }
-                                    },
-                                  ).whenComplete(() {
-                                    if (mounted) {
-                                      setState(() => _downloadProgress = null);
-                                    }
-                                  });
-                                }
-                              }
-                            : null,
+                        icon: _isDownloading
+                            ? PhosphorIcons.x()
+                            : PhosphorIcons.downloadSimple(),
+                        onPressed: _isDownloading
+                            ? _cancelDownload
+                            : () => _handleDownload(context),
                         size: 20,
                       ),
                     ],
@@ -375,12 +405,22 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
             ),
           ],
         ),
-        if (_downloadProgress != null) ...[
+        if (_isDownloading) ...[
           const SizedBox(height: 6),
           LinearProgressIndicator(
-            value: _downloadProgress! > 0 ? _downloadProgress : null,
+            value: _totalBytes > 0 ? _receivedBytes / _totalBytes : null,
             color: _accent,
             backgroundColor: _accent.withValues(alpha: 0.15),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _totalBytes > 0
+                ? '${FileUtils.formatFileSize(_receivedBytes)} / ${FileUtils.formatFileSize(_totalBytes)}'
+                : FileUtils.formatFileSize(_receivedBytes),
+            style: TextStyle(
+              fontSize: 10,
+              color: _textPrimary.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ],

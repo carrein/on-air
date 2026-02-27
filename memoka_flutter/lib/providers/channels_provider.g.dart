@@ -6,7 +6,7 @@ part of 'channels_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$channelsHash() => r'548ce12cda4fe578539fe01a2c6fe9a1c1af6b0b';
+String _$channelsHash() => r'00f0a4ff0dfd956241574071b568e50c1854b0a8';
 
 /// Manages the list of channels with local-first caching and real-time updates.
 ///

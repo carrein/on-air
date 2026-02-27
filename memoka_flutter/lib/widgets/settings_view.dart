@@ -142,21 +142,27 @@ class SettingsView extends ConsumerWidget {
         ),
         FutureBuilder<PackageInfo>(
           future: PackageInfo.fromPlatform(),
-          builder: (context, snapshot) => ListTile(
-            leading: PhosphorIcon(
-              PhosphorIcons.info(),
-              color: const Color(0xFF00171F),
-              size: 20,
-            ),
-            title: const Text('Version', style: TextStyle(fontSize: 14)),
-            subtitle: Text(
-              snapshot.data?.version ?? '—',
-              style: TextStyle(
-                fontSize: 12,
-                color: const Color(0xFF00171F).withValues(alpha: 0.5),
+          builder: (context, snapshot) {
+            const injected = String.fromEnvironment('APP_VERSION');
+            final version = injected.isNotEmpty
+                ? injected
+                : (snapshot.data?.version ?? '—');
+            return ListTile(
+              leading: PhosphorIcon(
+                PhosphorIcons.info(),
+                color: const Color(0xFF00171F),
+                size: 20,
               ),
-            ),
-          ),
+              title: const Text('Version', style: TextStyle(fontSize: 14)),
+              subtitle: Text(
+                version,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: const Color(0xFF00171F).withValues(alpha: 0.5),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

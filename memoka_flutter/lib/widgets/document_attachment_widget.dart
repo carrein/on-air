@@ -29,8 +29,11 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   static const _textPrimary = Color(0xFF00171F);
   static const _accent = Color(0xFFCE2161);
 
-  /// null = not downloading; 0.0–1.0 = download progress.
-  double? _downloadProgress;
+  DownloadHandle? _downloadHandle;
+  int _receivedBytes = 0;
+  int _totalBytes = -1;
+
+  bool get _isDownloading => _downloadHandle != null;
 
   String get _extension =>
       FileUtils.getExtension(widget.attachment.originalFilename);
@@ -45,6 +48,12 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
     widget.attachment.filePath,
     widget.attachment.contentHash,
   );
+
+  @override
+  void dispose() {
+    _downloadHandle?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,20 +97,32 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
             ),
             const SizedBox(width: 4),
             IconButtonStyled(
-              icon: PhosphorIcons.downloadSimple(),
-              onPressed: _downloadProgress == null
-                  ? () => _handleDownload(context)
-                  : null,
+              icon: _isDownloading
+                  ? PhosphorIcons.x()
+                  : PhosphorIcons.downloadSimple(),
+              onPressed: _isDownloading
+                  ? _cancelDownload
+                  : () => _handleDownload(context),
               size: 20,
             ),
           ],
         ),
-        if (_downloadProgress != null) ...[
+        if (_isDownloading) ...[
           const SizedBox(height: 6),
           LinearProgressIndicator(
-            value: _downloadProgress! > 0 ? _downloadProgress : null,
+            value: _totalBytes > 0 ? _receivedBytes / _totalBytes : null,
             color: _accent,
             backgroundColor: _accent.withValues(alpha: 0.15),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _totalBytes > 0
+                ? '${FileUtils.formatFileSize(_receivedBytes)} / ${FileUtils.formatFileSize(_totalBytes)}'
+                : FileUtils.formatFileSize(_receivedBytes),
+            style: TextStyle(
+              fontSize: 10,
+              color: _textPrimary.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ],
@@ -116,6 +137,17 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
     }
   }
 
+  void _cancelDownload() {
+    _downloadHandle?.cancel();
+    if (mounted) {
+      setState(() {
+        _downloadHandle = null;
+        _receivedBytes = 0;
+        _totalBytes = -1;
+      });
+    }
+  }
+
   void _handleDownload(BuildContext context) {
     final url = _buildDocumentUrl();
     if (kIsWeb) {
@@ -124,17 +156,33 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
         ..setAttribute('download', widget.attachment.originalFilename)
         ..click();
     } else {
-      setState(() => _downloadProgress = 0.0);
-      DownloadUtils.downloadToDevice(
+      setState(() {
+        _receivedBytes = 0;
+        _totalBytes = -1;
+      });
+      _downloadHandle = DownloadUtils.downloadToDevice(
         context,
         url,
         widget.attachment.originalFilename,
-        onProgress: (p) {
-          if (mounted) setState(() => _downloadProgress = p);
+        mimeType: widget.attachment.mimeType,
+        onProgress: (received, total) {
+          if (mounted) {
+            setState(() {
+              _receivedBytes = received;
+              _totalBytes = total;
+            });
+          }
         },
-      ).whenComplete(() {
-        if (mounted) setState(() => _downloadProgress = null);
-      });
+        onComplete: () {
+          if (mounted) {
+            setState(() {
+              _downloadHandle = null;
+              _receivedBytes = 0;
+              _totalBytes = -1;
+            });
+          }
+        },
+      );
     }
   }
 }

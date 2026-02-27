@@ -7,7 +7,7 @@ part of 'settings_view_provider.dart';
 // **************************************************************************
 
 String _$settingsVisibilityHash() =>
-    r'8631c5192677aa1f5088d9c358294257cd129e71';
+    r'b0eec6884ae088e10facc966b6a3b76cd819ddb8';
 
 /// Provider to track whether settings view is currently displayed
 ///

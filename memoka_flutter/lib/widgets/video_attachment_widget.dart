@@ -256,7 +256,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
             ),
             // Close button
             Positioned(
-              top: 16,
+              top: MediaQuery.of(context).padding.top + 16,
               right: 16,
               child: IconButtonStyled(
                 icon: PhosphorIcons.x(),

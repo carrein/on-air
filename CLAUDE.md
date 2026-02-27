@@ -161,7 +161,7 @@ flutter run
 # (Run from memoka_server directory)
 # Note: --wasm flag is not compatible with dart:html usage
 cd ../memoka_flutter
-flutter build web --base-href /app/ --output ../memoka_server/web/app
+flutter build web --dart-define=APP_VERSION=$(git describe --tags --abbrev=0) --base-href /app/ --output ../memoka_server/web/app
 ```
 
 ### Database Seeding

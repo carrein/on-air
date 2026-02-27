@@ -11,13 +11,15 @@ class OfflineBanner extends ConsumerStatefulWidget {
   ConsumerState<OfflineBanner> createState() => _OfflineBannerState();
 }
 
-class _OfflineBannerState extends ConsumerState<OfflineBanner> {
+class _OfflineBannerState extends ConsumerState<OfflineBanner>
+    with WidgetsBindingObserver {
   bool _showBanner = false;
   Timer? _delayTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // ref.listen only fires on *changes*, not the initial value. If the app
     // loads while already offline (e.g. hard refresh), kick the timer now.
     if (ref.read(conn.connectionProvider) ==
@@ -25,6 +27,24 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
       _delayTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _showBanner = true);
       });
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.resumed) {
+      // Hide banner immediately on resume to prevent flash.
+      // If still disconnected, the 3-second timer will re-show it.
+      _delayTimer?.cancel();
+      if (_showBanner && mounted) {
+        setState(() => _showBanner = false);
+      }
+      if (ref.read(conn.connectionProvider) ==
+          conn.ConnectionState.disconnected) {
+        _delayTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _showBanner = true);
+        });
+      }
     }
   }
 
@@ -49,11 +69,14 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(8),
-      color: Colors.orange,
+      color: const Color(0xFFFFE236),
       child: const Text(
-        'Offline - Reconnecting...',
+        'Offline',
         textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: Color(0xFF00171F),
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -61,6 +84,7 @@ class _OfflineBannerState extends ConsumerState<OfflineBanner> {
   @override
   void dispose() {
     _delayTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 }
