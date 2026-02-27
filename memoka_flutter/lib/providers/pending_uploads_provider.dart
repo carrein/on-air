@@ -14,6 +14,7 @@ import 'package:uuid/uuid.dart';
 
 import '../main.dart' show getWebServerUrl;
 import '../services/media_service.dart';
+import '../services/upload_transport.dart' as transport;
 import 'notes_provider.dart';
 
 part 'pending_uploads_provider.g.dart';
@@ -106,8 +107,8 @@ class PendingUploads extends _$PendingUploads {
   final List<String> _queue = [];
   bool _isProcessing = false;
 
-  /// Active HTTP clients keyed by upload ID — used to cancel in-flight uploads.
-  final Map<String, http.Client> _activeClients = {};
+  /// Cancel functions keyed by upload ID — platform-specific (xhr.abort / client.close).
+  final Map<String, void Function()> _cancelFunctions = {};
 
   @override
   List<PendingUpload> build() {
@@ -211,9 +212,9 @@ class PendingUploads extends _$PendingUploads {
 
   /// Cancel an in-progress upload.
   void cancel(String id) {
-    // Close the HTTP client to abort the request.
-    _activeClients[id]?.close();
-    _activeClients.remove(id);
+    // Invoke platform-specific cancel (xhr.abort / HttpClient.close).
+    _cancelFunctions[id]?.call();
+    _cancelFunctions.remove(id);
 
     // Remove from queue if still waiting.
     _queue.remove(id);
@@ -279,10 +280,8 @@ class PendingUploads extends _$PendingUploads {
     );
     if (pending.id.isEmpty) return;
 
-    final client = http.Client();
-    _activeClients[id] = client;
-
     try {
+      // Build the multipart body (used by both platforms for encoding).
       final multipart = http.MultipartRequest('POST', Uri.parse(_uploadUrl));
       multipart.fields['channelId'] = pending.channelId.toString();
       multipart.fields['noteContent'] = pending.noteContent;
@@ -291,7 +290,6 @@ class PendingUploads extends _$PendingUploads {
       final contentType = MediaType.parse(pending.mimeType);
 
       if (!kIsWeb && pending.localFilePath != null) {
-        // Stream from disk — never holds full file in memory.
         final file = File(pending.localFilePath!);
         final fileLength = await file.length();
         multipart.files.add(
@@ -304,7 +302,6 @@ class PendingUploads extends _$PendingUploads {
           ),
         );
       } else if (pending.localBytes != null) {
-        // Web: bytes already in memory.
         multipart.files.add(
           http.MultipartFile.fromBytes(
             'file',
@@ -315,33 +312,23 @@ class PendingUploads extends _$PendingUploads {
         );
       }
 
-      // Finalize into a StreamedRequest so we can track bytes *sent over
-      // the network* (not just read from disk — disk reads are near-instant).
       final totalBytes = multipart.contentLength;
       final bodyStream = multipart.finalize();
 
-      final streamed = http.StreamedRequest('POST', Uri.parse(_uploadUrl))
-        ..contentLength = totalBytes
-        ..headers.addAll(multipart.headers);
-
-      unawaited(
-        _trackProgress(
-          bodyStream,
-          totalBytes,
-          id,
-        ).pipe(streamed.sink).catchError((_) {}),
+      // Platform-specific upload with real network progress.
+      final result = await transport.platformUpload(
+        url: _uploadUrl,
+        bodyStream: bodyStream,
+        headers: multipart.headers,
+        contentLength: totalBytes,
+        uploadId: id,
+        onProgress: _updateProgress,
+        onRegisterCancel: (cancelFn) => _cancelFunctions[id] = cancelFn,
+        timeout: const Duration(minutes: 1),
       );
 
-      final streamedResponse = await client
-          .send(streamed)
-          .timeout(
-            const Duration(minutes: 1),
-            onTimeout: () => throw TimeoutException(
-              'Upload timed out after 1 minute',
-            ),
-          );
-      final statusCode = streamedResponse.statusCode;
-      final responseBytes = await streamedResponse.stream.toBytes();
+      final statusCode = result.statusCode;
+      final responseBytes = result.bodyBytes;
 
       if (statusCode >= 200 && statusCode < 300) {
         // Delete the local copy.
@@ -414,24 +401,8 @@ class PendingUploads extends _$PendingUploads {
         _setError(id, e.toString());
       }
     } finally {
-      _activeClients.remove(id);
-      client.close();
+      _cancelFunctions.remove(id);
     }
-  }
-
-  /// Wraps a byte stream to track upload progress.
-  Stream<List<int>> _trackProgress(
-    Stream<List<int>> source,
-    int totalBytes,
-    String uploadId,
-  ) {
-    var sent = 0;
-    return source.map((chunk) {
-      sent += chunk.length;
-      final progress = totalBytes > 0 ? sent / totalBytes : 0.0;
-      _updateProgress(uploadId, progress);
-      return chunk;
-    });
   }
 
   void _updateProgress(String id, double progress) {
