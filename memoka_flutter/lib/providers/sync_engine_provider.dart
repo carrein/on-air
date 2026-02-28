@@ -274,8 +274,7 @@ class SyncEngine extends _$SyncEngine {
     }
   }
 
-  int _versionFrom(Map<String, dynamic>? map) =>
-      (map?['version'] as int?) ?? 0;
+  int _versionFrom(Map<String, dynamic>? map) => (map?['version'] as int?) ?? 0;
 
   int? _idFrom(Map<String, dynamic>? map) {
     if (map == null) return null;

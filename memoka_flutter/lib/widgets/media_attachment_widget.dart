@@ -235,7 +235,6 @@ class _ImageAttachmentWidget extends StatelessWidget {
       ),
     );
   }
-
 }
 
 /// Animated shimmer placeholder sized to the given dimensions.

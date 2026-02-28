@@ -137,7 +137,6 @@ class VideoAttachmentWidget extends StatelessWidget {
       ),
     );
   }
-
 }
 
 /// Full-screen video lightbox overlay, matching the image lightbox pattern.
@@ -367,5 +366,4 @@ class _VideoLightboxState extends State<_VideoLightbox> {
     final duration = _controller.value.duration;
     return '${FileUtils.formatDuration(position.inSeconds.toDouble())} / ${FileUtils.formatDuration(duration.inSeconds.toDouble())}';
   }
-
 }
