@@ -127,8 +127,9 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
             child: TabBar(
               controller: _tabController,
               labelColor: const Color(0xFFCE2161),
-              unselectedLabelColor:
-                  const Color(0xFF00171F).withValues(alpha: 0.6),
+              unselectedLabelColor: const Color(
+                0xFF00171F,
+              ).withValues(alpha: 0.6),
               indicatorColor: const Color(0xFFCE2161),
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: const UnderlineTabIndicator(
