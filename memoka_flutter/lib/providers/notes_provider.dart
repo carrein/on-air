@@ -6,6 +6,7 @@ import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
 import 'provider_utils.dart';
+import 'sync_engine_provider.dart';
 
 part 'notes_provider.g.dart';
 
@@ -32,6 +33,14 @@ class Notes extends _$Notes {
       event.whenData((chatEvent) {
         _handleChatEvent(chatEvent, channelId);
       });
+    });
+
+    // Reload from cache after sync completes so notes missed while the
+    // WebSocket was dead are picked up.
+    ref.listen(syncEngineProvider, (prev, next) {
+      if (prev == true && next == false) {
+        _refreshFromCache();
+      }
     });
 
     // 1. Load from cache and emit immediately — even when empty, so the UI
@@ -156,6 +165,24 @@ class Notes extends _$Notes {
         }
         break;
     }
+  }
+
+  /// Reload notes from the local Drift cache without entering AsyncLoading.
+  ///
+  /// Called after the sync engine completes a pull+push cycle so that notes
+  /// missed while the WebSocket was dead are picked up from the cache.
+  /// Uses the larger of 50 (default page) or the current list size so that
+  /// scroll position is preserved when the user had loaded additional pages.
+  Future<void> _refreshFromCache() async {
+    final db = ref.read(appDatabaseProvider);
+    final limit = _notes.length > 50 ? _notes.length : 50;
+    final cached = await db.getCachedNotes(channelId, limit: limit);
+    _notes = cached;
+    _hasMore = true;
+    if (cached.isNotEmpty) {
+      _oldestNoteId = cached.last.id;
+    }
+    state = AsyncData(cached);
   }
 
   void _sortNotes() {

@@ -303,7 +303,7 @@ interactions, state management, and integration details.
 
 ## Architecture Guides
 
-- **Sync Architecture**: `docs/Sync.md` — State-based reconciliation, versioned entities, pull-then-push sync, dirty tracking, tombstones, connectivity detection
+- **Sync Architecture**: `docs/Sync.md` — State-based reconciliation, versioned entities, pull-then-push sync, dirty tracking, tombstones, connectivity detection, 2s sync cooldown, per-provider cache refresh
 - **GIF Integration**: `docs/GIF.md` — Klipy API search/featured, download-then-upload flow, build-time API key configuration
 
 ## Platform Guides

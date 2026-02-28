@@ -32,12 +32,11 @@ Individual note card widget that renders note content, footer actions, context m
 ## Layout Structure
 
 ```
-[Padding 14px all sides]
+[Padding H:14px V:6px]
   Row:
     [Checkbox?]  ← visible in selection mode only
     Align(left):
-      IntrinsicWidth:
-        ConstrainedBox(minWidth: 300px, maxWidth: 600px):
+      NoteConstraints (mobile: no constraint, desktop: IntrinsicWidth + ConstrainedBox(minWidth: 350px, maxWidth: 600px)):
           [Context Menu Wrapper]
             [Card with border — always]
               Column:
@@ -65,8 +64,8 @@ All values follow `docs/DesignSystem.md` tokens.
 | Card padding | 12px all sides |
 | Gap between content sections | 12px |
 | Gap between footer and content | 12px |
-| Outer padding | 14px all sides |
-| Min width | 350px |
+| Outer padding | H: 14px, V: 6px |
+| Min width | 350px (desktop only; mobile: full width) |
 | Max width | 600px |
 | Footer icon size | 20px |
 | Footer icon color | `#00171F` at 50% opacity |
@@ -79,12 +78,14 @@ All values follow `docs/DesignSystem.md` tokens.
 
 The footer is always visible (no hover state). Icons shown depend on context:
 
-| Icon | Archive mode | Regular mode |
-|------|-------------|--------------|
-| Edit (`pencilSimple`) | hidden | visible |
-| Copy (`copySimple`) | visible | visible |
-| Archive/Restore (`archive` / `arrowCounterClockwise`) | restore | archive |
-| Share (`shareNetwork`) | visible | visible |
+| Icon | Archive mode | Regular mode | Document-only note |
+|------|-------------|--------------|-------------------|
+| Edit (`pencilSimple`) | hidden | visible | hidden |
+| Copy (`copySimple`) | visible | visible | hidden |
+| Archive/Restore (`archive` / `arrowCounterClockwise`) | restore | archive | archive |
+| Share (`shareNetwork`) | visible | visible | visible |
+
+**Document-only notes** (no text content, only document attachments) hide Edit and Copy buttons since there is no text to edit or copy.
 
 All icons: 20px, `Color(0xFF00171F).withValues(alpha: 0.5)`.
 

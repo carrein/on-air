@@ -69,14 +69,24 @@ CREATE TABLE "sync_state" (
 
 ### Trigger
 
-`SyncEngine` listens to `connectionProvider`. When it transitions to `connected`, `_sync()` runs:
+`SyncEngine` listens to `connectionProvider`. When it transitions to `connected`, `_sync()` runs. A **2-second cooldown** prevents redundant syncs when multiple reconnect triggers fire in quick succession (e.g., Android lifecycle resume AND `connectivity_plus` both fire on wake).
 
 ```
 _sync():
+  0. If syncing or last sync < 2s ago → skip
   1. _pullPhase()
   2. _pushPhase()
-  3. Invalidate channelsProvider + notesProvider (all channels) + archiveItemsProvider
+  3. Refresh UI providers (see below)
 ```
+
+### Post-Sync UI Refresh
+
+Each data provider refreshes via a different mechanism — all avoid `AsyncLoading` flicker:
+
+- **channelsProvider**: sync engine calls `refreshFromCache()` directly after pull+push
+- **notesProvider**: listens to `syncEngineProvider` state (true→false) and calls `_refreshFromCache()` — reloads from Drift cache using `max(currentListSize, 50)` as limit to preserve scroll position
+- **archiveItemsProvider**: listens to `connectionProvider` independently and re-fetches on reconnect
+- **channelMediaDataProvider**: synchronous functional provider — auto-derives from `notesProvider`
 
 ### Pull Phase
 

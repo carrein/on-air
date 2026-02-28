@@ -150,9 +150,9 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
   Widget build(BuildContext context) {
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.65,
+      initialChildSize: 1.0,
       minChildSize: 0.4,
-      maxChildSize: 0.9,
+      maxChildSize: 1.0,
       builder: (_, scrollController) => Container(
         padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
         decoration: const BoxDecoration(

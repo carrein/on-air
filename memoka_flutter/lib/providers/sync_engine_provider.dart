@@ -19,6 +19,12 @@ part 'sync_engine_provider.g.dart';
 ///  3. Invalidate UI providers so fresh state is rendered.
 @Riverpod(keepAlive: true)
 class SyncEngine extends _$SyncEngine {
+  /// Cooldown to prevent redundant syncs when multiple reconnect triggers
+  /// fire in quick succession (e.g., Android lifecycle resume AND
+  /// connectivity_plus both fire on wake).
+  static const _syncCooldown = Duration(seconds: 2);
+  DateTime? _lastSyncAt;
+
   @override
   bool build() {
     ref.listen(connectionProvider, (prev, next) {
@@ -32,6 +38,12 @@ class SyncEngine extends _$SyncEngine {
 
   Future<void> _sync() async {
     if (state) return; // already running
+
+    final last = _lastSyncAt;
+    if (last != null && DateTime.now().difference(last) < _syncCooldown) {
+      return; // recently synced — skip redundant run
+    }
+
     state = true;
 
     try {
@@ -41,6 +53,7 @@ class SyncEngine extends _$SyncEngine {
       // Network error during sync — will retry on next connect transition.
     } finally {
       state = false;
+      _lastSyncAt = DateTime.now();
     }
 
     // Reload channels from the local cache without going through AsyncLoading.

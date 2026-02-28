@@ -85,3 +85,32 @@ The existing pipeline handles animated GIFs:
 | Compression | Always `false` | Server already preserves animated GIF originals |
 | Grid previews | `tinygif` format for grid, full `gif` for send | Smaller previews load faster in the picker grid |
 | Image eviction | `_EvictableNetworkImage` evicts on dispose | Prevents `DomException: AbortError` on web when sheet closes |
+
+## GIF Picker Sheet UI
+
+`DraggableScrollableSheet` with full-screen initial size (avoids keyboard covering the grid on Android):
+
+| Token | Value |
+|-------|-------|
+| `initialChildSize` | `1.0` (full screen) |
+| `minChildSize` | `0.4` (drag-to-dismiss) |
+| `maxChildSize` | `1.0` |
+| Background | `#F6F0ED` (surface) |
+| Border radius | 16px top corners |
+| Drag handle | 40x4px, `#00171F` at 15% opacity |
+
+### Search Field
+
+- Auto-focused on open
+- Border: 1px `#CE2161`, no border radius (sharp corners)
+- Prefix icon: `PhosphorIcons.magnifyingGlass()` (20px, `#CE2161`)
+- Debounce: 300ms
+
+### Grid
+
+- `MasonryGridView.count` with 3 columns, 4px spacing
+- Aspect ratios clamped to 0.5–2.0
+- Infinite scroll: loads more when within 200px of bottom
+- Loading state: centered `CircularProgressIndicator` (`#CE2161`)
+- Empty state: "No GIFs found" (14px, muted)
+- Error state: warning icon + message + Retry button

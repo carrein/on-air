@@ -325,6 +325,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           statusBarBrightness: Brightness.dark,
         ),
         child: Scaffold(
+          resizeToAvoidBottomInset: false,
           backgroundColor: const Color(0xFFF6F0ED),
           body: SafeArea(
             child: Column(

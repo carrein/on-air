@@ -71,10 +71,10 @@ class MediaGrid extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 32,
+              size: 36,
               color: const Color(0xFF00171F).withValues(alpha: 0.6),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             Text(
               message,
               style: TextStyle(

@@ -15,11 +15,11 @@ The MediaPanel is a right-side panel that displays all media and links from the 
 Top navigation bar with four tabs.
 
 - Tabs: `IMAGES` | `VIDEOS` | `DOCS` | `LINKS`
-- Active tab label: `#FF52A1` (pink), bold 11px
-- Inactive tab label: `Colors.grey[500]`, normal 11px
-- Indicator: 3px solid `#FF52A1` underline, `BorderRadius.zero` (sharp corners)
-- `dividerHeight: 0` — no separator between tabs and content
-- Background: `#00171F` (matches sidebar background)
+- Active tab label: `#CE2161` (brand primary), bold 14px
+- Inactive tab label: `#00171F` at 60% opacity, normal 14px
+- Indicator: 3px solid `#CE2161` underline, `BorderRadius.zero` (sharp corners)
+- Divider: `#CE2161` at 20% opacity
+- Background: `#F6F0ED` (surface)
 - Tab count is NOT shown in tab headers
 
 ### Image Grid (`MediaGrid` + `MediaGridItem`)
@@ -64,7 +64,7 @@ Vertical list of link preview cards.
 
 - **File**: `lib/widgets/link_list.dart`, `lib/widgets/link_list_item.dart`
 - Layout: `ListView.separated` with 12px padding and 12px separator
-- Card style: white background, 8px border radius, 1px `grey[300]` border, 12px padding
+- Card style: `#F6F0ED` background, 8px border radius, 1px `#CE2161` border, 12px padding
 - Favicon: 16px, loaded from `link.faviconUrl`, fallback: `Icons.language` (16px, grey[600])
 - Title: 13px, `FontWeight.w600`, black87, max 2 lines
 - Open icon: `Icons.open_in_new` (14px, grey[500])
@@ -77,16 +77,16 @@ Vertical list of link preview cards.
 
 Each tab shows a centered placeholder when empty.
 
-- Icon: 64px, `Colors.grey[400]`
-  - Images: `Icons.image_outlined`
-  - Videos: `Icons.videocam_outlined`
-  - Documents: `Icons.description_outlined`
-  - Links: `Icons.link_off`
-- Message: 14px, grey[600], center-aligned
-  - "No images in this channel yet"
-  - "No videos in this channel yet"
-  - "No documents in this channel yet"
-  - "No links in this channel yet"
+- Icon: 36px, `#00171F` at 60% opacity
+  - Images: `PhosphorIcons.image()`
+  - Videos: `PhosphorIcons.video()`
+  - Documents: `PhosphorIcons.file()`
+  - Links: `PhosphorIcons.linkBreak()`
+- Message: 14px, `#00171F` at 60% opacity, center-aligned
+  - "No images"
+  - "No videos"
+  - "No documents"
+  - "No links"
 
 ## Styling
 
@@ -94,19 +94,19 @@ Each tab shows a centered placeholder when empty.
 
 | Token             | Value       | Usage                                    |
 |-------------------|-------------|------------------------------------------|
-| Background        | `#00171F`   | Sidebar and tab bar background           |
-| Tab active        | `#FF52A1`   | Active tab label and indicator           |
-| Tab inactive      | `grey[500]` | Inactive tab label                       |
+| Background        | `#F6F0ED`   | Panel and tab bar background (surface)   |
+| Tab active        | `#CE2161`   | Active tab label and indicator           |
+| Tab inactive      | `#00171F` 60% | Inactive tab label                     |
 | Grid cell         | `#FFFFFF`   | Image/video/document cell background     |
-| Link card         | `#FFFFFF`   | Link list item background                |
-| Link card border  | `grey[300]` | Link list item border                    |
+| Link card         | `#F6F0ED`   | Link list item background                |
+| Link card border  | `#CE2161`   | Link list item border                    |
 
 ### Typography
 
 | Element            | Size | Weight | Color                |
 |--------------------|------|--------|----------------------|
-| Tab label (active) | 11px | Bold   | `#FF52A1`            |
-| Tab label (inactive)| 11px| Normal | `grey[500]`          |
+| Tab label (active) | 14px | Bold   | `#CE2161`            |
+| Tab label (inactive)| 14px| Normal | `#00171F` 60%        |
 | Document filename  | 10px | w500   | Default (dark)       |
 | Document file size | 9px  | Normal | `grey[600]`          |
 | Link title         | 13px | w600   | `black87`            |
@@ -114,13 +114,13 @@ Each tab shows a centered placeholder when empty.
 | Link URL           | 10px | Normal | `blue[700]`          |
 | Link date          | 10px | Normal | `grey[500]`          |
 | Error message      | 10px | Normal | `grey[500]`          |
-| Empty state message| 14px | Normal | `grey[600]`          |
+| Empty state message| 14px | Normal | `#00171F` 60%        |
 
 ### Dimensions
 
 | Token              | Value         | Usage                           |
 |--------------------|---------------|---------------------------------|
-| Sidebar width      | 300px         | Fixed width (when `fixedWidth: true`) |
+| Sidebar width      | 340px         | Fixed width (when `fixedWidth: true`) |
 | Grid columns       | 3             | All media grids                 |
 | Grid spacing       | 0px           | Cross-axis and main-axis        |
 | Grid aspect ratio  | 1.0           | Square cells                    |
