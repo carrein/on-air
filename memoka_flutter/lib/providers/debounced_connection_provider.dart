@@ -22,16 +22,24 @@ class DebouncedConnection extends _$DebouncedConnection {
     ref.onDispose(() => _timer?.cancel());
 
     if (raw == ConnectionState.disconnected) {
-      // Start debounce — keep previous state until timer fires.
+      // On first build, state is uninitialized — fall through to disconnected
+      // immediately. On subsequent rebuilds, start the debounce timer and
+      // preserve the previous state until it fires.
+      final ConnectionState previous;
+      try {
+        previous = state;
+      } catch (_) {
+        // First build — no previous state to preserve.
+        return ConnectionState.disconnected;
+      }
+
       _timer?.cancel();
       _timer = Timer(_debounce, () {
         if (state != ConnectionState.disconnected) {
           state = ConnectionState.disconnected;
         }
       });
-      // Return current state (not disconnected yet) on first build,
-      // or preserve whatever state we had before the timer fires.
-      return state;
+      return previous;
     }
 
     // Connected or connecting — cancel timer and propagate immediately.

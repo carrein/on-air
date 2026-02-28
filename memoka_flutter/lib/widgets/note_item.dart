@@ -107,7 +107,7 @@ class NoteItem extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildContent(context, ref),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _NoteFooter(
                             note: note,
                             channelId: channelId,

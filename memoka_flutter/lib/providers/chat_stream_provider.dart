@@ -27,11 +27,16 @@ Stream<ChatEvent> chatStream(Ref ref) async* {
 
   var delay = 1;
   const maxDelay = 10;
+  var isFirstAttempt = true;
 
   while (!cancelled) {
-    // Reset to connecting immediately so the UI hides the offline banner
-    // while the health ping is in flight (prevents brief flash on resume).
-    ref.read(connectionProvider.notifier).setConnecting();
+    // Only show "connecting" on the first attempt (fresh start or resume).
+    // During backoff retries while already disconnected, skip it to avoid
+    // flashing the offline banner on every retry cycle.
+    if (isFirstAttempt) {
+      ref.read(connectionProvider.notifier).setConnecting();
+      isFirstAttempt = false;
+    }
 
     try {
       if (kIsWeb) {

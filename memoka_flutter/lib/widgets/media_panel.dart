@@ -104,20 +104,64 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
           ),
         );
       },
-      loading: () => Container(
-        width: 300,
-        color: const Color(0xFFF6F0ED),
-        child: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (err, stack) => Container(
-        width: 300,
-        color: const Color(0xFFF6F0ED),
-        child: Center(
-          child: Text(
-            'Error: $err',
-            style: const TextStyle(color: Color(0xFFDB0000)),
-          ),
+      loading: () => _buildEmptyShell(),
+      error: (e, s) => _buildEmptyShell(),
+    );
+  }
+
+  /// Empty media panel with tabs but no content — used for loading/error states
+  /// so the user sees the familiar "No images" etc. instead of raw errors.
+  Widget _buildEmptyShell() {
+    return Container(
+      width: widget.fixedWidth ? 340 : null,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF6F0ED),
+        border: Border(
+          left: BorderSide(color: Color(0xFFCE2161), width: 1),
         ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            color: const Color(0xFFF6F0ED),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFFCE2161),
+              unselectedLabelColor:
+                  const Color(0xFF00171F).withValues(alpha: 0.6),
+              indicatorColor: const Color(0xFFCE2161),
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: const UnderlineTabIndicator(
+                borderRadius: BorderRadius.zero,
+                borderSide: BorderSide(color: Color(0xFFCE2161), width: 3),
+              ),
+              dividerColor: const Color(0xFFCE2161).withValues(alpha: 0.2),
+              dividerHeight: 1,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: const TextStyle(fontSize: 14),
+              tabs: const [
+                Tab(text: 'Images'),
+                Tab(text: 'Videos'),
+                Tab(text: 'Docs'),
+                Tab(text: 'Links'),
+              ],
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [
+                MediaGrid(items: [], type: MediaType.image),
+                MediaGrid(items: [], type: MediaType.video),
+                MediaGrid(items: [], type: MediaType.document),
+                LinkList(links: []),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
