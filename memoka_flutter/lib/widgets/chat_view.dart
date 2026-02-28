@@ -311,12 +311,15 @@ class _ChatViewState extends ConsumerState<ChatView>
           itemPositionsListener: _itemPositionsListener,
           physics: const ClampingScrollPhysics(),
           reverse: true,
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           itemCount: totalItems,
           itemBuilder: (context, index) {
             // Pending ghost notes at bottom (lowest indices in reversed list)
             if (index < pending.length) {
-              return PendingNoteWidget(upload: pending[index]);
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: PendingNoteWidget(upload: pending[index]),
+              );
             }
 
             // Real notes
@@ -328,6 +331,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                 !_isSameDay(note.createdAt, previousNote.createdAt);
             final isHighlighted = _highlightedNoteId == note.id;
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 500),

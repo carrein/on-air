@@ -43,8 +43,9 @@ class NoteItem extends ConsumerWidget {
     const borderColor = Color(0xFFCE2161);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Selection checkbox (visible in selection mode)
@@ -68,59 +69,59 @@ class NoteItem extends ConsumerWidget {
               ),
             ),
           // Note content
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: NoteConstraints(
-                child: Listener(
-                  onPointerDown: (event) {
-                    if (event.buttons == 2) {
-                      _showContextMenu(context, ref, event.position);
+          Flexible(
+            child: NoteConstraints(
+              child: Listener(
+                onPointerDown: (event) {
+                  if (event.buttons == 2) {
+                    _showContextMenu(context, ref, event.position);
+                  }
+                },
+                child: GestureDetector(
+                  onTap: isSelectionMode
+                      ? () => ref
+                            .read(noteSelectionProvider.notifier)
+                            .toggle(note.id!)
+                      : null,
+                  onLongPress: () {
+                    if (isSelectionMode) {
+                      ref
+                          .read(noteSelectionProvider.notifier)
+                          .toggle(note.id!);
+                    } else if (MediaQuery.of(context).size.width < 600) {
+                      ref
+                          .read(noteSelectionProvider.notifier)
+                          .select(note.id!);
+                    } else {
+                      _showContextMenu(context, ref, null);
                     }
                   },
-                  child: GestureDetector(
-                    onTap: isSelectionMode
-                        ? () => ref
-                              .read(noteSelectionProvider.notifier)
-                              .toggle(note.id!)
-                        : null,
-                    onLongPress: () {
-                      if (isSelectionMode) {
-                        ref
-                            .read(noteSelectionProvider.notifier)
-                            .toggle(note.id!);
-                      } else if (MediaQuery.of(context).size.width < 600) {
-                        ref
-                            .read(noteSelectionProvider.notifier)
-                            .select(note.id!);
-                      } else {
-                        _showContextMenu(context, ref, null);
-                      }
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF6F0ED),
-                        border: Border.all(color: borderColor, width: 1.0),
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildContent(context, ref),
-                          const SizedBox(height: 10),
-                          _NoteFooter(
-                            note: note,
-                            channelId: channelId,
-                            onEdit: () => ref
-                                .read(editingNoteProvider.notifier)
-                                .startEditing(note.id!),
-                            onArchive: () => ref
-                                .read(notesProvider(channelId).notifier)
-                                .deleteNote(note.id!),
-                            onRestore: () => _restoreNote(context, ref),
-                          ),
-                        ],
-                      ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF6F0ED),
+                      border: Border.all(color: borderColor, width: 1.0),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildContent(context, ref),
+                        const SizedBox(height: 6),
+                        _NoteFooter(
+                          note: note,
+                          channelId: channelId,
+                          onEdit: () => ref
+                              .read(editingNoteProvider.notifier)
+                              .startEditing(note.id!),
+                          onArchive: () => ref
+                              .read(notesProvider(channelId).notifier)
+                              .deleteNote(note.id!),
+                          onRestore: () => _restoreNote(context, ref),
+                        ),
+                      ],
                     ),
                   ),
                 ),

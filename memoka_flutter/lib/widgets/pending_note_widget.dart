@@ -35,33 +35,31 @@ class PendingNoteWidget extends ConsumerWidget {
     final isUploaded = upload.status == UploadStatus.uploaded;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: NoteConstraints(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _bgColor,
-                    border: Border.all(color: _borderColor, width: 1.0),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: upload.isImage
-                      ? (isUploaded && upload.serverImageUrl != null
-                            ? _UploadedImageContent(upload: upload)
-                            : _buildImageSkeleton(ref, isError))
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildFilePreview(),
-                            const SizedBox(height: 8),
-                            _buildUploadFooter(ref, isError),
-                          ],
-                        ),
+          Flexible(
+            child: NoteConstraints(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: _bgColor,
+                  border: Border.all(color: _borderColor, width: 1.0),
                 ),
+                padding: const EdgeInsets.all(12),
+                child: upload.isImage
+                    ? (isUploaded && upload.serverImageUrl != null
+                          ? _UploadedImageContent(upload: upload)
+                          : _buildImageSkeleton(ref, isError))
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildFilePreview(),
+                          const SizedBox(height: 8),
+                          _buildUploadFooter(ref, isError),
+                        ],
+                      ),
               ),
             ),
           ),
@@ -446,13 +444,14 @@ class NoteConstraints extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-    if (isMobile) {
-      return child;
-    }
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
     return IntrinsicWidth(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, minWidth: 350),
+        constraints: BoxConstraints(
+          maxWidth: isMobile ? screenWidth - 28 : 600,
+          minWidth: isMobile ? 200 : 350,
+        ),
         child: child,
       ),
     );
