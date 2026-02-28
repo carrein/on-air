@@ -261,12 +261,6 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
   Duration _secsToDuration(double secs) =>
       Duration(milliseconds: (secs * 1000).toInt());
 
-  String _formatDuration(Duration d) {
-    final m = d.inMinutes;
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   // ── build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -370,7 +364,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                       const SizedBox(width: 6),
                       Text(
                         hasDuration
-                            ? '${_formatDuration(_position)} / ${_formatDuration(_duration)}'
+                            ? '${FileUtils.formatDuration(_position.inSeconds.toDouble())} / ${FileUtils.formatDuration(_duration.inSeconds.toDouble())}'
                             : '--:-- / --:--',
                         style: TextStyle(
                           fontSize: 11,

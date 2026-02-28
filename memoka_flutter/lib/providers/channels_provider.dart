@@ -9,6 +9,10 @@ import 'provider_utils.dart';
 
 part 'channels_provider.g.dart';
 
+/// Error substring returned by the server when the last channel cannot be
+/// deleted or archived. Must match [ServerConstants.lastChannelError].
+const _kLastChannelError = 'last remaining channel';
+
 /// Manages the list of channels with local-first caching and real-time updates.
 @riverpod
 class Channels extends _$Channels {
@@ -173,8 +177,7 @@ class Channels extends _$Channels {
       try {
         await client.chat.deleteChannel(id);
       } catch (e) {
-        // TODO: Replace string match with typed server error code
-        if (e.toString().contains('last remaining channel')) {
+        if (e.toString().contains(_kLastChannelError)) {
           throw Exception(
             'Cannot delete the last channel. Create another channel first.',
           );
@@ -242,8 +245,7 @@ class Channels extends _$Channels {
       try {
         await client.chat.archiveChannel(id);
       } catch (e) {
-        // TODO: Replace string match with typed server error code
-        if (e.toString().contains('last remaining channel')) {
+        if (e.toString().contains(_kLastChannelError)) {
           throw Exception(
             'Cannot archive the last channel. Create another channel first.',
           );

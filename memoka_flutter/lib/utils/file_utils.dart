@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// Utilities for file handling and display.
 class FileUtils {
-  static const _iconColor = Color(0xFF00171F);
-
   /// Get appropriate icon for file extension.
   static IconData getFileIcon(String fileExtension) {
     final ext = fileExtension.toLowerCase();
@@ -93,9 +92,6 @@ class FileUtils {
     }
   }
 
-  /// Icon color for file attachments — always uses the app's core text colour.
-  static Color getFileColor(String fileExtension) => _iconColor;
-
   /// Returns true if the extension is a supported audio format.
   static bool isAudio(String fileExtension) {
     const audioExts = {'mp3', 'wav', 'flac', 'ogg', 'aac', 'm4a', 'opus'};
@@ -136,6 +132,31 @@ class FileUtils {
     final minute = t.minute.toString().padLeft(2, '0');
     final period = t.hour >= 12 ? 'PM' : 'AM';
     return '${months[t.month - 1]} ${t.day}, $hour:$minute $period';
+  }
+
+  /// Build a thumbnail URL for a media attachment, or null if no thumbnail.
+  static String? buildThumbnailUrl(
+    String serverUrl,
+    MediaAttachment attachment,
+  ) {
+    final thumbnailPath = attachment.thumbnailPath;
+    if (thumbnailPath == null) return null;
+    final parts = attachment.filePath.split('/');
+    if (parts.length < 2) return null;
+    final channelPath = parts.take(parts.length - 1).join('/');
+    return buildMediaUrl(
+      serverUrl,
+      '$channelPath/$thumbnailPath',
+      attachment.contentHash,
+    );
+  }
+
+  /// Format a duration in seconds as "M:SS" (e.g. "1:05", "0:30").
+  static String formatDuration(double seconds) {
+    final d = Duration(seconds: seconds.round());
+    final m = d.inMinutes;
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   /// Build media URL with cache busting.

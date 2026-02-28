@@ -4,6 +4,10 @@ import '../generated/protocol.dart';
 class ServerConstants {
   static const String mediaBaseDir = 'data/media';
 
+  /// Error substring thrown when attempting to delete/archive the last channel.
+  /// Matched by the client for typed error detection.
+  static const String lastChannelError = 'last remaining channel';
+
   /// Channel name used for broadcasting real-time chat events via MessageCentral.
   static const String chatEventsChannel = 'chat_events';
 

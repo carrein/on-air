@@ -37,8 +37,12 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
     final currentChannelAsync = ref.watch(currentChannelProvider);
 
     return currentChannelAsync.when(
+      skipLoadingOnReload: true,
+      skipLoadingOnRefresh: true,
       data: (channelId) {
-        final mediaAsync = ref.watch(channelMediaDataProvider(channelId));
+        // channelMediaDataProvider is now synchronous — no AsyncValue wrapper,
+        // so it never flickers through a loading state on notes changes.
+        final media = ref.watch(channelMediaDataProvider(channelId));
 
         return Container(
           width: widget.fixedWidth ? 340 : null,
@@ -81,33 +85,19 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
                 ),
               ),
 
-              // Tab content
+              // Tab content — always has data (empty ChannelMedia on loading/error)
               Expanded(
-                child: mediaAsync.when(
-                  data: (media) => TabBarView(
-                    controller: _tabController,
-                    children: [
-                      MediaGrid(items: media.images, type: MediaType.image),
-                      MediaGrid(items: media.videos, type: MediaType.video),
-                      MediaGrid(
-                        items: media.documents,
-                        type: MediaType.document,
-                      ),
-                      LinkList(links: media.links),
-                    ],
-                  ),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (err, stack) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(
-                        'Error loading media: $err',
-                        style: const TextStyle(color: Color(0xFFDB0000)),
-                        textAlign: TextAlign.center,
-                      ),
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    MediaGrid(items: media.images, type: MediaType.image),
+                    MediaGrid(items: media.videos, type: MediaType.video),
+                    MediaGrid(
+                      items: media.documents,
+                      type: MediaType.document,
                     ),
-                  ),
+                    LinkList(links: media.links),
+                  ],
                 ),
               ),
             ],

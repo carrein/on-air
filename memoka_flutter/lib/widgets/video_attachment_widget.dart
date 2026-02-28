@@ -84,7 +84,7 @@ class VideoAttachmentWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  _formatDuration(attachment.duration!),
+                  FileUtils.formatDuration(attachment.duration!),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -107,14 +107,7 @@ class VideoAttachmentWidget extends StatelessWidget {
   }
 
   String? _buildThumbnailUrl() {
-    if (attachment.thumbnailPath == null) return null;
-    final parts = attachment.filePath.split('/');
-    if (parts.length >= 2) {
-      final channelPath = parts.take(parts.length - 1).join('/');
-      final path = '$channelPath/${attachment.thumbnailPath}';
-      return FileUtils.buildMediaUrl(serverUrl, path, attachment.contentHash);
-    }
-    return null;
+    return FileUtils.buildThumbnailUrl(serverUrl, attachment);
   }
 
   Widget _defaultVideoThumbnail(Size size) {
@@ -145,12 +138,6 @@ class VideoAttachmentWidget extends StatelessWidget {
     );
   }
 
-  String _formatDuration(double seconds) {
-    final duration = Duration(seconds: seconds.round());
-    final minutes = duration.inMinutes;
-    final secs = duration.inSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
-  }
 }
 
 /// Full-screen video lightbox overlay, matching the image lightbox pattern.
@@ -378,12 +365,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
   String _formatPosition() {
     final position = _controller.value.position;
     final duration = _controller.value.duration;
-    return '${_durationStr(position)} / ${_durationStr(duration)}';
+    return '${FileUtils.formatDuration(position.inSeconds.toDouble())} / ${FileUtils.formatDuration(duration.inSeconds.toDouble())}';
   }
 
-  String _durationStr(Duration duration) {
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-  }
 }

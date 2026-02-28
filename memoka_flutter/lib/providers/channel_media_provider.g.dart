@@ -6,7 +6,7 @@ part of 'channel_media_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$channelMediaDataHash() => r'94be129e7a72d8f8fad0a63f23d88120070e6188';
+String _$channelMediaDataHash() => r'b7f1208217f06f104fe40cf663494ca2513d1949';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,35 +29,32 @@ class _SystemHash {
   }
 }
 
-abstract class _$ChannelMediaData
-    extends BuildlessAutoDisposeAsyncNotifier<ChannelMedia> {
-  late final int channelId;
-
-  FutureOr<ChannelMedia> build(int channelId);
-}
-
 /// Provides all media and links for a specific channel.
-/// Filters and transforms notes from notesProvider into organized media collections.
+/// Synchronously derives from notesProvider so the MediaPanel never sees
+/// a loading→data flicker when notes change.
 ///
-/// Copied from [ChannelMediaData].
-@ProviderFor(ChannelMediaData)
+/// Copied from [channelMediaData].
+@ProviderFor(channelMediaData)
 const channelMediaDataProvider = ChannelMediaDataFamily();
 
 /// Provides all media and links for a specific channel.
-/// Filters and transforms notes from notesProvider into organized media collections.
+/// Synchronously derives from notesProvider so the MediaPanel never sees
+/// a loading→data flicker when notes change.
 ///
-/// Copied from [ChannelMediaData].
-class ChannelMediaDataFamily extends Family<AsyncValue<ChannelMedia>> {
+/// Copied from [channelMediaData].
+class ChannelMediaDataFamily extends Family<ChannelMedia> {
   /// Provides all media and links for a specific channel.
-  /// Filters and transforms notes from notesProvider into organized media collections.
+  /// Synchronously derives from notesProvider so the MediaPanel never sees
+  /// a loading→data flicker when notes change.
   ///
-  /// Copied from [ChannelMediaData].
+  /// Copied from [channelMediaData].
   const ChannelMediaDataFamily();
 
   /// Provides all media and links for a specific channel.
-  /// Filters and transforms notes from notesProvider into organized media collections.
+  /// Synchronously derives from notesProvider so the MediaPanel never sees
+  /// a loading→data flicker when notes change.
   ///
-  /// Copied from [ChannelMediaData].
+  /// Copied from [channelMediaData].
   ChannelMediaDataProvider call(int channelId) {
     return ChannelMediaDataProvider(channelId);
   }
@@ -85,19 +82,19 @@ class ChannelMediaDataFamily extends Family<AsyncValue<ChannelMedia>> {
 }
 
 /// Provides all media and links for a specific channel.
-/// Filters and transforms notes from notesProvider into organized media collections.
+/// Synchronously derives from notesProvider so the MediaPanel never sees
+/// a loading→data flicker when notes change.
 ///
-/// Copied from [ChannelMediaData].
-class ChannelMediaDataProvider
-    extends
-        AutoDisposeAsyncNotifierProviderImpl<ChannelMediaData, ChannelMedia> {
+/// Copied from [channelMediaData].
+class ChannelMediaDataProvider extends AutoDisposeProvider<ChannelMedia> {
   /// Provides all media and links for a specific channel.
-  /// Filters and transforms notes from notesProvider into organized media collections.
+  /// Synchronously derives from notesProvider so the MediaPanel never sees
+  /// a loading→data flicker when notes change.
   ///
-  /// Copied from [ChannelMediaData].
+  /// Copied from [channelMediaData].
   ChannelMediaDataProvider(int channelId)
     : this._internal(
-        () => ChannelMediaData()..channelId = channelId,
+        (ref) => channelMediaData(ref as ChannelMediaDataRef, channelId),
         from: channelMediaDataProvider,
         name: r'channelMediaDataProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -122,16 +119,13 @@ class ChannelMediaDataProvider
   final int channelId;
 
   @override
-  FutureOr<ChannelMedia> runNotifierBuild(covariant ChannelMediaData notifier) {
-    return notifier.build(channelId);
-  }
-
-  @override
-  Override overrideWith(ChannelMediaData Function() create) {
+  Override overrideWith(
+    ChannelMedia Function(ChannelMediaDataRef provider) create,
+  ) {
     return ProviderOverride(
       origin: this,
       override: ChannelMediaDataProvider._internal(
-        () => create()..channelId = channelId,
+        (ref) => create(ref as ChannelMediaDataRef),
         from: from,
         name: null,
         dependencies: null,
@@ -143,8 +137,7 @@ class ChannelMediaDataProvider
   }
 
   @override
-  AutoDisposeAsyncNotifierProviderElement<ChannelMediaData, ChannelMedia>
-  createElement() {
+  AutoDisposeProviderElement<ChannelMedia> createElement() {
     return _ChannelMediaDataProviderElement(this);
   }
 
@@ -164,14 +157,13 @@ class ChannelMediaDataProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin ChannelMediaDataRef on AutoDisposeAsyncNotifierProviderRef<ChannelMedia> {
+mixin ChannelMediaDataRef on AutoDisposeProviderRef<ChannelMedia> {
   /// The parameter `channelId` of this provider.
   int get channelId;
 }
 
 class _ChannelMediaDataProviderElement
-    extends
-        AutoDisposeAsyncNotifierProviderElement<ChannelMediaData, ChannelMedia>
+    extends AutoDisposeProviderElement<ChannelMedia>
     with ChannelMediaDataRef {
   _ChannelMediaDataProviderElement(super.provider);
 

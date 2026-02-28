@@ -22,9 +22,13 @@ fields:
   isSystemChannel: bool, default=false
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now
-  sortOrder: int, default=0
+  sortOrder: int, default=0    # legacy, kept for compat
+  position: double, default=0  # primary ordering field (fractional)
   archived: bool, default=false
   archivedAt: DateTime?
+  version: int, default=0
+  deletedAt: DateTime?
+  clientMutationId: String?
 
 class: Note
 table: notes
@@ -37,6 +41,9 @@ fields:
   archivedAt: DateTime?
   createdAt: DateTime, default=now
   updatedAt: DateTime, default=now
+  version: int, default=0
+  deletedAt: DateTime?
+  clientMutationId: String?
 indexes:
   channel_created_idx: fields: channelId, createdAt
   archived_updated_idx: fields: archived, updatedAt
@@ -94,8 +101,8 @@ fields:
 
 **REST Endpoints** (Chat)
 
-- `getChannels()` → `List<Channel>` (pinned first, then by sortOrder, excludes archived)
-- `reorderChannels(channelIds)` → void (persist drag-to-reorder sort order)
+- `getChannels()` → `List<Channel>` (pinned first, then by position, excludes archived)
+- `reorderChannels(channelIds)` → void (persist drag-to-reorder position)
 - `getNotes(channelId, {beforeId?, limit=50})` → `List<Note>` (cursor pagination, LEFT JOIN attachments)
 - `createChannel(name, {emoji?})` → `Channel` (reject empty)
 - `updateChannel(id, name, {emoji?, pinned?})` → `Channel`
@@ -154,7 +161,7 @@ _Layout_
 
 _Sidebar_
 
-- Channels listed pinned first, then by sortOrder within each group
+- Channels listed pinned first, then by position within each group
 - Drag-to-reorder channels (long-press to drag, constrained within pinned/unpinned groups)
 - Emoji display per channel
 - Tap channel to switch
@@ -227,5 +234,5 @@ _Delete Behavior_
 - `currentChannelIdProvider`: StateProvider<int>
 - `editingNoteIdProvider`: StateProvider<int?> (null = create mode)
 - `connectionProvider`: Notifier<ConnectionState> (keepAlive) — set by `chatStreamProvider` ping + WebSocket lifecycle
-- `channelMediaProvider(channelId)`: Family provider for media panel data
+- `channelMediaDataProvider(channelId)`: Synchronous family provider deriving media panel data from `notesProvider`
 - `mediaPanelVisibleProvider`: Global state for media panel visibility on mobile/tablet

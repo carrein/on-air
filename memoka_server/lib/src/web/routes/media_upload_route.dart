@@ -411,46 +411,9 @@ class MediaUploadRoute extends Route {
   }
 
   String _getExtensionFromMimeType(String mimeType) {
-    switch (mimeType.toLowerCase()) {
-      case 'image/jpeg':
-        return '.jpg';
-      case 'image/png':
-        return '.png';
-      case 'image/webp':
-        return '.webp';
-      case 'image/gif':
-        return '.gif';
-      case 'image/heic':
-        return '.heic';
-      case 'video/mp4':
-        return '.mp4';
-      case 'video/quicktime':
-        return '.mov';
-      case 'video/webm':
-        return '.webm';
-      case 'video/x-msvideo':
-        return '.avi';
-      case 'video/x-matroska':
-        return '.mkv';
-      case 'application/pdf':
-        return '.pdf';
-      case 'text/plain':
-        return '.txt';
-      case 'text/markdown':
-        return '.md';
-      case 'application/msword':
-        return '.doc';
-      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        return '.docx';
-      case 'application/vnd.ms-excel':
-        return '.xls';
-      case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-        return '.xlsx';
-      case 'application/zip':
-      case 'application/x-zip-compressed':
-        return '.zip';
-      default:
-        return '.bin';
-    }
+    final ext = extensionFromMime(mimeType);
+    // extensionFromMime returns the input unchanged for unknown types
+    if (ext == mimeType) return '.bin';
+    return '.$ext';
   }
 }

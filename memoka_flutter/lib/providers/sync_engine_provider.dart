@@ -163,36 +163,29 @@ class SyncEngine extends _$SyncEngine {
   }
 
   Future<void> _applyChannelResult(AppDatabase db, SyncResult result) async {
+    final parsed = _parseEntityJson(result.entityJson);
+
     if (result.status == 'applied' || result.status == 'already_applied') {
       if (result.tempId != null && result.serverId != null) {
-        // Offline create: temp ID → server ID mapping
-        final serverVersion = _extractVersion(result.entityJson);
         await db.replaceTemporaryChannelId(
           result.tempId!,
           result.serverId!,
           result.entityJson ?? '{}',
-          serverVersion,
+          _versionFrom(parsed),
         );
       } else {
-        final id = result.serverId ?? _extractIdFromJson(result.entityJson);
+        final id = result.serverId ?? _idFrom(parsed);
         if (id != null) {
-          final serverVersion = _extractVersion(result.entityJson);
-          await db.clearChannelDirty(id, serverVersion);
+          await db.clearChannelDirty(id, _versionFrom(parsed));
         }
       }
     } else if (result.status == 'rejected') {
-      // Accept server version — overwrite local dirty state
-      final id =
-          result.serverId ??
-          result.tempId ??
-          _extractIdFromJson(result.entityJson);
-
+      final id = result.serverId ?? result.tempId ?? _idFrom(parsed);
       if (id == null) return;
 
       if (result.entityJson != null) {
-        final serverVersion = _extractVersion(result.entityJson);
+        final serverVersion = _versionFrom(parsed);
         await db.clearChannelDirty(id, serverVersion);
-        // Overwrite JSON with server state
         await (db.update(
           db.cachedChannels,
         )..where((t) => t.id.equals(id))).write(
@@ -205,49 +198,43 @@ class SyncEngine extends _$SyncEngine {
           ),
         );
       } else {
-        // Server has no record of this entity — remove locally
         await db.deleteCachedChannel(id);
       }
     }
   }
 
   Future<void> _applyNoteResult(AppDatabase db, SyncResult result) async {
+    final parsed = _parseEntityJson(result.entityJson);
+
     if (result.status == 'applied' || result.status == 'already_applied') {
       if (result.tempId != null && result.serverId != null) {
-        final serverVersion = _extractVersion(result.entityJson);
         int channelId = 0;
         DateTime createdAt = DateTime.now();
-        if (result.entityJson != null) {
-          final map = jsonDecode(result.entityJson!) as Map<String, dynamic>;
-          channelId = (map['channelId'] as int?) ?? 0;
-          final raw = map['createdAt'];
+        if (parsed != null) {
+          channelId = (parsed['channelId'] as int?) ?? 0;
+          final raw = parsed['createdAt'];
           if (raw is String) createdAt = DateTime.tryParse(raw) ?? createdAt;
         }
         await db.replaceTemporaryNoteId(
           result.tempId!,
           result.serverId!,
           result.entityJson ?? '{}',
-          serverVersion,
+          _versionFrom(parsed),
           channelId,
           createdAt,
         );
       } else {
-        final id = result.serverId ?? _extractIdFromJson(result.entityJson);
+        final id = result.serverId ?? _idFrom(parsed);
         if (id != null) {
-          final serverVersion = _extractVersion(result.entityJson);
-          await db.clearNoteDirty(id, serverVersion);
+          await db.clearNoteDirty(id, _versionFrom(parsed));
         }
       }
     } else if (result.status == 'rejected') {
-      final id =
-          result.serverId ??
-          result.tempId ??
-          _extractIdFromJson(result.entityJson);
-
+      final id = result.serverId ?? result.tempId ?? _idFrom(parsed);
       if (id == null) return;
 
       if (result.entityJson != null) {
-        final serverVersion = _extractVersion(result.entityJson);
+        final serverVersion = _versionFrom(parsed);
         await db.clearNoteDirty(id, serverVersion);
         await (db.update(db.cachedNotes)..where((t) => t.id.equals(id))).write(
           CachedNotesCompanion(
@@ -264,26 +251,24 @@ class SyncEngine extends _$SyncEngine {
     }
   }
 
-  int _extractVersion(String? json) {
-    if (json == null) return 0;
+  /// Parse entity JSON once, returning a map for field extraction.
+  Map<String, dynamic>? _parseEntityJson(String? json) {
+    if (json == null) return null;
     try {
-      final map = jsonDecode(json) as Map<String, dynamic>;
-      return (map['version'] as int?) ?? 0;
+      return jsonDecode(json) as Map<String, dynamic>;
     } catch (_) {
-      return 0;
+      return null;
     }
   }
 
-  int? _extractIdFromJson(String? json) {
-    if (json == null) return null;
-    try {
-      final map = jsonDecode(json) as Map<String, dynamic>;
-      final id = map['id'];
-      if (id is int) return id;
-      if (id is String) return int.tryParse(id);
-      return null;
-    } catch (_) {
-      return null;
-    }
+  int _versionFrom(Map<String, dynamic>? map) =>
+      (map?['version'] as int?) ?? 0;
+
+  int? _idFrom(Map<String, dynamic>? map) {
+    if (map == null) return null;
+    final id = map['id'];
+    if (id is int) return id;
+    if (id is String) return int.tryParse(id);
+    return null;
   }
 }

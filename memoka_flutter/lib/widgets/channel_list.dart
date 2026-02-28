@@ -125,9 +125,9 @@ class _ChannelListState extends ConsumerState<ChannelList> {
       if (channels == null) return;
       final regular = channels.where((c) => !c.isSystemChannel).toList();
       final pinned = regular.where((c) => c.pinned).toList()
-        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+        ..sort((a, b) => a.position.compareTo(b.position));
       final unpinned = regular.where((c) => !c.pinned).toList()
-        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+        ..sort((a, b) => a.position.compareTo(b.position));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollToChannel(channelId, pinned, unpinned);
       });
@@ -154,10 +154,10 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                     // Split into pinned and unpinned groups, sorted by sortOrder
                     final pinned =
                         regularChannels.where((c) => c.pinned).toList()
-                          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+                          ..sort((a, b) => a.position.compareTo(b.position));
                     final unpinned =
                         regularChannels.where((c) => !c.pinned).toList()
-                          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+                          ..sort((a, b) => a.position.compareTo(b.position));
 
                     final totalCount = pinned.length + unpinned.length;
 

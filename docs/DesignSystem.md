@@ -193,7 +193,7 @@ The sidebar supports two width states:
 
 - **Trigger**: Long-press on a channel item to start drag
 - **Constraint**: Pinned channels reorder only among pinned; unpinned only among unpinned
-- **Persistence**: Order saved via `sortOrder` field on Channel model and `reorderChannels` endpoint
+- **Persistence**: Order saved via `position` field (double, fractional) on Channel model and `reorderChannels` endpoint
 - **Widget**: `ReorderableListView` with `ReorderableDelayedDragStartListener`
 
 #### Keyboard/Swipe Navigation

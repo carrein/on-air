@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../shared/constants.dart';
+import '../shared/note_query.dart';
 import 'version_helper.dart';
 
 /// Endpoint for state-based reconciliation sync.
@@ -24,50 +25,11 @@ class SyncEndpoint extends Endpoint {
     );
 
     // Notes changed since sinceVersion with media attachments via LEFT JOIN
-    final noteRows = await session.db.unsafeQuery('''
-      SELECT
-        n.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', ma.id,
-              'noteId', ma."noteId",
-              'channelId', ma."channelId",
-              'filePath', ma."filePath",
-              'originalFilename', ma."originalFilename",
-              'mimeType', ma."mimeType",
-              'fileSize', ma."fileSize",
-              'width', ma.width,
-              'height', ma.height,
-              'thumbnailPath', ma."thumbnailPath",
-              'compressed', ma.compressed,
-              'animated', ma.animated,
-              'contentHash', ma."contentHash",
-              'uploadedAt', ma."uploadedAt"
-            ) ORDER BY ma.id
-          ) FILTER (WHERE ma.id IS NOT NULL),
-          '[]'::json
-        ) as attachments_json
-      FROM notes n
-      LEFT JOIN media_attachments ma ON ma."noteId" = n.id
-      WHERE n.version > $sinceVersion
-      GROUP BY n.id
-    ''');
-
-    final notes = <Note>[];
-    for (final row in noteRows) {
-      final note = Note.fromJson(row.toColumnMap());
-      final attachmentsJson = row.toColumnMap()['attachments_json'];
-      if (attachmentsJson != null && attachmentsJson != '[]') {
-        final attachmentsList = attachmentsJson as List;
-        note.attachments = attachmentsList
-            .map(
-              (json) => MediaAttachment.fromJson(json as Map<String, dynamic>),
-            )
-            .toList();
-      }
-      notes.add(note);
-    }
+    final notes = await NoteQuery.findWithAttachments(
+      session,
+      whereClause: 'n.version > $sinceVersion',
+      orderBy: 'n.id',
+    );
 
     final currentGlobalVersion = await readGlobalVersion(session);
 

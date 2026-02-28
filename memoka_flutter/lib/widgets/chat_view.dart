@@ -543,58 +543,11 @@ class _ChatViewState extends ConsumerState<ChatView>
       // Files found — prevent default so browser doesn't paste filename as text
       event.preventDefault();
 
-      final List<UploadFileData> uploadFiles = [];
-
-      for (var i = 0; i < fileItems.length; i++) {
-        final file = fileItems[i];
-
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file);
-        await reader.onLoadEnd.first;
-
-        if (reader.result == null) continue;
-
-        final result = reader.result!;
-        final Uint8List uint8List;
-        if (result is ByteBuffer) {
-          uint8List = result.asUint8List();
-        } else {
-          uint8List = result as Uint8List;
-        }
-
-        // Use the real filename when available (Finder copy), otherwise
-        // generate one from the MIME type (clipboard image/screenshot).
-        final String fileName;
-        final String extension;
-        if (file.name.isNotEmpty) {
-          fileName = file.name;
-          final parts = file.name.split('.');
-          extension = parts.length > 1 ? parts.last : '';
-        } else {
-          final mimeType = file.type.isNotEmpty
-              ? file.type
-              : 'application/octet-stream';
-          extension = mimeType.split('/').last;
-          fileName =
-              'pasted_file_${DateTime.now().millisecondsSinceEpoch}_$i.$extension';
-        }
-
-        uploadFiles.add(
-          UploadFileData(
-            bytes: uint8List,
-            fileName: fileName,
-            extension: extension,
-          ),
-        );
-      }
-
-      if (uploadFiles.isEmpty) return;
-
-      if (uploadFiles.length == 1) {
-        await _showFileUploadDialog(uploadFiles.first);
-      } else {
-        await _showMultiFileUploadDialog(uploadFiles);
-      }
+      final uploadFiles = await _collectWebFiles(
+        fileItems,
+        generateFilenames: true,
+      );
+      await _showUploadDialogs(uploadFiles);
     } catch (e) {
       // Silently ignore paste errors
     }
@@ -610,48 +563,74 @@ class _ChatViewState extends ConsumerState<ChatView>
       final files = dataTransfer.files;
       if (files == null || files.isEmpty) return;
 
-      // Collect all dropped files regardless of type
-      final List<UploadFileData> uploadFiles = [];
-
-      for (var i = 0; i < files.length; i++) {
-        final file = files[i];
-
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file);
-        await reader.onLoadEnd.first;
-
-        if (reader.result == null) continue;
-
-        final result = reader.result!;
-        final Uint8List uint8List;
-        if (result is ByteBuffer) {
-          uint8List = result.asUint8List();
-        } else {
-          uint8List = result as Uint8List;
-        }
-
-        final parts = file.name.split('.');
-        final extension = parts.length > 1 ? parts.last : '';
-
-        uploadFiles.add(
-          UploadFileData(
-            bytes: uint8List,
-            fileName: file.name,
-            extension: extension,
-          ),
-        );
-      }
-
-      // Show appropriate dialog based on number of files
-      if (uploadFiles.isEmpty) return;
-
-      if (uploadFiles.length == 1) {
-        await _showFileUploadDialog(uploadFiles.first);
-      } else {
-        await _showMultiFileUploadDialog(uploadFiles);
-      }
+      final uploadFiles = await _collectWebFiles(List.from(files));
+      await _showUploadDialogs(uploadFiles);
     } catch (e) {
       // Silently ignore drop errors
+    }
+  }
+
+  /// Reads a list of [html.File] objects into [UploadFileData] instances.
+  /// When [generateFilenames] is true, files with empty names (e.g. clipboard
+  /// screenshots) get a generated name based on MIME type and timestamp.
+  Future<List<UploadFileData>> _collectWebFiles(
+    List<html.File> files, {
+    bool generateFilenames = false,
+  }) async {
+    final List<UploadFileData> result = [];
+    for (var i = 0; i < files.length; i++) {
+      final file = files[i];
+
+      final reader = html.FileReader();
+      reader.readAsArrayBuffer(file);
+      await reader.onLoadEnd.first;
+      if (reader.result == null) continue;
+
+      final raw = reader.result!;
+      final Uint8List uint8List;
+      if (raw is ByteBuffer) {
+        uint8List = raw.asUint8List();
+      } else {
+        uint8List = raw as Uint8List;
+      }
+
+      final String fileName;
+      final String extension;
+      if (file.name.isNotEmpty) {
+        fileName = file.name;
+        final parts = file.name.split('.');
+        extension = parts.length > 1 ? parts.last : '';
+      } else if (generateFilenames) {
+        final mimeType = file.type.isNotEmpty
+            ? file.type
+            : 'application/octet-stream';
+        extension = mimeType.split('/').last;
+        fileName =
+            'pasted_file_${DateTime.now().millisecondsSinceEpoch}_$i.$extension';
+      } else {
+        final parts = file.name.split('.');
+        extension = parts.length > 1 ? parts.last : '';
+        fileName = file.name;
+      }
+
+      result.add(
+        UploadFileData(
+          bytes: uint8List,
+          fileName: fileName,
+          extension: extension,
+        ),
+      );
+    }
+    return result;
+  }
+
+  /// Shows the appropriate upload dialog for the collected files.
+  Future<void> _showUploadDialogs(List<UploadFileData> uploadFiles) async {
+    if (uploadFiles.isEmpty) return;
+    if (uploadFiles.length == 1) {
+      await _showFileUploadDialog(uploadFiles.first);
+    } else {
+      await _showMultiFileUploadDialog(uploadFiles);
     }
   }
 

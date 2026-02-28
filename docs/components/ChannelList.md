@@ -18,7 +18,7 @@ Scrollable, drag-to-reorder list of all channels, sorted with pinned channels fi
 - **Drag-to-reorder**: Drag a channel item to reorder
   - Pinned channels can only be reordered among pinned channels
   - Unpinned channels can only be reordered among unpinned channels
-  - Order is persisted via `sortOrder` field and `reorderChannels` endpoint
+  - Order is persisted via `position` field (double, fractional) and `reorderChannels` endpoint
   - **Desktop/web**: `ReorderableDragStartListener` — drag starts immediately on pointer down
   - **Mobile**: `ReorderableDelayedDragStartListener` — requires a long-press to avoid conflicting with tap-to-select
 - Scrollbar hidden via `ScrollConfiguration`

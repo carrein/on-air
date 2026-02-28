@@ -173,9 +173,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         // excluding system channels. Explicitly sort within each group.
         final regular = channels.where((c) => !c.isSystemChannel).toList();
         final pinned = regular.where((c) => c.pinned).toList()
-          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+          ..sort((a, b) => a.position.compareTo(b.position));
         final unpinned = regular.where((c) => !c.pinned).toList()
-          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+          ..sort((a, b) => a.position.compareTo(b.position));
         final ordered = [...pinned, ...unpinned];
 
         if (ordered.length <= 1) return;

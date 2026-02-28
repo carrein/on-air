@@ -117,7 +117,7 @@ class MediaGridItem extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                _formatDuration(item.attachment.duration!),
+                FileUtils.formatDuration(item.attachment.duration!),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 10,
@@ -200,13 +200,6 @@ class MediaGridItem extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  String _formatDuration(double seconds) {
-    final duration = Duration(seconds: seconds.toInt());
-    final minutes = duration.inMinutes;
-    final secs = duration.inSeconds % 60;
-    return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 
   void _handleTap(BuildContext context, WidgetRef ref) {

@@ -155,7 +155,7 @@ Clicking any image, video, or document in the grid scrolls the chat view to the 
 
 - `TabController` with 4 tabs, local state
 - Switching tabs filters displayed content (no refetch, data already in memory)
-- Content comes from `channelMediaDataProvider` which derives from `notesProvider`
+- Content comes from `channelMediaDataProvider` (synchronous) which derives from `notesProvider`
 
 ## State Management
 
@@ -164,7 +164,7 @@ Clicking any image, video, or document in the grid scrolls the chat view to the 
 | Provider                        | Type                        | Purpose                           |
 |---------------------------------|-----------------------------|-----------------------------------|
 | `currentChannelProvider`        | `AsyncValue<int?>`          | Current channel ID                |
-| `channelMediaDataProvider(id)`  | `AsyncValue<ChannelMedia>`  | Organized media for the channel   |
+| `channelMediaDataProvider(id)`  | `ChannelMedia`              | Organized media for the channel (sync, no loading state)  |
 
 ### Providers Read (on interaction)
 

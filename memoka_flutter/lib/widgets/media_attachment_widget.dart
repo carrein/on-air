@@ -120,7 +120,11 @@ class _ImageAttachmentWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = _buildImageUrl(useThumbnail: false);
+    final imageUrl = FileUtils.buildMediaUrl(
+      serverUrl,
+      attachment.filePath,
+      attachment.contentHash,
+    );
 
     final displaySize = computeDisplaySize(
       width: attachment.width,
@@ -232,22 +236,6 @@ class _ImageAttachmentWidget extends StatelessWidget {
     );
   }
 
-  /// Build image URL with cache busting.
-  String _buildImageUrl({required bool useThumbnail}) {
-    String path = attachment.filePath;
-
-    // Use thumbnail if available and requested
-    if (useThumbnail && attachment.thumbnailPath != null) {
-      // Thumbnail path is relative to channel directory
-      final parts = attachment.filePath.split('/');
-      if (parts.length >= 2) {
-        final channelPath = parts.take(parts.length - 1).join('/');
-        path = '$channelPath/${attachment.thumbnailPath}';
-      }
-    }
-
-    return FileUtils.buildMediaUrl(serverUrl, path, attachment.contentHash);
-  }
 }
 
 /// Animated shimmer placeholder sized to the given dimensions.

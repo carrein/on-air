@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../shared/constants.dart';
+import '../shared/note_query.dart';
 import '../sync/version_helper.dart';
 import 'link_preview_service.dart';
 
@@ -38,61 +39,14 @@ class ChatEndpoint extends Endpoint {
     int? beforeId,
     int limit = 50,
   }) async {
-    // Build SQL query with LEFT JOIN to load attachments
     final beforeClause = beforeId != null ? 'AND n.id < $beforeId' : '';
 
-    final result = await session.db.unsafeQuery('''
-      SELECT
-        n.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', ma.id,
-              'noteId', ma."noteId",
-              'channelId', ma."channelId",
-              'filePath', ma."filePath",
-              'originalFilename', ma."originalFilename",
-              'mimeType', ma."mimeType",
-              'fileSize', ma."fileSize",
-              'width', ma.width,
-              'height', ma.height,
-              'thumbnailPath', ma."thumbnailPath",
-              'compressed', ma.compressed,
-              'animated', ma.animated,
-              'contentHash', ma."contentHash",
-              'uploadedAt', ma."uploadedAt"
-            ) ORDER BY ma.id
-          ) FILTER (WHERE ma.id IS NOT NULL),
-          '[]'::json
-        ) as attachments_json
-      FROM notes n
-      LEFT JOIN media_attachments ma ON ma."noteId" = n.id
-      WHERE n."channelId" = $channelId AND n.archived = false AND n."deletedAt" IS NULL $beforeClause
-      GROUP BY n.id
-      ORDER BY n."createdAt" DESC
-      LIMIT $limit
-    ''');
-
-    // Parse results into Note objects
-    final notes = <Note>[];
-    for (final row in result) {
-      final note = Note.fromJson(row.toColumnMap());
-
-      // Parse attachments from JSON
-      final attachmentsJson = row.toColumnMap()['attachments_json'];
-      if (attachmentsJson != null && attachmentsJson != '[]') {
-        final attachmentsList = attachmentsJson as List;
-        note.attachments = attachmentsList
-            .map(
-              (json) => MediaAttachment.fromJson(json as Map<String, dynamic>),
-            )
-            .toList();
-      }
-
-      notes.add(note);
-    }
-
-    return notes;
+    return NoteQuery.findWithAttachments(
+      session,
+      whereClause:
+          'n."channelId" = $channelId AND n.archived = false AND n."deletedAt" IS NULL $beforeClause',
+      limit: limit,
+    );
   }
 
   /// Creates a new channel and broadcasts the event.
@@ -445,9 +399,10 @@ class ChatEndpoint extends Endpoint {
 
   /// Archives a note by marking it as archived (soft delete).
   Future<void> _archiveNote(Session session, Note note) async {
+    final now = DateTime.now();
     note.archived = true;
-    note.archivedAt = DateTime.now();
-    note.updatedAt = DateTime.now();
+    note.archivedAt = now;
+    note.updatedAt = now;
 
     await session.db.transaction((tx) async {
       final newVersion = await incrementGlobalVersion(session, transaction: tx);
@@ -504,8 +459,9 @@ class ChatEndpoint extends Endpoint {
     }
 
     // Tombstone: set deletedAt instead of physical delete
-    note.deletedAt = DateTime.now();
-    note.updatedAt = DateTime.now();
+    final now = DateTime.now();
+    note.deletedAt = now;
+    note.updatedAt = now;
 
     await session.db.transaction((tx) async {
       final newVersion = await incrementGlobalVersion(session, transaction: tx);
@@ -588,8 +544,9 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Cannot archive the last remaining channel');
     }
 
+    final now = DateTime.now();
     channel.archived = true;
-    channel.archivedAt = DateTime.now();
+    channel.archivedAt = now;
     channel.pinned = false;
 
     await session.db.transaction((tx) async {

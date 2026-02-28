@@ -54,20 +54,7 @@ class MediaItem {
 
   /// Returns the thumbnail URL (if available)
   String? getThumbnailUrl(String serverUrl) {
-    if (attachment.thumbnailPath != null) {
-      // Thumbnail path is relative, combine with channel path
-      final parts = attachment.filePath.split('/');
-      if (parts.length >= 2) {
-        final channelPath = parts.take(parts.length - 1).join('/');
-        final thumbnailPath = '$channelPath/${attachment.thumbnailPath}';
-        return FileUtils.buildMediaUrl(
-          serverUrl,
-          thumbnailPath,
-          attachment.contentHash,
-        );
-      }
-    }
-    return null;
+    return FileUtils.buildThumbnailUrl(serverUrl, attachment);
   }
 
   /// Check if this is an image
