@@ -343,6 +343,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 ),
                 if (isMobile && !isArchive && !isShowingSettings)
                   const NoteInput(),
+                SizedBox(
+                  height: MediaQuery.of(context).viewInsets.bottom,
+                ),
               ],
             ),
           ),
