@@ -85,13 +85,9 @@ class NoteItem extends ConsumerWidget {
                       : null,
                   onLongPress: () {
                     if (isSelectionMode) {
-                      ref
-                          .read(noteSelectionProvider.notifier)
-                          .toggle(note.id!);
+                      ref.read(noteSelectionProvider.notifier).toggle(note.id!);
                     } else if (MediaQuery.of(context).size.width < 600) {
-                      ref
-                          .read(noteSelectionProvider.notifier)
-                          .select(note.id!);
+                      ref.read(noteSelectionProvider.notifier).select(note.id!);
                     } else {
                       _showContextMenu(context, ref, null);
                     }
