@@ -2,7 +2,7 @@
 
 ![memoka](memoka.png)
 
-memoka is a stream of consciousness note taking application.
+memoka is a stream of consciousness note-taking application.
 
 > This application is built with the assistance of AI generated code as part of an experiment. You can read more about this on [carrein-blog](https://catallenya.com).
 
