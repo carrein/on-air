@@ -67,7 +67,8 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
 
   @override
   void dispose() {
-    _downloadHandle?.cancel();
+    // Do NOT cancel downloads — let them finish in the background so the file
+    // is cached when the user switches back. Callbacks guard with `mounted`.
     super.dispose();
   }
 

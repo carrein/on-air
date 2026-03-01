@@ -39,6 +39,20 @@
     document.addEventListener('contextmenu', function(e) {
       e.preventDefault();
     });
+
+    // PWA update: force service worker update check on every page load and
+    // auto-reload when a new version takes control.
+    if ('serviceWorker' in navigator) {
+      var refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+      navigator.serviceWorker.ready.then(function(reg) {
+        reg.update();
+      });
+    }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

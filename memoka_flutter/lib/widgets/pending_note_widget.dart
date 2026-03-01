@@ -446,15 +446,15 @@ class NoteConstraints extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
-    return IntrinsicWidth(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: isMobile ? screenWidth - 28 : 600,
-          minWidth: isMobile ? 200 : 350,
-        ),
-        child: child,
+    final constrained = ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: isMobile ? screenWidth - 28 : 600,
+        minWidth: isMobile ? screenWidth - 28 : 350,
       ),
+      child: child,
     );
+    if (isMobile) return constrained;
+    return IntrinsicWidth(child: constrained);
   }
 }
 

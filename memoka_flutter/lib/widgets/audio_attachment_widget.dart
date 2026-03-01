@@ -145,7 +145,8 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
     for (final s in _subs) {
       s.cancel();
     }
-    _downloadHandle?.cancel();
+    // Do NOT cancel downloads — let them finish in the background so the file
+    // is cached when the user switches back. Callbacks guard with `mounted`.
     if (kIsWeb) {
       _webAudio?.pause();
       _webAudio?.src = '';
