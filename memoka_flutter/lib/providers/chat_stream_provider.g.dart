@@ -6,7 +6,23 @@ part of 'chat_stream_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$chatStreamHash() => r'c08dde91dfb388162fe0f892caa5e91be9466e81';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Provides the WebSocket stream for real-time chat events.
+///
+/// On each reconnect attempt:
+///   1. Pings the health endpoint to confirm server reachability.
+///   2. If reachable, marks [connectionProvider] as connected and opens
+///      the WebSocket stream.
+///   3. If unreachable or the stream drops, marks disconnected and retries
+///      with exponential backoff (max 10s).
+///
+/// A [cancelled] flag (set via [Ref.onDispose]) ensures the old generator
+/// terminates cleanly when the provider is invalidated, preventing stale
+/// setDisconnected/setConnected calls from racing with the new instance.
+
+@ProviderFor(chatStream)
+final chatStreamProvider = ChatStreamProvider._();
 
 /// Provides the WebSocket stream for real-time chat events.
 ///
@@ -20,21 +36,46 @@ String _$chatStreamHash() => r'c08dde91dfb388162fe0f892caa5e91be9466e81';
 /// A [cancelled] flag (set via [Ref.onDispose]) ensures the old generator
 /// terminates cleanly when the provider is invalidated, preventing stale
 /// setDisconnected/setConnected calls from racing with the new instance.
-///
-/// Copied from [chatStream].
-@ProviderFor(chatStream)
-final chatStreamProvider = StreamProvider<ChatEvent>.internal(
-  chatStream,
-  name: r'chatStreamProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$chatStreamHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ChatStreamRef = StreamProviderRef<ChatEvent>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class ChatStreamProvider
+    extends
+        $FunctionalProvider<AsyncValue<ChatEvent>, ChatEvent, Stream<ChatEvent>>
+    with $FutureModifier<ChatEvent>, $StreamProvider<ChatEvent> {
+  /// Provides the WebSocket stream for real-time chat events.
+  ///
+  /// On each reconnect attempt:
+  ///   1. Pings the health endpoint to confirm server reachability.
+  ///   2. If reachable, marks [connectionProvider] as connected and opens
+  ///      the WebSocket stream.
+  ///   3. If unreachable or the stream drops, marks disconnected and retries
+  ///      with exponential backoff (max 10s).
+  ///
+  /// A [cancelled] flag (set via [Ref.onDispose]) ensures the old generator
+  /// terminates cleanly when the provider is invalidated, preventing stale
+  /// setDisconnected/setConnected calls from racing with the new instance.
+  ChatStreamProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'chatStreamProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$chatStreamHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<ChatEvent> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<ChatEvent> create(Ref ref) {
+    return chatStream(ref);
+  }
+}
+
+String _$chatStreamHash() => r'707bffc2c1d16251fd5b0d31897f7e718d4fe0a8';

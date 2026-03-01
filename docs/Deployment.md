@@ -131,7 +131,7 @@ jobs:
         run: |
           cd memoka_server
           dart pub get
-          dart pub global activate serverpod_cli 3.2.3
+          dart pub global activate serverpod_cli 3.3.1
           serverpod generate
 
       - name: Set up Docker Buildx
@@ -300,7 +300,7 @@ Verify it finds `config/production.yaml` and starts correctly.
 # Generate Serverpod code first
 cd memoka_server
 dart pub get
-dart pub global activate serverpod_cli 3.2.3
+dart pub global activate serverpod_cli 3.3.1
 serverpod generate
 cd ..
 

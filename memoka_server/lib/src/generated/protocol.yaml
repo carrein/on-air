@@ -16,6 +16,9 @@ chat:
   - chat:
 health:
   - ping:
+settings:
+  - getSettings:
+  - updateSettings:
 sync:
   - syncPull:
   - syncPush:

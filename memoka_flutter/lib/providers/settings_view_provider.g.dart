@@ -6,24 +6,63 @@ part of 'settings_view_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Provider to track whether settings view is currently displayed
+
+@ProviderFor(SettingsVisibility)
+final settingsVisibilityProvider = SettingsVisibilityProvider._();
+
+/// Provider to track whether settings view is currently displayed
+final class SettingsVisibilityProvider
+    extends $NotifierProvider<SettingsVisibility, bool> {
+  /// Provider to track whether settings view is currently displayed
+  SettingsVisibilityProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'settingsVisibilityProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$settingsVisibilityHash();
+
+  @$internal
+  @override
+  SettingsVisibility create() => SettingsVisibility();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
 String _$settingsVisibilityHash() =>
     r'8631c5192677aa1f5088d9c358294257cd129e71';
 
 /// Provider to track whether settings view is currently displayed
-///
-/// Copied from [SettingsVisibility].
-@ProviderFor(SettingsVisibility)
-final settingsVisibilityProvider =
-    AutoDisposeNotifierProvider<SettingsVisibility, bool>.internal(
-      SettingsVisibility.new,
-      name: r'settingsVisibilityProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$settingsVisibilityHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
 
-typedef _$SettingsVisibility = AutoDisposeNotifier<bool>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+abstract class _$SettingsVisibility extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

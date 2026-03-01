@@ -57,7 +57,7 @@ class SyncEngine extends _$SyncEngine {
     }
 
     // Reload channels from the local cache without going through AsyncLoading.
-    // ref.invalidate() would cause channelsAsync.valueOrNull to return null for
+    // ref.invalidate() would cause channelsAsync.value to return null for
     // one frame, collapsing the navbar Row and producing a ghost-icon flicker.
     await ref.read(channelsProvider.notifier).refreshFromCache();
   }

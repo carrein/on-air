@@ -54,7 +54,7 @@ class Channels extends _$Channels {
       await db.cacheChannels(serverChannels);
       return serverChannels;
     } catch (_) {
-      return state.valueOrNull ?? [];
+      return state.value ?? [];
     }
   }
 
@@ -87,7 +87,7 @@ class Channels extends _$Channels {
     if (isOnline(ref)) {
       try {
         final channel = await client.chat.createChannel(name, emoji: emoji);
-        final current = state.valueOrNull ?? [];
+        final current = state.value ?? [];
         final updated = [...current, channel];
         state = AsyncData(updated);
         final db = ref.read(appDatabaseProvider);
@@ -102,7 +102,7 @@ class Channels extends _$Channels {
     // Offline: write provisional channel as dirty+isNew to cache
     final db = ref.read(appDatabaseProvider);
     final mutationId = const Uuid().v4();
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     final maxSort = current.fold<int>(
       0,
       (m, c) => c.sortOrder > m ? c.sortOrder : m,
@@ -131,7 +131,7 @@ class Channels extends _$Channels {
   }) async {
     // Optimistic local update FIRST — prevents flicker from the WebSocket
     // echo that arrives while the network call is in flight.
-    final previous = state.valueOrNull ?? [];
+    final previous = state.value ?? [];
     final updated = previous.map((c) {
       if (c.id != id) return c;
       return c.copyWith(
@@ -192,14 +192,14 @@ class Channels extends _$Channels {
       await db.markChannelDeletedLocally(id);
     }
 
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     final updated = current.where((c) => c.id != id).toList();
     state = AsyncData(updated);
   }
 
   Future<void> reorderChannels(List<int> channelIds) async {
     // Optimistically update local state to prevent flicker
-    final current = state.valueOrNull;
+    final current = state.value;
     List<Channel>? reordered;
     if (current != null) {
       final idToChannel = {for (final c in current) c.id: c};
@@ -261,7 +261,7 @@ class Channels extends _$Channels {
     }
 
     // Online success: remove from local state
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     final updated = current.where((c) => c.id != id).toList();
     state = AsyncData(updated);
     final db = ref.read(appDatabaseProvider);
@@ -269,7 +269,7 @@ class Channels extends _$Channels {
   }
 
   Future<void> _archiveChannelOffline(int id) async {
-    final current = state.valueOrNull ?? [];
+    final current = state.value ?? [];
     final channel = current.firstWhere(
       (c) => c.id == id,
       orElse: () => throw StateError('Channel $id not found'),

@@ -25,7 +25,7 @@ class SyncIndicator extends ConsumerWidget {
 
     final isOffline = connState == conn.ConnectionState.disconnected;
     final isConnected = connState == conn.ConnectionState.connected;
-    final count = countAsync.valueOrNull ?? 0;
+    final count = countAsync.value ?? 0;
 
     // Hide during initial connecting phase and when online with nothing to sync.
     if (isConnected && count == 0) return const SizedBox.shrink();

@@ -6,23 +6,55 @@ part of 'archive_items_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$archiveItemsHash() => r'd745d50823f7a93a7c05821d05ceae2419894981';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Manages the mixed archive list (notes + channels) with real-time updates.
+
+@ProviderFor(ArchiveItems)
+final archiveItemsProvider = ArchiveItemsProvider._();
 
 /// Manages the mixed archive list (notes + channels) with real-time updates.
-///
-/// Copied from [ArchiveItems].
-@ProviderFor(ArchiveItems)
-final archiveItemsProvider =
-    AutoDisposeAsyncNotifierProvider<ArchiveItems, List<ArchiveItem>>.internal(
-      ArchiveItems.new,
-      name: r'archiveItemsProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$archiveItemsHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final class ArchiveItemsProvider
+    extends $AsyncNotifierProvider<ArchiveItems, List<ArchiveItem>> {
+  /// Manages the mixed archive list (notes + channels) with real-time updates.
+  ArchiveItemsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'archiveItemsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
-typedef _$ArchiveItems = AutoDisposeAsyncNotifier<List<ArchiveItem>>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+  @override
+  String debugGetCreateSourceHash() => _$archiveItemsHash();
+
+  @$internal
+  @override
+  ArchiveItems create() => ArchiveItems();
+}
+
+String _$archiveItemsHash() => r'0ed66631a73f6376150f2552dcde384ac89287f2';
+
+/// Manages the mixed archive list (notes + channels) with real-time updates.
+
+abstract class _$ArchiveItems extends $AsyncNotifier<List<ArchiveItem>> {
+  FutureOr<List<ArchiveItem>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref =
+        this.ref as $Ref<AsyncValue<List<ArchiveItem>>, List<ArchiveItem>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<ArchiveItem>>, List<ArchiveItem>>,
+              AsyncValue<List<ArchiveItem>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

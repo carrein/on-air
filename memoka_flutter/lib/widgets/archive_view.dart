@@ -29,7 +29,7 @@ class ArchiveView extends ConsumerWidget {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           itemCount: items.length,
           itemBuilder: (context, index) {
             final item = items[index];

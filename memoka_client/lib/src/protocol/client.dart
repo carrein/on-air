@@ -16,10 +16,11 @@ import 'package:memoka_client/src/protocol/chat/channel.dart' as _i3;
 import 'package:memoka_client/src/protocol/chat/note.dart' as _i4;
 import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i5;
 import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i6;
-import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart' as _i7;
-import 'package:memoka_client/src/protocol/sync/sync_push_response.dart' as _i8;
-import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i9;
-import 'protocol.dart' as _i10;
+import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i7;
+import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart' as _i8;
+import 'package:memoka_client/src/protocol/sync/sync_push_response.dart' as _i9;
+import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i10;
+import 'protocol.dart' as _i11;
 
 /// Endpoint for managing channels and notes with real-time updates.
 /// {@category Endpoint}
@@ -213,6 +214,31 @@ class EndpointHealth extends _i1.EndpointRef {
   );
 }
 
+/// Endpoint for reading and updating application settings.
+/// {@category Endpoint}
+class EndpointSettings extends _i1.EndpointRef {
+  EndpointSettings(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'settings';
+
+  /// Returns the current application settings.
+  _i2.Future<_i7.AppSettings> getSettings() =>
+      caller.callServerEndpoint<_i7.AppSettings>(
+        'settings',
+        'getSettings',
+        {},
+      );
+
+  /// Updates application settings.
+  _i2.Future<_i7.AppSettings> updateSettings(_i7.AppSettings settings) =>
+      caller.callServerEndpoint<_i7.AppSettings>(
+        'settings',
+        'updateSettings',
+        {'settings': settings},
+      );
+}
+
 /// Endpoint for state-based reconciliation sync.
 ///
 /// Pull phase: client fetches all entities changed since its last known version.
@@ -228,8 +254,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Includes tombstoned entities (deletedAt != null) so clients can remove them.
   /// Pass sinceVersion = 0 for a full sync (first launch / fresh install).
-  _i2.Future<_i7.SyncPullResponse> syncPull(int sinceVersion) =>
-      caller.callServerEndpoint<_i7.SyncPullResponse>(
+  _i2.Future<_i8.SyncPullResponse> syncPull(int sinceVersion) =>
+      caller.callServerEndpoint<_i8.SyncPullResponse>(
         'sync',
         'syncPull',
         {'sinceVersion': sinceVersion},
@@ -239,8 +265,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Each change is processed in its own transaction — partial apply is supported.
   /// Returns per-entity results: applied / rejected / already_applied.
-  _i2.Future<_i8.SyncPushResponse> syncPush(List<_i9.SyncChange> changes) =>
-      caller.callServerEndpoint<_i8.SyncPushResponse>(
+  _i2.Future<_i9.SyncPushResponse> syncPush(List<_i10.SyncChange> changes) =>
+      caller.callServerEndpoint<_i9.SyncPushResponse>(
         'sync',
         'syncPush',
         {'changes': changes},
@@ -267,7 +293,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i10.Protocol(),
+         _i11.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -278,6 +304,7 @@ class Client extends _i1.ServerpodClientShared {
        ) {
     chat = EndpointChat(this);
     health = EndpointHealth(this);
+    settings = EndpointSettings(this);
     sync = EndpointSync(this);
   }
 
@@ -285,12 +312,15 @@ class Client extends _i1.ServerpodClientShared {
 
   late final EndpointHealth health;
 
+  late final EndpointSettings settings;
+
   late final EndpointSync sync;
 
   @override
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'chat': chat,
     'health': health,
+    'settings': settings,
     'sync': sync,
   };
 

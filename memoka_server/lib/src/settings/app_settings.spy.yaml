@@ -1,0 +1,7 @@
+### Application settings singleton (non-table class for API transport).
+### The actual table is managed manually via migration (singleton pattern like sync_state).
+class: AppSettings
+
+fields:
+  ### Number of days to retain archived items before auto-purge. 0 = never purge.
+  archiveRetentionDays: int, default=0

@@ -17,20 +17,22 @@ import 'chat/chat_event.dart' as _i4;
 import 'chat/link_preview.dart' as _i5;
 import 'chat/note.dart' as _i6;
 import 'media/media_attachment.dart' as _i7;
-import 'sync/sync_change.dart' as _i8;
-import 'sync/sync_pull_response.dart' as _i9;
-import 'sync/sync_push_response.dart' as _i10;
-import 'sync/sync_result.dart' as _i11;
-import 'package:memoka_client/src/protocol/chat/channel.dart' as _i12;
-import 'package:memoka_client/src/protocol/chat/note.dart' as _i13;
-import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i14;
-import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i15;
+import 'settings/app_settings.dart' as _i8;
+import 'sync/sync_change.dart' as _i9;
+import 'sync/sync_pull_response.dart' as _i10;
+import 'sync/sync_push_response.dart' as _i11;
+import 'sync/sync_result.dart' as _i12;
+import 'package:memoka_client/src/protocol/chat/channel.dart' as _i13;
+import 'package:memoka_client/src/protocol/chat/note.dart' as _i14;
+import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i15;
+import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i16;
 export 'chat/archive_item.dart';
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
 export 'chat/link_preview.dart';
 export 'chat/note.dart';
 export 'media/media_attachment.dart';
+export 'settings/app_settings.dart';
 export 'sync/sync_change.dart';
 export 'sync/sync_pull_response.dart';
 export 'sync/sync_push_response.dart';
@@ -89,17 +91,20 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i7.MediaAttachment) {
       return _i7.MediaAttachment.fromJson(data) as T;
     }
-    if (t == _i8.SyncChange) {
-      return _i8.SyncChange.fromJson(data) as T;
+    if (t == _i8.AppSettings) {
+      return _i8.AppSettings.fromJson(data) as T;
     }
-    if (t == _i9.SyncPullResponse) {
-      return _i9.SyncPullResponse.fromJson(data) as T;
+    if (t == _i9.SyncChange) {
+      return _i9.SyncChange.fromJson(data) as T;
     }
-    if (t == _i10.SyncPushResponse) {
-      return _i10.SyncPushResponse.fromJson(data) as T;
+    if (t == _i10.SyncPullResponse) {
+      return _i10.SyncPullResponse.fromJson(data) as T;
     }
-    if (t == _i11.SyncResult) {
-      return _i11.SyncResult.fromJson(data) as T;
+    if (t == _i11.SyncPushResponse) {
+      return _i11.SyncPushResponse.fromJson(data) as T;
+    }
+    if (t == _i12.SyncResult) {
+      return _i12.SyncResult.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.ArchiveItem?>()) {
       return (data != null ? _i2.ArchiveItem.fromJson(data) : null) as T;
@@ -119,17 +124,20 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i7.MediaAttachment?>()) {
       return (data != null ? _i7.MediaAttachment.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i8.SyncChange?>()) {
-      return (data != null ? _i8.SyncChange.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i8.AppSettings?>()) {
+      return (data != null ? _i8.AppSettings.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i9.SyncPullResponse?>()) {
-      return (data != null ? _i9.SyncPullResponse.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i9.SyncChange?>()) {
+      return (data != null ? _i9.SyncChange.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i10.SyncPushResponse?>()) {
-      return (data != null ? _i10.SyncPushResponse.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i10.SyncPullResponse?>()) {
+      return (data != null ? _i10.SyncPullResponse.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i11.SyncResult?>()) {
-      return (data != null ? _i11.SyncResult.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i11.SyncPushResponse?>()) {
+      return (data != null ? _i11.SyncPushResponse.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i12.SyncResult?>()) {
+      return (data != null ? _i12.SyncResult.fromJson(data) : null) as T;
     }
     if (t == List<_i7.MediaAttachment>) {
       return (data as List)
@@ -152,28 +160,28 @@ class Protocol extends _i1.SerializationManager {
     if (t == List<_i6.Note>) {
       return (data as List).map((e) => deserialize<_i6.Note>(e)).toList() as T;
     }
-    if (t == List<_i11.SyncResult>) {
-      return (data as List).map((e) => deserialize<_i11.SyncResult>(e)).toList()
+    if (t == List<_i12.SyncResult>) {
+      return (data as List).map((e) => deserialize<_i12.SyncResult>(e)).toList()
           as T;
     }
-    if (t == List<_i12.Channel>) {
-      return (data as List).map((e) => deserialize<_i12.Channel>(e)).toList()
+    if (t == List<_i13.Channel>) {
+      return (data as List).map((e) => deserialize<_i13.Channel>(e)).toList()
           as T;
     }
-    if (t == List<_i13.Note>) {
-      return (data as List).map((e) => deserialize<_i13.Note>(e)).toList() as T;
+    if (t == List<_i14.Note>) {
+      return (data as List).map((e) => deserialize<_i14.Note>(e)).toList() as T;
     }
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
-    if (t == List<_i14.ArchiveItem>) {
+    if (t == List<_i15.ArchiveItem>) {
       return (data as List)
-              .map((e) => deserialize<_i14.ArchiveItem>(e))
+              .map((e) => deserialize<_i15.ArchiveItem>(e))
               .toList()
           as T;
     }
-    if (t == List<_i15.SyncChange>) {
-      return (data as List).map((e) => deserialize<_i15.SyncChange>(e)).toList()
+    if (t == List<_i16.SyncChange>) {
+      return (data as List).map((e) => deserialize<_i16.SyncChange>(e)).toList()
           as T;
     }
     return super.deserialize<T>(data, t);
@@ -187,10 +195,11 @@ class Protocol extends _i1.SerializationManager {
       _i5.LinkPreview => 'LinkPreview',
       _i6.Note => 'Note',
       _i7.MediaAttachment => 'MediaAttachment',
-      _i8.SyncChange => 'SyncChange',
-      _i9.SyncPullResponse => 'SyncPullResponse',
-      _i10.SyncPushResponse => 'SyncPushResponse',
-      _i11.SyncResult => 'SyncResult',
+      _i8.AppSettings => 'AppSettings',
+      _i9.SyncChange => 'SyncChange',
+      _i10.SyncPullResponse => 'SyncPullResponse',
+      _i11.SyncPushResponse => 'SyncPushResponse',
+      _i12.SyncResult => 'SyncResult',
       _ => null,
     };
   }
@@ -217,13 +226,15 @@ class Protocol extends _i1.SerializationManager {
         return 'Note';
       case _i7.MediaAttachment():
         return 'MediaAttachment';
-      case _i8.SyncChange():
+      case _i8.AppSettings():
+        return 'AppSettings';
+      case _i9.SyncChange():
         return 'SyncChange';
-      case _i9.SyncPullResponse():
+      case _i10.SyncPullResponse():
         return 'SyncPullResponse';
-      case _i10.SyncPushResponse():
+      case _i11.SyncPushResponse():
         return 'SyncPushResponse';
-      case _i11.SyncResult():
+      case _i12.SyncResult():
         return 'SyncResult';
     }
     return null;
@@ -253,17 +264,20 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'MediaAttachment') {
       return deserialize<_i7.MediaAttachment>(data['data']);
     }
+    if (dataClassName == 'AppSettings') {
+      return deserialize<_i8.AppSettings>(data['data']);
+    }
     if (dataClassName == 'SyncChange') {
-      return deserialize<_i8.SyncChange>(data['data']);
+      return deserialize<_i9.SyncChange>(data['data']);
     }
     if (dataClassName == 'SyncPullResponse') {
-      return deserialize<_i9.SyncPullResponse>(data['data']);
+      return deserialize<_i10.SyncPullResponse>(data['data']);
     }
     if (dataClassName == 'SyncPushResponse') {
-      return deserialize<_i10.SyncPushResponse>(data['data']);
+      return deserialize<_i11.SyncPushResponse>(data['data']);
     }
     if (dataClassName == 'SyncResult') {
-      return deserialize<_i11.SyncResult>(data['data']);
+      return deserialize<_i12.SyncResult>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

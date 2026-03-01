@@ -13,8 +13,10 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/chat_endpoint.dart' as _i2;
 import '../health_endpoint.dart' as _i3;
-import '../sync/sync_endpoint.dart' as _i4;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i5;
+import '../settings/settings_endpoint.dart' as _i4;
+import '../sync/sync_endpoint.dart' as _i5;
+import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i6;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i7;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -32,7 +34,13 @@ class Endpoints extends _i1.EndpointDispatch {
           'health',
           null,
         ),
-      'sync': _i4.SyncEndpoint()
+      'settings': _i4.SettingsEndpoint()
+        ..initialize(
+          server,
+          'settings',
+          null,
+        ),
+      'sync': _i5.SyncEndpoint()
         ..initialize(
           server,
           'sync',
@@ -374,6 +382,41 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['settings'] = _i1.EndpointConnector(
+      name: 'settings',
+      endpoint: endpoints['settings']!,
+      methodConnectors: {
+        'getSettings': _i1.MethodConnector(
+          name: 'getSettings',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['settings'] as _i4.SettingsEndpoint)
+                  .getSettings(session),
+        ),
+        'updateSettings': _i1.MethodConnector(
+          name: 'updateSettings',
+          params: {
+            'settings': _i1.ParameterDescription(
+              name: 'settings',
+              type: _i1.getType<_i6.AppSettings>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['settings'] as _i4.SettingsEndpoint)
+                  .updateSettings(
+                    session,
+                    params['settings'],
+                  ),
+        ),
+      },
+    );
     connectors['sync'] = _i1.EndpointConnector(
       name: 'sync',
       endpoint: endpoints['sync']!,
@@ -391,7 +434,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i4.SyncEndpoint).syncPull(
+              ) async => (endpoints['sync'] as _i5.SyncEndpoint).syncPull(
                 session,
                 params['sinceVersion'],
               ),
@@ -401,7 +444,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'changes': _i1.ParameterDescription(
               name: 'changes',
-              type: _i1.getType<List<_i5.SyncChange>>(),
+              type: _i1.getType<List<_i7.SyncChange>>(),
               nullable: false,
             ),
           },
@@ -409,7 +452,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i4.SyncEndpoint).syncPush(
+              ) async => (endpoints['sync'] as _i5.SyncEndpoint).syncPush(
                 session,
                 params['changes'],
               ),

@@ -96,11 +96,24 @@ Light popup menu anchored to the top-right corner.
 Shown when `isShowingSettings == true` or `currentChannelId == -1` (Archive).
 
 - **Padding**: `_paddingDetail` — left 8px, right 16px, vertical 8px
-- **Layout**: `[back button]` + `[plain title (Expanded)]`
+- **Layout**: `[back button]` + `[plain title (Expanded)]` + `[retention dropdown (archive only)]`
 - **Back button**: `PhosphorIcons.arrowCircleLeft()` via `IconButtonStyled` on the left
 - **Title**: plain `Text('Settings')` or `Text('Archive')` — no channel icon
 - Pin button and three-dot menu are **hidden** in detail mode
 - `_goBack()` logic: hides settings if open, otherwise restores the channel from `previousChannelProvider`, falling back to the first non-system channel
+
+#### Archive Retention Dropdown
+
+Visible only in Archive detail mode (`isArchive == true`). Positioned on the right side of the navbar.
+
+- Widget: `DropdownButton<int>` wrapped in `DropdownButtonHideUnderline`
+- Options: Keep Forever (0), 30 Days, 60 Days, 90 Days
+- Font: Space Grotesk 13px, w500, `_textColor` (`#00171F`) — must use `GoogleFonts.spaceGrotesk()` explicitly since `DropdownButton.style` replaces (not merges) the theme's `DefaultTextStyle`
+- Dropdown icon: `Icons.arrow_drop_down`, 18px
+- Dropdown background: `_backgroundColor` (`#F6F0ED`)
+- `isDense: true`
+- Watches `archiveRetentionProvider`, calls `updateRetention(days)` on change
+- See `docs/ArchiveRetention.md` for full retention/purge details
 
 ### Selection Mode
 
@@ -188,6 +201,7 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 | `settingsVisibilityProvider`| `bool`                      | Whether settings view is open      |
 | `noteSelectionProvider`     | `Set<int>`                  | Selected note IDs (selection mode) |
 | `mediaPanelVisibleProvider` | `bool`                      | Media panel toggle state (desktop) |
+| `archiveRetentionProvider` | `AsyncValue<int>`           | Retention setting for dropdown (archive only) |
 
 ### Providers Read (on interaction)
 
@@ -226,4 +240,6 @@ The `Navbar` is placed in the `ChatScreen` column above the main `Row` layout. I
 | `lib/providers/notes_provider.dart` | Note deletion for bulk archive |
 | `lib/providers/settings_view_provider.dart` | Settings overlay visibility |
 | `lib/utils/responsive_utils.dart` | Breakpoint detection for Media item |
+| `lib/providers/archive_retention_provider.dart` | Retention setting for archive dropdown |
 | `lib/utils/toast_utils.dart` | Archive success/error toasts |
+| `docs/ArchiveRetention.md` | Archive retention/purge documentation |

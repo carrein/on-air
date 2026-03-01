@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../shared/constants.dart';
 import '../shared/note_query.dart';
+import '../shared/purge_helper.dart';
 import '../sync/version_helper.dart';
 import 'link_preview_service.dart';
 
@@ -183,55 +183,7 @@ class ChatEndpoint extends Endpoint {
   /// Also tombstones all notes in the channel. Rejects if it's the last channel.
   /// Media file cleanup should happen in a background task.
   Future<void> deleteChannel(Session session, int id) async {
-    final channel = await Channel.db.findById(session, id);
-
-    // Only check "last channel" for active (non-archived, non-deleted) channels
-    if (channel != null && !channel.archived && channel.deletedAt == null) {
-      final activeCount = await Channel.db.count(
-        session,
-        where: (t) =>
-            t.archived.equals(false) &
-            t.isSystemChannel.equals(false) &
-            t.deletedAt.equals(null),
-      );
-      if (activeCount <= 1) {
-        throw Exception('Cannot delete the last remaining channel');
-      }
-    }
-
-    // Delete media files for this channel (still immediate for disk cleanup)
-    final mediaDir = Directory('${ServerConstants.mediaBaseDir}/channels/$id');
-    if (await mediaDir.exists()) {
-      await mediaDir.delete(recursive: true);
-      session.log('Deleted media directory for channel $id');
-    }
-
-    // Tombstone: set deletedAt instead of physical delete.
-    // Also tombstone all notes in this channel.
-    final now = DateTime.now();
-    await session.db.transaction((tx) async {
-      final newVersion = await incrementGlobalVersion(session, transaction: tx);
-
-      if (channel != null) {
-        channel.deletedAt = now;
-        channel.version = newVersion;
-        await Channel.db.updateRow(session, channel, transaction: tx);
-      }
-
-      // Tombstone all notes in the channel
-      await session.db.unsafeQuery(
-        'UPDATE "notes" SET "deletedAt" = \'${now.toIso8601String()}\', "version" = $newVersion WHERE "channelId" = $id',
-        transaction: tx,
-      );
-    });
-
-    await ServerConstants.broadcastEvent(
-      session,
-      ChatEvent(
-        type: 'channelDeleted',
-        channelId: id,
-      ),
-    );
+    await PurgeHelper.tombstoneChannel(session, id);
   }
 
   /// Creates a new note and broadcasts the event.
@@ -390,7 +342,7 @@ class ChatEndpoint extends Endpoint {
     // Check if already archived
     if (note.archived) {
       // PERMANENT DELETE from Archive — use tombstone
-      await _tombstoneNote(session, note);
+      await PurgeHelper.tombstoneNote(session, note);
     } else {
       // SOFT DELETE - mark as archived
       await _archiveNote(session, note);
@@ -414,65 +366,6 @@ class ChatEndpoint extends Endpoint {
       session,
       ChatEvent(
         type: 'noteArchived',
-        noteId: note.id!,
-        channelId: note.channelId,
-      ),
-    );
-  }
-
-  /// Tombstones a note (sets deletedAt) and cleans up media files.
-  Future<void> _tombstoneNote(Session session, Note note) async {
-    // Get all media attachments for this note
-    final attachments = await MediaAttachment.db.find(
-      session,
-      where: (t) => t.noteId.equals(note.id!),
-    );
-
-    // Delete media files from disk
-    for (final attachment in attachments) {
-      try {
-        // Delete main file
-        final mainFile = File(
-          '${ServerConstants.mediaBaseDir}/${attachment.filePath}',
-        );
-        if (await mainFile.exists()) {
-          await mainFile.delete();
-          session.log('Deleted media file: ${attachment.filePath}');
-        }
-
-        // Delete thumbnail if exists
-        if (attachment.thumbnailPath != null) {
-          final thumbnailFile = File(
-            '${ServerConstants.mediaBaseDir}/channels/${attachment.channelId}/${attachment.thumbnailPath}',
-          );
-          if (await thumbnailFile.exists()) {
-            await thumbnailFile.delete();
-            session.log('Deleted thumbnail: ${attachment.thumbnailPath}');
-          }
-        }
-      } catch (e) {
-        session.log(
-          'Failed to delete media files for attachment ${attachment.id}: $e',
-          level: LogLevel.error,
-        );
-      }
-    }
-
-    // Tombstone: set deletedAt instead of physical delete
-    final now = DateTime.now();
-    note.deletedAt = now;
-    note.updatedAt = now;
-
-    await session.db.transaction((tx) async {
-      final newVersion = await incrementGlobalVersion(session, transaction: tx);
-      note.version = newVersion;
-      await Note.db.updateRow(session, note, transaction: tx);
-    });
-
-    await ServerConstants.broadcastEvent(
-      session,
-      ChatEvent(
-        type: 'noteDeleted',
         noteId: note.id!,
         channelId: note.channelId,
       ),

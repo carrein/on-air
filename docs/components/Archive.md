@@ -159,6 +159,12 @@ Shown when permanently deleting a channel from the Archive.
 - **Notes**: Right-click → "Delete". Immediately deletes note, its media attachments, and files from disk.
 - **Channels**: Click the `x` button to the right of the channel item, or right-click → "Delete". Opens confirmation dialog showing note count. On confirm, cascade-deletes channel, all its notes, and all media files.
 
+### Archive Retention
+
+- Configurable auto-purge policy (Never / 30 / 60 / 90 days) accessible via dropdown in the Archive navbar
+- When set, archived items older than the retention period are automatically tombstoned by the server (hourly + on startup)
+- See `docs/ArchiveRetention.md` for full details
+
 ### Last Channel Protection
 
 - Cannot archive the last remaining active (non-archived, non-system) channel
@@ -189,6 +195,7 @@ Shown when permanently deleting a channel from the Archive.
 | Provider               | Type                            | Purpose                          |
 |------------------------|---------------------------------|----------------------------------|
 | `archiveItemsProvider` | `AsyncValue<List<ArchiveItem>>` | Mixed archive list for rendering |
+| `archiveRetentionProvider` | `AsyncValue<int>` | Current retention setting (days), shown in navbar dropdown |
 
 ### Providers Read (on interaction)
 
@@ -223,3 +230,7 @@ The Archive is accessed via the sidebar button (channelId `-1`). When selected, 
 | `memoka_server/lib/src/chat/chat_endpoint.dart` | Server endpoints for archive operations |
 | `memoka_server/lib/src/chat/archive_item.spy.yaml` | ArchiveItem protocol model definition |
 | `memoka_server/lib/src/chat/channel.spy.yaml` | Channel model with archived/archivedAt fields |
+| `memoka_server/lib/src/settings/archive_purge_service.dart` | Auto-purge service for expired archived items |
+| `memoka_server/lib/src/shared/purge_helper.dart` | Shared tombstone logic (note + channel) |
+| `memoka_flutter/lib/providers/archive_retention_provider.dart` | Retention setting provider |
+| `docs/ArchiveRetention.md` | Full archive retention documentation |

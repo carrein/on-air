@@ -6,8 +6,17 @@ part of 'debounced_connection_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$debouncedConnectionHash() =>
-    r'0e1704c34c98584e27d253b5095bfd283c27a8dd';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Debounced view of [connectionProvider] that delays the transition to
+/// [ConnectionState.disconnected] by [_debounce].
+///
+/// Prevents a brief "Offline" flash when the app resumes from background
+/// and the health ping hasn't completed yet. Transitions to [connected]
+/// and [connecting] are immediate (no delay hiding good news).
+
+@ProviderFor(DebouncedConnection)
+final debouncedConnectionProvider = DebouncedConnectionProvider._();
 
 /// Debounced view of [connectionProvider] that delays the transition to
 /// [ConnectionState.disconnected] by [_debounce].
@@ -15,20 +24,65 @@ String _$debouncedConnectionHash() =>
 /// Prevents a brief "Offline" flash when the app resumes from background
 /// and the health ping hasn't completed yet. Transitions to [connected]
 /// and [connecting] are immediate (no delay hiding good news).
-///
-/// Copied from [DebouncedConnection].
-@ProviderFor(DebouncedConnection)
-final debouncedConnectionProvider =
-    NotifierProvider<DebouncedConnection, ConnectionState>.internal(
-      DebouncedConnection.new,
-      name: r'debouncedConnectionProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$debouncedConnectionHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final class DebouncedConnectionProvider
+    extends $NotifierProvider<DebouncedConnection, ConnectionState> {
+  /// Debounced view of [connectionProvider] that delays the transition to
+  /// [ConnectionState.disconnected] by [_debounce].
+  ///
+  /// Prevents a brief "Offline" flash when the app resumes from background
+  /// and the health ping hasn't completed yet. Transitions to [connected]
+  /// and [connecting] are immediate (no delay hiding good news).
+  DebouncedConnectionProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'debouncedConnectionProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
-typedef _$DebouncedConnection = Notifier<ConnectionState>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+  @override
+  String debugGetCreateSourceHash() => _$debouncedConnectionHash();
+
+  @$internal
+  @override
+  DebouncedConnection create() => DebouncedConnection();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ConnectionState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ConnectionState>(value),
+    );
+  }
+}
+
+String _$debouncedConnectionHash() =>
+    r'0da65726007f7efe5ab6f3f93e05092be13640a4';
+
+/// Debounced view of [connectionProvider] that delays the transition to
+/// [ConnectionState.disconnected] by [_debounce].
+///
+/// Prevents a brief "Offline" flash when the app resumes from background
+/// and the health ping hasn't completed yet. Transitions to [connected]
+/// and [connecting] are immediate (no delay hiding good news).
+
+abstract class _$DebouncedConnection extends $Notifier<ConnectionState> {
+  ConnectionState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<ConnectionState, ConnectionState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<ConnectionState, ConnectionState>,
+              ConnectionState,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

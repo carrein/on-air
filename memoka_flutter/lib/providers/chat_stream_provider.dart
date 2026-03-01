@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../main.dart';
@@ -30,11 +29,13 @@ Stream<ChatEvent> chatStream(Ref ref) async* {
   var isFirstAttempt = true;
 
   while (!cancelled) {
-    // Only show "connecting" on the first attempt (fresh start or resume).
-    // During backoff retries while already disconnected, skip it to avoid
-    // flashing the offline banner on every retry cycle.
+    // Only show "connecting" on initial app startup (not yet disconnected).
+    // Skip if already disconnected (e.g. tab refocus while server is down)
+    // to avoid hiding the offline banner during a doomed health ping.
     if (isFirstAttempt) {
-      ref.read(connectionProvider.notifier).setConnecting();
+      if (ref.read(connectionProvider) != ConnectionState.disconnected) {
+        ref.read(connectionProvider.notifier).setConnecting();
+      }
       isFirstAttempt = false;
     }
 

@@ -308,7 +308,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ref.read(currentChannelProvider.notifier).switchChannel(previousId);
             ref.read(previousChannelProvider.notifier).state = null;
           } else {
-            final chs = ref.read(channelsProvider).valueOrNull ?? [];
+            final chs = ref.read(channelsProvider).value ?? [];
             final first = chs.where((c) => !c.isSystemChannel).firstOrNull;
             if (first != null) {
               ref

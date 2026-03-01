@@ -6,24 +6,58 @@ part of 'current_channel_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$currentChannelHash() => r'3a62df02cb97f73ae0377a94f84d19ad47b5e756';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Manages the currently active channel ID.
+/// Persists to shared preferences for restoration on app restart.
+
+@ProviderFor(CurrentChannel)
+final currentChannelProvider = CurrentChannelProvider._();
 
 /// Manages the currently active channel ID.
 /// Persists to shared preferences for restoration on app restart.
-///
-/// Copied from [CurrentChannel].
-@ProviderFor(CurrentChannel)
-final currentChannelProvider =
-    AutoDisposeAsyncNotifierProvider<CurrentChannel, int>.internal(
-      CurrentChannel.new,
-      name: r'currentChannelProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$currentChannelHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final class CurrentChannelProvider
+    extends $AsyncNotifierProvider<CurrentChannel, int> {
+  /// Manages the currently active channel ID.
+  /// Persists to shared preferences for restoration on app restart.
+  CurrentChannelProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentChannelProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
-typedef _$CurrentChannel = AutoDisposeAsyncNotifier<int>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+  @override
+  String debugGetCreateSourceHash() => _$currentChannelHash();
+
+  @$internal
+  @override
+  CurrentChannel create() => CurrentChannel();
+}
+
+String _$currentChannelHash() => r'87e9a17439256235a73f914d8b690c94bdb3f968';
+
+/// Manages the currently active channel ID.
+/// Persists to shared preferences for restoration on app restart.
+
+abstract class _$CurrentChannel extends $AsyncNotifier<int> {
+  FutureOr<int> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<int>, int>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<int>, int>,
+              AsyncValue<int>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

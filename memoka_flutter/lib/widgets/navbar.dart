@@ -2,8 +2,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../providers/archive_retention_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/channels_provider.dart';
 import '../providers/editing_note_provider.dart';
@@ -92,7 +94,7 @@ class _NavbarState extends ConsumerState<Navbar> {
     if (!_isRenaming) return;
     _isRenaming = false; // Prevent re-entry from concurrent handlers
     final name = _renameController.text.trim();
-    final channelId = ref.read(currentChannelProvider).valueOrNull;
+    final channelId = ref.read(currentChannelProvider).value;
     if (name.isNotEmpty && channelId != null) {
       // Await so the provider state is updated before we rebuild.
       // This avoids a flicker where the old name briefly appears.
@@ -148,8 +150,8 @@ class _NavbarState extends ConsumerState<Navbar> {
       return _buildSelectionBar(selection);
     }
 
-    final currentChannelId = currentChannelAsync.valueOrNull;
-    final channels = channelsAsync.valueOrNull ?? [];
+    final currentChannelId = currentChannelAsync.value;
+    final channels = channelsAsync.value ?? [];
     final isArchive = currentChannelId == -1;
     final isInDetailMode = isShowingSettings || isArchive;
 
@@ -179,6 +181,7 @@ class _NavbarState extends ConsumerState<Navbar> {
               isShowingSettings,
             ),
           ),
+          if (isArchive) _buildRetentionDropdown(),
           if (!isInDetailMode)
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -222,6 +225,45 @@ class _NavbarState extends ConsumerState<Navbar> {
               ],
             ),
         ],
+      ),
+    );
+  }
+
+  static const _retentionOptions = <int, String>{
+    0: 'Keep Forever',
+    30: '30 Days',
+    60: '60 Days',
+    90: '90 Days',
+  };
+
+  Widget _buildRetentionDropdown() {
+    final retentionAsync = ref.watch(archiveRetentionProvider);
+    final currentValue = retentionAsync.value ?? 0;
+
+    return DropdownButtonHideUnderline(
+      child: DropdownButton<int>(
+        value: _retentionOptions.containsKey(currentValue) ? currentValue : 0,
+        isDense: true,
+        style: GoogleFonts.spaceGrotesk(
+          color: _textColor,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        icon: const Icon(Icons.arrow_drop_down, color: _textColor, size: 18),
+        dropdownColor: _backgroundColor,
+        items: _retentionOptions.entries
+            .map(
+              (e) => DropdownMenuItem<int>(
+                value: e.key,
+                child: Text(e.value),
+              ),
+            )
+            .toList(),
+        onChanged: (value) {
+          if (value != null) {
+            ref.read(archiveRetentionProvider.notifier).updateRetention(value);
+          }
+        },
       ),
     );
   }
@@ -300,7 +342,7 @@ class _NavbarState extends ConsumerState<Navbar> {
         ref.read(previousChannelProvider.notifier).state = null;
       } else {
         // Fallback to first available channel
-        final chs = ref.read(channelsProvider).valueOrNull ?? [];
+        final chs = ref.read(channelsProvider).value ?? [];
         final first = chs.where((c) => !c.isSystemChannel).firstOrNull;
         if (first != null) {
           ref.read(currentChannelProvider.notifier).switchChannel(first.id!);

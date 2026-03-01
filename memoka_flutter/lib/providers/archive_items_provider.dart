@@ -56,7 +56,7 @@ class ArchiveItems extends _$ArchiveItems {
       }
       return items;
     } catch (_) {
-      return state.valueOrNull ?? [];
+      return state.value ?? [];
     }
   }
 

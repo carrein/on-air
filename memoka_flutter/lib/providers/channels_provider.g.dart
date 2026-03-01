@@ -6,23 +6,54 @@ part of 'channels_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$channelsHash() => r'088848691969350ccee5bba67270702e581bd246';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Manages the list of channels with local-first caching and real-time updates.
+
+@ProviderFor(Channels)
+final channelsProvider = ChannelsProvider._();
 
 /// Manages the list of channels with local-first caching and real-time updates.
-///
-/// Copied from [Channels].
-@ProviderFor(Channels)
-final channelsProvider =
-    AutoDisposeAsyncNotifierProvider<Channels, List<Channel>>.internal(
-      Channels.new,
-      name: r'channelsProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$channelsHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final class ChannelsProvider
+    extends $AsyncNotifierProvider<Channels, List<Channel>> {
+  /// Manages the list of channels with local-first caching and real-time updates.
+  ChannelsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'channelsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
 
-typedef _$Channels = AutoDisposeAsyncNotifier<List<Channel>>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+  @override
+  String debugGetCreateSourceHash() => _$channelsHash();
+
+  @$internal
+  @override
+  Channels create() => Channels();
+}
+
+String _$channelsHash() => r'd549db1097fe384e3b00569c6c0b51ec2f432c07';
+
+/// Manages the list of channels with local-first caching and real-time updates.
+
+abstract class _$Channels extends $AsyncNotifier<List<Channel>> {
+  FutureOr<List<Channel>> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<List<Channel>>, List<Channel>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<List<Channel>>, List<Channel>>,
+              AsyncValue<List<Channel>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

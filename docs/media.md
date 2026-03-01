@@ -772,7 +772,7 @@ final originalFilename = userInput;  // "../../etc/passwd" - stored but ignored
 ### Server
 ```yaml
 dependencies:
-  serverpod: 3.2.3
+  serverpod: 3.3.1
   image: ^4.0.0       # Image processing
   mime: ^1.0.0        # MIME type detection
   path: ^1.8.0        # Path utilities

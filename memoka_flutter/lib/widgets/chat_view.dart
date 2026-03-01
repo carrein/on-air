@@ -365,9 +365,8 @@ class _ChatViewState extends ConsumerState<ChatView>
     final currentBackground = ref.watch(backgroundPreferenceProvider);
 
     // Initialise displayed channel on first load
-    if (_displayedChannelId == null &&
-        currentChannelAsync.valueOrNull != null) {
-      _displayedChannelId = currentChannelAsync.valueOrNull;
+    if (_displayedChannelId == null && currentChannelAsync.value != null) {
+      _displayedChannelId = currentChannelAsync.value;
     }
 
     // Animate when the active channel changes

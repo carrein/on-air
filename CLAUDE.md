@@ -19,6 +19,7 @@ u/docs/components/Preview.md
 u/docs/components/Audio.md
 u/docs/Sync.md
 u/docs/GIF.md
+u/docs/ArchiveRetention.md
 
 # CLAUDE.md
 
@@ -26,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Memoka is a real-time chat-style notes application for organizing thoughts in topical channels. Built with Serverpod (v3.2.3), consisting of three main packages:
+Memoka is a real-time chat-style notes application for organizing thoughts in topical channels. Built with Serverpod (v3.3.1), consisting of three main packages:
 
 - **memoka_server**: Serverpod backend server (Dart)
 - **memoka_client**: Generated client library (Dart)
@@ -44,7 +45,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, compressed badge
 - **Audio Playback**: Inline audio player for audio attachments — HTML Audio API on web, ExoPlayer on Android; scrubber, preview + download buttons
 - **Media Panel**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
-- **Archive System**: Archive for soft-deleted notes, channel archiving with restore
+- **Archive System**: Archive for soft-deleted notes, channel archiving with restore, configurable retention auto-purge (Never/30/60/90 days)
 - **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
 - **Offline Mode**: Local-first reads from SQLite cache (Drift), dirty-flag tracking replaces mutation queue, pull-then-push sync on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Sync.md`)
@@ -114,6 +115,8 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 
 **sync_state** (server-only singleton table): globalVersion (monotonic counter, incremented on every mutation)
 
+**app_settings** (server-only singleton table): archiveRetentionDays (0 = never purge, 30/60/90 = days before auto-purge of archived items)
+
 ## Common Commands
 
 ### Server Development
@@ -128,7 +131,7 @@ docker compose up --build --detach
 dart pub get
 
 # Install Serverpod CLI (one-time setup)
-dart pub global activate serverpod_cli 3.2.3
+dart pub global activate serverpod_cli 3.3.1
 
 # Regenerate code after changing endpoints or models
 serverpod generate
@@ -259,6 +262,9 @@ Server serves:
 - `sync`: State-based reconciliation sync
   - `syncPull(sinceVersion)` — returns all entities changed since version N
   - `syncPush(changes)` — applies dirty local entities with version checks (partial apply)
+- `settings`: Application settings management
+  - `getSettings()` — returns current AppSettings (archiveRetentionDays)
+  - `updateSettings(settings)` — updates AppSettings singleton
 - File uploads: HTTP route `POST /media/upload` (not RPC) — streams multipart body directly to disk, no in-memory buffering
 
 ## Git Workflow Policy
@@ -305,6 +311,7 @@ interactions, state management, and integration details.
 
 - **Sync Architecture**: `docs/Sync.md` — State-based reconciliation, versioned entities, pull-then-push sync, dirty tracking, tombstones, connectivity detection, 2s sync cooldown, per-provider cache refresh
 - **GIF Integration**: `docs/GIF.md` — Klipy API search/featured, download-then-upload flow, build-time API key configuration
+- **Archive Retention**: `docs/ArchiveRetention.md` — Configurable auto-purge (Never/30/60/90 days), PurgeHelper shared tombstone logic, hourly purge scheduling
 
 ## Platform Guides
 

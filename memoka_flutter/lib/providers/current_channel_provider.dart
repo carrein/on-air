@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'channels_provider.dart';
@@ -22,13 +22,13 @@ class CurrentChannel extends _$CurrentChannel {
     final savedChannelId = prefs.getInt('lastOpenedChannelId');
 
     // Use channelsProvider which has local-first caching built in.
-    final channels = await ref.watch(channelsProvider.future);
+    final channels = await ref.read(channelsProvider.future);
 
     if (channels.isEmpty) {
       throw Exception('No channels available. Please create a channel first.');
     }
 
-    // If we have a saved channel ID, check if it still exists
+    // If we have a saved channel ID, check if it still exists.
     if (savedChannelId != null) {
       final channelExists = channels.any((c) => c.id == savedChannelId);
       if (channelExists) {

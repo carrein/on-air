@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:serverpod/serverpod.dart';
+import 'src/settings/archive_purge_service.dart';
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
 import 'src/shared/constants.dart';
@@ -80,6 +82,39 @@ void run(List<String> args) async {
 
   // Ensure default "General" channel exists
   await _ensureDefaultChannel(pod);
+
+  // Ensure app_settings singleton table exists.
+  // Created at startup (not via migration) because Serverpod's schema validator
+  // can't model singleton tables with CHECK constraints.
+  await _ensureAppSettings(pod);
+
+  // Run archive purge on startup + every hour
+  await ArchivePurgeService.runPurge(pod);
+  Timer.periodic(
+    const Duration(hours: 1),
+    (_) => ArchivePurgeService.runPurge(pod),
+  );
+}
+
+Future<void> _ensureAppSettings(Serverpod pod) async {
+  final session = await pod.createSession();
+  try {
+    // Singleton table for app-wide settings (same pattern as sync_state).
+    await session.db.unsafeQuery('''
+      CREATE TABLE IF NOT EXISTS "app_settings" (
+        "id" bigint PRIMARY KEY DEFAULT 1,
+        "archiveRetentionDays" bigint NOT NULL DEFAULT 0,
+        CONSTRAINT "app_settings_singleton" CHECK ("id" = 1)
+      )
+    ''');
+    await session.db.unsafeQuery('''
+      INSERT INTO "app_settings" ("id", "archiveRetentionDays")
+      VALUES (1, 0)
+      ON CONFLICT ("id") DO NOTHING
+    ''');
+  } finally {
+    await session.close();
+  }
 }
 
 Future<void> _ensureDefaultChannel(Serverpod pod) async {
