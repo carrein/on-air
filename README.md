@@ -1,14 +1,14 @@
-# memoka (メモカ)
+# memoka
 
 ![memoka](memoka.png)
 
-memoka (メモカ) uses realtime notes to manage your awareness of existence.
+memoka is a stream of consciousness note taking application.
 
 > This application is built with the assistance of AI generated code as part of an experiment. You can read more about this on [carrein-blog](https://catallenya.com).
 
 ## Overview
 
-memoka (メモカ) aims to replicate Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it useful for making notes. memoka (メモカ) copies and augments this functionality with new features.
+memoka aims to replicate Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it useful for making notes. memoka copies and augments this functionality with new features.
 
 ## Features
 
