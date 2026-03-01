@@ -15,12 +15,14 @@ memoka (メモカ) aims to replicate Telegram's [Saved Message](https://telegram
 - Live notes through WebSocket streaming.
 - Channel based notes organization.
 - Automatic link previews.
-- Media upload support.
-- Archival system.
-- Contextual action menu.
-- Cross-platform (desktop, mobile) support.
+- Media uploads (image, video, document) with async processing.
+- GIF search and send via Klipy API.
+- Audio playback for uploaded audio files.
+- Archival system with configurable retention auto-purge.
+- Offline mode with local-first reads and sync-on-reconnect.
+- Contextual action menu and multi-select.
+- Cross-platform (web, Android) support.
 - Markdown formatting.
-- LLM integration.
 
 ## Documentation
 
@@ -36,8 +38,8 @@ memoka (メモカ) aims to replicate Telegram's [Saved Message](https://telegram
 
 ### Prerequisites
 
-- Dart SDK 3.8+
-- Flutter 3.32+
+- Dart SDK 3.10+
+- Flutter 3.41+
 - Docker & Docker Compose
 - PostgreSQL client (optional, for manual DB access)
 
@@ -105,7 +107,7 @@ This application has NO authentication by design (single-user environment).
 
 ## Architecture
 
-Built with [Serverpod](https://serverpod.dev) v3.2.3:
+Built with [Serverpod](https://serverpod.dev) v3.3.1:
 
 - **memoka_server**: Backend with real-time streaming, media uploads, link previews
 - **memoka_client**: Auto-generated type-safe API client
