@@ -8,6 +8,7 @@ import 'package:video_player/video_player.dart';
 import '../utils/file_utils.dart';
 import 'icon_button_styled.dart';
 import 'media_attachment_widget.dart';
+import 'pink_spinner.dart';
 
 /// Widget for displaying a video attachment inline in chat.
 /// Shows thumbnail with play button overlay. Tapping opens lightbox player.
@@ -277,7 +278,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
     }
 
     if (!_isInitialized) {
-      return const CircularProgressIndicator(color: Colors.white);
+      return PinkSpinner();
     }
 
     final screenSize = MediaQuery.of(context).size;

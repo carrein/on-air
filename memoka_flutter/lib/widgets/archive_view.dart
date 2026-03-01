@@ -8,6 +8,7 @@ import '../utils/icon_utils.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
 import 'note_item.dart';
+import 'pink_spinner.dart';
 
 /// Archive view showing a mixed list of archived notes and channels.
 class ArchiveView extends ConsumerWidget {
@@ -42,7 +43,7 @@ class ArchiveView extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => Center(child: PinkSpinner()),
       error: (err, stack) => const Center(
         child: Text('Unable to load notes. Check your connection.'),
       ),

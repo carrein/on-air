@@ -459,6 +459,33 @@ All footer icons: 20px, `core.textMuted` (`#00171F` at 60% opacity).
 
 ---
 
+### Loading Spinner
+
+All loading and pending states must use the `PinkSpinner` widget (`lib/widgets/pink_spinner.dart`). **Never use `CircularProgressIndicator` or `CupertinoActivityIndicator`.**
+
+| Property | Value |
+|----------|-------|
+| Icon | `PhosphorIcons.spinnerBall(PhosphorIconsStyle.fill)` |
+| Color | `brand.primary` (`#CE2161`) |
+| Animation | `RotationTransition`, 800ms continuous loop |
+| Default size | 24px |
+| Small variant | `PinkSpinner(size: 16)` — for inline/button contexts |
+
+**Usage**:
+```dart
+// Full-size (page/section loading)
+Center(child: PinkSpinner())
+
+// Inline (buttons, small containers)
+PinkSpinner(size: 16)
+```
+
+**Where it applies**: channel list loading, notes loading, archive loading, image/video loading placeholders, GIF picker, server connection test, share intent dialog, media grid thumbnails, and any future loading/pending state.
+
+`LinearProgressIndicator` remains appropriate for progress bars with determinate values (e.g., file upload progress).
+
+---
+
 ## Design Principles
 
 ### Consistency

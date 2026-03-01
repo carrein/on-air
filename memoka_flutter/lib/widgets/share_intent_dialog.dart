@@ -9,6 +9,7 @@ import '../providers/notes_provider.dart';
 import '../providers/pending_uploads_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/toast_utils.dart';
+import 'pink_spinner.dart';
 
 /// Dialog shown when content is shared to Memoka from another app.
 /// Lets the user pick a channel and send text/files.
@@ -169,7 +170,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                         : (id) => setState(() => _selectedChannelId = id),
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => Center(child: PinkSpinner()),
                 error: (e, _) => Text('Failed to load channels: $e'),
               ),
               const SizedBox(height: 12),
@@ -282,13 +283,10 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                       ),
                     ),
                     child: _sending
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: PinkSpinner(size: 16),
                           )
                         : Text(
                             'Send',

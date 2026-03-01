@@ -61,7 +61,7 @@ class SyncIndicator extends ConsumerWidget {
 
     // Online but draining
     return _SpinningIcon(
-      icon: PhosphorIcons.spinnerGap(),
+      icon: PhosphorIcons.spinnerBall(PhosphorIconsStyle.fill),
       color: _accentColor,
     );
   }

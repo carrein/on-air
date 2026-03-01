@@ -9,6 +9,7 @@ import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/responsive_utils.dart';
+import 'pink_spinner.dart';
 
 /// Channel list sidebar displaying channels and add channel button.
 /// Fixed width (240px), always visible.
@@ -241,8 +242,7 @@ class _ChannelListState extends ConsumerState<ChannelList> {
                       ),
                     );
                   },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => Center(child: PinkSpinner()),
                   error: (err, stack) => Center(child: Text('Error: $err')),
                 ),
                 // Fade-in gradient at top (only when scrolled down)

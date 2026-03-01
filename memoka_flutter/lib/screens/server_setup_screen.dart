@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart';
+import '../widgets/pink_spinner.dart';
 import 'chat_screen.dart';
 
 /// Screen for configuring the server URL on native platforms.
@@ -179,13 +180,10 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                       ),
                     ),
                     child: _testing
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: PinkSpinner(size: 16),
                           )
                         : Text(
                             'Test Connection',

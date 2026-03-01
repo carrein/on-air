@@ -22,6 +22,7 @@ import 'file_upload_dialog.dart';
 import 'note_item.dart';
 import 'multi_file_upload_dialog.dart';
 import 'pending_note_widget.dart';
+import 'pink_spinner.dart';
 
 // Cross-platform HTML imports
 import 'package:universal_html/html.dart' as html;
@@ -252,7 +253,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           ),
         );
       }
-      return const Center(child: CircularProgressIndicator());
+      return Center(child: PinkSpinner());
     }
     if (channelId == -1) return const ArchiveView();
 
@@ -352,7 +353,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => Center(child: PinkSpinner()),
       error: (err, stack) => const Center(
         child: Text('Unable to load notes. Check your connection.'),
       ),

@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'pink_spinner.dart';
 
 /// Card widget displaying link preview metadata below a message.
 class LinkPreviewCard extends StatelessWidget {
@@ -32,7 +33,7 @@ class LinkPreviewCard extends StatelessWidget {
                 placeholder: (context, url) => Container(
                   height: 160,
                   color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
+                  child: Center(child: PinkSpinner()),
                 ),
                 errorWidget: (context, url, error) => Container(
                   height: 160,

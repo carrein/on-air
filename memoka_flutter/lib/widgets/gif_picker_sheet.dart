@@ -5,6 +5,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../services/klipy_service.dart';
+import 'pink_spinner.dart';
 
 /// Modal bottom sheet for searching and selecting GIFs via the Klipy API.
 ///
@@ -222,8 +223,8 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
 
   Widget _buildContent() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: _accent),
+      return Center(
+        child: PinkSpinner(),
       );
     }
 
@@ -281,10 +282,10 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
       itemCount: _gifs.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= _gifs.length) {
-          return const Center(
+          return Center(
             child: Padding(
               padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(color: _accent),
+              child: PinkSpinner(),
             ),
           );
         }
