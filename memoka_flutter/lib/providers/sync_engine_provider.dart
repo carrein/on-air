@@ -79,7 +79,7 @@ class SyncEngine extends _$SyncEngine {
     // Reconcile channels
     for (final serverChannel in response.channels) {
       final isDirty = dirtyChannelIds.contains(serverChannel.id);
-      if (serverChannel.deletedAt != null) {
+      if (serverChannel.deletedAt != null || serverChannel.archived) {
         if (!isDirty) {
           await db.deleteCachedChannel(serverChannel.id!);
         } else {
@@ -103,7 +103,7 @@ class SyncEngine extends _$SyncEngine {
     // Reconcile notes
     for (final serverNote in response.notes) {
       final isDirty = dirtyNoteIds.contains(serverNote.id);
-      if (serverNote.deletedAt != null) {
+      if (serverNote.deletedAt != null || serverNote.archived) {
         if (!isDirty) {
           await db.deleteCachedNote(serverNote.id!);
         } else {
@@ -134,13 +134,24 @@ class SyncEngine extends _$SyncEngine {
       for (final row in dirtyNotes) _buildNoteChange(row),
     ];
 
+    // Track which entities were deleted locally so we can remove from cache
+    // instead of just clearing dirty flags.
+    final deletedChannelIds = {
+      for (final row in dirtyChannels)
+        if (row.deletedLocally) row.id,
+    };
+    final deletedNoteIds = {
+      for (final row in dirtyNotes)
+        if (row.deletedLocally) row.id,
+    };
+
     final response = await client.sync.syncPush(changes);
 
     for (final result in response.results) {
       if (result.entityType == 'channel') {
-        await _applyChannelResult(db, result);
+        await _applyChannelResult(db, result, deletedChannelIds);
       } else if (result.entityType == 'note') {
-        await _applyNoteResult(db, result);
+        await _applyNoteResult(db, result, deletedNoteIds);
       }
     }
 
@@ -175,7 +186,11 @@ class SyncEngine extends _$SyncEngine {
     );
   }
 
-  Future<void> _applyChannelResult(AppDatabase db, SyncResult result) async {
+  Future<void> _applyChannelResult(
+    AppDatabase db,
+    SyncResult result,
+    Set<int> deletedIds,
+  ) async {
     final parsed = _parseEntityJson(result.entityJson);
 
     if (result.status == 'applied' || result.status == 'already_applied') {
@@ -189,7 +204,11 @@ class SyncEngine extends _$SyncEngine {
       } else {
         final id = result.serverId ?? _idFrom(parsed);
         if (id != null) {
-          await db.clearChannelDirty(id, _versionFrom(parsed));
+          if (deletedIds.contains(id)) {
+            await db.deleteCachedChannel(id);
+          } else {
+            await db.clearChannelDirty(id, _versionFrom(parsed));
+          }
         }
       }
     } else if (result.status == 'rejected') {
@@ -216,7 +235,11 @@ class SyncEngine extends _$SyncEngine {
     }
   }
 
-  Future<void> _applyNoteResult(AppDatabase db, SyncResult result) async {
+  Future<void> _applyNoteResult(
+    AppDatabase db,
+    SyncResult result,
+    Set<int> deletedIds,
+  ) async {
     final parsed = _parseEntityJson(result.entityJson);
 
     if (result.status == 'applied' || result.status == 'already_applied') {
@@ -239,7 +262,11 @@ class SyncEngine extends _$SyncEngine {
       } else {
         final id = result.serverId ?? _idFrom(parsed);
         if (id != null) {
-          await db.clearNoteDirty(id, _versionFrom(parsed));
+          if (deletedIds.contains(id)) {
+            await db.deleteCachedNote(id);
+          } else {
+            await db.clearNoteDirty(id, _versionFrom(parsed));
+          }
         }
       }
     } else if (result.status == 'rejected') {

@@ -95,7 +95,7 @@ _pullPhase():
   1. Read SyncMeta.globalVersion (lastSyncGlobalVersion)
   2. Call client.sync.syncPull(sinceVersion: lastSyncGlobalVersion)
   3. For each returned channel/note:
-     a. If deletedAt != null AND not locally dirty → remove from cache
+     a. If deletedAt != null OR archived == true, AND not locally dirty → remove from cache
      b. If locally dirty → update stored baseVersion to server's version
         (preserves local changes; updated baseVersion is used in push)
      c. Else → upsert from server with dirty = false
@@ -116,7 +116,8 @@ _pushPhase():
      - deletes: deleted = true, serverId, baseVersion
   4. Call client.sync.syncPush(changes)
   5. For each SyncResult:
-     - applied:
+     - applied (deletion): remove from cache entirely
+     - applied (create/update):
          clear dirty flag
          clear isNew flag
          store server version

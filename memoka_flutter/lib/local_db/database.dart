@@ -176,7 +176,7 @@ class AppDatabase extends _$AppDatabase {
             jsonDecode(r.json) as Map<String, dynamic>,
           ),
         )
-        .where((ch) => !ch.archived)
+        .where((ch) => !ch.archived && ch.deletedAt == null)
         .toList();
     // Match server sort: pinned first, then position, then updatedAt desc
     channels.sort((a, b) {
@@ -355,6 +355,7 @@ class AppDatabase extends _$AppDatabase {
           (r) =>
               proto.Note.fromJson(jsonDecode(r.json) as Map<String, dynamic>),
         )
+        .where((note) => note.deletedAt == null && !note.archived)
         .toList();
   }
 

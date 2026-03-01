@@ -47,6 +47,7 @@ class Notes extends _$Notes {
     // resolves to "It's quiet in here" rather than spinning until the server
     // responds.
     final cached = await db.getCachedNotes(channelId);
+
     _notes = cached;
     if (cached.isNotEmpty) {
       _oldestNoteId = cached.last.id;
@@ -56,6 +57,7 @@ class Notes extends _$Notes {
     // 2. Always try to fetch from server; fall back to cache if unreachable.
     try {
       final serverNotes = await _loadInitialNotes(channelId);
+
       await db.cacheNotes(channelId, serverNotes);
       return serverNotes;
     } catch (_) {
@@ -177,6 +179,7 @@ class Notes extends _$Notes {
     final db = ref.read(appDatabaseProvider);
     final limit = _notes.length > 50 ? _notes.length : 50;
     final cached = await db.getCachedNotes(channelId, limit: limit);
+
     _notes = cached;
     _hasMore = true;
     if (cached.isNotEmpty) {
@@ -331,9 +334,11 @@ class Notes extends _$Notes {
     if (isOnline(ref)) {
       try {
         await client.chat.deleteNote(id);
+
+        await db.deleteCachedNote(id);
       } catch (e) {
         if (!isNetworkError(e)) rethrow;
-        // Network error — mark as deleted locally
+        // Network error — mark as deleted locally for sync push
         await db.markNoteDeletedLocally(id);
       }
     } else {
@@ -343,6 +348,5 @@ class Notes extends _$Notes {
     final current = state.value ?? [];
     _notes = current.where((n) => n.id != id).toList();
     state = AsyncValue.data(_notes);
-    // Note stays in cache as dirty+deletedLocally — sync engine will push tombstone
   }
 }

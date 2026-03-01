@@ -173,9 +173,11 @@ class Channels extends _$Channels {
   }
 
   Future<void> deleteChannel(int id) async {
+    final db = ref.read(appDatabaseProvider);
     if (isOnline(ref)) {
       try {
         await client.chat.deleteChannel(id);
+        await db.deleteCachedChannel(id);
       } catch (e) {
         if (e.toString().contains(_kLastChannelError)) {
           throw Exception(
@@ -184,11 +186,9 @@ class Channels extends _$Channels {
         }
         if (!isNetworkError(e)) rethrow;
         // Network error — fall through to offline mark
-        final db = ref.read(appDatabaseProvider);
         await db.markChannelDeletedLocally(id);
       }
     } else {
-      final db = ref.read(appDatabaseProvider);
       await db.markChannelDeletedLocally(id);
     }
 

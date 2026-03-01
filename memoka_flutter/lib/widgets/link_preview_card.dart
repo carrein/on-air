@@ -13,9 +13,13 @@ class LinkPreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const bg = Color(0xFF00171F);
+    const fg = Colors.white;
+
     return Card(
       margin: const EdgeInsets.only(top: 8),
       elevation: 0,
+      color: bg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -25,24 +29,24 @@ class LinkPreviewCard extends StatelessWidget {
           children: [
             // Image (if available)
             if (preview.imageUrl != null)
-              CachedNetworkImage(
-                imageUrl: preview.imageUrl!,
+              SizedBox(
                 height: 160,
                 width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 160,
-                  color: Colors.grey[200],
-                  child: Center(child: PinkSpinner()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 160,
-                  color: Colors.grey[100],
-                  child: Center(
-                    child: PhosphorIcon(
-                      PhosphorIcons.imageBroken(),
-                      size: 48,
-                      color: const Color(0xFF00171F).withValues(alpha: 0.6),
+                child: CachedNetworkImage(
+                  imageUrl: preview.imageUrl!,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: bg,
+                    child: Center(child: PinkSpinner()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: bg,
+                    child: Center(
+                      child: PhosphorIcon(
+                        PhosphorIcons.imageBroken(),
+                        size: 48,
+                        color: fg,
+                      ),
                     ),
                   ),
                 ),
@@ -61,6 +65,7 @@ class LinkPreviewCard extends StatelessWidget {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: fg,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -73,7 +78,7 @@ class LinkPreviewCard extends StatelessWidget {
                       preview.description!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF00171F).withValues(alpha: 0.6),
+                        color: fg,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -89,20 +94,25 @@ class LinkPreviewCard extends StatelessWidget {
                           imageUrl: preview.faviconUrl!,
                           width: 16,
                           height: 16,
-                          errorWidget: (context, url, error) =>
-                              PhosphorIcon(PhosphorIcons.globe(), size: 16),
+                          errorWidget: (context, url, error) => PhosphorIcon(
+                            PhosphorIcons.globe(),
+                            size: 16,
+                            color: fg,
+                          ),
                         )
                       else
-                        PhosphorIcon(PhosphorIcons.globe(), size: 16),
+                        PhosphorIcon(
+                          PhosphorIcons.globe(),
+                          size: 16,
+                          color: fg,
+                        ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           _extractDomain(preview.url),
                           style: TextStyle(
                             fontSize: 11,
-                            color: const Color(
-                              0xFF00171F,
-                            ).withValues(alpha: 0.6),
+                            color: fg,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
