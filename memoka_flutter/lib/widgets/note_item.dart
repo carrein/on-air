@@ -68,9 +68,10 @@ class NoteItem extends ConsumerWidget {
                       ),
               ),
             ),
-          // Note content
+          // Note content — skip max-width constraint when note has a table
           Flexible(
-            child: NoteConstraints(
+            child: _wrapConstraints(
+              hasTable: note.content.contains(RegExp(r'^\|', multiLine: true)),
               child: Listener(
                 onPointerDown: (event) {
                   if (event.buttons == 2) {
@@ -129,13 +130,20 @@ class NoteItem extends ConsumerWidget {
     );
   }
 
+  Widget _wrapConstraints({required bool hasTable, required Widget child}) {
+    if (hasTable) return child;
+    return NoteConstraints(child: child);
+  }
+
   Widget _buildContent(BuildContext context, WidgetRef ref) {
     final parts = <Widget>[];
 
     if (note.content.isNotEmpty) {
+      // Convert HTML break tags to markdown line breaks (two trailing spaces).
+      final content = note.content.replaceAll(RegExp(r'<br\s*/?>'), '  \n');
       parts.add(
         MarkdownBody(
-          data: note.content,
+          data: content,
           selectable: kIsWeb,
           onTapLink: (text, href, title) async {
             if (href != null) {

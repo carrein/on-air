@@ -35,7 +35,7 @@ class _PinkSpinnerState extends State<PinkSpinner>
     return RotationTransition(
       turns: _controller,
       child: PhosphorIcon(
-        PhosphorIcons.spinnerBall(PhosphorIconsStyle.fill),
+        PhosphorIcons.spinnerGap(),
         size: widget.size,
         color: const Color(0xFFCE2161),
       ),
