@@ -12,7 +12,7 @@ part 'debounced_connection_provider.g.dart';
 /// and [connecting] are immediate (no delay hiding good news).
 @Riverpod(keepAlive: true)
 class DebouncedConnection extends _$DebouncedConnection {
-  static const _debounce = Duration(milliseconds: 1500);
+  static const _debounce = Duration(seconds: 3);
   Timer? _timer;
 
   @override

@@ -207,7 +207,7 @@ class Channels extends _$Channels {
       for (var i = 0; i < channelIds.length; i++) {
         final ch = idToChannel[channelIds[i]];
         if (ch != null) {
-          reordered.add(ch.copyWith(sortOrder: i));
+          reordered.add(ch.copyWith(sortOrder: i, position: i.toDouble()));
         }
       }
       for (final ch in current) {
@@ -215,7 +215,7 @@ class Channels extends _$Channels {
           reordered.add(ch);
         }
       }
-      reordered.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      reordered.sort((a, b) => a.position.compareTo(b.position));
       state = AsyncData(reordered);
     }
 
