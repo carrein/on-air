@@ -311,8 +311,15 @@ class ChatEndpoint extends Endpoint {
       throw Exception('Note not found');
     }
 
+    final oldUrl = LinkPreviewService.extractFirstUrl(note.content);
     note.content = content.trim();
     note.updatedAt = DateTime.now();
+
+    // Clear preview if URL was removed or changed
+    final newUrl = LinkPreviewService.extractFirstUrl(note.content);
+    if (oldUrl != newUrl) {
+      note.linkPreview = null;
+    }
 
     final updated = await session.db.transaction((tx) async {
       final newVersion = await incrementGlobalVersion(session, transaction: tx);
@@ -327,6 +334,11 @@ class ChatEndpoint extends Endpoint {
         note: updated,
       ),
     );
+
+    // Fetch link preview asynchronously if URL changed or is new
+    if (newUrl != null && newUrl != oldUrl) {
+      unawaited(_fetchLinkPreviewAsync(session, updated));
+    }
 
     return updated;
   }
