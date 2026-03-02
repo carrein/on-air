@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +12,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../main.dart' show serverUrl, client;
+import '../utils/download_utils.dart';
 import '../providers/notes_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/note_selection_provider.dart';
@@ -446,6 +449,44 @@ class _NoteFooter extends StatelessWidget {
     });
   }
 
+  bool get _canShare {
+    if (note.content.isNotEmpty) return true;
+    if (kIsWeb) return false;
+    final atts = note.attachments;
+    return atts != null && atts.isNotEmpty;
+  }
+
+  Future<void> _onShareTap(BuildContext context) async {
+    if (note.content.isNotEmpty) {
+      Share.share(note.content);
+      return;
+    }
+
+    final atts = note.attachments;
+    if (atts == null || atts.isEmpty || kIsWeb) return;
+
+    final xFiles = <XFile>[];
+    for (final a in atts) {
+      final url = FileUtils.buildMediaUrl(serverUrl, a.filePath, a.contentHash);
+      final filename = a.originalFilename;
+      final completer = Completer<String?>();
+      DownloadUtils.downloadToCache(
+        url,
+        filename,
+        onSuccess: (path) => completer.complete(path),
+        onError: (e) => completer.complete(null),
+      );
+      final path = await completer.future;
+      if (path != null) {
+        xFiles.add(XFile(path, mimeType: a.mimeType));
+      }
+    }
+
+    if (xFiles.isNotEmpty) {
+      Share.shareXFiles(xFiles);
+    }
+  }
+
   void _onCopyTap(BuildContext context) {
     // On web, copy the first image attachment if one exists.
     if (kIsWeb) {
@@ -538,19 +579,15 @@ class _NoteFooter extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               MouseRegion(
-                cursor: note.content.isNotEmpty
+                cursor: _canShare
                     ? SystemMouseCursors.click
                     : SystemMouseCursors.basic,
                 child: GestureDetector(
-                  onTap: note.content.isNotEmpty
-                      ? () => Share.share(note.content)
-                      : null,
+                  onTap: _canShare ? () => _onShareTap(context) : null,
                   child: Icon(
                     PhosphorIcons.shareNetwork(),
                     size: 20,
-                    color: note.content.isNotEmpty
-                        ? color
-                        : color.withValues(alpha: 0.3),
+                    color: _canShare ? color : color.withValues(alpha: 0.3),
                   ),
                 ),
               ),
