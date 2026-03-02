@@ -36,7 +36,7 @@ final class ChannelsProvider
   Channels create() => Channels();
 }
 
-String _$channelsHash() => r'd549db1097fe384e3b00569c6c0b51ec2f432c07';
+String _$channelsHash() => r'd1ea9321c1e4dd40f8796fd0bb6ed0c01a92b4d9';
 
 /// Manages the list of channels with local-first caching and real-time updates.
 

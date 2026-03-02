@@ -78,4 +78,4 @@ final class ChatStreamProvider
   }
 }
 
-String _$chatStreamHash() => r'707bffc2c1d16251fd5b0d31897f7e718d4fe0a8';
+String _$chatStreamHash() => r'658caf8279248ad15d390a14a0e6eaaae318daa4';

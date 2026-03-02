@@ -26,12 +26,16 @@ Stream<ChatEvent> chatStream(Ref ref) async* {
 
   var delay = 1;
   const maxDelay = 15;
+  var isFirstAttempt = true;
 
   while (!cancelled) {
-    // Always signal "connecting" at the start of each attempt so the
-    // debounced provider never briefly shows "disconnected" (which caused
-    // the offline banner to flash on Android resume).
-    ref.read(connectionProvider.notifier).setConnecting();
+    // Only signal "connecting" on first attempt. On retries the raw state
+    // stays disconnected; the latch in debouncedConnectionProvider keeps
+    // the banner visible without resetting the debounce timer.
+    if (isFirstAttempt) {
+      ref.read(connectionProvider.notifier).setConnecting();
+      isFirstAttempt = false;
+    }
 
     try {
       if (kIsWeb) {

@@ -60,7 +60,7 @@ final class DebouncedConnectionProvider
 }
 
 String _$debouncedConnectionHash() =>
-    r'0da65726007f7efe5ab6f3f93e05092be13640a4';
+    r'0dbead2469991ec9df6a4386ad05175a8ae7a943';
 
 /// Debounced view of [connectionProvider] that delays the transition to
 /// [ConnectionState.disconnected] by [_debounce].
