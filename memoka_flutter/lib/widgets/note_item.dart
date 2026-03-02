@@ -449,6 +449,16 @@ class _NoteFooter extends StatelessWidget {
     });
   }
 
+  bool get _hasCopyableContent {
+    if (note.content.isNotEmpty) return true;
+    if (kIsWeb) {
+      return (note.attachments ?? []).any(
+        (a) => a.mimeType.toLowerCase().startsWith('image/'),
+      );
+    }
+    return false;
+  }
+
   bool get _canShare {
     if (note.content.isNotEmpty) return true;
     if (kIsWeb) return false;
@@ -487,31 +497,39 @@ class _NoteFooter extends StatelessWidget {
     }
   }
 
-  void _onCopyTap(BuildContext context) {
-    // On web, copy the first image attachment if one exists.
-    if (kIsWeb) {
-      for (final a in note.attachments ?? []) {
-        if (a.mimeType.toLowerCase().startsWith('image/')) {
-          final url = FileUtils.buildMediaUrl(
-            serverUrl,
-            a.filePath,
-            a.contentHash,
+  Future<void> _onCopyTap(BuildContext context) async {
+    // Prefer media: try to copy the first image attachment to clipboard.
+    for (final a in note.attachments ?? []) {
+      if (a.mimeType.toLowerCase().startsWith('image/')) {
+        final url = FileUtils.buildMediaUrl(
+          serverUrl,
+          a.filePath,
+          a.contentHash,
+        );
+        final success = await copyImageToClipboard(url);
+        if (!context.mounted) return;
+        if (success) {
+          ToastUtils.show(
+            context,
+            'Image copied to clipboard',
+            type: ToastType.success,
           );
-          copyImageToClipboard(url).then((success) {
-            if (!context.mounted) return;
-            ToastUtils.show(
-              context,
-              success ? 'Image copied to clipboard' : 'Failed to copy image',
-              type: success ? ToastType.success : ToastType.error,
-            );
-          });
           return;
         }
+        break; // image copy unsupported on this platform, fall through
       }
     }
     // Fallback: copy text content.
-    Clipboard.setData(ClipboardData(text: note.content));
-    ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
+    if (note.content.isNotEmpty) {
+      Clipboard.setData(ClipboardData(text: note.content));
+      if (context.mounted) {
+        ToastUtils.show(
+          context,
+          'Copied to clipboard',
+          type: ToastType.success,
+        );
+      }
+    }
   }
 
   @override
@@ -550,7 +568,7 @@ class _NoteFooter extends StatelessWidget {
                 ),
                 const SizedBox(width: 14),
               ],
-              if (!_isDocumentOnly) ...[
+              if (_hasCopyableContent) ...[
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(

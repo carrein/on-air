@@ -38,8 +38,9 @@ class DebouncedConnection extends _$DebouncedConnection {
     // Disconnected — debounce the transition.
     if (raw == ConnectionState.disconnected) {
       if (previous == null) return ConnectionState.disconnected; // first build
-      if (previous == ConnectionState.disconnected)
+      if (previous == ConnectionState.disconnected) {
         return previous; // already latched
+      }
       _timer?.cancel();
       _timer = Timer(_debounce, () {
         if (state != ConnectionState.disconnected) {
