@@ -13,10 +13,11 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/chat_endpoint.dart' as _i2;
 import '../health_endpoint.dart' as _i3;
-import '../settings/settings_endpoint.dart' as _i4;
-import '../sync/sync_endpoint.dart' as _i5;
-import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i6;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i7;
+import '../search/search_endpoint.dart' as _i4;
+import '../settings/settings_endpoint.dart' as _i5;
+import '../sync/sync_endpoint.dart' as _i6;
+import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i7;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i8;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -34,13 +35,19 @@ class Endpoints extends _i1.EndpointDispatch {
           'health',
           null,
         ),
-      'settings': _i4.SettingsEndpoint()
+      'search': _i4.SearchEndpoint()
+        ..initialize(
+          server,
+          'search',
+          null,
+        ),
+      'settings': _i5.SettingsEndpoint()
         ..initialize(
           server,
           'settings',
           null,
         ),
-      'sync': _i5.SyncEndpoint()
+      'sync': _i6.SyncEndpoint()
         ..initialize(
           server,
           'sync',
@@ -382,6 +389,68 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['search'] = _i1.EndpointConnector(
+      name: 'search',
+      endpoint: endpoints['search']!,
+      methodConnectors: {
+        'searchNotes': _i1.MethodConnector(
+          name: 'searchNotes',
+          params: {
+            'query': _i1.ParameterDescription(
+              name: 'query',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'limit': _i1.ParameterDescription(
+              name: 'limit',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['search'] as _i4.SearchEndpoint).searchNotes(
+                    session,
+                    params['query'],
+                    limit: params['limit'],
+                  ),
+        ),
+        'getNotesAroundId': _i1.MethodConnector(
+          name: 'getNotesAroundId',
+          params: {
+            'channelId': _i1.ParameterDescription(
+              name: 'channelId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'limit': _i1.ParameterDescription(
+              name: 'limit',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['search'] as _i4.SearchEndpoint).getNotesAroundId(
+                    session,
+                    params['channelId'],
+                    params['noteId'],
+                    limit: params['limit'],
+                  ),
+        ),
+      },
+    );
     connectors['settings'] = _i1.EndpointConnector(
       name: 'settings',
       endpoint: endpoints['settings']!,
@@ -393,7 +462,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['settings'] as _i4.SettingsEndpoint)
+              ) async => (endpoints['settings'] as _i5.SettingsEndpoint)
                   .getSettings(session),
         ),
         'updateSettings': _i1.MethodConnector(
@@ -401,7 +470,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'settings': _i1.ParameterDescription(
               name: 'settings',
-              type: _i1.getType<_i6.AppSettings>(),
+              type: _i1.getType<_i7.AppSettings>(),
               nullable: false,
             ),
           },
@@ -409,7 +478,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['settings'] as _i4.SettingsEndpoint)
+              ) async => (endpoints['settings'] as _i5.SettingsEndpoint)
                   .updateSettings(
                     session,
                     params['settings'],
@@ -434,7 +503,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i5.SyncEndpoint).syncPull(
+              ) async => (endpoints['sync'] as _i6.SyncEndpoint).syncPull(
                 session,
                 params['sinceVersion'],
               ),
@@ -444,7 +513,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'changes': _i1.ParameterDescription(
               name: 'changes',
-              type: _i1.getType<List<_i7.SyncChange>>(),
+              type: _i1.getType<List<_i8.SyncChange>>(),
               nullable: false,
             ),
           },
@@ -452,7 +521,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i5.SyncEndpoint).syncPush(
+              ) async => (endpoints['sync'] as _i6.SyncEndpoint).syncPush(
                 session,
                 params['changes'],
               ),

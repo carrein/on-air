@@ -1,0 +1,18 @@
+### A search result returned by the search endpoint.
+class: SearchResult
+
+fields:
+  ### The ID of the matching note.
+  noteId: int
+  ### The channel ID the note belongs to.
+  channelId: int
+  ### The name of the channel.
+  channelName: String
+  ### The emoji identifier of the channel.
+  channelEmoji: String
+  ### A snippet of the note content with <b> tags highlighting matches.
+  snippet: String
+  ### When the note was created.
+  createdAt: DateTime
+  ### The relevance score (higher is better).
+  score: double

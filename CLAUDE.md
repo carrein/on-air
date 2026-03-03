@@ -20,6 +20,7 @@ u/docs/components/Audio.md
 u/docs/Sync.md
 u/docs/GIF.md
 u/docs/ArchiveRetention.md
+u/docs/Search.md
 
 # CLAUDE.md
 
@@ -50,6 +51,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
 - **Offline Mode**: Local-first reads from SQLite cache (Drift), dirty-flag tracking replaces mutation queue, pull-then-push sync on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Sync.md`)
 - **GIF Search**: Klipy API integration for GIF search and send; bottom sheet picker with trending, search, pagination; GIFs downloaded from CDN and uploaded to server as self-hosted media (see `docs/GIF.md`)
+- **Search**: Hybrid FTS + trigram search across all notes; ranked results with highlighted snippets, jump-to-context; untracked `note_search` table pattern to work around Serverpod schema validator (see `docs/Search.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -116,6 +118,8 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 **sync_state** (server-only singleton table): globalVersion (monotonic counter, incremented on every mutation)
 
 **app_settings** (server-only singleton table): archiveRetentionDays (0 = never purge, 30/60/90 = days before auto-purge of archived items)
+
+**note_search** (server-only untracked table): note_id (PK, FK → notes, cascade), search_vector (tsvector). Created at startup by `SearchSetup`, not in any `.spy.yaml` — invisible to Serverpod's schema validator. GIN index on search_vector, trigger-maintained from `notes.content`. See `docs/Search.md`.
 
 ## Common Commands
 
@@ -265,6 +269,9 @@ Server serves:
 - `settings`: Application settings management
   - `getSettings()` — returns current AppSettings (archiveRetentionDays)
   - `updateSettings(settings)` — updates AppSettings singleton
+- `search`: Full-text and trigram search across notes
+  - `searchNotes(query, {limit})` — hybrid FTS + trigram, returns ranked `SearchResult` list with snippets
+  - `getNotesAroundId(channelId, noteId, {limit})` — loads notes surrounding a target for jump-to-context
 - File uploads: HTTP route `POST /media/upload` (not RPC) — streams multipart body directly to disk, no in-memory buffering
 
 ## Git Workflow Policy
@@ -306,12 +313,14 @@ interactions, state management, and integration details.
 - **Note** (NoteItem): `docs/components/Note.md`
 - **Preview** (link previews): `docs/components/Preview.md`
 - **Audio** (audio player): `docs/components/Audio.md`
+- **Search** (search bar, results, jump-to): `docs/components/Search.md`
 
 ## Architecture Guides
 
 - **Sync Architecture**: `docs/Sync.md` — State-based reconciliation, versioned entities, pull-then-push sync, dirty tracking, tombstones, connectivity detection, 2s sync cooldown, per-provider cache refresh
 - **GIF Integration**: `docs/GIF.md` — Klipy API search/featured, download-then-upload flow, build-time API key configuration
 - **Archive Retention**: `docs/ArchiveRetention.md` — Configurable auto-purge (Never/30/60/90 days), PurgeHelper shared tombstone logic, hourly purge scheduling
+- **Search**: `docs/Search.md` — Hybrid FTS + trigram search, untracked `note_search` table pattern, Serverpod schema validator constraints and workarounds
 
 ## Platform Guides
 

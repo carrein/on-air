@@ -192,6 +192,28 @@ class Notes extends _$Notes {
     _notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
+  /// Loads notes centered around a specific note ID (for search jump-to).
+  ///
+  /// Replaces the current state with ~25 notes surrounding the target,
+  /// allowing the chat view to scroll to the target note in context.
+  Future<void> loadAroundNote(int noteId) async {
+    try {
+      final notes = await client.search.getNotesAroundId(
+        channelId,
+        noteId,
+        limit: 25,
+      );
+      _notes = notes;
+      _hasMore = true;
+      if (notes.isNotEmpty) {
+        _oldestNoteId = notes.last.id;
+      }
+      state = AsyncData(_notes);
+    } catch (_) {
+      // If the server call fails, don't disrupt the current state.
+    }
+  }
+
   Future<void> loadMore() async {
     if (!_hasMore || _oldestNoteId == null || _isLoadingMore) return;
 

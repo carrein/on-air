@@ -16,11 +16,13 @@ import 'package:memoka_client/src/protocol/chat/channel.dart' as _i3;
 import 'package:memoka_client/src/protocol/chat/note.dart' as _i4;
 import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i5;
 import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i6;
-import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i7;
-import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart' as _i8;
-import 'package:memoka_client/src/protocol/sync/sync_push_response.dart' as _i9;
-import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i10;
-import 'protocol.dart' as _i11;
+import 'package:memoka_client/src/protocol/search/search_result.dart' as _i7;
+import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i8;
+import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart' as _i9;
+import 'package:memoka_client/src/protocol/sync/sync_push_response.dart'
+    as _i10;
+import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i11;
+import 'protocol.dart' as _i12;
 
 /// Endpoint for managing channels and notes with real-time updates.
 /// {@category Endpoint}
@@ -214,6 +216,50 @@ class EndpointHealth extends _i1.EndpointRef {
   );
 }
 
+/// Endpoint for full-text and trigram search across notes.
+/// {@category Endpoint}
+class EndpointSearch extends _i1.EndpointRef {
+  EndpointSearch(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'search';
+
+  /// Searches notes using hybrid FTS + trigram matching.
+  ///
+  /// Returns a ranked list of [SearchResult] with highlighted snippets.
+  /// The query is truncated to 200 characters server-side.
+  _i2.Future<List<_i7.SearchResult>> searchNotes(
+    String query, {
+    required int limit,
+  }) => caller.callServerEndpoint<List<_i7.SearchResult>>(
+    'search',
+    'searchNotes',
+    {
+      'query': query,
+      'limit': limit,
+    },
+  );
+
+  /// Loads notes centered around a specific note ID within a channel.
+  ///
+  /// Returns approximately [limit] notes: half before and half after
+  /// the target note (by createdAt), including the target itself.
+  /// Used to jump to a search result in context.
+  _i2.Future<List<_i4.Note>> getNotesAroundId(
+    int channelId,
+    int noteId, {
+    required int limit,
+  }) => caller.callServerEndpoint<List<_i4.Note>>(
+    'search',
+    'getNotesAroundId',
+    {
+      'channelId': channelId,
+      'noteId': noteId,
+      'limit': limit,
+    },
+  );
+}
+
 /// Endpoint for reading and updating application settings.
 /// {@category Endpoint}
 class EndpointSettings extends _i1.EndpointRef {
@@ -223,16 +269,16 @@ class EndpointSettings extends _i1.EndpointRef {
   String get name => 'settings';
 
   /// Returns the current application settings.
-  _i2.Future<_i7.AppSettings> getSettings() =>
-      caller.callServerEndpoint<_i7.AppSettings>(
+  _i2.Future<_i8.AppSettings> getSettings() =>
+      caller.callServerEndpoint<_i8.AppSettings>(
         'settings',
         'getSettings',
         {},
       );
 
   /// Updates application settings.
-  _i2.Future<_i7.AppSettings> updateSettings(_i7.AppSettings settings) =>
-      caller.callServerEndpoint<_i7.AppSettings>(
+  _i2.Future<_i8.AppSettings> updateSettings(_i8.AppSettings settings) =>
+      caller.callServerEndpoint<_i8.AppSettings>(
         'settings',
         'updateSettings',
         {'settings': settings},
@@ -254,8 +300,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Includes tombstoned entities (deletedAt != null) so clients can remove them.
   /// Pass sinceVersion = 0 for a full sync (first launch / fresh install).
-  _i2.Future<_i8.SyncPullResponse> syncPull(int sinceVersion) =>
-      caller.callServerEndpoint<_i8.SyncPullResponse>(
+  _i2.Future<_i9.SyncPullResponse> syncPull(int sinceVersion) =>
+      caller.callServerEndpoint<_i9.SyncPullResponse>(
         'sync',
         'syncPull',
         {'sinceVersion': sinceVersion},
@@ -265,8 +311,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Each change is processed in its own transaction — partial apply is supported.
   /// Returns per-entity results: applied / rejected / already_applied.
-  _i2.Future<_i9.SyncPushResponse> syncPush(List<_i10.SyncChange> changes) =>
-      caller.callServerEndpoint<_i9.SyncPushResponse>(
+  _i2.Future<_i10.SyncPushResponse> syncPush(List<_i11.SyncChange> changes) =>
+      caller.callServerEndpoint<_i10.SyncPushResponse>(
         'sync',
         'syncPush',
         {'changes': changes},
@@ -293,7 +339,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i11.Protocol(),
+         _i12.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -304,6 +350,7 @@ class Client extends _i1.ServerpodClientShared {
        ) {
     chat = EndpointChat(this);
     health = EndpointHealth(this);
+    search = EndpointSearch(this);
     settings = EndpointSettings(this);
     sync = EndpointSync(this);
   }
@@ -311,6 +358,8 @@ class Client extends _i1.ServerpodClientShared {
   late final EndpointChat chat;
 
   late final EndpointHealth health;
+
+  late final EndpointSearch search;
 
   late final EndpointSettings settings;
 
@@ -320,6 +369,7 @@ class Client extends _i1.ServerpodClientShared {
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'chat': chat,
     'health': health,
+    'search': search,
     'settings': settings,
     'sync': sync,
   };

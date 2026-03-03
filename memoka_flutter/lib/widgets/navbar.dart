@@ -14,12 +14,14 @@ import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
 import '../utils/icon_utils.dart';
+import '../providers/global_search_provider.dart';
 import '../utils/responsive_utils.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
 import 'icon_picker.dart';
 import 'media_panel.dart';
 import 'new_channel_modal.dart';
+import 'search_bar_widget.dart';
 import 'sync_indicator.dart';
 
 /// Navbar displaying the current channel name and a menu button.
@@ -150,6 +152,33 @@ class _NavbarState extends ConsumerState<Navbar> {
       return _buildSelectionBar(selection);
     }
 
+    final searchState = ref.watch(globalSearchProvider);
+    final isMobileSearch = !isDesktop && searchState.isActive;
+
+    // Mobile search mode: show "Search" title with back button (detail-mode style).
+    if (isMobileSearch) {
+      return Container(
+        padding: _paddingDetail,
+        decoration: const BoxDecoration(
+          color: _backgroundColor,
+          border: Border(bottom: BorderSide(color: _borderColor, width: 1)),
+        ),
+        child: Row(
+          children: [
+            IconButtonStyled(
+              icon: PhosphorIcons.arrowCircleLeft(),
+              onPressed: () =>
+                  ref.read(globalSearchProvider.notifier).deactivate(),
+            ),
+            const SizedBox(width: 4),
+            const Expanded(
+              child: Text('Search', style: _titleStyle),
+            ),
+          ],
+        ),
+      );
+    }
+
     final currentChannelId = currentChannelAsync.value;
     final channels = channelsAsync.value ?? [];
     final isArchive = currentChannelId == -1;
@@ -182,10 +211,24 @@ class _NavbarState extends ConsumerState<Navbar> {
             ),
           ),
           if (isArchive) _buildRetentionDropdown(),
-          if (!isInDetailMode)
+          if (!isInDetailMode) ...[
+            // Desktop: inline search bar in the center area
+            if (isDesktop) ...[
+              const SearchBarWidget(),
+              const SizedBox(width: 8),
+            ],
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Mobile: search icon button
+                if (!isDesktop) ...[
+                  IconButtonStyled(
+                    icon: PhosphorIcons.magnifyingGlass(),
+                    onPressed: () =>
+                        ref.read(globalSearchProvider.notifier).activate(),
+                  ),
+                  const SizedBox(width: 2),
+                ],
                 if (currentChannel != null) ...[
                   IconButtonStyled(
                     icon: currentChannel.pinned
@@ -224,6 +267,7 @@ class _NavbarState extends ConsumerState<Navbar> {
                 ),
               ],
             ),
+          ],
         ],
       ),
     );
@@ -231,6 +275,7 @@ class _NavbarState extends ConsumerState<Navbar> {
 
   static const _retentionOptions = <int, String>{
     0: 'Keep Forever',
+    7: '7 Days',
     30: '30 Days',
     60: '60 Days',
     90: '90 Days',

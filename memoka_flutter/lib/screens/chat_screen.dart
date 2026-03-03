@@ -20,10 +20,12 @@ import '../providers/share_intent_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/global_search_provider.dart';
 import '../providers/chat_stream_provider.dart';
 import '../providers/connection_provider.dart' as conn;
 import '../providers/sync_engine_provider.dart';
 import '../utils/responsive_utils.dart';
+import '../widgets/search_results.dart';
 
 /// Main chat screen with sidebar, chat view, and NoteInput.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -124,8 +126,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   bool _handleHardwareKey(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
 
-    // Escape cancels selection mode or edit mode (regardless of text focus).
+    // Cmd+F / Ctrl+F activates global search.
+    if (event.logicalKey == LogicalKeyboardKey.keyF &&
+        (HardwareKeyboard.instance.isMetaPressed ||
+            HardwareKeyboard.instance.isControlPressed)) {
+      ref.read(globalSearchProvider.notifier).activate();
+      return true;
+    }
+
+    // Escape cancels search, selection mode, or edit mode.
     if (event.logicalKey == LogicalKeyboardKey.escape) {
+      final searchState = ref.read(globalSearchProvider);
+      if (searchState.isActive) {
+        ref.read(globalSearchProvider.notifier).deactivate();
+        return true;
+      }
       final selection = ref.read(noteSelectionProvider);
       if (selection.isNotEmpty) {
         ref.read(noteSelectionProvider.notifier).clear();
@@ -242,8 +257,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     final isMobile = ResponsiveUtils.isMobile(context);
     final isInDetailMode = isShowingSettings || isArchive;
+    final searchState = ref.watch(globalSearchProvider);
+    final isMobileSearch = isMobile && searchState.isActive;
 
     Widget getMainContent() {
+      // Mobile search mode: replace chat view with search results.
+      if (isMobileSearch) {
+        return const Expanded(child: SearchResults());
+      }
       return Expanded(
         child: Stack(
           children: [
@@ -296,11 +317,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return Expanded(child: inner);
     }
 
+    final isInDetailOrSearch = isInDetailMode || isMobileSearch;
+
     return PopScope(
-      canPop: !isInDetailMode,
+      canPop: !isInDetailOrSearch,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (isShowingSettings) {
+        if (isMobileSearch) {
+          ref.read(globalSearchProvider.notifier).deactivate();
+        } else if (isShowingSettings) {
           ref.read(settingsVisibilityProvider.notifier).hide();
         } else if (isArchive) {
           final previousId = ref.read(previousChannelProvider);
@@ -342,7 +367,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   ),
                 ),
                 if (isMobile && !isArchive && !isShowingSettings)
-                  const NoteInput(),
+                  isMobileSearch
+                      ? const _MobileSearchInput()
+                      : const NoteInput(),
                 SizedBox(
                   height: MediaQuery.of(context).viewInsets.bottom,
                 ),
@@ -350,6 +377,109 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Search text field shown at the bottom of mobile in search mode,
+/// replacing the normal NoteInput. Debounces input by 300ms.
+class _MobileSearchInput extends ConsumerStatefulWidget {
+  const _MobileSearchInput();
+
+  @override
+  ConsumerState<_MobileSearchInput> createState() => _MobileSearchInputState();
+}
+
+class _MobileSearchInputState extends ConsumerState<_MobileSearchInput> {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
+  Timer? _debounce;
+
+  static const _backgroundColor = Color(0xFFF6F0ED);
+  static const _borderColor = Color(0xFFCE2161);
+  static const _textColor = Color(0xFF00171F);
+
+  @override
+  void initState() {
+    super.initState();
+    // Restore existing query if re-mounted.
+    final current = ref.read(globalSearchProvider).query;
+    if (current.isNotEmpty) {
+      _controller.text = current;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      ref.read(globalSearchProvider.notifier).setQuery(value);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: const BoxDecoration(
+        color: _backgroundColor,
+        border: Border(top: BorderSide(color: _borderColor, width: 1)),
+      ),
+      child: TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        style: TextStyle(color: _textColor, fontSize: 15),
+        decoration: InputDecoration(
+          hintText: 'Search notes...',
+          hintStyle: TextStyle(
+            color: _textColor.withValues(alpha: 0.4),
+            fontSize: 15,
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: _textColor.withValues(alpha: 0.4),
+            size: 20,
+          ),
+          suffixIcon: _controller.text.isNotEmpty
+              ? IconButton(
+                  icon: Icon(Icons.clear, size: 18, color: _textColor),
+                  onPressed: () {
+                    _controller.clear();
+                    ref.read(globalSearchProvider.notifier).setQuery('');
+                    setState(() {});
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.5),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: _borderColor, width: 1),
+          ),
+        ),
+        onChanged: (value) {
+          setState(() {});
+          _onChanged(value);
+        },
       ),
     );
   }

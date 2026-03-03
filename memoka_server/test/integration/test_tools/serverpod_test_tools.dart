@@ -18,12 +18,13 @@ import 'package:memoka_server/src/generated/chat/channel.dart' as _i4;
 import 'package:memoka_server/src/generated/chat/note.dart' as _i5;
 import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i6;
 import 'package:memoka_server/src/generated/chat/chat_event.dart' as _i7;
-import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i8;
+import 'package:memoka_server/src/generated/search/search_result.dart' as _i8;
+import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i9;
 import 'package:memoka_server/src/generated/sync/sync_pull_response.dart'
-    as _i9;
-import 'package:memoka_server/src/generated/sync/sync_push_response.dart'
     as _i10;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i11;
+import 'package:memoka_server/src/generated/sync/sync_push_response.dart'
+    as _i11;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i12;
 import 'package:memoka_server/src/generated/protocol.dart';
 import 'package:memoka_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -135,6 +136,8 @@ class TestEndpoints {
 
   late final _HealthEndpoint health;
 
+  late final _SearchEndpoint search;
+
   late final _SettingsEndpoint settings;
 
   late final _SyncEndpoint sync;
@@ -152,6 +155,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     health = _HealthEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    search = _SearchEndpoint(
       endpoints,
       serializationManager,
     );
@@ -706,6 +713,89 @@ class _HealthEndpoint {
   }
 }
 
+class _SearchEndpoint {
+  _SearchEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<List<_i8.SearchResult>> searchNotes(
+    _i1.TestSessionBuilder sessionBuilder,
+    String query, {
+    required int limit,
+  }) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'search',
+            method: 'searchNotes',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'search',
+          methodName: 'searchNotes',
+          parameters: _i1.testObjectToJson({
+            'query': query,
+            'limit': limit,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<List<_i8.SearchResult>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<List<_i5.Note>> getNotesAroundId(
+    _i1.TestSessionBuilder sessionBuilder,
+    int channelId,
+    int noteId, {
+    required int limit,
+  }) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'search',
+            method: 'getNotesAroundId',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'search',
+          methodName: 'getNotesAroundId',
+          parameters: _i1.testObjectToJson({
+            'channelId': channelId,
+            'noteId': noteId,
+            'limit': limit,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<List<_i5.Note>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
 class _SettingsEndpoint {
   _SettingsEndpoint(
     this._endpointDispatch,
@@ -716,7 +806,7 @@ class _SettingsEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i8.AppSettings> getSettings(
+  _i3.Future<_i9.AppSettings> getSettings(
     _i1.TestSessionBuilder sessionBuilder,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -738,7 +828,7 @@ class _SettingsEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i8.AppSettings>);
+                as _i3.Future<_i9.AppSettings>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -746,9 +836,9 @@ class _SettingsEndpoint {
     });
   }
 
-  _i3.Future<_i8.AppSettings> updateSettings(
+  _i3.Future<_i9.AppSettings> updateSettings(
     _i1.TestSessionBuilder sessionBuilder,
-    _i8.AppSettings settings,
+    _i9.AppSettings settings,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -769,7 +859,7 @@ class _SettingsEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i8.AppSettings>);
+                as _i3.Future<_i9.AppSettings>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -788,7 +878,7 @@ class _SyncEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i9.SyncPullResponse> syncPull(
+  _i3.Future<_i10.SyncPullResponse> syncPull(
     _i1.TestSessionBuilder sessionBuilder,
     int sinceVersion,
   ) async {
@@ -811,7 +901,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i9.SyncPullResponse>);
+                as _i3.Future<_i10.SyncPullResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -819,9 +909,9 @@ class _SyncEndpoint {
     });
   }
 
-  _i3.Future<_i10.SyncPushResponse> syncPush(
+  _i3.Future<_i11.SyncPushResponse> syncPush(
     _i1.TestSessionBuilder sessionBuilder,
-    List<_i11.SyncChange> changes,
+    List<_i12.SyncChange> changes,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -842,7 +932,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i10.SyncPushResponse>);
+                as _i3.Future<_i11.SyncPushResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

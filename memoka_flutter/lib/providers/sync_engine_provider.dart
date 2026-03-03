@@ -7,6 +7,7 @@ import '../local_db/database.dart';
 import '../main.dart';
 import 'channels_provider.dart';
 import 'connection_provider.dart';
+import 'current_channel_provider.dart';
 
 part 'sync_engine_provider.g.dart';
 
@@ -60,6 +61,13 @@ class SyncEngine extends _$SyncEngine {
     // ref.invalidate() would cause channelsAsync.value to return null for
     // one frame, collapsing the navbar Row and producing a ghost-icon flicker.
     await ref.read(channelsProvider.notifier).refreshFromCache();
+
+    // If the app started without a server, currentChannelProvider is stuck in
+    // error state. Now that channels are available, rebuild it so it selects
+    // the first channel.
+    if (ref.read(currentChannelProvider).hasError) {
+      ref.invalidate(currentChannelProvider);
+    }
   }
 
   Future<void> _pullPhase() async {

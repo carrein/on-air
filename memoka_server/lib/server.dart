@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:serverpod/serverpod.dart';
+import 'src/search/search_setup.dart';
 import 'src/settings/archive_purge_service.dart';
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
@@ -87,6 +88,16 @@ void run(List<String> args) async {
   // Created at startup (not via migration) because Serverpod's schema validator
   // can't model singleton tables with CHECK constraints.
   await _ensureAppSettings(pod);
+
+  // Ensure search infrastructure (tsvector, trigram indexes, trigger).
+  // Created at startup (not via migration) because Serverpod's schema validator
+  // can't model tsvector columns or custom triggers.
+  final searchSession = await pod.createSession();
+  try {
+    await SearchSetup.ensureSearchInfrastructure(searchSession);
+  } finally {
+    await searchSession.close();
+  }
 
   // Run archive purge on startup + every hour
   await ArchivePurgeService.runPurge(pod);

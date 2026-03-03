@@ -2,7 +2,7 @@
 
 ## Overview
 
-Server-side retention policy that auto-purges expired archived items. Configurable to Never (default), 30, 60, or 90 days. When enabled, archived notes and channels older than the retention period are permanently tombstoned — media files deleted from disk, DB rows set to `deletedAt`, and WebSocket events broadcast so all clients stay in sync.
+Server-side retention policy that auto-purges expired archived items. Configurable to Never (default), 7, 30, 60, or 90 days. When enabled, archived notes and channels older than the retention period are permanently tombstoned — media files deleted from disk, DB rows set to `deletedAt`, and WebSocket events broadcast so all clients stay in sync.
 
 Default is **0** (Never), preserving current behavior for existing deployments.
 
@@ -130,6 +130,7 @@ When `isArchive == true` (Archive detail mode), a `DropdownButton<int>` appears 
 | Value | Label        |
 |-------|--------------|
 | `0`   | Keep Forever |
+| `7`   | 7 Days       |
 | `30`  | 30 Days      |
 | `60`  | 60 Days      |
 | `90`  | 90 Days      |
