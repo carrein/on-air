@@ -41,6 +41,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   StreamSubscription<html.Event>? _visibilitySubscription;
   StreamSubscription<html.Event>? _onlineSubscription;
+  StreamSubscription<html.KeyboardEvent>? _webKeydownSubscription;
 
   // Register on web and desktop (not mobile where physical keyboard is absent).
   static bool get _useKeyboardHandler =>
@@ -68,6 +69,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _onlineSubscription = html.window.onOnline.listen((_) {
         _kickReconnectIfNeeded();
       });
+      _webKeydownSubscription = html.document.onKeyDown.listen((event) {
+        if (event.key == 'f' && (event.metaKey || event.ctrlKey)) {
+          event.preventDefault();
+          ref.read(globalSearchProvider.notifier).activate();
+        }
+      });
     }
 
     // Eagerly start the sync engine and chat stream so connectivity
@@ -85,6 +92,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     WidgetsBinding.instance.removeObserver(this);
     _visibilitySubscription?.cancel();
     _onlineSubscription?.cancel();
+    _webKeydownSubscription?.cancel();
     if (_useKeyboardHandler) {
       HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
     }
