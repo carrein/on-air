@@ -213,8 +213,11 @@ class _NavbarState extends ConsumerState<Navbar> {
                       icon: mediaPanelVisible
                           ? PhosphorIconsFill.sidebar
                           : PhosphorIcons.sidebar(),
-                      onPressed: () =>
-                          ref.read(mediaPanelVisibleProvider.notifier).toggle(),
+                      onPressed: ResponsiveUtils.isDesktop(context)
+                          ? () => ref
+                                .read(mediaPanelVisibleProvider.notifier)
+                                .toggle()
+                          : _showMediaBottomSheet,
                     ),
                   ),
                   const SizedBox(width: 2),

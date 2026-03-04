@@ -75,6 +75,7 @@ class _ChatViewState extends ConsumerState<ChatView>
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
   int? _highlightedNoteId;
+  bool _highlightGuard = false;
   int? _scrollTargetNoteId;
   int _scrollKeyCounter = 0;
   bool _isDragOver = false;
@@ -101,6 +102,8 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   Future<void> _animateChannelSwitch(int newChannelId) async {
+    if (_scrollTargetNoteId == null) _clearHighlight();
+
     // Direct tap (direction == 0): snap with no animation
     if (ref.read(channelSwitchDirectionProvider) == 0) {
       if (mounted) setState(() => _displayedChannelId = newChannelId);
@@ -165,7 +168,15 @@ class _ChatViewState extends ConsumerState<ChatView>
     });
   }
 
+  void _clearHighlight() {
+    if (_highlightedNoteId != null) {
+      setState(() => _highlightedNoteId = null);
+    }
+  }
+
   void _onScroll() {
+    if (!_highlightGuard) _clearHighlight();
+
     // Load more when the highest visible index is near the end of the list
     final positions = _itemPositionsListener.itemPositions.value;
     if (positions.isEmpty) return;
@@ -197,9 +208,11 @@ class _ChatViewState extends ConsumerState<ChatView>
       _scrollTargetNoteId = noteId;
       _scrollKeyCounter++;
       _highlightedNoteId = noteId;
+      _highlightGuard = true;
     });
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) setState(() => _highlightedNoteId = null);
+    // Ignore scroll events from the jump animation itself.
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      if (mounted) _highlightGuard = false;
     });
   }
 
@@ -339,18 +352,11 @@ class _ChatViewState extends ConsumerState<ChatView>
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 500),
-              decoration: BoxDecoration(
-                color: isHighlighted
-                    ? const Color(0xFFCE2161).withValues(alpha: 0.15)
-                    : Colors.transparent,
-              ),
-              child: NoteItem(
-                note: note,
-                channelId: channelId,
-                allImageUrls: allImageUrls,
-              ),
+            NoteItem(
+              note: note,
+              channelId: channelId,
+              allImageUrls: allImageUrls,
+              isHighlighted: isHighlighted,
             ),
             if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
           ],
