@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/current_channel_provider.dart';
+import 'styled_search_field.dart';
 import '../providers/global_search_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/recent_searches_provider.dart';
@@ -62,6 +63,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
       Future.delayed(const Duration(milliseconds: 200), () {
         if (!_focusNode.hasFocus && mounted) {
           _removeOverlay();
+          ref.read(globalSearchProvider.notifier).deactivate();
         }
       });
     }
@@ -126,18 +128,29 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   }
 
   Widget _buildOverlay() {
+    // Clamp dropdown height to available space below the search bar.
+    final box = context.findRenderObject() as RenderBox?;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final barBottom = box != null
+        ? box.localToGlobal(Offset.zero).dy + box.size.height
+        : 0.0;
+    final available = screenHeight - barBottom - 16; // 16px margin
+    final maxHeight = available.clamp(100.0, 400.0);
+
+    final overlayWidth = box?.size.width ?? 400.0;
+
     return Positioned(
-      width: 400,
+      width: overlayWidth,
       child: CompositedTransformFollower(
         link: _layerLink,
         showWhenUnlinked: false,
-        offset: const Offset(-40, 42),
+        offset: const Offset(0, 42),
         child: Material(
           elevation: 8,
           borderRadius: BorderRadius.circular(12),
           color: _backgroundColor,
           child: Container(
-            constraints: const BoxConstraints(maxHeight: 400),
+            constraints: BoxConstraints(maxHeight: maxHeight),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
@@ -161,6 +174,13 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for external activation (e.g. Cmd+F) and focus the text field.
+    ref.listen(globalSearchProvider, (prev, next) {
+      if (next.isActive && !(prev?.isActive ?? false) && !_focusNode.hasFocus) {
+        _focusNode.requestFocus();
+      }
+    });
+
     return KeyboardListener(
       focusNode: FocusNode(),
       onKeyEvent: (event) {
@@ -173,52 +193,22 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
       child: CompositedTransformTarget(
         link: _layerLink,
         child: SizedBox(
-          width: 320,
-          height: 36,
-          child: TextField(
+          height: 40,
+          child: StyledSearchField(
             controller: _controller,
             focusNode: _focusNode,
-            style: GoogleFonts.spaceGrotesk(
-              color: _textColor,
-              fontSize: 14,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Search...',
-              hintStyle: GoogleFonts.spaceGrotesk(
-                color: _textColor.withValues(alpha: 0.4),
-                fontSize: 14,
-              ),
-              prefixIcon: Icon(
-                PhosphorIcons.magnifyingGlass(),
-                color: _textColor.withValues(alpha: 0.4),
-                size: 18,
-              ),
-              suffixIcon: _controller.text.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(
-                        PhosphorIcons.x(),
-                        size: 16,
-                        color: _textColor,
-                      ),
-                      onPressed: _clearSearch,
-                    )
-                  : null,
-              filled: true,
-              fillColor: Colors.white.withValues(alpha: 0.5),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: _borderColor, width: 1),
-              ),
-            ),
+            hintText: 'Search...',
             onChanged: _onTextChanged,
+            suffixIcon: _controller.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      PhosphorIcons.x(),
+                      size: 16,
+                      color: _textColor,
+                    ),
+                    onPressed: _clearSearch,
+                  )
+                : null,
           ),
         ),
       ),
@@ -266,8 +256,9 @@ class _SearchDropdownContent extends ConsumerWidget {
           );
         }
         final displayResults = results.take(5).toList();
-        return Column(
-          mainAxisSize: MainAxisSize.min,
+        return ListView(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
           children: [
             ...displayResults.map(
               (r) => _SearchResultTile(
@@ -351,9 +342,9 @@ class _SearchDropdownContent extends ConsumerWidget {
         ),
       );
     }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ListView(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),

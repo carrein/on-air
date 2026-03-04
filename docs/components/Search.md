@@ -5,6 +5,7 @@
 Global search across all notes with hybrid FTS + trigram matching. Two UI modes: an inline search bar with dropdown overlay on desktop (>1200px), and a full-screen search view on mobile. Results show channel context, relative timestamps, and content snippets with bold-highlighted match terms. Tapping a result navigates to the note's channel and scrolls to it in context.
 
 **Files**:
+- `memoka_flutter/lib/widgets/styled_search_field.dart` (shared search text field widget)
 - `memoka_flutter/lib/widgets/search_bar_widget.dart` (desktop inline search bar + dropdown)
 - `memoka_flutter/lib/widgets/search_results.dart` (full results list for mobile + "View all")
 - `memoka_flutter/lib/providers/global_search_provider.dart` (search state: active, query, loading)
@@ -28,6 +29,26 @@ Global search across all notes with hybrid FTS + trigram matching. Two UI modes:
 
 ---
 
+## StyledSearchField (shared widget)
+
+**File**: `memoka_flutter/lib/widgets/styled_search_field.dart`
+
+Stateless widget wrapping a `TextField` with shared Memoka search styling. Used by `SearchBarWidget` (desktop), `_MobileSearchInput` (mobile), and `GifPickerSheet`.
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| Background | `#F6F0ED` | Fill color |
+| Border | `#CE2161` | 1px border (all states), cursor, prefix icon |
+| Text | `#00171F` | Input text, hint at 40% alpha |
+
+- Font: Space Grotesk 14px
+- Border radius: zero (sharp corners)
+- Prefix: `PhosphorIcons.magnifyingGlass()` 20px, accent-colored, padding left 12 right 4
+- Suffix: optional, passed by consumer (typically clear button)
+- Props: `controller`, `focusNode`, `hintText`, `onChanged`, `autofocus`, `suffixIcon`
+
+---
+
 ## Desktop: SearchBarWidget
 
 **Widget**: `SearchBarWidget` (ConsumerStatefulWidget)
@@ -35,15 +56,9 @@ Global search across all notes with hybrid FTS + trigram matching. Two UI modes:
 
 ### Search Input
 
-- `SizedBox(width: 320, height: 36)`
-- `TextField` with `OutlineInputBorder`, `borderRadius: 8`
-- Font: Space Grotesk 14px, `_textColor` (`#00171F`)
-- Fill: `Colors.white` at 50% alpha
-- Hint: "Search..." at 40% alpha
-- Prefix: `PhosphorIcons.magnifyingGlass()`, 18px, 40% alpha
-- Suffix: `PhosphorIcons.x()`, 16px — shown only when text is non-empty, clears on tap
-- Focused border: `_borderColor` (`#CE2161`), 1px
-- Unfocused border: none
+- `SizedBox(height: 40)` wrapping `StyledSearchField`
+- Hint: "Search..."
+- Suffix: `PhosphorIcons.x()` 16px — shown only when text is non-empty, clears on tap
 
 ### Dropdown Overlay
 
@@ -88,12 +103,10 @@ When `isMobile && searchState.isActive`:
 ### _MobileSearchInput
 
 - `ConsumerStatefulWidget` in `chat_screen.dart`
+- Uses `StyledSearchField` with `hintText: 'Search notes...'`
 - Auto-focuses on mount, restores existing query if re-mounted
-- Same color scheme as desktop (`_backgroundColor`, `_textColor`, `_borderColor`)
-- Font: Space Grotesk 14px
-- Clear button: `Icons.clear` 18px
-- Focused border: `_borderColor` 1px
-- Border radius: 8
+- Clear button: `Icons.clear` 18px suffix icon, shown when text is non-empty
+- Wrapped in a `Container` with top border and beige background
 
 ### SearchResults Widget
 
@@ -198,6 +211,7 @@ Methods: `activate()`, `deactivate()` (resets to defaults), `setQuery(query)`, `
 
 | File | Purpose |
 |------|---------|
+| `memoka_flutter/lib/widgets/styled_search_field.dart` | Shared search text field widget |
 | `memoka_flutter/lib/widgets/search_bar_widget.dart` | Desktop search bar + dropdown overlay |
 | `memoka_flutter/lib/widgets/search_results.dart` | Full results list (mobile + expanded) |
 | `memoka_flutter/lib/providers/global_search_provider.dart` | Search activation/query state |

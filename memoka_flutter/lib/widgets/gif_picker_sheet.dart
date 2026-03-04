@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../services/klipy_service.dart';
 import 'pink_spinner.dart';
+import 'styled_search_field.dart';
 
 /// Modal bottom sheet for searching and selecting GIFs via the Klipy API.
 ///
@@ -172,45 +173,11 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
               ),
             ),
             // Search field
-            TextField(
+            StyledSearchField(
               controller: _searchController,
               autofocus: true,
-              cursorColor: _accent,
-              style: const TextStyle(color: _text, fontSize: 14),
+              hintText: 'Search GIFs...',
               onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search GIFs...',
-                hintStyle: TextStyle(
-                  color: _text.withValues(alpha: _textMutedAlpha),
-                ),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 4),
-                  child: PhosphorIcon(
-                    PhosphorIcons.magnifyingGlass(),
-                    size: 20,
-                    color: _accent,
-                  ),
-                ),
-                prefixIconConstraints: const BoxConstraints(
-                  minWidth: 0,
-                  minHeight: 0,
-                ),
-                filled: true,
-                fillColor: _surface,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: _accent, width: 1),
-                ),
-                enabledBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: _accent, width: 1),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.zero,
-                  borderSide: BorderSide(color: _accent, width: 1),
-                ),
-              ),
             ),
             const SizedBox(height: 16),
             // Content

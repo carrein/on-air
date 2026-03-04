@@ -203,18 +203,28 @@ class _NavbarState extends ConsumerState<Navbar> {
             ),
             const SizedBox(width: 4),
           ],
-          Expanded(
-            child: _buildTitle(
-              currentChannelAsync,
-              channelsAsync,
-              isShowingSettings,
+          if (isDesktop && !isInDetailMode)
+            Flexible(
+              child: _buildTitle(
+                currentChannelAsync,
+                channelsAsync,
+                isShowingSettings,
+              ),
+            )
+          else
+            Expanded(
+              child: _buildTitle(
+                currentChannelAsync,
+                channelsAsync,
+                isShowingSettings,
+              ),
             ),
-          ),
           if (isArchive) _buildRetentionDropdown(),
           if (!isInDetailMode) ...[
-            // Desktop: inline search bar in the center area
             if (isDesktop) ...[
-              const SearchBarWidget(),
+              const Spacer(),
+              const Expanded(flex: 3, child: SearchBarWidget()),
+              const Spacer(),
               const SizedBox(width: 8),
             ],
             Row(

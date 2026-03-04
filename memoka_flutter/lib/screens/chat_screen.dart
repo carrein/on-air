@@ -26,6 +26,7 @@ import '../providers/connection_provider.dart' as conn;
 import '../providers/sync_engine_provider.dart';
 import '../utils/responsive_utils.dart';
 import '../widgets/search_results.dart';
+import '../widgets/styled_search_field.dart';
 
 /// Main chat screen with sidebar, chat view, and NoteInput.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -69,10 +70,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _onlineSubscription = html.window.onOnline.listen((_) {
         _kickReconnectIfNeeded();
       });
+      // Intercept Cmd+F / Ctrl+F at the DOM level to preventDefault() before
+      // the browser opens its own find-in-page. The actual search activation
+      // is handled by _handleHardwareKey inside Flutter's event loop.
       _webKeydownSubscription = html.document.onKeyDown.listen((event) {
         if (event.key == 'f' && (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
-          ref.read(globalSearchProvider.notifier).activate();
         }
       });
     }
@@ -444,50 +447,28 @@ class _MobileSearchInputState extends ConsumerState<_MobileSearchInput> {
         color: _backgroundColor,
         border: Border(top: BorderSide(color: _borderColor, width: 1)),
       ),
-      child: TextField(
+      child: StyledSearchField(
         controller: _controller,
         focusNode: _focusNode,
-        style: TextStyle(color: _textColor, fontSize: 15),
-        decoration: InputDecoration(
-          hintText: 'Search notes...',
-          hintStyle: TextStyle(
-            color: _textColor.withValues(alpha: 0.4),
-            fontSize: 15,
-          ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: _textColor.withValues(alpha: 0.4),
-            size: 20,
-          ),
-          suffixIcon: _controller.text.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.clear, size: 18, color: _textColor),
-                  onPressed: () {
-                    _controller.clear();
-                    ref.read(globalSearchProvider.notifier).setQuery('');
-                    setState(() {});
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.5),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: _borderColor, width: 1),
-          ),
-        ),
+        hintText: 'Search notes...',
         onChanged: (value) {
           setState(() {});
           _onChanged(value);
         },
+        suffixIcon: _controller.text.isNotEmpty
+            ? IconButton(
+                icon: Icon(
+                  Icons.clear,
+                  size: 18,
+                  color: _textColor,
+                ),
+                onPressed: () {
+                  _controller.clear();
+                  ref.read(globalSearchProvider.notifier).setQuery('');
+                  setState(() {});
+                },
+              )
+            : null,
       ),
     );
   }
