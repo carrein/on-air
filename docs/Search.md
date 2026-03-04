@@ -88,22 +88,43 @@ On first run:
 
 ### searchNotes(session, query, {limit = 20})
 
-Hybrid FTS + trigram search. Returns ranked `List<SearchResult>`.
+Hybrid FTS prefix + unanchored subsequence search. Returns ranked `List<SearchResult>`.
+
+### Matching Rules
+
+Given notes: 1) "Quick", 2) "Quick Brown", 3) "Quick Brown Fox":
+
+| Query | Matches | Why |
+|-------|---------|-----|
+| `Q` | 1,2,3 | Prefix match on "Quick" |
+| `Quick` | 1,2,3 | Exact word match |
+| `Qck` | 1,2,3 | Subsequence Q→c→k in "Quick" |
+| `ick` | 1,2,3 | Unanchored subsequence i→c→k in "Quick" |
+| `uick` | 1,2,3 | Unanchored subsequence u→i→c→k in "Quick" |
+| `Brown` | 2,3 | Exact word match |
+| `Brwn` | 2,3 | Subsequence B→r→w→n in "Brown" |
+| `Fox` | 3 | Exact word match |
+| `Quick Fox` | 1,2,3 | OR logic: matches "Quick" OR "Fox" (note 3 scores highest — matches both) |
+| `QuickBrown` | None | Single token checked per-word; no single word matches that subsequence |
+
+**Core rules**:
+- **Case insensitive**: "quick" matches "Quick"
+- **Unanchored subsequence**: query chars must appear in order within a content word, but can start at any position — "ick" matches "Quick"
+- **Per-word matching**: each query token is checked against individual content words, cannot span across words — "QuickBrown" matches no single word
+- **OR logic**: multi-word queries match notes containing ANY query term; notes matching more terms score higher
+- **Non-alphanumeric = word boundary**: content split on `[^a-zA-Z0-9]+`, so punctuation and markdown syntax (`**bold**`, `[text](url)`) are stripped naturally
+- **No minimum query length**: even single characters trigger search
+- **Ranking**: score DESC (FTS rank * 0.7 + subsequence bonus 0.3), then createdAt DESC as tiebreaker
 
 **Algorithm**:
-1. Trim and truncate query to 200 chars, escape for SQL
-2. **FTS CTE**: JOIN `note_search` on `notes`, filter by `search_vector @@ plainto_tsquery('simple', query)`, rank with `ts_rank()`
-3. **Trigram CTE**: filter by `similarity(notes.content, query) > 0.1`
-4. **Combine**: UNION via LEFT JOIN, score = `fts.rank * 0.7 + trgm.sim * 0.3`
-5. **Snippet**: `ts_headline('simple', content, query, 'MaxWords=35,...,StartSel=<b>,StopSel=</b>')`
-6. Order by score DESC, limit
+1. Trim and truncate query to 200 chars, split into words
+2. **FTS CTE**: prefix match `word1:* | word2:*` via GIN-indexed `search_vector`, ranked by `ts_rank()`
+3. **Subsequence CTE**: split content on `[^a-zA-Z0-9]+`, check each content word against unanchored subsequence regex per query word (OR)
+4. **Combine**: LEFT JOIN both CTEs, score = `fts.rank * 0.7 + (subseq ? 0.3 : 0.0)`
+5. **Snippet**: `ts_headline()` with `<b>` tags for FTS matches; falls back to first 100 chars if no FTS terms
+6. Order by score DESC, createdAt DESC; limit
 
 **Filters**: excludes archived notes, tombstoned notes, archived channels, tombstoned channels.
-
-**Trigram performance note**: The `similarity()` call on `notes.content` runs without a GIN trigram index (can't add one to a tracked table — see schema constraint above). This is a full scan but acceptable at personal-app scale. If performance becomes an issue, options:
-- Add a `content text` column to `note_search` and create `GIN (content gin_trgm_ops)` there (data duplication)
-- Remove trigram entirely and rely on FTS only
-- Wait for [PR #4658](https://github.com/serverpod/serverpod/pull/4658) or [Issue #4743](https://github.com/serverpod/serverpod/issues/4743)
 
 ### getNotesAroundId(session, channelId, noteId, {limit = 25})
 
