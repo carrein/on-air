@@ -18,6 +18,16 @@ import 'package:flutter/material.dart';
 /// )
 /// ```
 class IconButtonStyled extends StatefulWidget {
+  /// Size tiers for consistent icon sizing across the app.
+  /// - **xs (14)**: Inline dismiss buttons (search clear, link preview close)
+  /// - **sm (18)**: In-note controls (audio, document, attachment actions)
+  /// - **md (24)**: Navbar and input bar actions (default)
+  /// - **lg (30)**: Fullscreen overlay controls (lightbox close, navigation)
+  static const double xs = 14;
+  static const double sm = 18;
+  static const double md = 24;
+  static const double lg = 30;
+
   /// The Phosphor icon to display.
   final IconData icon;
 
@@ -27,8 +37,9 @@ class IconButtonStyled extends StatefulWidget {
   /// Icon size in logical pixels. Defaults to 24.
   final double size;
 
-  /// Padding inside the button around the icon. Defaults to 8.
-  final double padding;
+  /// Padding inside the button around the icon.
+  /// If null, scales with icon size: xs=4, sm=6, md=8, lg=8.
+  final double? padding;
 
   /// Icon and border color. Defaults to #CE2161.
   final Color color;
@@ -38,7 +49,7 @@ class IconButtonStyled extends StatefulWidget {
     required this.icon,
     required this.onPressed,
     this.size = 24,
-    this.padding = 8,
+    this.padding,
     this.color = const Color(0xFFCE2161),
   });
 
@@ -54,6 +65,13 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
   Widget build(BuildContext context) {
     final enabled = widget.onPressed != null;
     final active = enabled && (_isHovered || _isPressed);
+    final effectivePadding =
+        widget.padding ??
+        (widget.size <= IconButtonStyled.xs
+            ? 5.0
+            : widget.size <= IconButtonStyled.sm
+            ? 6.0
+            : 8.0);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -70,11 +88,11 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
             shape: BoxShape.circle,
             border: Border.all(
               color: active ? widget.color : Colors.transparent,
-              width: 1.5,
+              width: widget.size <= IconButtonStyled.sm ? 1.0 : 1.5,
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(widget.padding),
+            padding: EdgeInsets.all(effectivePadding),
             child: Icon(
               widget.icon,
               color: enabled

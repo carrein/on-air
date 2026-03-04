@@ -19,6 +19,10 @@ class Notes extends _$Notes {
   bool _hasMore = true;
   bool _isLoadingMore = false;
 
+  /// When set, the provider is in "around note" mode (from search jump).
+  /// Sync refresh will reload around this anchor instead of latest notes.
+  int? _aroundNoteAnchor;
+
   /// Negative IDs for provisional offline-created notes.
   /// Use timestamp-based starting point so IDs are unique across app restarts
   /// (avoids primary key conflicts in the CachedNotes table).
@@ -56,16 +60,21 @@ class Notes extends _$Notes {
 
     // 2. Always try to fetch from server; fall back to cache if unreachable.
     try {
+      if (_aroundNoteAnchor != null) {
+        await loadAroundNote(_aroundNoteAnchor!);
+        return _notes;
+      }
       final serverNotes = await _loadInitialNotes(channelId);
 
       await db.cacheNotes(channelId, serverNotes);
       return serverNotes;
-    } catch (_) {
+    } catch (e) {
       return _notes;
     }
   }
 
   Future<List<Note>> _loadInitialNotes(int channelId) async {
+    _aroundNoteAnchor = null;
     final serverNotes = await client.chat.getNotes(channelId, limit: 50);
 
     // Preserve provisional notes (negative IDs) that are dirty in the cache.
@@ -176,6 +185,10 @@ class Notes extends _$Notes {
   /// Uses the larger of 50 (default page) or the current list size so that
   /// scroll position is preserved when the user had loaded additional pages.
   Future<void> _refreshFromCache() async {
+    // In "around note" mode (search jump), skip refresh — the user is viewing
+    // historical context that shouldn't be disrupted by sync.
+    if (_aroundNoteAnchor != null) return;
+
     final db = ref.read(appDatabaseProvider);
     final limit = _notes.length > 50 ? _notes.length : 50;
     final cached = await db.getCachedNotes(channelId, limit: limit);
@@ -205,6 +218,7 @@ class Notes extends _$Notes {
       );
       _notes = notes;
       _hasMore = true;
+      _aroundNoteAnchor = noteId;
       if (notes.isNotEmpty) {
         _oldestNoteId = notes.last.id;
       }

@@ -61,7 +61,7 @@ final class SyncEngineProvider extends $NotifierProvider<SyncEngine, bool> {
   }
 }
 
-String _$syncEngineHash() => r'6f2b30336cf120d6e1454bce0c3acccea5cfb594';
+String _$syncEngineHash() => r'101802acd771f32ea34b762767bfc9dbe8a1238e';
 
 /// Pull-then-push sync engine driven by connectivity transitions.
 ///

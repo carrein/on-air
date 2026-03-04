@@ -328,7 +328,10 @@ Future<void> _seedDemo(Session session) async {
   await Channel.db.updateRow(session, todos);
   print('   ✓ 5 notes');
 
-  print('\n✅ Demo seeded! 3 channels, 26 notes, 6 images.');
+  // Seed the Search channel in demo mode too
+  await _seedSearchChannel(session);
+
+  print('\n✅ Demo seeded! 4 channels, 66+ notes, 6 images.');
 }
 
 // ── Full / load-test seed ────────────────────────────────────────────────────
@@ -433,7 +436,98 @@ Future<void> _seedFull(Session session) async {
     }
   }
 
+  // Seed the Search channel in full mode too
+  await _seedSearchChannel(session);
+
   print(
-    '\n✅ Full seed done! ${createdChannels.length} channels, $totalNotes notes.',
+    '\n✅ Full seed done! ${createdChannels.length + 1} channels, $totalNotes+ notes.',
   );
+}
+
+// ── Search seed ──────────────────────────────────────────────────────────────
+
+Future<void> _seedSearchChannel(Session session) async {
+  print('\n🔍 Creating Search channel...');
+
+  final channel = await Channel.db.insertRow(
+    session,
+    Channel(name: 'Search', emoji: 'magnifyingGlass'),
+  );
+  print('   ✓ ${channel.name} (${channel.emoji})');
+
+  final now = DateTime.now();
+  var minutesAgo = 4000;
+
+  Future<void> addNote(String content) async {
+    final note = Note(channelId: channel.id!, content: content);
+    note.createdAt = now.subtract(Duration(minutes: minutesAgo));
+    await Note.db.insertRow(session, note);
+    minutesAgo -= 100;
+  }
+
+  // Core matching
+  await addNote('Quick');
+  await addNote('Quick Brown');
+  await addNote('Quick Brown Fox');
+  await addNote('quick lowercase');
+  await addNote('UPPERCASE QUICK');
+  await addNote('QuickBrown single token');
+  await addNote('A');
+  await addNote('repeated repeated repeated word');
+
+  // Word boundaries (non-alphanumeric splits)
+  await addNote('The **bold** markdown');
+  await addNote('Check [link](https://example.com) here');
+  await addNote('hyphen-separated words-here');
+  await addNote('under_score_test');
+  await addNote('dot.separated.words');
+  await addNote('slash/separated/path');
+  await addNote('comma,separated,values');
+  await addNote('Special chars: @#\$% between words');
+  await addNote('Code block: `const x = 42;` inline');
+  await addNote('emoji 🎉 celebration 🚀 rocket');
+  await addNote('parentheses (grouped) content [bracketed] stuff');
+  await addNote('colon:value semicolon;value equals=value');
+
+  // Content types
+  await addNote(
+    'Meeting notes from Monday about project planning and timeline review',
+  );
+  await addNote('flutter dart serverpod framework backend');
+  await addNote('TODO: buy groceries, call dentist, fix bike');
+  await addNote('https://flutter.dev and https://dart.dev are useful');
+  await addNote('Error: NullPointerException at line 42 in main.dart');
+  await addNote('SELECT * FROM users WHERE id = 1 ORDER BY name');
+  await addNote('def hello_world():\n  print("Hello World")');
+  await addNote('{ "key": "value", "nested": { "deep": true } }');
+  await addNote('The quick brown fox jumps over the lazy dog');
+
+  // Numeric and special
+  await addNote('123 numeric 456 content 789');
+  await addNote('version 3.14.159 release');
+  await addNote('café résumé naïve');
+  await addNote('x]');
+  await addNote('a.*b+c?d');
+  await addNote("'single quotes' and \"double quotes\"");
+
+  // Edge cases
+  await addNote('');
+  await addNote('   ');
+  await addNote(
+    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '
+    'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. '
+    'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris '
+    'nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in '
+    'reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla '
+    'pariatur. Excepteur sint occaecat cupidatat non proident, sunt in '
+    'culpa qui officia deserunt mollit anim id est laborum. Curabitur '
+    'pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, '
+    'turpis et commodo pharetra, est eros bibendum elit.',
+  );
+  await addNote('a b c d e f g h i j k l m n o p');
+  await addNote('Supercalifragilisticexpialidocious');
+
+  channel.updatedAt = now;
+  await Channel.db.updateRow(session, channel);
+  print('   ✓ 40 search test notes');
 }

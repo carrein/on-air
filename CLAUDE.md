@@ -179,21 +179,16 @@ flutter build web --dart-define=APP_VERSION=$(git describe --tags --abbrev=0) --
 From `memoka_server/`:
 
 ```bash
-# Demo seed — 3 channels with sample text, links, and images
-dart run bin/seed_demo.dart
-
-# Full seed — 26 channels, 500+ notes (load testing)
+# Seed — 26+ channels, 500+ notes (load testing) + Search channel
 dart run bin/seed.dart
 ```
 
 Both scripts prompt for confirmation before wiping all data (channels, notes, media files).
 
-Demo seed assets live in `memoka_server/fixtures/demo/` (6 splash art PNGs). The seed copies them into `data/media/channels/{id}/` with UUID filenames and creates matching `MediaAttachment` records.
+The seed script prompts for confirmation before wiping all data (channels, notes, media files). The Search channel (~40 notes) is included in both demo and full modes for dogfooding the search feature.
 
 **Directory layout:**
 - `bin/seed.dart` — load-test seed (executable)
-- `bin/seed_demo.dart` — demo seed (executable)
-- `fixtures/demo/` — image assets consumed by demo seed
 
 ### Testing
 

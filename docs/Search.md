@@ -132,6 +132,48 @@ Loads notes surrounding a specific note for jump-to-context. Returns ~`limit` no
 
 ---
 
+## Navbar Search Bar Layout
+
+The search bar is embedded in the navbar as part of a three-column layout on non-mobile screens (>= 768px). On mobile (< 768px), a magnifying glass icon button activates the full-screen search mode instead.
+
+### Three-Column Layout (>= 768px, standard mode only)
+
+```
+[ConstrainedBox 224px: title] [Expanded: SearchBarWidget] [16px gap] [SizedBox: actions]
+```
+
+| Column | Width | Contents |
+|--------|-------|----------|
+| Title | `maxWidth: 224px` | Channel icon + name (same as pre-search, but constrained) |
+| Search | `Expanded` | `SearchBarWidget` fills all remaining horizontal space |
+| Gap | `16px` | Fixed `SizedBox(width: 16)` spacer |
+| Actions | `316px` or shrink-to-fit | Pin, media panel toggle, new channel, sync, menu |
+
+### Width Calculations
+
+- **Title 224px** = sidebar width (240px) minus navbar left padding (16px). This aligns the search bar's left edge with the sidebar/content boundary below.
+- **Actions 316px** = applied only when `isDesktop` (>= 1200px) AND `mediaPanelVisible`. This aligns the actions block with the 340px media panel below (340px minus ~24px for padding alignment). When the media panel is hidden or on tablet widths, the actions SizedBox has no fixed width (`width: null`) and shrinks to fit its children (`MainAxisSize.min`).
+- **Search `Expanded`** = absorbs all remaining space between title and actions, providing a natural center-weighted position.
+
+### Responsive Behavior
+
+| Breakpoint | Search UI | Actions width |
+|------------|-----------|---------------|
+| >= 1200px (desktop), panel visible | Inline `SearchBarWidget` in navbar | Fixed 316px (aligns with media panel) |
+| >= 1200px (desktop), panel hidden | Inline `SearchBarWidget` in navbar | Shrink-to-fit |
+| 768-1199px (tablet) | Inline `SearchBarWidget` in navbar | Shrink-to-fit |
+| < 768px (mobile) | Magnifying glass icon button | N/A (flat action row) |
+
+### Mode Exclusions
+
+The three-column search layout is only rendered in **standard mode** (viewing a real channel). It is hidden in:
+
+- **Detail mode** (settings or archive): back button + plain title + optional retention dropdown
+- **Selection mode**: count label + archive/cancel buttons
+- **Mobile search mode**: handled by `chat_screen.dart` -- `SearchResults` replaces `ChatView`, `_MobileSearchInput` replaces `NoteInput`
+
+---
+
 ## Related Files
 
 | File | Purpose |
@@ -145,3 +187,27 @@ Loads notes surrounding a specific note for jump-to-context. Returns ~`limit` no
 | `memoka_flutter/lib/providers/recent_searches_provider.dart` | Search history |
 | `memoka_flutter/lib/widgets/search_bar_widget.dart` | Search input UI |
 | `memoka_flutter/lib/widgets/search_results.dart` | Results list UI |
+
+---
+
+## Testing
+
+### Seed Data
+
+Both demo and full seed modes include a "Search" channel (`magnifyingGlass` emoji) with ~40 crafted notes covering all matching rules: core matching, word boundaries, content types, numeric/special, and edge cases. Run `dart run bin/seed.dart` from `memoka_server/`.
+
+### Integration Tests
+
+`memoka_server/test/integration/search_endpoint_test.dart` — uses `withServerpod()` pattern with `rollbackDatabase: RollbackDatabase.afterAll`. Tests call `SearchSetup.ensureSearchInfrastructure` in `setUpAll` since the test framework doesn't execute `server.dart`'s startup code.
+
+Groups:
+- **Basic matching**: empty/whitespace query, exact/prefix/subsequence/unanchored/case-insensitive
+- **Multi-word & OR logic**: OR matching, ranking, per-word no cross-span
+- **Word boundaries**: markdown bold/link, hyphen, underscore, dot, slash, comma, parentheses, backtick
+- **Special content**: numeric, regex metacharacters (content + query), long content, JSON, SQL, URLs
+- **Filtering**: excludes archived notes, archived channels; includes visible notes
+- **Limits & edge cases**: custom limit, limit=1, 200-char truncation, duplicate words, empty content
+- **Snippets**: `<b>` tag presence, truncation for long notes
+- **getNotesAroundId**: surrounding notes, channelId filter, ordering
+
+Run: `dart test` from `memoka_server/`.

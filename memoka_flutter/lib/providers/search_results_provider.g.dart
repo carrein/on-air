@@ -66,7 +66,7 @@ final class SearchResultsProvider
   }
 }
 
-String _$searchResultsHash() => r'dd06f477bc79431b5df9f9aa12aeea6c319df55c';
+String _$searchResultsHash() => r'e6b652bb3a10e8174d66a8ae1c8fa86cb9fbe710';
 
 final class SearchResultsFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<SearchResult>>, String> {

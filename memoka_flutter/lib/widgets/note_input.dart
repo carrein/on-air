@@ -48,7 +48,6 @@ class _NoteInputState extends ConsumerState<NoteInput> {
   static const _fieldContentPadding = EdgeInsets.zero;
   static const _iconGap = 2.0;
   static const _fieldBorderRadius = 0.0; // no border radius
-  static const _iconSize = 24.0;
 
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -177,13 +176,11 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                 IconButtonStyled(
                   icon: PhosphorIcons.xCircle(),
                   onPressed: _cancelEditing,
-                  size: _iconSize,
                 ),
                 const SizedBox(width: 4),
                 IconButtonStyled(
                   icon: PhosphorIcons.highlighter(),
                   onPressed: _submit,
-                  size: _iconSize,
                   color: _controller.text.trim().isEmpty
                       ? _iconColor.withValues(alpha: _iconDisabledAlpha)
                       : _iconColor,
@@ -258,8 +255,6 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                   : IconButtonStyled(
                       icon: PhosphorIcons.camera(),
                       onPressed: _capturePhoto,
-
-                      size: _iconSize,
                     ),
             ),
           ),
@@ -284,7 +279,6 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                   : IconButtonStyled(
                       icon: PhosphorIcons.cat(),
                       onPressed: _pickGif,
-                      size: _iconSize,
                     ),
             ),
           ),
@@ -309,15 +303,11 @@ class _NoteInputState extends ConsumerState<NoteInput> {
                   key: const ValueKey('send'),
                   icon: PhosphorIcons.paperPlaneRight(),
                   onPressed: _submit,
-
-                  size: _iconSize,
                 )
               : IconButtonStyled(
                   key: const ValueKey('attach'),
                   icon: PhosphorIcons.paperclip(),
                   onPressed: _pickFile,
-
-                  size: _iconSize,
                 ),
         ),
       ],

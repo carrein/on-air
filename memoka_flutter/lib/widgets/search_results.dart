@@ -40,23 +40,26 @@ class SearchResults extends ConsumerWidget {
       data: (results) {
         if (results.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  PhosphorIcons.magnifyingGlass(),
-                  size: 48,
-                  color: _textColor.withValues(alpha: 0.15),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  "No results for '$query'",
-                  style: GoogleFonts.spaceGrotesk(
-                    color: _textColor.withValues(alpha: 0.5),
-                    fontSize: 15,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    PhosphorIcons.magnifyingGlass(),
+                    size: 48,
+                    color: _textColor.withValues(alpha: 0.15),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    "No results for '$query'",
+                    style: GoogleFonts.spaceGrotesk(
+                      color: _textColor.withValues(alpha: 0.5),
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -76,30 +79,36 @@ class SearchResults extends ConsumerWidget {
         );
       },
       loading: () => const Center(
-        child: SizedBox(
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         ),
       ),
       error: (e, _) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              PhosphorIcons.warning(),
-              size: 48,
-              color: _textColor.withValues(alpha: 0.15),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Search error',
-              style: GoogleFonts.spaceGrotesk(
-                color: _textColor.withValues(alpha: 0.5),
-                fontSize: 15,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                PhosphorIcons.warning(),
+                size: 48,
+                color: _textColor.withValues(alpha: 0.15),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                'Search error',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _textColor.withValues(alpha: 0.5),
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -109,23 +118,26 @@ class SearchResults extends ConsumerWidget {
     final recent = ref.watch(recentSearchesProvider);
     if (recent.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              PhosphorIcons.magnifyingGlass(),
-              size: 48,
-              color: _textColor.withValues(alpha: 0.15),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Start typing to search notes',
-              style: GoogleFonts.spaceGrotesk(
-                color: _textColor.withValues(alpha: 0.5),
-                fontSize: 15,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                PhosphorIcons.magnifyingGlass(),
+                size: 48,
+                color: _textColor.withValues(alpha: 0.15),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                'Start typing to search notes',
+                style: GoogleFonts.spaceGrotesk(
+                  color: _textColor.withValues(alpha: 0.5),
+                  fontSize: 15,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -270,17 +282,17 @@ class _SearchResultTile extends ConsumerWidget {
     );
   }
 
-  void _onTap(WidgetRef ref) {
+  void _onTap(WidgetRef ref) async {
     final q = query.trim();
     if (q.isNotEmpty) {
       ref.read(recentSearchesProvider.notifier).add(q);
     }
     ref.read(globalSearchProvider.notifier).deactivate();
-    ref.read(currentChannelProvider.notifier).switchChannel(result.channelId);
-    // Load notes centered around the target so the chat view can scroll to it.
-    ref
+    // Load notes centered around the target so data is ready when the list builds.
+    await ref
         .read(notesProvider(result.channelId).notifier)
         .loadAroundNote(result.noteId);
     ref.read(scrollToNoteProvider.notifier).state = result.noteId;
+    ref.read(currentChannelProvider.notifier).switchChannel(result.channelId);
   }
 }

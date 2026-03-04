@@ -157,7 +157,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                   Navigator.of(context).pop();
                 },
                 color: Colors.white,
-                size: 28,
+                size: IconButtonStyled.lg,
               ),
             ),
             // Navigation arrows (desktop)
@@ -172,7 +172,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                       icon: PhosphorIcons.caretLeft(),
                       onPressed: () => _goTo(_currentIndex - 1),
                       color: Colors.white70,
-                      size: 36,
+                      size: IconButtonStyled.lg,
                     ),
                   ),
                 ),
@@ -186,7 +186,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                       icon: PhosphorIcons.caretRight(),
                       onPressed: () => _goTo(_currentIndex + 1),
                       color: Colors.white70,
-                      size: 36,
+                      size: IconButtonStyled.lg,
                     ),
                   ),
                 ),

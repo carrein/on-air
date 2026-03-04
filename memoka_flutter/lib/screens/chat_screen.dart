@@ -141,6 +141,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     if (event.logicalKey == LogicalKeyboardKey.keyF &&
         (HardwareKeyboard.instance.isMetaPressed ||
             HardwareKeyboard.instance.isControlPressed)) {
+      // Dismiss any open overlays (lightbox, GIF picker, etc.)
+      if (ModalRoute.of(context)?.isCurrent == false) {
+        Navigator.of(context).pop();
+      }
       ref.read(globalSearchProvider.notifier).activate();
       return true;
     }

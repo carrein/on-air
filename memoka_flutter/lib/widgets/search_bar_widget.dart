@@ -6,10 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/current_channel_provider.dart';
+import 'icon_button_styled.dart';
 import 'styled_search_field.dart';
 import '../providers/global_search_provider.dart';
 import '../providers/notes_provider.dart';
-import '../providers/recent_searches_provider.dart';
 import '../providers/scroll_to_note_provider.dart';
 import '../providers/search_results_provider.dart';
 import '../utils/icon_utils.dart';
@@ -36,7 +36,6 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
 
   static const _backgroundColor = Color(0xFFF6F0ED);
   static const _borderColor = Color(0xFFCE2161);
-  static const _textColor = Color(0xFF00171F);
 
   @override
   void initState() {
@@ -57,7 +56,10 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
       ref.read(globalSearchProvider.notifier).activate();
-      _showOverlay();
+      // Only show overlay if there's already a query with results
+      if (_controller.text.trim().isNotEmpty) {
+        _showOverlay();
+      }
     } else {
       // Delay removal so tap on overlay item registers first.
       Future.delayed(const Duration(milliseconds: 200), () {
@@ -87,12 +89,17 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   void _onTextChanged(String value) {
     ref.read(globalSearchProvider.notifier).setQuery(value);
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
+    if (value.trim().isEmpty) {
+      _removeOverlay();
+    } else {
+      _showOverlay();
+      _debounce = Timer(const Duration(milliseconds: 300), () {
+        _updateOverlay();
+      });
       _updateOverlay();
-    });
+    }
     // Update suffix icon immediately.
     setState(() {});
-    _updateOverlay();
   }
 
   void _clearSearch() {
@@ -102,29 +109,15 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
     _updateOverlay();
   }
 
-  void _selectResult(SearchResult result) {
-    final query = _controller.text.trim();
-    if (query.isNotEmpty) {
-      ref.read(recentSearchesProvider.notifier).add(query);
-    }
+  void _selectResult(SearchResult result) async {
     ref.read(globalSearchProvider.notifier).deactivate();
-    ref.read(currentChannelProvider.notifier).switchChannel(result.channelId);
-    ref
+    await ref
         .read(notesProvider(result.channelId).notifier)
         .loadAroundNote(result.noteId);
     ref.read(scrollToNoteProvider.notifier).state = result.noteId;
+    ref.read(currentChannelProvider.notifier).switchChannel(result.channelId);
     _controller.clear();
     _focusNode.unfocus();
-  }
-
-  void _selectRecentQuery(String query) {
-    _controller.text = query;
-    _controller.selection = TextSelection.collapsed(
-      offset: _controller.text.length,
-    );
-    ref.read(globalSearchProvider.notifier).setQuery(query);
-    _updateOverlay();
-    setState(() {});
   }
 
   Widget _buildOverlay() {
@@ -144,26 +137,25 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
       child: CompositedTransformFollower(
         link: _layerLink,
         showWhenUnlinked: false,
-        offset: const Offset(0, 42),
+        offset: const Offset(0, 44),
         child: Material(
           elevation: 8,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.zero,
           color: _backgroundColor,
           child: Container(
             constraints: BoxConstraints(maxHeight: maxHeight),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.zero,
               border: Border.all(
                 color: _borderColor.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.zero,
               child: _SearchDropdownContent(
                 query: _controller.text.trim(),
                 onSelectResult: _selectResult,
-                onSelectRecent: _selectRecentQuery,
               ),
             ),
           ),
@@ -198,15 +190,16 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
             controller: _controller,
             focusNode: _focusNode,
             hintText: 'Search...',
+            hideBorderUntilActive: true,
             onChanged: _onTextChanged,
             suffixIcon: _controller.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(
-                      PhosphorIcons.x(),
-                      size: 16,
-                      color: _textColor,
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: IconButtonStyled(
+                      icon: PhosphorIcons.x(),
+                      onPressed: _clearSearch,
+                      size: IconButtonStyled.xs,
                     ),
-                    onPressed: _clearSearch,
                   )
                 : null,
           ),
@@ -220,12 +213,10 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
 class _SearchDropdownContent extends ConsumerWidget {
   final String query;
   final ValueChanged<SearchResult> onSelectResult;
-  final ValueChanged<String> onSelectRecent;
 
   const _SearchDropdownContent({
     required this.query,
     required this.onSelectResult,
-    required this.onSelectRecent,
   });
 
   static const _textColor = Color(0xFF00171F);
@@ -234,7 +225,7 @@ class _SearchDropdownContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (query.isEmpty) {
-      return _buildRecentSearches(context, ref);
+      return const SizedBox.shrink();
     }
 
     final resultsAsync = ref.watch(searchResultsProvider(query));
@@ -323,70 +314,6 @@ class _SearchDropdownContent extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildRecentSearches(BuildContext context, WidgetRef ref) {
-    final recent = ref.watch(recentSearchesProvider);
-    if (recent.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Text(
-            'Start typing to search notes',
-            style: GoogleFonts.spaceGrotesk(
-              color: _textColor.withValues(alpha: 0.5),
-              fontSize: 14,
-            ),
-          ),
-        ),
-      );
-    }
-    return ListView(
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Text(
-            'Recent searches',
-            style: GoogleFonts.spaceGrotesk(
-              color: _textColor.withValues(alpha: 0.5),
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        ...recent.map(
-          (q) => InkWell(
-            onTap: () => onSelectRecent(q),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    PhosphorIcons.clockCounterClockwise(),
-                    size: 16,
-                    color: _textColor.withValues(alpha: 0.4),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      q,
-                      style: GoogleFonts.spaceGrotesk(
-                        color: _textColor,
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-      ],
     );
   }
 }

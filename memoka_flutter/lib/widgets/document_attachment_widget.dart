@@ -148,13 +148,13 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
       IconButtonStyled(
         icon: PhosphorIcons.eye(),
         onPressed: _handleWebPreview,
-        size: 20,
+        size: IconButtonStyled.sm,
       ),
       const SizedBox(width: 4),
       IconButtonStyled(
         icon: PhosphorIcons.downloadSimple(),
         onPressed: _handleWebDownload,
-        size: 20,
+        size: IconButtonStyled.sm,
       ),
     ];
   }
@@ -184,13 +184,13 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
         IconButtonStyled(
           icon: PhosphorIcons.eye(),
           onPressed: _handleOpen,
-          size: 20,
+          size: IconButtonStyled.sm,
         ),
         const SizedBox(width: 4),
         IconButtonStyled(
           icon: PhosphorIcons.floppyDisk(),
           onPressed: _handleSave,
-          size: 20,
+          size: IconButtonStyled.sm,
         ),
       ];
     }
@@ -200,7 +200,7 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
         IconButtonStyled(
           icon: PhosphorIcons.x(),
           onPressed: _cancelDownload,
-          size: 20,
+          size: IconButtonStyled.sm,
         ),
       ];
     }
@@ -209,7 +209,7 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
       IconButtonStyled(
         icon: PhosphorIcons.downloadSimple(),
         onPressed: _startDownload,
-        size: 20,
+        size: IconButtonStyled.sm,
       ),
     ];
   }

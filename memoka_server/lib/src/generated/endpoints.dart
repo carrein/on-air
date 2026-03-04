@@ -401,6 +401,11 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'channelId': _i1.ParameterDescription(
+              name: 'channelId',
+              type: _i1.getType<int?>(),
+              nullable: true,
+            ),
             'limit': _i1.ParameterDescription(
               name: 'limit',
               type: _i1.getType<int>(),
@@ -415,6 +420,7 @@ class Endpoints extends _i1.EndpointDispatch {
                   (endpoints['search'] as _i4.SearchEndpoint).searchNotes(
                     session,
                     params['query'],
+                    channelId: params['channelId'],
                     limit: params['limit'],
                   ),
         ),

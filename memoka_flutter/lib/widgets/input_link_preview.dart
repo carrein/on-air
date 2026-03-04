@@ -65,7 +65,7 @@ class InputLinkPreview extends StatelessWidget {
           IconButtonStyled(
             icon: PhosphorIcons.x(),
             onPressed: onDismiss,
-            size: 18,
+            size: IconButtonStyled.sm,
             padding: 6,
           ),
         ],

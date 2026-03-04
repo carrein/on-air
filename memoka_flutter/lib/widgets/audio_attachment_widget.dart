@@ -326,7 +326,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                             ? PhosphorIcons.pause()
                             : PhosphorIcons.play(),
                         onPressed: _togglePlay,
-                        size: 22,
+                        size: IconButtonStyled.sm,
                       ),
                       Expanded(
                         child: SliderTheme(
@@ -384,7 +384,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                             );
                           }
                         },
-                        size: 20,
+                        size: IconButtonStyled.sm,
                       ),
                       const SizedBox(width: 4),
                       IconButtonStyled(
@@ -394,7 +394,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                         onPressed: _isDownloading
                             ? _cancelDownload
                             : () => _handleDownload(context),
-                        size: 20,
+                        size: IconButtonStyled.sm,
                       ),
                     ],
                   ),

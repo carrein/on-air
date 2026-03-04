@@ -82,13 +82,24 @@ The circular border is transparent by default, animating to `color @ 50%` on hov
 | Hover border | `color @ 50%` | Circle border on hover |
 | Press border | `color @ 100%` | Circle border on press |
 
+### Size Tiers
+
+Named constants on `IconButtonStyled` for consistent sizing across the app:
+
+| Constant | Value | Usage |
+|----------|-------|-------|
+| `IconButtonStyled.xs` | 14px | Inline dismiss buttons (search clear, link preview close) |
+| `IconButtonStyled.sm` | 18px | In-note controls (audio, document, attachment actions) |
+| `IconButtonStyled.md` | 24px | Navbar and input bar actions (default -- no explicit size needed) |
+| `IconButtonStyled.lg` | 30px | Fullscreen overlay controls (lightbox close, navigation) |
+
 ### Dimensions
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | Icon size | 24px | Default icon size |
 | Padding | 8px | Space inside button around icon |
-| Total hit target | 40x40px | Icon (24) + padding (8×2) |
+| Total hit target | 40x40px | Icon (24) + padding (8x2) |
 
 ## Icon Utilities (`icon_utils.dart`)
 

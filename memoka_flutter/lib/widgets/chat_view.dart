@@ -75,6 +75,8 @@ class _ChatViewState extends ConsumerState<ChatView>
   final ItemPositionsListener _itemPositionsListener =
       ItemPositionsListener.create();
   int? _highlightedNoteId;
+  int? _scrollTargetNoteId;
+  int _scrollKeyCounter = 0;
   bool _isDragOver = false;
 
   // Channel switch animation
@@ -190,29 +192,12 @@ class _ChatViewState extends ConsumerState<ChatView>
     }
   }
 
-  void _scrollToNote(int noteId) {
-    final channelId = ref.read(currentChannelProvider).value;
-    if (channelId == null) return;
-    final notes = ref.read(notesProvider(channelId)).value;
-    if (notes == null) return;
-
-    final pending = ref
-        .read(pendingUploadsProvider)
-        .where((p) => p.channelId == channelId)
-        .toList();
-
-    final index = notes.indexWhere((n) => n.id == noteId);
-    if (index == -1) return;
-
-    _itemScrollController.scrollTo(
-      index: index + pending.length,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-      alignment: 0.0,
-    );
-
-    // Highlight the note briefly
-    setState(() => _highlightedNoteId = noteId);
+  void _setScrollTarget(int noteId) {
+    setState(() {
+      _scrollTargetNoteId = noteId;
+      _scrollKeyCounter++;
+      _highlightedNoteId = noteId;
+    });
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _highlightedNoteId = null);
     });
@@ -263,100 +248,114 @@ class _ChatViewState extends ConsumerState<ChatView>
         .where((p) => p.channelId == channelId)
         .toList();
 
-    return notesAsync.when(
-      data: (allNotes) {
-        // Filter out notes that already have an "uploaded" ghost note to
-        // prevent duplicates during the brief overlap window.
-        final uploadedNoteIds = pending
-            .where(
-              (p) =>
-                  p.status == UploadStatus.uploaded && p.serverNoteId != null,
-            )
-            .map((p) => p.serverNoteId!)
-            .toSet();
-        final notes = uploadedNoteIds.isEmpty
-            ? allNotes
-            : allNotes.where((n) => !uploadedNoteIds.contains(n.id)).toList();
+    // Use .value so the list stays mounted during background reloads
+    // (e.g. tab-switch reconnect), preserving scroll position.
+    final allNotes = notesAsync.value;
+    if (allNotes == null) {
+      if (notesAsync.isLoading) return Center(child: PinkSpinner());
+      return const Center(
+        child: Text('Unable to load notes. Check your connection.'),
+      );
+    }
 
-        if (notes.isEmpty && pending.isEmpty) {
-          return const Center(
-            child: _EmptyStateBox(
-              icon: PhosphorIconsRegular.empty,
-              message: 'It\'s quiet in here...',
-            ),
+    // Filter out notes that already have an "uploaded" ghost note to
+    // prevent duplicates during the brief overlap window.
+    final uploadedNoteIds = pending
+        .where(
+          (p) => p.status == UploadStatus.uploaded && p.serverNoteId != null,
+        )
+        .map((p) => p.serverNoteId!)
+        .toSet();
+    final notes = uploadedNoteIds.isEmpty
+        ? allNotes
+        : allNotes.where((n) => !uploadedNoteIds.contains(n.id)).toList();
+
+    if (notes.isEmpty && pending.isEmpty) {
+      return const Center(
+        child: _EmptyStateBox(
+          icon: PhosphorIconsRegular.empty,
+          message: 'It\'s quiet in here...',
+        ),
+      );
+    }
+
+    final allImageUrls = notes.reversed
+        .expand(
+          (n) => (n.attachments ?? [])
+              .where((a) => a.mimeType.toLowerCase().startsWith('image/'))
+              .map(
+                (a) => FileUtils.buildMediaUrl(
+                  serverUrl,
+                  a.filePath,
+                  a.contentHash,
+                ),
+              ),
+        )
+        .toList();
+
+    // Total items = pending ghost notes + real notes.
+    // In the reversed list, index 0 is the bottom (newest).
+    // Pending uploads occupy indices 0..<pending.length>,
+    // real notes occupy indices pending.length..<totalItems>.
+    final totalItems = notes.length + pending.length;
+
+    // If a scroll target was requested, start the list at that index.
+    int initialScrollIndex = 0;
+    if (_scrollTargetNoteId != null) {
+      final idx = notes.indexWhere((n) => n.id == _scrollTargetNoteId);
+      if (idx != -1) {
+        initialScrollIndex = idx + pending.length;
+      }
+      _scrollTargetNoteId = null;
+    }
+
+    return ScrollablePositionedList.builder(
+      key: ValueKey(_scrollKeyCounter),
+      initialScrollIndex: initialScrollIndex,
+      initialAlignment: initialScrollIndex > 0 ? 0.33 : 0.0,
+      itemScrollController: _itemScrollController,
+      itemPositionsListener: _itemPositionsListener,
+      physics: const ClampingScrollPhysics(),
+      reverse: true,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      itemCount: totalItems,
+      itemBuilder: (context, index) {
+        // Pending ghost notes at bottom (lowest indices in reversed list)
+        if (index < pending.length) {
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: PendingNoteWidget(upload: pending[index]),
           );
         }
 
-        final allImageUrls = notes.reversed
-            .expand(
-              (n) => (n.attachments ?? [])
-                  .where((a) => a.mimeType.toLowerCase().startsWith('image/'))
-                  .map(
-                    (a) => FileUtils.buildMediaUrl(
-                      serverUrl,
-                      a.filePath,
-                      a.contentHash,
-                    ),
-                  ),
-            )
-            .toList();
-
-        // Total items = pending ghost notes + real notes.
-        // In the reversed list, index 0 is the bottom (newest).
-        // Pending uploads occupy indices 0..<pending.length>,
-        // real notes occupy indices pending.length..<totalItems>.
-        final totalItems = notes.length + pending.length;
-
-        return ScrollablePositionedList.builder(
-          itemScrollController: _itemScrollController,
-          itemPositionsListener: _itemPositionsListener,
-          physics: const ClampingScrollPhysics(),
-          reverse: true,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          itemCount: totalItems,
-          itemBuilder: (context, index) {
-            // Pending ghost notes at bottom (lowest indices in reversed list)
-            if (index < pending.length) {
-              return Align(
-                alignment: Alignment.centerLeft,
-                child: PendingNoteWidget(upload: pending[index]),
-              );
-            }
-
-            // Real notes
-            final noteIndex = index - pending.length;
-            final note = notes[noteIndex];
-            final previousNote = noteIndex > 0 ? notes[noteIndex - 1] : null;
-            final needsSeparator =
-                previousNote != null &&
-                !_isSameDay(note.createdAt, previousNote.createdAt);
-            final isHighlighted = _highlightedNoteId == note.id;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 500),
-                  decoration: BoxDecoration(
-                    color: isHighlighted
-                        ? const Color(0xFFCE2161).withValues(alpha: 0.15)
-                        : Colors.transparent,
-                  ),
-                  child: NoteItem(
-                    note: note,
-                    channelId: channelId,
-                    allImageUrls: allImageUrls,
-                  ),
-                ),
-                if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
-              ],
-            );
-          },
+        // Real notes
+        final noteIndex = index - pending.length;
+        final note = notes[noteIndex];
+        final previousNote = noteIndex > 0 ? notes[noteIndex - 1] : null;
+        final needsSeparator =
+            previousNote != null &&
+            !_isSameDay(note.createdAt, previousNote.createdAt);
+        final isHighlighted = _highlightedNoteId == note.id;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
+              decoration: BoxDecoration(
+                color: isHighlighted
+                    ? const Color(0xFFCE2161).withValues(alpha: 0.15)
+                    : Colors.transparent,
+              ),
+              child: NoteItem(
+                note: note,
+                channelId: channelId,
+                allImageUrls: allImageUrls,
+              ),
+            ),
+            if (needsSeparator) _buildDateSeparator(previousNote.createdAt),
+          ],
         );
       },
-      loading: () => Center(child: PinkSpinner()),
-      error: (err, stack) => const Center(
-        child: Text('Unable to load notes. Check your connection.'),
-      ),
     );
   }
 
@@ -373,7 +372,9 @@ class _ChatViewState extends ConsumerState<ChatView>
     // Animate when the active channel changes
     ref.listen(currentChannelProvider, (prev, next) {
       next.whenData((newId) {
-        if (newId != _displayedChannelId) _animateChannelSwitch(newId);
+        if (newId != _displayedChannelId) {
+          _animateChannelSwitch(newId);
+        }
       });
     });
 
@@ -385,10 +386,10 @@ class _ChatViewState extends ConsumerState<ChatView>
       });
     }
 
-    // Listen for scroll-to-note requests from media panel
+    // Listen for scroll-to-note requests from search / media panel
     ref.listen(scrollToNoteProvider, (prev, noteId) {
       if (noteId != null) {
-        _scrollToNote(noteId);
+        _setScrollTarget(noteId);
         Future.microtask(
           () => ref.read(scrollToNoteProvider.notifier).state = null,
         );

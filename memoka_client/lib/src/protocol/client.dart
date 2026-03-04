@@ -216,7 +216,7 @@ class EndpointHealth extends _i1.EndpointRef {
   );
 }
 
-/// Endpoint for full-text and trigram search across notes.
+/// Endpoint for full-text and fuzzy subsequence search across notes.
 /// {@category Endpoint}
 class EndpointSearch extends _i1.EndpointRef {
   EndpointSearch(_i1.EndpointCaller caller) : super(caller);
@@ -224,18 +224,24 @@ class EndpointSearch extends _i1.EndpointRef {
   @override
   String get name => 'search';
 
-  /// Searches notes using hybrid FTS + trigram matching.
+  /// Searches notes using hybrid FTS prefix + unanchored subsequence matching.
   ///
-  /// Returns a ranked list of [SearchResult] with highlighted snippets.
-  /// The query is truncated to 200 characters server-side.
+  /// FTS prefix handles exact prefix matches (fast, GIN-indexed).
+  /// Subsequence handles fuzzy matches like "Qck" -> "Quick" or "ick" -> "Quick"
+  /// by checking if query chars appear in order within any content word.
+  /// Content is split on non-alphanumeric boundaries so punctuation and markdown
+  /// syntax act as word separators. Multi-word queries use OR logic.
+  /// Results ranked by score DESC, then recency DESC as tiebreaker.
   _i2.Future<List<_i7.SearchResult>> searchNotes(
     String query, {
+    int? channelId,
     required int limit,
   }) => caller.callServerEndpoint<List<_i7.SearchResult>>(
     'search',
     'searchNotes',
     {
       'query': query,
+      'channelId': channelId,
       'limit': limit,
     },
   );

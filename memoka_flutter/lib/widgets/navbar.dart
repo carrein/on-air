@@ -13,8 +13,8 @@ import '../providers/note_selection_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
-import '../utils/icon_utils.dart';
 import '../providers/global_search_provider.dart';
+import '../utils/icon_utils.dart';
 import '../utils/responsive_utils.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
@@ -146,37 +146,10 @@ class _NavbarState extends ConsumerState<Navbar> {
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
     final mediaPanelVisible = ref.watch(mediaPanelVisibleProvider);
-    final isDesktop = ResponsiveUtils.isDesktop(context);
+    final isMobile = ResponsiveUtils.isMobile(context);
 
     if (isSelectionMode) {
       return _buildSelectionBar(selection);
-    }
-
-    final searchState = ref.watch(globalSearchProvider);
-    final isMobileSearch = !isDesktop && searchState.isActive;
-
-    // Mobile search mode: show "Search" title with back button (detail-mode style).
-    if (isMobileSearch) {
-      return Container(
-        padding: _paddingDetail,
-        decoration: const BoxDecoration(
-          color: _backgroundColor,
-          border: Border(bottom: BorderSide(color: _borderColor, width: 1)),
-        ),
-        child: Row(
-          children: [
-            IconButtonStyled(
-              icon: PhosphorIcons.arrowCircleLeft(),
-              onPressed: () =>
-                  ref.read(globalSearchProvider.notifier).deactivate(),
-            ),
-            const SizedBox(width: 4),
-            const Expanded(
-              child: Text('Search', style: _titleStyle),
-            ),
-          ],
-        ),
-      );
     }
 
     final currentChannelId = currentChannelAsync.value;
@@ -203,15 +176,62 @@ class _NavbarState extends ConsumerState<Navbar> {
             ),
             const SizedBox(width: 4),
           ],
-          if (isDesktop && !isInDetailMode)
-            Flexible(
+          if (!isMobile && !isInDetailMode) ...[
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 224),
               child: _buildTitle(
                 currentChannelAsync,
                 channelsAsync,
                 isShowingSettings,
               ),
-            )
-          else
+            ),
+            const Expanded(child: SearchBarWidget()),
+            const SizedBox(width: 16),
+            SizedBox(
+              width: ResponsiveUtils.isDesktop(context) && mediaPanelVisible
+                  ? 316
+                  : null,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (currentChannel != null) ...[
+                    IconButtonStyled(
+                      icon: currentChannel.pinned
+                          ? PhosphorIcons.pushPinSlash()
+                          : PhosphorIcons.pushPin(),
+                      onPressed: () => _togglePin(
+                        currentChannel.id!,
+                        !currentChannel.pinned,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                  ],
+                  Transform.rotate(
+                    angle: math.pi,
+                    child: IconButtonStyled(
+                      icon: mediaPanelVisible
+                          ? PhosphorIconsFill.sidebar
+                          : PhosphorIcons.sidebar(),
+                      onPressed: () =>
+                          ref.read(mediaPanelVisibleProvider.notifier).toggle(),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  IconButtonStyled(
+                    icon: PhosphorIcons.plusSquare(),
+                    onPressed: _createChannel,
+                  ),
+                  const SizedBox(width: 2),
+                  const SyncIndicator(),
+                  IconButtonStyled(
+                    icon: PhosphorIcons.dotsThreeOutline(),
+                    onPressed: _showNavbarMenu,
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
             Expanded(
               child: _buildTitle(
                 currentChannelAsync,
@@ -219,64 +239,51 @@ class _NavbarState extends ConsumerState<Navbar> {
                 isShowingSettings,
               ),
             ),
-          if (isArchive) _buildRetentionDropdown(),
-          if (!isInDetailMode) ...[
-            if (isDesktop) ...[
-              const Spacer(),
-              const Expanded(flex: 3, child: SearchBarWidget()),
-              const Spacer(),
-              const SizedBox(width: 8),
-            ],
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Mobile: search icon button
-                if (!isDesktop) ...[
+            if (isArchive) _buildRetentionDropdown(),
+            if (!isInDetailMode)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   IconButtonStyled(
                     icon: PhosphorIcons.magnifyingGlass(),
                     onPressed: () =>
                         ref.read(globalSearchProvider.notifier).activate(),
                   ),
                   const SizedBox(width: 2),
-                ],
-                if (currentChannel != null) ...[
-                  IconButtonStyled(
-                    icon: currentChannel.pinned
-                        ? PhosphorIcons.pushPinSlash()
-                        : PhosphorIcons.pushPin(),
-                    onPressed: () => _togglePin(
-                      currentChannel.id!,
-                      !currentChannel.pinned,
+                  if (currentChannel != null) ...[
+                    IconButtonStyled(
+                      icon: currentChannel.pinned
+                          ? PhosphorIcons.pushPinSlash()
+                          : PhosphorIcons.pushPin(),
+                      onPressed: () => _togglePin(
+                        currentChannel.id!,
+                        !currentChannel.pinned,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                  ],
+                  Transform.rotate(
+                    angle: math.pi,
+                    child: IconButtonStyled(
+                      icon: mediaPanelVisible
+                          ? PhosphorIconsFill.sidebar
+                          : PhosphorIcons.sidebar(),
+                      onPressed: _showMediaBottomSheet,
                     ),
                   ),
                   const SizedBox(width: 2),
-                ],
-                Transform.rotate(
-                  angle: math.pi,
-                  child: IconButtonStyled(
-                    icon: mediaPanelVisible
-                        ? PhosphorIconsFill.sidebar
-                        : PhosphorIcons.sidebar(),
-                    onPressed: isDesktop
-                        ? () => ref
-                              .read(mediaPanelVisibleProvider.notifier)
-                              .toggle()
-                        : _showMediaBottomSheet,
+                  IconButtonStyled(
+                    icon: PhosphorIcons.plusSquare(),
+                    onPressed: _createChannel,
                   ),
-                ),
-                const SizedBox(width: 2),
-                IconButtonStyled(
-                  icon: PhosphorIcons.plusSquare(),
-                  onPressed: _createChannel,
-                ),
-                const SizedBox(width: 2),
-                const SyncIndicator(),
-                IconButtonStyled(
-                  icon: PhosphorIcons.dotsThreeOutline(),
-                  onPressed: _showNavbarMenu,
-                ),
-              ],
-            ),
+                  const SizedBox(width: 2),
+                  const SyncIndicator(),
+                  IconButtonStyled(
+                    icon: PhosphorIcons.dotsThreeOutline(),
+                    onPressed: _showNavbarMenu,
+                  ),
+                ],
+              ),
           ],
         ],
       ),
@@ -285,7 +292,6 @@ class _NavbarState extends ConsumerState<Navbar> {
 
   static const _retentionOptions = <int, String>{
     0: 'Keep Forever',
-    7: '7 Days',
     30: '30 Days',
     60: '60 Days',
     90: '90 Days',

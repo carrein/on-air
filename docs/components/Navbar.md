@@ -15,8 +15,27 @@ Shown when viewing a real channel (not archive, not settings).
 
 - **Background**: `core.surface` (`#F6F0ED`)
 - **Bottom border**: 1px `brand.primary` (`#CE2161`)
-- **Padding**: `_padding` — horizontal 16px, vertical 8px (uniform across all modes)
-- **Layout**: `[channel icon + name (Expanded)]` + `[sync indicator]` + `[pin button?]` + `[media panel toggle]` + `[new channel button]` + `[menu button]`
+- **Padding**: `_paddingStandard` — left 16px, right 8px, vertical 8px
+
+#### Non-Mobile Layout (>= 768px): Three-Column Search Bar
+
+```
+[ConstrainedBox 224px: title] [Expanded: SearchBarWidget] [16px gap] [SizedBox: actions]
+```
+
+| Column | Width | Contents |
+|--------|-------|----------|
+| Title | `maxWidth: 224px` | Channel icon + name |
+| Search | `Expanded` | `SearchBarWidget` (inline search bar with dropdown overlay) |
+| Gap | `16px` | Fixed spacer |
+| Actions | `316px` or shrink-to-fit | Pin, media panel toggle, new channel, sync indicator, menu |
+
+**Width alignment**: The 224px title width equals the sidebar (240px) minus navbar left padding (16px), aligning the search bar's left edge with the sidebar/content boundary. The 316px actions width (applied when `isDesktop` >= 1200px AND `mediaPanelVisible`) aligns the actions block with the 340px media panel below. When the media panel is hidden or on tablet widths (768-1199px), the actions SizedBox shrinks to fit (`width: null`, `MainAxisSize.min`).
+
+#### Mobile Layout (< 768px)
+
+- **Layout**: `[channel icon + name (Expanded)]` + `[search icon]` + `[pin button?]` + `[media panel toggle]` + `[new channel button]` + `[sync indicator]` + `[menu button]`
+- Search icon (`PhosphorIcons.magnifyingGlass()`) activates `globalSearchProvider`, triggering full-screen search mode in `chat_screen.dart`
 
 #### Channel Title
 
@@ -202,6 +221,7 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 | `noteSelectionProvider`     | `Set<int>`                  | Selected note IDs (selection mode) |
 | `mediaPanelVisibleProvider` | `bool`                      | Media panel toggle state (desktop) |
 | `archiveRetentionProvider` | `AsyncValue<int>`           | Retention setting for dropdown (archive only) |
+| `globalSearchProvider`     | `GlobalSearchState`         | Search activation (mobile search icon) |
 
 ### Providers Read (on interaction)
 
@@ -239,7 +259,11 @@ The `Navbar` is placed in the `ChatScreen` column above the main `Row` layout. I
 | `lib/providers/note_selection_provider.dart` | Multi-select state |
 | `lib/providers/notes_provider.dart` | Note deletion for bulk archive |
 | `lib/providers/settings_view_provider.dart` | Settings overlay visibility |
-| `lib/utils/responsive_utils.dart` | Breakpoint detection for Media item |
+| `lib/utils/responsive_utils.dart` | Breakpoint detection (mobile/tablet/desktop) |
 | `lib/providers/archive_retention_provider.dart` | Retention setting for archive dropdown |
+| `lib/providers/global_search_provider.dart` | Search activation state (mobile search icon) |
+| `lib/widgets/search_bar_widget.dart` | Inline search bar (non-mobile, standard mode) |
 | `lib/utils/toast_utils.dart` | Archive success/error toasts |
 | `docs/ArchiveRetention.md` | Archive retention/purge documentation |
+| `docs/Search.md` | Search backend + navbar layout documentation |
+| `docs/components/Search.md` | Search UI component documentation |

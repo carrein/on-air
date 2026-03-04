@@ -38,6 +38,7 @@ class SearchEndpoint extends Endpoint {
   Future<List<SearchResult>> searchNotes(
     Session session,
     String query, {
+    int? channelId,
     int limit = 20,
   }) async {
     final trimmed = query.trim();
@@ -111,7 +112,8 @@ class SearchEndpoint extends Endpoint {
         $snippetExpr AS snippet,
         n."createdAt",
         COALESCE(fts.rank, 0) * 0.7
-          + CASE WHEN subseq.id IS NOT NULL THEN 0.3 ELSE 0.0 END AS score
+          + CASE WHEN subseq.id IS NOT NULL THEN 0.3 ELSE 0.0 END
+          + CASE WHEN n."channelId" = ${channelId ?? -1} THEN 0.15 ELSE 0.0 END AS score
       FROM notes n
       JOIN channels c ON c.id = n."channelId"
       LEFT JOIN fts ON fts.id = n.id

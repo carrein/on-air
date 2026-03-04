@@ -726,6 +726,7 @@ class _SearchEndpoint {
   _i3.Future<List<_i8.SearchResult>> searchNotes(
     _i1.TestSessionBuilder sessionBuilder,
     String query, {
+    int? channelId,
     required int limit,
   }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -741,6 +742,7 @@ class _SearchEndpoint {
           methodName: 'searchNotes',
           parameters: _i1.testObjectToJson({
             'query': query,
+            'channelId': channelId,
             'limit': limit,
           }),
           serializationManager: _serializationManager,
