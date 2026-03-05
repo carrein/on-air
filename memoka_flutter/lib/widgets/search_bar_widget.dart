@@ -31,7 +31,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   final _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
+  final _overlayController = OverlayPortalController();
   Timer? _debounce;
 
   static const _backgroundColor = Color(0xFFF6F0ED);
@@ -46,7 +46,6 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _removeOverlay();
     _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     _controller.dispose();
@@ -58,55 +57,38 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
       ref.read(globalSearchProvider.notifier).activate();
       // Only show overlay if there's already a query with results
       if (_controller.text.trim().isNotEmpty) {
-        _showOverlay();
+        _overlayController.show();
       }
     } else {
       // Delay removal so tap on overlay item registers first.
       Future.delayed(const Duration(milliseconds: 200), () {
         if (!_focusNode.hasFocus && mounted) {
-          _removeOverlay();
+          _overlayController.hide();
           ref.read(globalSearchProvider.notifier).deactivate();
         }
       });
     }
   }
 
-  void _showOverlay() {
-    _removeOverlay();
-    _overlayEntry = OverlayEntry(builder: (_) => _buildOverlay());
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _removeOverlay() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
-  void _updateOverlay() {
-    _overlayEntry?.markNeedsBuild();
-  }
-
   void _onTextChanged(String value) {
     ref.read(globalSearchProvider.notifier).setQuery(value);
     _debounce?.cancel();
     if (value.trim().isEmpty) {
-      _removeOverlay();
+      _overlayController.hide();
     } else {
-      _showOverlay();
+      _overlayController.show();
       _debounce = Timer(const Duration(milliseconds: 300), () {
-        _updateOverlay();
+        setState(() {});
       });
-      _updateOverlay();
     }
-    // Update suffix icon immediately.
     setState(() {});
   }
 
   void _clearSearch() {
     _controller.clear();
     ref.read(globalSearchProvider.notifier).setQuery('');
+    _overlayController.hide();
     setState(() {});
-    _updateOverlay();
   }
 
   void _selectResult(SearchResult result) async {
@@ -120,7 +102,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
     _focusNode.unfocus();
   }
 
-  Widget _buildOverlay() {
+  Widget _buildOverlay(BuildContext overlayContext) {
     // Clamp dropdown height to available space below the search bar.
     final box = context.findRenderObject() as RenderBox?;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -182,26 +164,30 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
           _focusNode.unfocus();
         }
       },
-      child: CompositedTransformTarget(
-        link: _layerLink,
-        child: SizedBox(
-          height: 40,
-          child: StyledSearchField(
-            controller: _controller,
-            focusNode: _focusNode,
-            hintText: 'Search...',
-            hideBorderUntilActive: true,
-            onChanged: _onTextChanged,
-            suffixIcon: _controller.text.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: IconButtonStyled(
-                      icon: PhosphorIcons.x(),
-                      onPressed: _clearSearch,
-                      size: IconButtonStyled.xs,
-                    ),
-                  )
-                : null,
+      child: OverlayPortal(
+        controller: _overlayController,
+        overlayChildBuilder: _buildOverlay,
+        child: CompositedTransformTarget(
+          link: _layerLink,
+          child: SizedBox(
+            height: 40,
+            child: StyledSearchField(
+              controller: _controller,
+              focusNode: _focusNode,
+              hintText: 'Search...',
+              hideBorderUntilActive: true,
+              onChanged: _onTextChanged,
+              suffixIcon: _controller.text.isNotEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: IconButtonStyled(
+                        icon: PhosphorIcons.x(),
+                        onPressed: _clearSearch,
+                        size: IconButtonStyled.xs,
+                      ),
+                    )
+                  : null,
+            ),
           ),
         ),
       ),
@@ -210,7 +196,13 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
 }
 
 /// Internal dropdown content shown in the overlay.
-class _SearchDropdownContent extends ConsumerWidget {
+///
+/// Uses a [ConsumerStatefulWidget] so that the last successful results are
+/// cached in local state. When the query changes (e.g. "test" -> "tests"),
+/// the new family-provider instance starts in AsyncLoading, but we keep
+/// showing the previous results until the new ones arrive, preventing the
+/// dropdown from collapsing and flickering on every keystroke.
+class _SearchDropdownContent extends ConsumerStatefulWidget {
   final String query;
   final ValueChanged<SearchResult> onSelectResult;
 
@@ -219,90 +211,39 @@ class _SearchDropdownContent extends ConsumerWidget {
     required this.onSelectResult,
   });
 
+  @override
+  ConsumerState<_SearchDropdownContent> createState() =>
+      _SearchDropdownContentState();
+}
+
+class _SearchDropdownContentState
+    extends ConsumerState<_SearchDropdownContent> {
   static const _textColor = Color(0xFF00171F);
   static const _borderColor = Color(0xFFCE2161);
 
+  /// Cached results from the last successful fetch, kept across query changes.
+  List<SearchResult>? _lastResults;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (query.isEmpty) {
+  Widget build(BuildContext context) {
+    if (widget.query.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final resultsAsync = ref.watch(searchResultsProvider(query));
+    final resultsAsync = ref.watch(searchResultsProvider(widget.query));
 
-    return resultsAsync.when(
-      data: (results) {
-        if (results.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: Text(
-                "No results for '$query'",
-                style: GoogleFonts.spaceGrotesk(
-                  color: _textColor.withValues(alpha: 0.5),
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          );
-        }
-        final displayResults = results.take(5).toList();
-        return ListView(
-          shrinkWrap: true,
-          padding: EdgeInsets.zero,
-          children: [
-            ...displayResults.map(
-              (r) => _SearchResultTile(
-                result: r,
-                onTap: () => onSelectResult(r),
-              ),
-            ),
-            if (results.length > 5)
-              InkWell(
-                onTap: () {
-                  // Activate full search view
-                  ref.read(globalSearchProvider.notifier).activate();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'View all ${results.length} results',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: _borderColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        PhosphorIcons.arrowRight(),
-                        size: 14,
-                        color: _borderColor,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-      loading: () => const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      ),
-      error: (e, _) => Padding(
+    // Update cache whenever we get new data.
+    final freshResults = resultsAsync.value;
+    if (freshResults != null) {
+      _lastResults = freshResults;
+    }
+
+    final results = _lastResults;
+    final isLoading = resultsAsync.isLoading;
+    final hasError = resultsAsync.hasError;
+
+    if (hasError && results == null) {
+      return Padding(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: Text(
@@ -313,7 +254,81 @@ class _SearchDropdownContent extends ConsumerWidget {
             ),
           ),
         ),
-      ),
+      );
+    }
+
+    if (results == null) {
+      // First load ever — show a compact loading indicator instead of collapsing.
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (results.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Text(
+          "No results for '${widget.query}'",
+          style: GoogleFonts.spaceGrotesk(
+            color: _textColor.withValues(alpha: 0.5),
+            fontSize: 14,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    final displayResults = results.take(5).toList();
+    return ListView(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      children: [
+        ...displayResults.map(
+          (r) => _SearchResultTile(
+            result: r,
+            onTap: () => widget.onSelectResult(r),
+          ),
+        ),
+        if (results.length > 5)
+          InkWell(
+            onTap: () {
+              // Activate full search view
+              ref.read(globalSearchProvider.notifier).activate();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'View all ${results.length} results',
+                    style: GoogleFonts.spaceGrotesk(
+                      color: _borderColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    PhosphorIcons.arrowRight(),
+                    size: 14,
+                    color: _borderColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
