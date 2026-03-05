@@ -2,7 +2,7 @@
 
 ## Overview
 
-Full-text search across all notes using PostgreSQL's `tsvector` FTS and `pg_trgm` trigram matching. Hybrid ranking blends FTS relevance (70%) with trigram similarity (30%). Results include highlighted snippets and link to the note's channel.
+Full-text search across all notes using PostgreSQL's `tsvector` FTS, `ILIKE` substring, and `pg_trgm` word similarity. Single flat query with per-term cascading match strategies. Multi-word queries use AND logic. Results include highlighted snippets and link to the note's channel.
 
 **Files**:
 - `memoka_server/lib/src/search/search_setup.dart` (DB infrastructure: table, indexes, trigger)
@@ -67,7 +67,7 @@ Created at server startup by `SearchSetup.ensureSearchInfrastructure()`. Not in 
 
 **Trigger**: `notes_search_trigger` fires `AFTER INSERT OR UPDATE OF content ON notes`. Upserts into `note_search` with `to_tsvector('simple', COALESCE(NEW.content, ''))`.
 
-**Extensions**: `pg_trgm` (enabled at setup for the `similarity()` function).
+**Extensions**: `pg_trgm` (enabled at setup for `word_similarity()` function).
 
 ---
 
@@ -86,42 +86,56 @@ On first run:
 
 ## Server: Search Endpoint
 
-### searchNotes(session, query, {limit = 20})
+### searchNotes(session, query, {channelId, limit = 20})
 
-Hybrid FTS prefix + unanchored subsequence search. Returns ranked `List<SearchResult>`.
+Single flat query with per-term cascading match strategies. Returns ranked `List<SearchResult>`.
+
+### Match Strategies Per Term
+
+Each query term is matched against a note using three cascading strategies (first match wins):
+
+| Strategy | Score | When | Example |
+|----------|-------|------|---------|
+| FTS prefix | 1.0 | GIN-indexed tsvector prefix match | "kick" → "Kickoff" |
+| ILIKE substring | 0.6 | Contiguous match anywhere in content | "ickoff" → "Kickoff" |
+| word_similarity >= 0.3 | 0.2 + ws×0.2 | Typo tolerance, terms >= 3 chars | "meetting" → "Meeting" |
 
 ### Matching Rules
 
-Given notes: 1) "Quick", 2) "Quick Brown", 3) "Quick Brown Fox":
+Given notes: 1) "Kickoff event", 2) "Meeting notes", 3) "Meeting Kickoff agenda":
 
 | Query | Matches | Why |
 |-------|---------|-----|
-| `Q` | 1,2,3 | Prefix match on "Quick" |
-| `Quick` | 1,2,3 | Exact word match |
-| `Qck` | 1,2,3 | Subsequence Q→c→k in "Quick" |
-| `ick` | 1,2,3 | Unanchored subsequence i→c→k in "Quick" |
-| `uick` | 1,2,3 | Unanchored subsequence u→i→c→k in "Quick" |
-| `Brown` | 2,3 | Exact word match |
-| `Brwn` | 2,3 | Subsequence B→r→w→n in "Brown" |
-| `Fox` | 3 | Exact word match |
-| `Quick Fox` | 1,2,3 | OR logic: matches "Quick" OR "Fox" (note 3 scores highest — matches both) |
-| `QuickBrown` | None | Single token checked per-word; no single word matches that subsequence |
+| `ki` | 1, 3 | FTS prefix on "Kickoff" |
+| `Kickoff` | 1, 3 | Exact word match (FTS prefix) |
+| `ickoff` | 1, 3 | ILIKE substring in "Kickoff" |
+| `off` | 1, 3 | ILIKE substring in "Kickoff" |
+| `meet` | 2, 3 | FTS prefix on "Meeting" |
+| `meetting` | 2, 3 | word_similarity typo tolerance |
+| `meeting notes` | 2 | AND: both "meeting" AND "notes" required |
+| `meeting kickoff` | 3 | AND: both terms present |
+| `meeting banana` | none | AND: "banana" matches nothing |
+| `Fltrc` | none | Non-contiguous subsequence — not supported |
+| `sda` | none | No prefix/substring/fuzzy match |
 
 **Core rules**:
-- **Case insensitive**: "quick" matches "Quick"
-- **Unanchored subsequence**: query chars must appear in order within a content word, but can start at any position — "ick" matches "Quick"
-- **Per-word matching**: each query token is checked against individual content words, cannot span across words — "QuickBrown" matches no single word
-- **OR logic**: multi-word queries match notes containing ANY query term; notes matching more terms score higher
-- **Non-alphanumeric = word boundary**: content split on `[^a-zA-Z0-9]+`, so punctuation and markdown syntax (`**bold**`, `[text](url)`) are stripped naturally
-- **No minimum query length**: even single characters trigger search
-- **Ranking**: score DESC (FTS rank * 0.7 + subsequence bonus 0.3), then createdAt DESC as tiebreaker
+- **Case insensitive**: "quick" matches "Quick" (both FTS and ILIKE are case-insensitive)
+- **Prefix match**: query is a prefix of a content word — "ki" matches "Kickoff"
+- **Substring match**: query appears contiguously anywhere in content — "ickoff" matches "Kickoff"
+- **Typo tolerance**: `word_similarity()` >= 0.3 for terms >= 3 characters — "meetting" matches "Meeting"
+- **No subsequence**: non-contiguous letter-skipping is NOT supported — "Fltrc" does NOT match "Flutterific"
+- **AND logic**: multi-word queries require ALL terms to match a note
+- **Per-word matching**: each query token is checked independently, cannot span across words
+- **No minimum query length**: even single characters trigger search (via FTS prefix or ILIKE)
+- **ILIKE escaping**: wildcard characters (`%`, `_`) in queries are escaped to match literally
+- **Ranking**: score = avg(per-term CASE scores) + channel boost (0.15), then createdAt DESC as tiebreaker
 
 **Algorithm**:
 1. Trim and truncate query to 200 chars, split into words
-2. **FTS CTE**: prefix match `word1:* | word2:*` via GIN-indexed `search_vector`, ranked by `ts_rank()`
-3. **Subsequence CTE**: split content on `[^a-zA-Z0-9]+`, check each content word against unanchored subsequence regex per query word (OR)
-4. **Combine**: LEFT JOIN both CTEs, score = `fts.rank * 0.7 + (subseq ? 0.3 : 0.0)`
-5. **Snippet**: `ts_headline()` with `<b>` tags for FTS matches; falls back to first 100 chars if no FTS terms
+2. For each term, generate a WHERE fragment: `(FTS prefix OR ILIKE substring OR word_similarity)` — AND between terms
+3. For each term, generate a CASE scoring expression (cascading: FTS → ILIKE → fuzzy)
+4. Final score = avg(per-term scores) + channel boost
+5. **Snippet**: `ts_headline()` with `<b>` tags using OR-mode tsquery; falls back to first 100 chars if no FTS terms
 6. Order by score DESC, createdAt DESC; limit
 
 **Filters**: excludes archived notes, tombstoned notes, archived channels, tombstoned channels.
@@ -134,9 +148,9 @@ Loads notes surrounding a specific note for jump-to-context. Returns ~`limit` no
 
 ## Navbar Search Bar Layout
 
-The search bar is embedded in the navbar as part of a three-column layout on non-mobile screens (>= 768px). On mobile (< 768px), a magnifying glass icon button activates the full-screen search mode instead.
+The search bar is embedded in the navbar as part of a three-column layout on non-mobile screens (>= 600px). On mobile (< 600px), a magnifying glass icon button activates the full-screen search mode instead.
 
-### Three-Column Layout (>= 768px, standard mode only)
+### Three-Column Layout (>= 600px, standard mode only)
 
 ```
 [ConstrainedBox 224px: title] [Expanded: SearchBarWidget] [16px gap] [SizedBox: actions]
@@ -161,8 +175,8 @@ The search bar is embedded in the navbar as part of a three-column layout on non
 |------------|-----------|---------------|
 | >= 1200px (desktop), panel visible | Inline `SearchBarWidget` in navbar | Fixed 316px (aligns with media panel) |
 | >= 1200px (desktop), panel hidden | Inline `SearchBarWidget` in navbar | Shrink-to-fit |
-| 768-1199px (tablet) | Inline `SearchBarWidget` in navbar | Shrink-to-fit |
-| < 768px (mobile) | Magnifying glass icon button | N/A (flat action row) |
+| 600-1199px (tablet) | Inline `SearchBarWidget` in navbar | Shrink-to-fit |
+| < 600px (mobile) | Magnifying glass icon button | N/A (flat action row) |
 
 ### Mode Exclusions
 
@@ -201,8 +215,9 @@ Both demo and full seed modes include a "Search" channel (`magnifyingGlass` emoj
 `memoka_server/test/integration/search_endpoint_test.dart` — uses `withServerpod()` pattern with `rollbackDatabase: RollbackDatabase.afterAll`. Tests call `SearchSetup.ensureSearchInfrastructure` in `setUpAll` since the test framework doesn't execute `server.dart`'s startup code.
 
 Groups:
-- **Basic matching**: empty/whitespace query, exact/prefix/subsequence/unanchored/case-insensitive
-- **Multi-word & OR logic**: OR matching, ranking, per-word no cross-span
+- **Basic matching**: empty/whitespace query, exact/prefix/single-char/two-char/substring/case-insensitive
+- **Typo tolerance**: word_similarity matches, transposition typos, no fuzzy for short terms, non-contiguous subsequence rejection
+- **Multi-word AND logic**: both terms required, missing term returns nothing, all-terms ranking, per-word no cross-span, three-word AND
 - **Word boundaries**: markdown bold/link, hyphen, underscore, dot, slash, comma, parentheses, backtick
 - **Special content**: numeric, regex metacharacters (content + query), long content, JSON, SQL, URLs
 - **Filtering**: excludes archived notes, archived channels; includes visible notes

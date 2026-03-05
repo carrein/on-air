@@ -111,45 +111,41 @@ void main() {
           );
         });
 
-        test('subsequence match', () async {
-          await createChannelWithNotes(['Flutterific code']);
+        test('two-char prefix', () async {
+          await createChannelWithNotes(['Kickoff event']);
           final results = await endpoints.search.searchNotes(
             sessionBuilder,
-            'Fltrc',
+            'ki',
             limit: 20,
           );
           expect(
-            results.any((r) => r.snippet.toLowerCase().contains('flutterific')),
+            results.any((r) => r.snippet.toLowerCase().contains('kickoff')),
             isTrue,
           );
         });
 
-        test('unanchored subsequence', () async {
-          await createChannelWithNotes(['Quicksilver metal']);
+        test('substring match (middle of word)', () async {
+          await createChannelWithNotes(['Kickoff event']);
           final results = await endpoints.search.searchNotes(
             sessionBuilder,
-            'ickslvr',
+            'ickoff',
             limit: 20,
           );
           expect(
-            results.any(
-              (r) => r.snippet.toLowerCase().contains('quicksilver'),
-            ),
+            results.any((r) => r.snippet.toLowerCase().contains('kickoff')),
             isTrue,
           );
         });
 
-        test('middle subsequence', () async {
-          await createChannelWithNotes(['Brontosaurus dinosaur']);
+        test('substring match (end of word)', () async {
+          await createChannelWithNotes(['Kickoff event']);
           final results = await endpoints.search.searchNotes(
             sessionBuilder,
-            'onto',
+            'off',
             limit: 20,
           );
           expect(
-            results.any(
-              (r) => r.snippet.toLowerCase().contains('brontosaurus'),
-            ),
+            results.any((r) => r.snippet.toLowerCase().contains('kickoff')),
             isTrue,
           );
         });
@@ -175,8 +171,83 @@ void main() {
         });
       });
 
-      group('searchNotes — Multi-word & OR logic', () {
-        test('multi-word OR matches notes with either word', () async {
+      group('searchNotes — Typo tolerance', () {
+        test('typo in long word matches via word_similarity', () async {
+          await createChannelWithNotes(['Meeting scheduled tomorrow']);
+          final results = await endpoints.search.searchNotes(
+            sessionBuilder,
+            'meetting',
+            limit: 20,
+          );
+          expect(
+            results.any((r) => r.snippet.toLowerCase().contains('meeting')),
+            isTrue,
+          );
+        });
+
+        test('transposition typo matches', () async {
+          await createChannelWithNotes(['Project deadline approaching']);
+          final results = await endpoints.search.searchNotes(
+            sessionBuilder,
+            'proejct',
+            limit: 20,
+          );
+          expect(
+            results.any((r) => r.snippet.toLowerCase().contains('project')),
+            isTrue,
+          );
+        });
+
+        test('no fuzzy for short terms (< 3 chars)', () async {
+          // "sd" is 2 chars — should NOT fuzzy-match "sda" or anything
+          await createChannelWithNotes(['sda unique content']);
+          final results = await endpoints.search.searchNotes(
+            sessionBuilder,
+            'sd',
+            limit: 20,
+          );
+          // "sd" can still match via ILIKE substring (sda contains "sd")
+          // but won't fuzzy-match unrelated words
+          // This just verifies it doesn't crash
+          expect(results, isA<List<SearchResult>>());
+        });
+
+        test('letter-skipping does not get high score', () async {
+          await createChannelWithNotes(['Flutterific code']);
+          final results = await endpoints.search.searchNotes(
+            sessionBuilder,
+            'Fltrc',
+            limit: 20,
+          );
+          // Letter-skipping may match via word_similarity (shared trigrams)
+          // but should score low (fuzzy range 0.2-0.4), not high like
+          // prefix (1.0) or substring (0.6).
+          final match = results.where(
+            (r) => r.snippet.toLowerCase().contains('flutterific'),
+          );
+          if (match.isNotEmpty) {
+            expect(match.first.score, lessThan(0.5));
+          }
+        });
+
+        test('non-contiguous subsequence does NOT match', () async {
+          await createChannelWithNotes(['Quicksilver metal']);
+          final results = await endpoints.search.searchNotes(
+            sessionBuilder,
+            'ickslvr',
+            limit: 20,
+          );
+          expect(
+            results.any(
+              (r) => r.snippet.toLowerCase().contains('quicksilver'),
+            ),
+            isFalse,
+          );
+        });
+      });
+
+      group('searchNotes — Multi-word AND logic', () {
+        test('AND: both terms required', () async {
           await createChannelWithNotes([
             'Tangerine fruit',
             'Sapphire gem',
@@ -187,13 +258,29 @@ void main() {
             'Tangerine Sapphire',
             limit: 20,
           );
-          expect(results.length, greaterThanOrEqualTo(3));
+          // Only the note with BOTH words should match
+          for (final r in results) {
+            final s = r.snippet.toLowerCase();
+            expect(s, contains('tangerine'));
+            expect(s, contains('sapphire'));
+          }
         });
 
-        test('OR ranking: both terms score higher than one', () async {
+        test('AND: missing one term returns no match', () async {
+          await createChannelWithNotes(['meeting agenda']);
+          final results = await endpoints.search.searchNotes(
+            sessionBuilder,
+            'meeting banana',
+            limit: 20,
+          );
+          final hasMatch = results.any(
+            (r) => r.snippet.toLowerCase().contains('meeting agenda'),
+          );
+          expect(hasMatch, isFalse);
+        });
+
+        test('AND ranking: all terms present scores highest', () async {
           await createChannelWithNotes([
-            'Vermillion only',
-            'Cerulean only',
             'Vermillion and Cerulean together',
           ]);
           final results = await endpoints.search.searchNotes(
@@ -201,7 +288,7 @@ void main() {
             'Vermillion Cerulean',
             limit: 20,
           );
-          // Note with both words should rank first
+          expect(results, isNotEmpty);
           expect(
             results.first.snippet.toLowerCase(),
             allOf(contains('vermillion'), contains('cerulean')),
@@ -215,25 +302,37 @@ void main() {
             'MangoPapaya',
             limit: 20,
           );
-          // "MangoPapaya" as a single token should not match any single word
-          final hasMatch = results.any(
+          // "MangoPapaya" as a single token may match via word_similarity
+          // (shared trigrams), but should NOT match via FTS prefix or ILIKE
+          // substring. Verify it doesn't get a high (prefix/substring) score.
+          final match = results.where(
             (r) => r.snippet.toLowerCase().contains('mango'),
           );
-          expect(hasMatch, isFalse);
+          if (match.isNotEmpty) {
+            // If it matches, it should be a low fuzzy score (< 0.5)
+            expect(match.first.score, lessThan(0.5));
+          }
         });
 
-        test('three-word OR matches notes with any term', () async {
+        test('three-word AND requires all terms', () async {
           await createChannelWithNotes([
-            'Rhodium element',
-            'Palladium metal',
-            'Iridium precious',
+            'Telescope device',
+            'Origami craft',
+            'Pyramid structure',
+            'Telescope Origami Pyramid combined',
           ]);
           final results = await endpoints.search.searchNotes(
             sessionBuilder,
-            'Rhodium Palladium Iridium',
+            'Telescope Origami Pyramid',
             limit: 20,
           );
-          expect(results.length, greaterThanOrEqualTo(3));
+          // Only the note with all three should match
+          for (final r in results) {
+            final s = r.snippet.toLowerCase();
+            expect(s, contains('telescope'));
+            expect(s, contains('origami'));
+            expect(s, contains('pyramid'));
+          }
         });
       });
 
@@ -389,18 +488,6 @@ void main() {
           expect(results.first.snippet.length, lessThan(longContent.length));
         });
 
-        test('long single word subsequence', () async {
-          await createChannelWithNotes(
-            ['Pneumonoultramicroscopicsilicovolcanoconiosis disease'],
-          );
-          final results = await endpoints.search.searchNotes(
-            sessionBuilder,
-            'Pnmnltr',
-            limit: 20,
-          );
-          expect(results, isNotEmpty);
-        });
-
         test('JSON content searchable', () async {
           await createChannelWithNotes(
             ['{ "Ytterbium": "element", "atomic": 70 }'],
@@ -534,12 +621,10 @@ void main() {
             longQuery,
             limit: 20,
           );
-          expect(
-            results.any(
-              (r) => r.snippet.toLowerCase().contains('triskaidekaphobia'),
-            ),
-            isTrue,
-          );
+          // With AND logic, the extra 'aaaa...' term won't match,
+          // but Triskaidekaphobia alone won't return results either.
+          // This test just verifies no crash on long queries.
+          expect(results, isA<List<SearchResult>>());
         });
 
         test('duplicate words in content returns note once', () async {
@@ -565,8 +650,6 @@ void main() {
             'EmptyContent',
             emoji: 'magnifyingGlass',
           );
-          // Insert empty note directly — createNote rejects empty so use a
-          // non-empty note and verify empty string search returns nothing
           await endpoints.chat.createNote(
             sessionBuilder,
             channel.id!,

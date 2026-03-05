@@ -2,11 +2,19 @@ import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../shared/note_query.dart';
 
-/// Endpoint for full-text and fuzzy subsequence search across notes.
+/// Endpoint for full-text, substring, and typo-tolerant search across notes.
 class SearchEndpoint extends Endpoint {
   /// Escapes a string for safe use in a SQL single-quoted literal.
   static String _escapeSql(String input) {
     return input.replaceAll(r'\', r'\\').replaceAll("'", "''");
+  }
+
+  /// Escapes ILIKE wildcard characters (%, _) so they match literally.
+  static String _escapeIlike(String input) {
+    return input
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
   }
 
   /// Keeps only alphanumeric characters for safe tsquery usage.
@@ -14,26 +22,15 @@ class SearchEndpoint extends Endpoint {
     return word.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
   }
 
-  static final _regexSpecial = RegExp(r'[.*+?^${}()|[\]\\]');
-
-  /// Builds an unanchored subsequence regex: "Qck" -> "Q.*c.*k".
-  static String _buildSubseqPattern(String word) {
-    final escaped = word
-        .split('')
-        .map((c) {
-          return _regexSpecial.hasMatch(c) ? '\\$c' : c;
-        })
-        .join('.*');
-    return escaped;
-  }
-
-  /// Searches notes using hybrid FTS prefix + unanchored subsequence matching.
+  /// Searches notes using prefix, substring, and typo-tolerant matching.
   ///
-  /// FTS prefix handles exact prefix matches (fast, GIN-indexed).
-  /// Subsequence handles fuzzy matches like "Qck" -> "Quick" or "ick" -> "Quick"
-  /// by checking if query chars appear in order within any content word.
-  /// Content is split on non-alphanumeric boundaries so punctuation and markdown
-  /// syntax act as word separators. Multi-word queries use OR logic.
+  /// Per-term matching strategies (cascading, first match wins):
+  /// 1. FTS prefix (score 1.0) — GIN-indexed tsvector prefix match
+  /// 2. ILIKE substring (score 0.6) — contiguous match anywhere in content
+  /// 3. word_similarity >= 0.3 (score 0.2 + ws*0.2) — typo tolerance, >= 3 chars
+  ///
+  /// Multi-word queries use AND logic — all terms must match a note.
+  /// Final score = avg(per-term scores) + channel boost (0.15).
   /// Results ranked by score DESC, then recency DESC as tiebreaker.
   Future<List<SearchResult>> searchNotes(
     Session session,
@@ -53,57 +50,66 @@ class SearchEndpoint extends Endpoint {
         .toList();
     if (words.isEmpty) return [];
 
-    // FTS prefix: word1:* | word2:*
+    // Build per-term WHERE fragments (ANDed) and CASE score expressions.
+    final whereFragments = <String>[];
+    final scoreExprs = <String>[];
+
+    for (final word in words) {
+      final escaped = _escapeSql(word);
+      final ilikeEscaped = _escapeSql(_escapeIlike(word));
+      final ftsWord = _sanitizeFtsWord(word);
+
+      // FTS prefix condition (only if sanitized word is non-empty)
+      final ftsCondition = ftsWord.isNotEmpty
+          ? "ns.search_vector @@ to_tsquery('simple', '${_escapeSql(ftsWord)}:*')"
+          : 'FALSE';
+
+      // ILIKE substring condition
+      final ilikeCondition = "n.content ILIKE '%$ilikeEscaped%'";
+
+      // word_similarity condition (only for terms >= 3 chars)
+      final wsCondition = word.length >= 3
+          ? "word_similarity('$escaped', n.content) >= 0.3"
+          : 'FALSE';
+
+      // WHERE: term must match via at least one strategy
+      whereFragments.add('($ftsCondition OR $ilikeCondition OR $wsCondition)');
+
+      // CASE scoring: cascading, first match wins
+      final scoreParts = <String>[];
+      if (ftsWord.isNotEmpty) {
+        scoreParts.add('WHEN $ftsCondition THEN 1.0');
+      }
+      scoreParts.add('WHEN $ilikeCondition THEN 0.6');
+      if (word.length >= 3) {
+        scoreParts.add(
+          "WHEN $wsCondition THEN 0.2 + word_similarity('$escaped', n.content) * 0.2",
+        );
+      }
+      scoreParts.add('ELSE 0.0');
+      scoreExprs.add('(CASE ${scoreParts.join(' ')} END)');
+    }
+
+    final whereClause = whereFragments.join(' AND ');
+    final avgScore = scoreExprs.length == 1
+        ? scoreExprs.first
+        : '(${scoreExprs.join(' + ')}) / ${scoreExprs.length}';
+
+    // For snippets, use OR-mode tsquery so ts_headline highlights all terms.
     final ftsTerms = words
         .map(_sanitizeFtsWord)
         .where((w) => w.isNotEmpty)
         .map((w) => '${_escapeSql(w)}:*')
         .toList();
     final hasFts = ftsTerms.isNotEmpty;
-    final ftsExpr = ftsTerms.join(' | ');
-
-    // Anchored subsequence: each query word checked against individual
-    // content words via case-insensitive regex.
-    final subseqClauses = words
-        .map((w) {
-          final pattern = _buildSubseqPattern(w);
-          return "cw ~* '${_escapeSql(pattern)}'";
-        })
-        .join(' OR ');
-
-    final ftsFilter = hasFts
-        ? "ns.search_vector @@ to_tsquery('simple', '$ftsExpr')"
-        : 'FALSE';
-    final ftsRank = hasFts
-        ? "ts_rank(ns.search_vector, to_tsquery('simple', '$ftsExpr'))"
-        : '0';
+    final snippetFtsExpr = ftsTerms.join(' | ');
     final snippetExpr = hasFts
-        ? "ts_headline('simple', n.content, to_tsquery('simple', '$ftsExpr'), "
+        ? "ts_headline('simple', n.content, to_tsquery('simple', '$snippetFtsExpr'), "
               "'MaxWords=35,MinWords=15,MaxFragments=1,StartSel=<b>,StopSel=</b>')"
         : "substring(n.content FROM 1 FOR 100)";
 
     final sql =
         '''
-      WITH fts AS (
-        SELECT n.id, $ftsRank AS rank
-        FROM notes n
-        JOIN note_search ns ON ns.note_id = n.id
-        JOIN channels c ON c.id = n."channelId"
-        WHERE $ftsFilter
-          AND n.archived = false AND n."deletedAt" IS NULL
-          AND c.archived = false AND c."deletedAt" IS NULL
-      ),
-      subseq AS (
-        SELECT n.id
-        FROM notes n
-        JOIN channels c ON c.id = n."channelId"
-        WHERE EXISTS (
-          SELECT 1 FROM regexp_split_to_table(n.content, '[^a-zA-Z0-9]+') AS cw
-          WHERE length(cw) > 0 AND ($subseqClauses)
-        )
-          AND n.archived = false AND n."deletedAt" IS NULL
-          AND c.archived = false AND c."deletedAt" IS NULL
-      )
       SELECT DISTINCT
         n.id AS "noteId",
         n."channelId",
@@ -111,14 +117,12 @@ class SearchEndpoint extends Endpoint {
         c.emoji AS "channelEmoji",
         $snippetExpr AS snippet,
         n."createdAt",
-        COALESCE(fts.rank, 0) * 0.7
-          + CASE WHEN subseq.id IS NOT NULL THEN 0.3 ELSE 0.0 END
-          + CASE WHEN n."channelId" = ${channelId ?? -1} THEN 0.15 ELSE 0.0 END AS score
+        ($avgScore
+          + CASE WHEN n."channelId" = ${channelId ?? -1} THEN 0.15 ELSE 0.0 END)::double precision AS score
       FROM notes n
       JOIN channels c ON c.id = n."channelId"
-      LEFT JOIN fts ON fts.id = n.id
-      LEFT JOIN subseq ON subseq.id = n.id
-      WHERE (fts.id IS NOT NULL OR subseq.id IS NOT NULL)
+      JOIN note_search ns ON ns.note_id = n.id
+      WHERE $whereClause
         AND n.archived = false AND n."deletedAt" IS NULL
         AND c.archived = false AND c."deletedAt" IS NULL
       ORDER BY score DESC, n."createdAt" DESC
