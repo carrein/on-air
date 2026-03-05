@@ -92,7 +92,7 @@ class _ChannelListState extends ConsumerState<ChannelList> {
 
     _scrollController.animateTo(
       target,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
     );
   }

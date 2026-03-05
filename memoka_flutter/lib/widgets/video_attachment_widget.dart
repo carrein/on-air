@@ -51,7 +51,7 @@ class VideoAttachmentWidget extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: thumbnailUrl,
                     fit: BoxFit.cover,
-                    fadeInDuration: const Duration(milliseconds: 150),
+                    fadeInDuration: const Duration(milliseconds: 100),
                     placeholder: (context, url) => ShimmerPlaceholder(
                       width: displaySize.width,
                       height: displaySize.height,

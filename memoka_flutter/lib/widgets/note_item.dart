@@ -19,6 +19,7 @@ import '../providers/note_selection_provider.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
+import '../utils/responsive_utils.dart';
 
 import 'link_preview_card.dart';
 import 'media_attachment_widget.dart';
@@ -92,7 +93,7 @@ class NoteItem extends ConsumerWidget {
                   onLongPress: () {
                     if (isSelectionMode) {
                       ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                    } else if (MediaQuery.of(context).size.width < 600) {
+                    } else if (ResponsiveUtils.isMobile(context)) {
                       ref.read(noteSelectionProvider.notifier).select(note.id!);
                     } else {
                       _showContextMenu(context, ref, null);

@@ -178,7 +178,7 @@ class _NavbarState extends ConsumerState<Navbar> {
           ],
           if (!isMobile && !isInDetailMode) ...[
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 224),
+              constraints: const BoxConstraints(maxWidth: 248),
               child: _buildTitle(
                 currentChannelAsync,
                 channelsAsync,
@@ -189,7 +189,7 @@ class _NavbarState extends ConsumerState<Navbar> {
             const SizedBox(width: 16),
             SizedBox(
               width: ResponsiveUtils.isDesktop(context) && mediaPanelVisible
-                  ? 316
+                  ? 340
                   : null,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,

@@ -74,7 +74,8 @@ class _StyledSearchFieldState extends State<StyledSearchField> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
         decoration: BoxDecoration(
           border: Border.all(
             color: showBorder ? _borderColor : _backgroundColor,

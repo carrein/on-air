@@ -52,18 +52,23 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
     super.dispose();
   }
 
+  void _showOverlay() {
+    if (!_overlayController.isShowing) _overlayController.show();
+  }
+
+  void _hideOverlay() {
+    if (_overlayController.isShowing) _overlayController.hide();
+  }
+
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
       ref.read(globalSearchProvider.notifier).activate();
-      // Only show overlay if there's already a query with results
-      if (_controller.text.trim().isNotEmpty) {
-        _overlayController.show();
-      }
+      _showOverlay();
     } else {
       // Delay removal so tap on overlay item registers first.
       Future.delayed(const Duration(milliseconds: 200), () {
         if (!_focusNode.hasFocus && mounted) {
-          _overlayController.hide();
+          _hideOverlay();
           ref.read(globalSearchProvider.notifier).deactivate();
         }
       });
@@ -74,9 +79,9 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
     ref.read(globalSearchProvider.notifier).setQuery(value);
     _debounce?.cancel();
     if (value.trim().isEmpty) {
-      _overlayController.hide();
+      // Keep overlay showing (backdrop visible) while focused
     } else {
-      _overlayController.show();
+      _showOverlay();
       _debounce = Timer(const Duration(milliseconds: 300), () {
         setState(() {});
       });
@@ -87,7 +92,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   void _clearSearch() {
     _controller.clear();
     ref.read(globalSearchProvider.notifier).setQuery('');
-    _overlayController.hide();
+    _hideOverlay();
     setState(() {});
   }
 
@@ -114,35 +119,64 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
 
     final overlayWidth = box?.size.width ?? 400.0;
 
-    return Positioned(
-      width: overlayWidth,
-      child: CompositedTransformFollower(
-        link: _layerLink,
-        showWhenUnlinked: false,
-        offset: const Offset(0, 44),
-        child: Material(
-          elevation: 8,
-          borderRadius: BorderRadius.zero,
-          color: _backgroundColor,
-          child: Container(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.zero,
-              border: Border.all(
-                color: _borderColor.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.zero,
-              child: _SearchDropdownContent(
-                query: _controller.text.trim(),
-                onSelectResult: _selectResult,
-              ),
+    final query = _controller.text.trim();
+    // Search bar bottom + navbar vertical padding (8px) + border (1px).
+    final backdropTop = barBottom + 9;
+
+    return Stack(
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          top: backdropTop,
+          bottom: 0,
+          child: GestureDetector(
+            onTap: () {
+              _hideOverlay();
+              _focusNode.unfocus();
+            },
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 0.6),
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              builder: (context, value, _) =>
+                  // Exception: uses black instead of core.text for stronger backdrop contrast.
+                  ColoredBox(color: Colors.black.withValues(alpha: value)),
             ),
           ),
         ),
-      ),
+        if (query.isNotEmpty)
+          Positioned(
+            width: overlayWidth,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0, 44),
+              child: Material(
+                elevation: 0,
+                borderRadius: BorderRadius.zero,
+                color: _backgroundColor,
+                child: Container(
+                  constraints: BoxConstraints(maxHeight: maxHeight),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(
+                      color: _borderColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.zero,
+                    child: _SearchDropdownContent(
+                      query: query,
+                      onSelectResult: _selectResult,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -221,8 +255,9 @@ class _SearchDropdownContentState
   static const _textColor = Color(0xFF00171F);
   static const _borderColor = Color(0xFFCE2161);
 
-  /// Cached results from the last successful fetch, kept across query changes.
+  /// Cached results from the last successful fetch.
   List<SearchResult>? _lastResults;
+  String? _lastQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -232,10 +267,18 @@ class _SearchDropdownContentState
 
     final resultsAsync = ref.watch(searchResultsProvider(widget.query));
 
+    // Clear cache when query changes and isn't a prefix/extension of the last.
+    if (_lastQuery != null &&
+        !widget.query.startsWith(_lastQuery!) &&
+        !_lastQuery!.startsWith(widget.query)) {
+      _lastResults = null;
+    }
+
     // Update cache whenever we get new data.
     final freshResults = resultsAsync.value;
     if (freshResults != null) {
       _lastResults = freshResults;
+      _lastQuery = widget.query;
     }
 
     final results = _lastResults;
@@ -341,13 +384,14 @@ class _SearchResultTile extends StatelessWidget {
   const _SearchResultTile({required this.result, required this.onTap});
 
   static const _textColor = Color(0xFF00171F);
+  static const _accentColor = Color(0xFFCE2161);
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -356,15 +400,15 @@ class _SearchResultTile extends StatelessWidget {
                 PhosphorIcon(
                   getChannelIcon(result.channelEmoji),
                   color: _textColor,
-                  size: 14,
+                  size: 18,
                 ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     result.channelName,
                     style: GoogleFonts.spaceGrotesk(
-                      color: _textColor.withValues(alpha: 0.6),
-                      fontSize: 12,
+                      color: _textColor,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -373,15 +417,15 @@ class _SearchResultTile extends StatelessWidget {
                 Text(
                   formatRelativeTime(result.createdAt),
                   style: GoogleFonts.spaceGrotesk(
-                    color: _textColor.withValues(alpha: 0.4),
+                    color: _textColor,
                     fontSize: 12,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             RichText(
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               text: TextSpan(
                 style: GoogleFonts.spaceGrotesk(
@@ -411,7 +455,10 @@ List<TextSpan> parseSnippet(String snippet) {
     spans.add(
       TextSpan(
         text: match.group(1),
-        style: const TextStyle(fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Color(0xFFCE2161),
+        ),
       ),
     );
     lastEnd = match.end;

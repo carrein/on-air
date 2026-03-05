@@ -17,7 +17,7 @@ Shown when viewing a real channel (not archive, not settings).
 - **Bottom border**: 1px `brand.primary` (`#CE2161`)
 - **Padding**: `_paddingStandard` — left 16px, right 8px, vertical 8px
 
-#### Non-Mobile Layout (>= 768px): Three-Column Search Bar
+#### Non-Mobile Layout (>= 600px): Three-Column Search Bar
 
 ```
 [ConstrainedBox 224px: title] [Expanded: SearchBarWidget] [16px gap] [SizedBox: actions]
@@ -30,9 +30,9 @@ Shown when viewing a real channel (not archive, not settings).
 | Gap | `16px` | Fixed spacer |
 | Actions | `316px` or shrink-to-fit | Pin, media panel toggle, new channel, sync indicator, menu |
 
-**Width alignment**: The 224px title width equals the sidebar (240px) minus navbar left padding (16px), aligning the search bar's left edge with the sidebar/content boundary. The 316px actions width (applied when `isDesktop` >= 1200px AND `mediaPanelVisible`) aligns the actions block with the 340px media panel below. When the media panel is hidden or on tablet widths (768-1199px), the actions SizedBox shrinks to fit (`width: null`, `MainAxisSize.min`).
+**Width alignment**: The 224px title width equals the sidebar (240px) minus navbar left padding (16px), aligning the search bar's left edge with the sidebar/content boundary. The 316px actions width (applied when `isDesktop` >= 1200px AND `mediaPanelVisible`) aligns the actions block with the 340px media panel below. When the media panel is hidden or on tablet widths (600-1199px), the actions SizedBox shrinks to fit (`width: null`, `MainAxisSize.min`).
 
-#### Mobile Layout (< 768px)
+#### Mobile Layout (< 600px)
 
 - **Layout**: `[channel icon + name (Expanded)]` + `[search icon]` + `[pin button?]` + `[media panel toggle]` + `[new channel button]` + `[sync indicator]` + `[menu button]`
 - Search icon (`PhosphorIcons.magnifyingGlass()`) activates `globalSearchProvider`, triggering full-screen search mode in `chat_screen.dart`

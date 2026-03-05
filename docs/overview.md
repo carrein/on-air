@@ -154,9 +154,9 @@ _Layout_
   - Left sidebar: 60-250px (channels, collapsible)
   - Center: chat view (inverted list: newest at bottom)
   - Right sidebar: 250-400px media panel (4 tabs: Images/Videos/Documents/Links)
-  - Desktop (>=1200px): Both sidebars always visible
-  - Tablet (768-1199px): Right sidebar hidden, toggle via button
-  - Mobile (<768px): Right sidebar as bottom sheet
+  - Desktop (>=1200px): Full sidebar (240px) + media panel as right sidebar
+  - Tablet (600-1199px): Full sidebar (240px), media panel as bottom sheet
+  - Mobile (<600px): Compact sidebar (64px), media panel as bottom sheet
 - Static bottom NoteInput
 
 _Sidebar_

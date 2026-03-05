@@ -52,7 +52,7 @@ Stateless widget wrapping a `TextField` with shared Memoka search styling. Used 
 ## Desktop: SearchBarWidget
 
 **Widget**: `SearchBarWidget` (ConsumerStatefulWidget)
-**Location**: Navbar center area, visible when `!isMobile && !isInDetailMode` (>= 768px in standard mode)
+**Location**: Navbar center area, visible when `!isMobile && !isInDetailMode` (>= 600px in standard mode)
 
 ### Search Input
 

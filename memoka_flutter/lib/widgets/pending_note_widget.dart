@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../providers/pending_uploads_provider.dart';
 import '../utils/file_utils.dart';
+import '../utils/responsive_utils.dart';
 import 'media_attachment_widget.dart';
 
 /// Standard footer height shared by: timestamp+actions, shimmer, progress bar.
@@ -444,8 +445,8 @@ class NoteConstraints extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveUtils.isMobile(context);
     final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
     final constrained = ConstrainedBox(
       constraints: BoxConstraints(
         maxWidth: isMobile ? screenWidth - 28 : 600,

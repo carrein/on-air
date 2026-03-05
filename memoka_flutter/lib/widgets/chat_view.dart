@@ -92,7 +92,7 @@ class _ChatViewState extends ConsumerState<ChatView>
     super.initState();
     _itemPositionsListener.itemPositions.addListener(_onScroll);
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 80),
+      duration: const Duration(milliseconds: 100),
       vsync: this,
       value: 1.0,
     );

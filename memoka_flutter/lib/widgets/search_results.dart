@@ -39,26 +39,13 @@ class SearchResults extends ConsumerWidget {
     return resultsAsync.when(
       data: (results) {
         if (results.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    PhosphorIcons.magnifyingGlass(),
-                    size: 48,
-                    color: _textColor.withValues(alpha: 0.15),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "No results for '$query'",
-                    style: GoogleFonts.spaceGrotesk(
-                      color: _textColor.withValues(alpha: 0.5),
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+          return Align(
+            alignment: Alignment.topCenter,
+            child: Text(
+              "No results for '$query'",
+              style: GoogleFonts.spaceGrotesk(
+                color: _textColor.withValues(alpha: 0.5),
+                fontSize: 14,
               ),
             ),
           );
@@ -240,15 +227,15 @@ class _SearchResultTile extends ConsumerWidget {
                 PhosphorIcon(
                   getChannelIcon(result.channelEmoji),
                   color: _textColor,
-                  size: 16,
+                  size: 18,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     result.channelName,
                     style: GoogleFonts.spaceGrotesk(
-                      color: _textColor.withValues(alpha: 0.6),
-                      fontSize: 13,
+                      color: _textColor,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -257,7 +244,7 @@ class _SearchResultTile extends ConsumerWidget {
                 Text(
                   formatRelativeTime(result.createdAt),
                   style: GoogleFonts.spaceGrotesk(
-                    color: _textColor.withValues(alpha: 0.4),
+                    color: _textColor,
                     fontSize: 12,
                   ),
                 ),
@@ -265,7 +252,7 @@ class _SearchResultTile extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             RichText(
-              maxLines: 3,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               text: TextSpan(
                 style: GoogleFonts.spaceGrotesk(

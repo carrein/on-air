@@ -241,7 +241,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
     _focusNode.requestFocus();
   }
 
-  static const _animDuration = Duration(milliseconds: 250);
+  static const _animDuration = Duration(milliseconds: 200);
   static const _animCurve = Curves.easeInOut;
 
   Widget _buildActionIcons() {

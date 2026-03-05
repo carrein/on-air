@@ -304,8 +304,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             if (isShowingSettings)
               AnimatedOpacity(
                 opacity: 1.0,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOut,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
                 child: const SettingsView(),
               ),
           ],

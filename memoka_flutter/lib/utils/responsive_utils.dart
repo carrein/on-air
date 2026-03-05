@@ -5,7 +5,7 @@ import 'dart:io' show Platform;
 /// Responsive breakpoint utilities for adaptive layouts.
 class ResponsiveUtils {
   // Breakpoint constants
-  static const double mobileBreakpoint = 768.0;
+  static const double mobileBreakpoint = 600.0;
   static const double tabletBreakpoint = 1200.0;
 
   /// True on macOS, Windows, Linux (and web — treated as desktop for key handling).
@@ -13,12 +13,12 @@ class ResponsiveUtils {
       kIsWeb ||
       (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux));
 
-  /// Check if the current screen width is mobile (< 768px)
+  /// Check if the current screen width is mobile (< 600px)
   static bool isMobile(BuildContext context) {
     return MediaQuery.of(context).size.width < mobileBreakpoint;
   }
 
-  /// Check if the current screen width is tablet (768-1199px)
+  /// Check if the current screen width is tablet (600-1199px)
   static bool isTablet(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     return width >= mobileBreakpoint && width < tabletBreakpoint;

@@ -83,7 +83,8 @@ class _IconButtonStyledState extends State<IconButtonStyled> {
         onTapUp: enabled ? (_) => setState(() => _isPressed = false) : null,
         onTapCancel: enabled ? () => setState(() => _isPressed = false) : null,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeInOut,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
