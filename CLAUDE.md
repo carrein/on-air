@@ -21,6 +21,7 @@ u/docs/Sync.md
 u/docs/GIF.md
 u/docs/ArchiveRetention.md
 u/docs/Search.md
+u/docs/Shortcuts.md
 
 # CLAUDE.md
 
@@ -316,6 +317,7 @@ interactions, state management, and integration details.
 - **GIF Integration**: `docs/GIF.md` — Klipy API search/featured, download-then-upload flow, build-time API key configuration
 - **Archive Retention**: `docs/ArchiveRetention.md` — Configurable auto-purge (Never/30/60/90 days), PurgeHelper shared tombstone logic, hourly purge scheduling
 - **Search**: `docs/Search.md` — Hybrid FTS + trigram search, untracked `note_search` table pattern, Serverpod schema validator constraints and workarounds
+- **Shortcuts**: `docs/Shortcuts.md` — Keyboard shortcuts (Ctrl+F, Ctrl+K, Escape, arrow keys)
 
 ## Platform Guides
 

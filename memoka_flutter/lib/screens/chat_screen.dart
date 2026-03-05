@@ -21,6 +21,7 @@ import '../providers/media_panel_visible_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/global_search_provider.dart';
+import '../providers/input_focus_provider.dart';
 import '../providers/chat_stream_provider.dart';
 import '../providers/connection_provider.dart' as conn;
 import '../providers/sync_engine_provider.dart';
@@ -74,7 +75,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       // the browser opens its own find-in-page. The actual search activation
       // is handled by _handleHardwareKey inside Flutter's event loop.
       _webKeydownSubscription = html.document.onKeyDown.listen((event) {
-        if (event.key == 'f' && (event.metaKey || event.ctrlKey)) {
+        if ((event.key == 'f' || event.key == 'k') &&
+            (event.metaKey || event.ctrlKey)) {
           event.preventDefault();
         }
       });
@@ -146,6 +148,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         Navigator.of(context).pop();
       }
       ref.read(globalSearchProvider.notifier).activate();
+      return true;
+    }
+
+    // Cmd+K / Ctrl+K focuses note input.
+    if (event.logicalKey == LogicalKeyboardKey.keyK &&
+        (HardwareKeyboard.instance.isMetaPressed ||
+            HardwareKeyboard.instance.isControlPressed)) {
+      if (ref.read(globalSearchProvider).isActive) {
+        ref.read(globalSearchProvider.notifier).deactivate();
+      }
+      ref.read(inputFocusRequestProvider.notifier).request();
       return true;
     }
 

@@ -9,6 +9,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/input_focus_provider.dart';
 import '../providers/pending_uploads_provider.dart';
 import '../services/klipy_service.dart';
 import '../utils/toast_utils.dart';
@@ -89,6 +90,14 @@ class _NoteInputState extends ConsumerState<NoteInput> {
   Widget build(BuildContext context) {
     final editingNoteId = ref.watch(editingNoteProvider);
     final isEditMode = editingNoteId != null;
+
+    // Listen for Ctrl+K focus requests from ChatScreen.
+    ref.listen(inputFocusRequestProvider, (prev, next) {
+      if (next) {
+        _focusNode.requestFocus();
+        ref.read(inputFocusRequestProvider.notifier).consume();
+      }
+    });
 
     // Listen for editing state changes to populate the field
     ref.listen(editingNoteProvider, (prev, next) {

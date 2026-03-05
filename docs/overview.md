@@ -187,6 +187,7 @@ _Chat View_
 - Video lightbox dialog with player controls (play/pause, progress bar, keyboard shortcuts)
 - Link preview cards
 - Selectable chat background patterns (via Settings → Background Picker)
+- Keyboard shortcuts: Ctrl/Cmd+F (search), Ctrl/Cmd+K (focus input), Escape (cancel), arrow keys (cycle channels) — see `docs/Shortcuts.md`
 
 _NoteInput_
 
