@@ -282,7 +282,6 @@ class _SearchDropdownContentState
     }
 
     final results = _lastResults;
-    final isLoading = resultsAsync.isLoading;
     final hasError = resultsAsync.hasError;
 
     if (hasError && results == null) {
@@ -384,7 +383,6 @@ class _SearchResultTile extends StatelessWidget {
   const _SearchResultTile({required this.result, required this.onTap});
 
   static const _textColor = Color(0xFF00171F);
-  static const _accentColor = Color(0xFFCE2161);
 
   @override
   Widget build(BuildContext context) {
