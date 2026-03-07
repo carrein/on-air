@@ -18,6 +18,7 @@ ARG APP_VERSION=DEV
 ARG KLIPY_API_KEY=
 RUN flutter pub get
 RUN flutter build web --release --base-href /app/ --dart-define=APP_VERSION=${APP_VERSION} --dart-define=KLIPY_API_KEY=${KLIPY_API_KEY}
+RUN perl -0777 -pi -e 's/serviceWorkerSettings:\s*\{[^}]*\}//' build/web/flutter_bootstrap.js
 
 # Stage 2: Serverpod Server Build
 FROM dart:stable AS server_builder

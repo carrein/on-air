@@ -173,6 +173,7 @@ flutter run
 # Note: --wasm flag is not compatible with dart:html usage
 cd ../memoka_flutter
 flutter build web --dart-define=APP_VERSION=$(git describe --tags --abbrev=0) --base-href /app/ --output ../memoka_server/web/app
+perl -0777 -pi -e 's/serviceWorkerSettings:\s*\{[^}]*\}//' ../memoka_server/web/app/flutter_bootstrap.js
 ```
 
 ### Database Seeding

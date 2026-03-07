@@ -35,13 +35,8 @@
 </head>
 <body>
   <script>
-    // Prevent default browser context menu
-    document.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-    });
-
-    // PWA update: force service worker update check on every page load and
-    // auto-reload when a new version takes control.
+    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+    // Migration: trigger cleanup SW for existing installations
     if ('serviceWorker' in navigator) {
       var refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', function() {
@@ -49,8 +44,8 @@
         refreshing = true;
         window.location.reload();
       });
-      navigator.serviceWorker.ready.then(function(reg) {
-        reg.update();
+      navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (reg) reg.update();
       });
     }
   </script>
