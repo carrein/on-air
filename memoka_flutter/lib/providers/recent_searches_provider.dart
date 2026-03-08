@@ -24,8 +24,9 @@ class RecentSearches extends _$RecentSearches {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
     final updated = [trimmed, ...state.where((s) => s != trimmed)];
-    if (updated.length > _maxItems)
+    if (updated.length > _maxItems) {
       updated.removeRange(_maxItems, updated.length);
+    }
     state = updated;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList(_key, updated);

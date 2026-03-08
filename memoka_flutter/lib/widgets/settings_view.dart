@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/background_provider.dart';
 import '../main.dart';
 import '../screens/server_setup_screen.dart';
+import '../services/notification_service.dart';
 
 /// Build-time version via --dart-define=APP_VERSION=$(git describe --tags --abbrev=0).
 /// Shows the git tag version in production builds, "DEV" in local dev.
@@ -34,6 +35,8 @@ class SettingsView extends ConsumerWidget {
                 if (!kIsWeb) _buildServerSection(context),
                 // Chat Background section
                 _buildBackgroundSection(ref, currentBackground),
+                // Notifications section
+                _buildNotificationsSection(context),
                 // About section
                 _buildAboutSection(),
               ],
@@ -123,6 +126,64 @@ class SettingsView extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildNotificationsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            'Notifications',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF00171F),
+            ),
+          ),
+        ),
+        ListTile(
+          leading: PhosphorIcon(
+            PhosphorIcons.bell(),
+            color: const Color(0xFF00171F),
+            size: 20,
+          ),
+          title: const Text(
+            'Test Notification',
+            style: TextStyle(fontSize: 14),
+          ),
+          subtitle: Text(
+            'Fires after 10 seconds',
+            style: TextStyle(
+              fontSize: 12,
+              color: const Color(0xFF00171F).withValues(alpha: 0.6),
+            ),
+          ),
+          trailing: TextButton(
+            onPressed: () async {
+              final granted = await scheduleTestNotification();
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    granted
+                        ? 'Notification scheduled — arrives in 10 seconds'
+                        : 'Notification permission denied',
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: const Text(
+              'Send',
+              style: TextStyle(color: Color(0xFFCE2161)),
+            ),
+          ),
+        ),
       ],
     );
   }

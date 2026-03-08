@@ -22,6 +22,7 @@ u/docs/GIF.md
 u/docs/ArchiveRetention.md
 u/docs/Search.md
 u/docs/Shortcuts.md
+u/docs/Notification.md
 
 # CLAUDE.md
 
@@ -53,6 +54,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Offline Mode**: Local-first reads from SQLite cache (Drift), dirty-flag tracking replaces mutation queue, pull-then-push sync on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Sync.md`)
 - **GIF Search**: Klipy API integration for GIF search and send; bottom sheet picker with trending, search, pagination; GIFs downloaded from CDN and uploaded to server as self-hosted media (see `docs/GIF.md`)
 - **Search**: Hybrid FTS + trigram search across all notes; ranked results with highlighted snippets, jump-to-context; untracked `note_search` table pattern to work around Serverpod schema validator (see `docs/Search.md`)
+- **Notifications**: Test notification harness in Settings — platform-conditional (Web Notifications API / flutter_local_notifications), lazy-initialized, 10s delay for backgrounding verification (see `docs/Notification.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -319,6 +321,7 @@ interactions, state management, and integration details.
 - **Archive Retention**: `docs/ArchiveRetention.md` — Configurable auto-purge (Never/30/60/90 days), PurgeHelper shared tombstone logic, hourly purge scheduling
 - **Search**: `docs/Search.md` — Hybrid FTS + trigram search, untracked `note_search` table pattern, Serverpod schema validator constraints and workarounds
 - **Shortcuts**: `docs/Shortcuts.md` — Keyboard shortcuts (Ctrl+F, Ctrl+K, Escape, arrow keys)
+- **Notifications**: `docs/Notification.md` — Test notification harness, platform-conditional, lazy init
 
 ## Platform Guides
 
