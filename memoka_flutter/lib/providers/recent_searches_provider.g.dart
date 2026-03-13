@@ -41,7 +41,7 @@ final class RecentSearchesProvider
   }
 }
 
-String _$recentSearchesHash() => r'4e8836872c748ee8300ceec0dcf20cd81663de24';
+String _$recentSearchesHash() => r'297af2cf432d217c3b6ebbf760dde2bc04b200d3';
 
 abstract class _$RecentSearches extends $Notifier<List<String>> {
   List<String> build();

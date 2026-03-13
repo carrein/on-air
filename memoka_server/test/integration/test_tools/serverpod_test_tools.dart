@@ -18,13 +18,14 @@ import 'package:memoka_server/src/generated/chat/channel.dart' as _i4;
 import 'package:memoka_server/src/generated/chat/note.dart' as _i5;
 import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i6;
 import 'package:memoka_server/src/generated/chat/chat_event.dart' as _i7;
-import 'package:memoka_server/src/generated/search/search_result.dart' as _i8;
-import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i9;
+import 'package:memoka_server/src/generated/pagewatch/page_watch.dart' as _i8;
+import 'package:memoka_server/src/generated/search/search_result.dart' as _i9;
+import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i10;
 import 'package:memoka_server/src/generated/sync/sync_pull_response.dart'
-    as _i10;
-import 'package:memoka_server/src/generated/sync/sync_push_response.dart'
     as _i11;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i12;
+import 'package:memoka_server/src/generated/sync/sync_push_response.dart'
+    as _i12;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i13;
 import 'package:memoka_server/src/generated/protocol.dart';
 import 'package:memoka_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -136,6 +137,8 @@ class TestEndpoints {
 
   late final _HealthEndpoint health;
 
+  late final _PageWatchEndpoint pageWatch;
+
   late final _SearchEndpoint search;
 
   late final _SettingsEndpoint settings;
@@ -155,6 +158,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     health = _HealthEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    pageWatch = _PageWatchEndpoint(
       endpoints,
       serializationManager,
     );
@@ -713,6 +720,141 @@ class _HealthEndpoint {
   }
 }
 
+class _PageWatchEndpoint {
+  _PageWatchEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i8.PageWatch> createWatch(
+    _i1.TestSessionBuilder sessionBuilder,
+    int noteId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'pageWatch',
+            method: 'createWatch',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'pageWatch',
+          methodName: 'createWatch',
+          parameters: _i1.testObjectToJson({'noteId': noteId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i8.PageWatch>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<void> deleteWatch(
+    _i1.TestSessionBuilder sessionBuilder,
+    int noteId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'pageWatch',
+            method: 'deleteWatch',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'pageWatch',
+          methodName: 'deleteWatch',
+          parameters: _i1.testObjectToJson({'noteId': noteId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i8.PageWatch?> getWatch(
+    _i1.TestSessionBuilder sessionBuilder,
+    int noteId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'pageWatch',
+            method: 'getWatch',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'pageWatch',
+          methodName: 'getWatch',
+          parameters: _i1.testObjectToJson({'noteId': noteId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i8.PageWatch?>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<void> acknowledgeChange(
+    _i1.TestSessionBuilder sessionBuilder,
+    int noteId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'pageWatch',
+            method: 'acknowledgeChange',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'pageWatch',
+          methodName: 'acknowledgeChange',
+          parameters: _i1.testObjectToJson({'noteId': noteId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
 class _SearchEndpoint {
   _SearchEndpoint(
     this._endpointDispatch,
@@ -723,7 +865,7 @@ class _SearchEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<List<_i8.SearchResult>> searchNotes(
+  _i3.Future<List<_i9.SearchResult>> searchNotes(
     _i1.TestSessionBuilder sessionBuilder,
     String query, {
     int? channelId,
@@ -752,7 +894,7 @@ class _SearchEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<List<_i8.SearchResult>>);
+                as _i3.Future<List<_i9.SearchResult>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -808,7 +950,7 @@ class _SettingsEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i9.AppSettings> getSettings(
+  _i3.Future<_i10.AppSettings> getSettings(
     _i1.TestSessionBuilder sessionBuilder,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -830,7 +972,7 @@ class _SettingsEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i9.AppSettings>);
+                as _i3.Future<_i10.AppSettings>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -838,9 +980,9 @@ class _SettingsEndpoint {
     });
   }
 
-  _i3.Future<_i9.AppSettings> updateSettings(
+  _i3.Future<_i10.AppSettings> updateSettings(
     _i1.TestSessionBuilder sessionBuilder,
-    _i9.AppSettings settings,
+    _i10.AppSettings settings,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -861,7 +1003,7 @@ class _SettingsEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i9.AppSettings>);
+                as _i3.Future<_i10.AppSettings>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -880,7 +1022,7 @@ class _SyncEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i10.SyncPullResponse> syncPull(
+  _i3.Future<_i11.SyncPullResponse> syncPull(
     _i1.TestSessionBuilder sessionBuilder,
     int sinceVersion,
   ) async {
@@ -903,7 +1045,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i10.SyncPullResponse>);
+                as _i3.Future<_i11.SyncPullResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -911,9 +1053,9 @@ class _SyncEndpoint {
     });
   }
 
-  _i3.Future<_i11.SyncPushResponse> syncPush(
+  _i3.Future<_i12.SyncPushResponse> syncPush(
     _i1.TestSessionBuilder sessionBuilder,
-    List<_i12.SyncChange> changes,
+    List<_i13.SyncChange> changes,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -934,7 +1076,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i11.SyncPushResponse>);
+                as _i3.Future<_i12.SyncPushResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

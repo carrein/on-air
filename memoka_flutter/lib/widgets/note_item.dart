@@ -16,6 +16,8 @@ import '../utils/download_utils.dart';
 import '../providers/notes_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/note_selection_provider.dart';
+import '../providers/page_watch_provider.dart';
+import '../utils/url_utils.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
@@ -234,7 +236,7 @@ class NoteItem extends ConsumerWidget {
     }
 
     if (note.linkPreview != null) {
-      if (parts.isNotEmpty) parts.add(const SizedBox(height: 12));
+      if (parts.isNotEmpty) parts.add(const SizedBox(height: 4));
       parts.add(LinkPreviewCard(preview: note.linkPreview!));
     }
 
@@ -426,7 +428,7 @@ class NoteItem extends ConsumerWidget {
   }
 }
 
-class _NoteFooter extends StatelessWidget {
+class _NoteFooter extends ConsumerWidget {
   const _NoteFooter({
     required this.note,
     required this.channelId,
@@ -538,8 +540,15 @@ class _NoteFooter extends StatelessWidget {
     }
   }
 
+  /// Whether the note contains exactly one URL (eligible for page watch).
+  bool get _hasSingleUrl {
+    if (note.content.isEmpty) return false;
+    final urls = urlPattern.allMatches(note.content).toList();
+    return urls.length == 1;
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isArchive = channelId == -1;
     final color = _iconColor.withValues(alpha: _iconAlpha);
     return SizedBox(
@@ -560,6 +569,10 @@ class _NoteFooter extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (!isArchive && _hasSingleUrl && note.id != null) ...[
+                _PageWatchBell(noteId: note.id!, color: color),
+                const SizedBox(width: 14),
+              ],
               if (!isArchive && !_isDocumentOnly) ...[
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
@@ -620,6 +633,123 @@ class _NoteFooter extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Bell icon for toggling page watch on a single-URL note.
+/// States: outline (not watching), filled (watching), filled+pink dot (change),
+/// red (error/disabled after failures).
+class _PageWatchBell extends ConsumerWidget {
+  const _PageWatchBell({required this.noteId, required this.color});
+
+  final int noteId;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final watchAsync = ref.watch(pageWatchProvider(noteId));
+
+    return watchAsync.when(
+      loading: () => Icon(
+        PhosphorIcons.bell(),
+        size: 20,
+        color: color.withValues(alpha: 0.3),
+      ),
+      error: (_, _) => Icon(
+        PhosphorIcons.bell(),
+        size: 20,
+        color: color,
+      ),
+      data: (watch) {
+        final isWatching = watch != null && watch.enabled;
+        final hasChange = watch?.hasUnacknowledgedChange ?? false;
+        final hasError =
+            watch != null && !watch.enabled && watch.consecutiveFailures >= 5;
+
+        // Pick icon and color
+        final IconData icon;
+        final Color bellColor;
+        if (hasError) {
+          icon = PhosphorIcons.bellRinging(PhosphorIconsStyle.fill);
+          bellColor = const Color(0xFFD32F2F); // red
+        } else if (isWatching) {
+          icon = PhosphorIcons.bell(PhosphorIconsStyle.fill);
+          bellColor = color;
+        } else {
+          icon = PhosphorIcons.bell();
+          bellColor = color;
+        }
+
+        return MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () => _onTap(context, ref, watch),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, size: 20, color: bellColor),
+                if (hasChange)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFCE2161), // pink
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onTap(
+    BuildContext context,
+    WidgetRef ref,
+    PageWatch? watch,
+  ) async {
+    final notifier = ref.read(pageWatchProvider(noteId).notifier);
+
+    // If there's an unacknowledged change, acknowledge it
+    if (watch != null && watch.hasUnacknowledgedChange) {
+      try {
+        await notifier.acknowledgeChange();
+      } catch (e) {
+        if (context.mounted) {
+          ToastUtils.show(
+            context,
+            'Failed: $e',
+            type: ToastType.error,
+          );
+        }
+      }
+      return;
+    }
+
+    try {
+      final nowWatching = await notifier.toggleWatch();
+      if (context.mounted) {
+        ToastUtils.show(
+          context,
+          nowWatching ? 'Watching page for changes' : 'Stopped watching page',
+          type: ToastType.info,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ToastUtils.show(
+          context,
+          'Failed: $e',
+          type: ToastType.error,
+        );
+      }
+    }
   }
 }
 

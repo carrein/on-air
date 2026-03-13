@@ -1,14 +1,10 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
+import '../shared/constants.dart';
 import '../shared/note_query.dart';
 
 /// Endpoint for full-text, substring, and typo-tolerant search across notes.
 class SearchEndpoint extends Endpoint {
-  /// Escapes a string for safe use in a SQL single-quoted literal.
-  static String _escapeSql(String input) {
-    return input.replaceAll(r'\', r'\\').replaceAll("'", "''");
-  }
-
   /// Escapes ILIKE wildcard characters (%, _) so they match literally.
   static String _escapeIlike(String input) {
     return input
@@ -55,13 +51,13 @@ class SearchEndpoint extends Endpoint {
     final scoreExprs = <String>[];
 
     for (final word in words) {
-      final escaped = _escapeSql(word);
-      final ilikeEscaped = _escapeSql(_escapeIlike(word));
+      final escaped = ServerConstants.escapeSql(word);
+      final ilikeEscaped = ServerConstants.escapeSql(_escapeIlike(word));
       final ftsWord = _sanitizeFtsWord(word);
 
       // FTS prefix condition (only if sanitized word is non-empty)
       final ftsCondition = ftsWord.isNotEmpty
-          ? "ns.search_vector @@ to_tsquery('simple', '${_escapeSql(ftsWord)}:*')"
+          ? "ns.search_vector @@ to_tsquery('simple', '${ServerConstants.escapeSql(ftsWord)}:*')"
           : 'FALSE';
 
       // ILIKE substring condition
@@ -99,7 +95,7 @@ class SearchEndpoint extends Endpoint {
     final ftsTerms = words
         .map(_sanitizeFtsWord)
         .where((w) => w.isNotEmpty)
-        .map((w) => '${_escapeSql(w)}:*')
+        .map((w) => '${ServerConstants.escapeSql(w)}:*')
         .toList();
     final hasFts = ftsTerms.isNotEmpty;
     final snippetFtsExpr = ftsTerms.join(' | ');

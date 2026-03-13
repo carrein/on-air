@@ -11,6 +11,11 @@ class ServerConstants {
   /// Channel name used for broadcasting real-time chat events via MessageCentral.
   static const String chatEventsChannel = 'chat_events';
 
+  /// Escapes a string for safe use in a SQL single-quoted literal.
+  static String escapeSql(String input) {
+    return input.replaceAll(r'\', r'\\').replaceAll("'", "''");
+  }
+
   /// Broadcasts a chat event via MessageCentral.
   /// Silently ignores errors (e.g., Redis not available in test mode).
   static Future<void> broadcastEvent(Session session, ChatEvent event) async {

@@ -16,6 +16,11 @@ chat:
   - chat:
 health:
   - ping:
+pageWatch:
+  - createWatch:
+  - deleteWatch:
+  - getWatch:
+  - acknowledgeChange:
 search:
   - searchNotes:
   - getNotesAroundId:

@@ -362,6 +362,7 @@ class ChatEndpoint extends Endpoint {
   }
 
   /// Archives a note by marking it as archived (soft delete).
+  /// Also disables any page watch on this note.
   Future<void> _archiveNote(Session session, Note note) async {
     final now = DateTime.now();
     note.archived = true;
@@ -373,6 +374,12 @@ class ChatEndpoint extends Endpoint {
       note.version = newVersion;
       await Note.db.updateRow(session, note, transaction: tx);
     });
+
+    // Disable page watch if one exists
+    await session.db.unsafeQuery(
+      'UPDATE "page_watches" SET "enabled" = false '
+      'WHERE "noteId" = ${note.id}',
+    );
 
     await ServerConstants.broadcastEvent(
       session,
@@ -459,6 +466,12 @@ class ChatEndpoint extends Endpoint {
       channel.version = newVersion;
       await Channel.db.updateRow(session, channel, transaction: tx);
     });
+
+    // Disable all page watches in this channel
+    await session.db.unsafeQuery(
+      'UPDATE "page_watches" SET "enabled" = false '
+      'WHERE "channelId" = $id',
+    );
 
     await ServerConstants.broadcastEvent(
       session,

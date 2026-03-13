@@ -13,11 +13,12 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/chat_endpoint.dart' as _i2;
 import '../health_endpoint.dart' as _i3;
-import '../search/search_endpoint.dart' as _i4;
-import '../settings/settings_endpoint.dart' as _i5;
-import '../sync/sync_endpoint.dart' as _i6;
-import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i7;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i8;
+import '../pagewatch/page_watch_endpoint.dart' as _i4;
+import '../search/search_endpoint.dart' as _i5;
+import '../settings/settings_endpoint.dart' as _i6;
+import '../sync/sync_endpoint.dart' as _i7;
+import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i8;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i9;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -35,19 +36,25 @@ class Endpoints extends _i1.EndpointDispatch {
           'health',
           null,
         ),
-      'search': _i4.SearchEndpoint()
+      'pageWatch': _i4.PageWatchEndpoint()
+        ..initialize(
+          server,
+          'pageWatch',
+          null,
+        ),
+      'search': _i5.SearchEndpoint()
         ..initialize(
           server,
           'search',
           null,
         ),
-      'settings': _i5.SettingsEndpoint()
+      'settings': _i6.SettingsEndpoint()
         ..initialize(
           server,
           'settings',
           null,
         ),
-      'sync': _i6.SyncEndpoint()
+      'sync': _i7.SyncEndpoint()
         ..initialize(
           server,
           'sync',
@@ -389,6 +396,88 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['pageWatch'] = _i1.EndpointConnector(
+      name: 'pageWatch',
+      endpoint: endpoints['pageWatch']!,
+      methodConnectors: {
+        'createWatch': _i1.MethodConnector(
+          name: 'createWatch',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['pageWatch'] as _i4.PageWatchEndpoint).createWatch(
+                    session,
+                    params['noteId'],
+                  ),
+        ),
+        'deleteWatch': _i1.MethodConnector(
+          name: 'deleteWatch',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['pageWatch'] as _i4.PageWatchEndpoint).deleteWatch(
+                    session,
+                    params['noteId'],
+                  ),
+        ),
+        'getWatch': _i1.MethodConnector(
+          name: 'getWatch',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['pageWatch'] as _i4.PageWatchEndpoint).getWatch(
+                    session,
+                    params['noteId'],
+                  ),
+        ),
+        'acknowledgeChange': _i1.MethodConnector(
+          name: 'acknowledgeChange',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['pageWatch'] as _i4.PageWatchEndpoint)
+                  .acknowledgeChange(
+                    session,
+                    params['noteId'],
+                  ),
+        ),
+      },
+    );
     connectors['search'] = _i1.EndpointConnector(
       name: 'search',
       endpoint: endpoints['search']!,
@@ -417,7 +506,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['search'] as _i4.SearchEndpoint).searchNotes(
+                  (endpoints['search'] as _i5.SearchEndpoint).searchNotes(
                     session,
                     params['query'],
                     channelId: params['channelId'],
@@ -448,7 +537,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['search'] as _i4.SearchEndpoint).getNotesAroundId(
+                  (endpoints['search'] as _i5.SearchEndpoint).getNotesAroundId(
                     session,
                     params['channelId'],
                     params['noteId'],
@@ -468,7 +557,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['settings'] as _i5.SettingsEndpoint)
+              ) async => (endpoints['settings'] as _i6.SettingsEndpoint)
                   .getSettings(session),
         ),
         'updateSettings': _i1.MethodConnector(
@@ -476,7 +565,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'settings': _i1.ParameterDescription(
               name: 'settings',
-              type: _i1.getType<_i7.AppSettings>(),
+              type: _i1.getType<_i8.AppSettings>(),
               nullable: false,
             ),
           },
@@ -484,7 +573,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['settings'] as _i5.SettingsEndpoint)
+              ) async => (endpoints['settings'] as _i6.SettingsEndpoint)
                   .updateSettings(
                     session,
                     params['settings'],
@@ -509,7 +598,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i6.SyncEndpoint).syncPull(
+              ) async => (endpoints['sync'] as _i7.SyncEndpoint).syncPull(
                 session,
                 params['sinceVersion'],
               ),
@@ -519,7 +608,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'changes': _i1.ParameterDescription(
               name: 'changes',
-              type: _i1.getType<List<_i8.SyncChange>>(),
+              type: _i1.getType<List<_i9.SyncChange>>(),
               nullable: false,
             ),
           },
@@ -527,7 +616,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i6.SyncEndpoint).syncPush(
+              ) async => (endpoints['sync'] as _i7.SyncEndpoint).syncPush(
                 session,
                 params['changes'],
               ),

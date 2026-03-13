@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final _plugin = FlutterLocalNotificationsPlugin();
 var _initialized = false;
@@ -6,8 +7,21 @@ var _initialized = false;
 Future<void> _ensureInitialized() async {
   if (_initialized) return;
   const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-  await _plugin.initialize(const InitializationSettings(android: android));
+  await _plugin.initialize(
+    const InitializationSettings(android: android),
+    onDidReceiveNotificationResponse: _onNotificationTap,
+  );
   _initialized = true;
+}
+
+void _onNotificationTap(NotificationResponse response) {
+  final url = response.payload;
+  if (url != null && url.isNotEmpty) {
+    final uri = Uri.tryParse(url);
+    if (uri != null) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 }
 
 /// Request permission and schedule a test notification after 10 seconds.
@@ -45,4 +59,31 @@ Future<bool> scheduleTestNotification() async {
   });
 
   return true;
+}
+
+/// Show a notification when a watched page's content has changed.
+Future<void> showPageChangeNotification({
+  required int noteId,
+  required int channelId,
+  String? pageTitle,
+  String? pageDomain,
+  String? pageUrl,
+  String? faviconUrl,
+}) async {
+  await _ensureInitialized();
+  _plugin.show(
+    noteId,
+    pageTitle ?? 'Page Changed',
+    '${pageDomain ?? 'A watched page'} has new content',
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'memoka_page_watch',
+        'Page Watch',
+        channelDescription: 'Notifications when a watched page changes',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    ),
+    payload: pageUrl,
+  );
 }

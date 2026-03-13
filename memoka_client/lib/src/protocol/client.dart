@@ -16,13 +16,15 @@ import 'package:memoka_client/src/protocol/chat/channel.dart' as _i3;
 import 'package:memoka_client/src/protocol/chat/note.dart' as _i4;
 import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i5;
 import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i6;
-import 'package:memoka_client/src/protocol/search/search_result.dart' as _i7;
-import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i8;
-import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart' as _i9;
-import 'package:memoka_client/src/protocol/sync/sync_push_response.dart'
+import 'package:memoka_client/src/protocol/pagewatch/page_watch.dart' as _i7;
+import 'package:memoka_client/src/protocol/search/search_result.dart' as _i8;
+import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i9;
+import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart'
     as _i10;
-import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i11;
-import 'protocol.dart' as _i12;
+import 'package:memoka_client/src/protocol/sync/sync_push_response.dart'
+    as _i11;
+import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i12;
+import 'protocol.dart' as _i13;
 
 /// Endpoint for managing channels and notes with real-time updates.
 /// {@category Endpoint}
@@ -216,7 +218,47 @@ class EndpointHealth extends _i1.EndpointRef {
   );
 }
 
-/// Endpoint for full-text and fuzzy subsequence search across notes.
+/// Endpoint for managing page watches on notes.
+/// {@category Endpoint}
+class EndpointPageWatch extends _i1.EndpointRef {
+  EndpointPageWatch(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'pageWatch';
+
+  /// Creates a page watch for a note. The note must contain exactly one URL.
+  _i2.Future<_i7.PageWatch> createWatch(int noteId) =>
+      caller.callServerEndpoint<_i7.PageWatch>(
+        'pageWatch',
+        'createWatch',
+        {'noteId': noteId},
+      );
+
+  /// Deletes a page watch for a note.
+  _i2.Future<void> deleteWatch(int noteId) => caller.callServerEndpoint<void>(
+    'pageWatch',
+    'deleteWatch',
+    {'noteId': noteId},
+  );
+
+  /// Returns the page watch for a note, or null if not watching.
+  _i2.Future<_i7.PageWatch?> getWatch(int noteId) =>
+      caller.callServerEndpoint<_i7.PageWatch?>(
+        'pageWatch',
+        'getWatch',
+        {'noteId': noteId},
+      );
+
+  /// Acknowledges a content change (clears the pink dot).
+  _i2.Future<void> acknowledgeChange(int noteId) =>
+      caller.callServerEndpoint<void>(
+        'pageWatch',
+        'acknowledgeChange',
+        {'noteId': noteId},
+      );
+}
+
+/// Endpoint for full-text, substring, and typo-tolerant search across notes.
 /// {@category Endpoint}
 class EndpointSearch extends _i1.EndpointRef {
   EndpointSearch(_i1.EndpointCaller caller) : super(caller);
@@ -224,19 +266,21 @@ class EndpointSearch extends _i1.EndpointRef {
   @override
   String get name => 'search';
 
-  /// Searches notes using hybrid FTS prefix + unanchored subsequence matching.
+  /// Searches notes using prefix, substring, and typo-tolerant matching.
   ///
-  /// FTS prefix handles exact prefix matches (fast, GIN-indexed).
-  /// Subsequence handles fuzzy matches like "Qck" -> "Quick" or "ick" -> "Quick"
-  /// by checking if query chars appear in order within any content word.
-  /// Content is split on non-alphanumeric boundaries so punctuation and markdown
-  /// syntax act as word separators. Multi-word queries use OR logic.
+  /// Per-term matching strategies (cascading, first match wins):
+  /// 1. FTS prefix (score 1.0) — GIN-indexed tsvector prefix match
+  /// 2. ILIKE substring (score 0.6) — contiguous match anywhere in content
+  /// 3. word_similarity >= 0.3 (score 0.2 + ws*0.2) — typo tolerance, >= 3 chars
+  ///
+  /// Multi-word queries use AND logic — all terms must match a note.
+  /// Final score = avg(per-term scores) + channel boost (0.15).
   /// Results ranked by score DESC, then recency DESC as tiebreaker.
-  _i2.Future<List<_i7.SearchResult>> searchNotes(
+  _i2.Future<List<_i8.SearchResult>> searchNotes(
     String query, {
     int? channelId,
     required int limit,
-  }) => caller.callServerEndpoint<List<_i7.SearchResult>>(
+  }) => caller.callServerEndpoint<List<_i8.SearchResult>>(
     'search',
     'searchNotes',
     {
@@ -275,16 +319,16 @@ class EndpointSettings extends _i1.EndpointRef {
   String get name => 'settings';
 
   /// Returns the current application settings.
-  _i2.Future<_i8.AppSettings> getSettings() =>
-      caller.callServerEndpoint<_i8.AppSettings>(
+  _i2.Future<_i9.AppSettings> getSettings() =>
+      caller.callServerEndpoint<_i9.AppSettings>(
         'settings',
         'getSettings',
         {},
       );
 
   /// Updates application settings.
-  _i2.Future<_i8.AppSettings> updateSettings(_i8.AppSettings settings) =>
-      caller.callServerEndpoint<_i8.AppSettings>(
+  _i2.Future<_i9.AppSettings> updateSettings(_i9.AppSettings settings) =>
+      caller.callServerEndpoint<_i9.AppSettings>(
         'settings',
         'updateSettings',
         {'settings': settings},
@@ -306,8 +350,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Includes tombstoned entities (deletedAt != null) so clients can remove them.
   /// Pass sinceVersion = 0 for a full sync (first launch / fresh install).
-  _i2.Future<_i9.SyncPullResponse> syncPull(int sinceVersion) =>
-      caller.callServerEndpoint<_i9.SyncPullResponse>(
+  _i2.Future<_i10.SyncPullResponse> syncPull(int sinceVersion) =>
+      caller.callServerEndpoint<_i10.SyncPullResponse>(
         'sync',
         'syncPull',
         {'sinceVersion': sinceVersion},
@@ -317,8 +361,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Each change is processed in its own transaction — partial apply is supported.
   /// Returns per-entity results: applied / rejected / already_applied.
-  _i2.Future<_i10.SyncPushResponse> syncPush(List<_i11.SyncChange> changes) =>
-      caller.callServerEndpoint<_i10.SyncPushResponse>(
+  _i2.Future<_i11.SyncPushResponse> syncPush(List<_i12.SyncChange> changes) =>
+      caller.callServerEndpoint<_i11.SyncPushResponse>(
         'sync',
         'syncPush',
         {'changes': changes},
@@ -345,7 +389,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i12.Protocol(),
+         _i13.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -356,6 +400,7 @@ class Client extends _i1.ServerpodClientShared {
        ) {
     chat = EndpointChat(this);
     health = EndpointHealth(this);
+    pageWatch = EndpointPageWatch(this);
     search = EndpointSearch(this);
     settings = EndpointSettings(this);
     sync = EndpointSync(this);
@@ -364,6 +409,8 @@ class Client extends _i1.ServerpodClientShared {
   late final EndpointChat chat;
 
   late final EndpointHealth health;
+
+  late final EndpointPageWatch pageWatch;
 
   late final EndpointSearch search;
 
@@ -375,6 +422,7 @@ class Client extends _i1.ServerpodClientShared {
   Map<String, _i1.EndpointRef> get endpointRefLookup => {
     'chat': chat,
     'health': health,
+    'pageWatch': pageWatch,
     'search': search,
     'settings': settings,
     'sync': sync,

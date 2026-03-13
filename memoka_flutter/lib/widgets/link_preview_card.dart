@@ -17,7 +17,7 @@ class LinkPreviewCard extends StatelessWidget {
     const fg = Colors.white;
 
     return Card(
-      margin: const EdgeInsets.only(top: 8),
+      margin: const EdgeInsets.only(top: 2),
       elevation: 0,
       color: bg,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),

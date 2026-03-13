@@ -1,0 +1,26 @@
+### A page watch entry for monitoring URL content changes.
+class: PageWatch
+
+fields:
+  ### The note ID this watch is attached to.
+  noteId: int
+  ### The channel ID the note belongs to.
+  channelId: int
+  ### The URL being watched.
+  url: String
+  ### SHA-256 hash of extracted visible text (null on first check).
+  contentHash: String?
+  ### When the URL was last checked.
+  lastCheckedAt: DateTime?
+  ### Whether this watch is active.
+  enabled: bool, default=true
+  ### Number of consecutive fetch failures.
+  consecutiveFailures: int, default=0
+  ### Last error message (null if no error).
+  lastError: String?
+  ### Whether there is an unacknowledged content change.
+  hasUnacknowledgedChange: bool, default=false
+  ### When this watch was created.
+  createdAt: DateTime
+  ### When this watch was last updated.
+  updatedAt: DateTime

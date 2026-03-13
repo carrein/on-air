@@ -23,6 +23,7 @@ u/docs/ArchiveRetention.md
 u/docs/Search.md
 u/docs/Shortcuts.md
 u/docs/Notification.md
+u/docs/PageWatch.md
 
 # CLAUDE.md
 
@@ -55,6 +56,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **GIF Search**: Klipy API integration for GIF search and send; bottom sheet picker with trending, search, pagination; GIFs downloaded from CDN and uploaded to server as self-hosted media (see `docs/GIF.md`)
 - **Search**: Hybrid FTS + trigram search across all notes; ranked results with highlighted snippets, jump-to-context; untracked `note_search` table pattern to work around Serverpod schema validator (see `docs/Search.md`)
 - **Notifications**: Test notification harness in Settings — platform-conditional (Web Notifications API / flutter_local_notifications), lazy-initialized, 10s delay for backgrounding verification (see `docs/Notification.md`)
+- **Page Watch**: Bell icon on single-URL notes to monitor for content changes; server polls periodically, hashes visible text, push notification on change; auto-disable after 5 failures; ETag/conditional request optimization (see `docs/PageWatch.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -123,6 +125,10 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 **app_settings** (server-only singleton table): archiveRetentionDays (0 = never purge, 30/60/90 = days before auto-purge of archived items)
 
 **note_search** (server-only untracked table): note_id (PK, FK → notes, cascade), search_vector (tsvector). Created at startup by `SearchSetup`, not in any `.spy.yaml` — invisible to Serverpod's schema validator. GIN index on search_vector, trigger-maintained from `notes.content`. See `docs/Search.md`.
+
+**page_watches** (server-only untracked table): noteId (FK → notes, cascade), channelId (FK → channels, cascade), url, contentHash, lastCheckedAt, enabled, consecutiveFailures, lastError, hasUnacknowledgedChange, etag, lastModified, timestamps. Created at startup by `PageWatchSetup`, not in any `.spy.yaml`. See `docs/PageWatch.md`.
+
+**PageWatch** (non-table): noteId, channelId, url, contentHash?, lastCheckedAt?, enabled, consecutiveFailures, lastError?, hasUnacknowledgedChange, createdAt, updatedAt
 
 ## Common Commands
 
@@ -271,6 +277,11 @@ Server serves:
 - `search`: Full-text and trigram search across notes
   - `searchNotes(query, {limit})` — hybrid FTS + trigram, returns ranked `SearchResult` list with snippets
   - `getNotesAroundId(channelId, noteId, {limit})` — loads notes surrounding a target for jump-to-context
+- `pageWatch`: URL change monitoring
+  - `createWatch(noteId)` — creates/re-enables a watch for a single-URL note
+  - `deleteWatch(noteId)` — removes a watch
+  - `getWatch(noteId)` — returns watch state or null
+  - `acknowledgeChange(noteId)` — clears unacknowledged change flag
 - File uploads: HTTP route `POST /media/upload` (not RPC) — streams multipart body directly to disk, no in-memory buffering
 
 ## Git Workflow Policy
@@ -322,6 +333,7 @@ interactions, state management, and integration details.
 - **Search**: `docs/Search.md` — Hybrid FTS + trigram search, untracked `note_search` table pattern, Serverpod schema validator constraints and workarounds
 - **Shortcuts**: `docs/Shortcuts.md` — Keyboard shortcuts (Ctrl+F, Ctrl+K, Escape, arrow keys)
 - **Notifications**: `docs/Notification.md` — Test notification harness, platform-conditional, lazy init
+- **Page Watch**: `docs/PageWatch.md` — URL change monitoring, untracked `page_watches` table, periodic polling with ETag optimization, bell icon states, notification integration
 
 ## Platform Guides
 

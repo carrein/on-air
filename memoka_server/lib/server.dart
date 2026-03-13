@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:serverpod/serverpod.dart';
+import 'src/pagewatch/page_watch_service.dart';
+import 'src/pagewatch/page_watch_setup.dart';
 import 'src/search/search_setup.dart';
 import 'src/settings/archive_purge_service.dart';
 import 'src/generated/endpoints.dart';
@@ -99,11 +101,26 @@ void run(List<String> args) async {
     await searchSession.close();
   }
 
+  // Ensure page_watches table for URL change monitoring.
+  final pageWatchSession = await pod.createSession();
+  try {
+    await PageWatchSetup.ensurePageWatchTable(pageWatchSession);
+  } finally {
+    await pageWatchSession.close();
+  }
+
   // Run archive purge on startup + every hour
   await ArchivePurgeService.runPurge(pod);
   Timer.periodic(
     const Duration(hours: 1),
     (_) => ArchivePurgeService.runPurge(pod),
+  );
+
+  // Run page watch check on startup + every 5 minutes
+  await PageWatchService.runCheck(pod);
+  Timer.periodic(
+    const Duration(minutes: 5),
+    (_) => PageWatchService.runCheck(pod),
   );
 }
 
