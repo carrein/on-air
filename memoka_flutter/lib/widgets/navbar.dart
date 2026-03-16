@@ -14,7 +14,10 @@ import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../providers/media_panel_visible_provider.dart';
 import '../providers/global_search_provider.dart';
+import '../providers/reminder_provider.dart';
+import '../providers/channel_reminders_provider.dart';
 import '../utils/icon_utils.dart';
+import '../utils/reminder_picker.dart';
 import '../utils/responsive_utils.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
@@ -365,6 +368,11 @@ class _NavbarState extends ConsumerState<Navbar> {
           ),
           const Spacer(),
           IconButtonStyled(
+            icon: PhosphorIcons.siren(),
+            onPressed: () => _setReminderForSelected(selection),
+          ),
+          const SizedBox(width: 4),
+          IconButtonStyled(
             icon: PhosphorIcons.archive(),
             onPressed: () => _archiveSelected(selection),
           ),
@@ -390,6 +398,36 @@ class _NavbarState extends ConsumerState<Navbar> {
       ToastUtils.show(
         context,
         '${selection.length} note${selection.length == 1 ? '' : 's'} archived',
+        type: ToastType.success,
+      );
+    }
+  }
+
+  Future<void> _setReminderForSelected(Set<int> selection) async {
+    final result = await showReminderPicker(context);
+    if (result == null || !mounted) return;
+    final channelId = ref.read(currentChannelProvider).value;
+    var count = 0;
+    for (final noteId in selection) {
+      try {
+        await ref
+            .read(reminderProvider(noteId).notifier)
+            .createReminder(
+              result.scheduledAt,
+              recurrenceRule: result.recurrenceRule,
+              recurrenceEndAt: result.recurrenceEndAt,
+            );
+        count++;
+      } catch (_) {}
+    }
+    if (channelId != null) {
+      ref.invalidate(channelRemindersProvider(channelId));
+    }
+    ref.read(noteSelectionProvider.notifier).clear();
+    if (mounted) {
+      ToastUtils.show(
+        context,
+        'Reminder set for $count note${count == 1 ? '' : 's'}',
         type: ToastType.success,
       );
     }

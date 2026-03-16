@@ -139,8 +139,10 @@ Visible only in Archive detail mode (`isArchive == true`). Positioned on the rig
 Shown when `noteSelectionProvider` is non-empty (user has selected notes). Replaces the other modes entirely.
 
 - **Padding**: `_padding` — horizontal 16px, vertical 8px
-- **Layout**: `[N selected text (Expanded)]` + `[archive button]` + `[4px]` + `[xCircle cancel]`
+- **Layout**: `[N selected text (Expanded)]` + `[siren reminder button]` + `[4px]` + `[archive button]` + `[4px]` + `[xCircle cancel]`
 - **Count text**: "**N** selected" — the number is bold (`FontWeight.w700`), 16px, `#00171F`
+- **Reminder**: `IconButtonStyled(icon: PhosphorIcons.siren())` — opens date/time picker, creates reminders for all selected notes
+  - Shows toast: "Reminder set for N note(s)"
 - **Archive**: `IconButtonStyled(icon: PhosphorIcons.archive())` — archives all selected notes
   - Calls `notesProvider(channelId).notifier.deleteNote(noteId)` for each selected ID
   - Clears selection after completion
@@ -238,6 +240,8 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 | `currentSettingsPageProvider.notifier` | Navigate to main settings page                 |
 | `noteSelectionProvider.notifier`       | Clear selection, or select all                 |
 | `notesProvider(channelId).notifier`    | Delete (archive) notes in bulk                 |
+| `reminderProvider(noteId).notifier` | Create reminders for selected notes |
+| `channelRemindersProvider(channelId)` | Invalidated after bulk reminder set |
 
 ## Integration
 
@@ -266,4 +270,7 @@ The `Navbar` is placed in the `ChatScreen` column above the main `Row` layout. I
 | `lib/utils/toast_utils.dart` | Archive success/error toasts |
 | `docs/ArchiveRetention.md` | Archive retention/purge documentation |
 | `docs/Search.md` | Search backend + navbar layout documentation |
+| `lib/providers/reminder_provider.dart` | Per-note reminder state |
+| `lib/providers/channel_reminders_provider.dart` | Channel reminder list (invalidated) |
+| `lib/utils/reminder_picker.dart` | Shared date/time picker |
 | `docs/components/Search.md` | Search UI component documentation |

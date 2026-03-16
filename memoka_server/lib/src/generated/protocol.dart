@@ -19,17 +19,19 @@ import 'chat/link_preview.dart' as _i6;
 import 'chat/note.dart' as _i7;
 import 'media/media_attachment.dart' as _i8;
 import 'pagewatch/page_watch.dart' as _i9;
-import 'search/search_result.dart' as _i10;
-import 'settings/app_settings.dart' as _i11;
-import 'sync/sync_change.dart' as _i12;
-import 'sync/sync_pull_response.dart' as _i13;
-import 'sync/sync_push_response.dart' as _i14;
-import 'sync/sync_result.dart' as _i15;
-import 'package:memoka_server/src/generated/chat/channel.dart' as _i16;
-import 'package:memoka_server/src/generated/chat/note.dart' as _i17;
-import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i18;
-import 'package:memoka_server/src/generated/search/search_result.dart' as _i19;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i20;
+import 'reminder/reminder.dart' as _i10;
+import 'search/search_result.dart' as _i11;
+import 'settings/app_settings.dart' as _i12;
+import 'sync/sync_change.dart' as _i13;
+import 'sync/sync_pull_response.dart' as _i14;
+import 'sync/sync_push_response.dart' as _i15;
+import 'sync/sync_result.dart' as _i16;
+import 'package:memoka_server/src/generated/chat/channel.dart' as _i17;
+import 'package:memoka_server/src/generated/chat/note.dart' as _i18;
+import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i19;
+import 'package:memoka_server/src/generated/reminder/reminder.dart' as _i20;
+import 'package:memoka_server/src/generated/search/search_result.dart' as _i21;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i22;
 export 'chat/archive_item.dart';
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
@@ -37,6 +39,7 @@ export 'chat/link_preview.dart';
 export 'chat/note.dart';
 export 'media/media_attachment.dart';
 export 'pagewatch/page_watch.dart';
+export 'reminder/reminder.dart';
 export 'search/search_result.dart';
 export 'settings/app_settings.dart';
 export 'sync/sync_change.dart';
@@ -591,23 +594,26 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i9.PageWatch) {
       return _i9.PageWatch.fromJson(data) as T;
     }
-    if (t == _i10.SearchResult) {
-      return _i10.SearchResult.fromJson(data) as T;
+    if (t == _i10.Reminder) {
+      return _i10.Reminder.fromJson(data) as T;
     }
-    if (t == _i11.AppSettings) {
-      return _i11.AppSettings.fromJson(data) as T;
+    if (t == _i11.SearchResult) {
+      return _i11.SearchResult.fromJson(data) as T;
     }
-    if (t == _i12.SyncChange) {
-      return _i12.SyncChange.fromJson(data) as T;
+    if (t == _i12.AppSettings) {
+      return _i12.AppSettings.fromJson(data) as T;
     }
-    if (t == _i13.SyncPullResponse) {
-      return _i13.SyncPullResponse.fromJson(data) as T;
+    if (t == _i13.SyncChange) {
+      return _i13.SyncChange.fromJson(data) as T;
     }
-    if (t == _i14.SyncPushResponse) {
-      return _i14.SyncPushResponse.fromJson(data) as T;
+    if (t == _i14.SyncPullResponse) {
+      return _i14.SyncPullResponse.fromJson(data) as T;
     }
-    if (t == _i15.SyncResult) {
-      return _i15.SyncResult.fromJson(data) as T;
+    if (t == _i15.SyncPushResponse) {
+      return _i15.SyncPushResponse.fromJson(data) as T;
+    }
+    if (t == _i16.SyncResult) {
+      return _i16.SyncResult.fromJson(data) as T;
     }
     if (t == _i1.getType<_i3.ArchiveItem?>()) {
       return (data != null ? _i3.ArchiveItem.fromJson(data) : null) as T;
@@ -630,23 +636,26 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i9.PageWatch?>()) {
       return (data != null ? _i9.PageWatch.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i10.SearchResult?>()) {
-      return (data != null ? _i10.SearchResult.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i10.Reminder?>()) {
+      return (data != null ? _i10.Reminder.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i11.AppSettings?>()) {
-      return (data != null ? _i11.AppSettings.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i11.SearchResult?>()) {
+      return (data != null ? _i11.SearchResult.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i12.SyncChange?>()) {
-      return (data != null ? _i12.SyncChange.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i12.AppSettings?>()) {
+      return (data != null ? _i12.AppSettings.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i13.SyncPullResponse?>()) {
-      return (data != null ? _i13.SyncPullResponse.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i13.SyncChange?>()) {
+      return (data != null ? _i13.SyncChange.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i14.SyncPushResponse?>()) {
-      return (data != null ? _i14.SyncPushResponse.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i14.SyncPullResponse?>()) {
+      return (data != null ? _i14.SyncPullResponse.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i15.SyncResult?>()) {
-      return (data != null ? _i15.SyncResult.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i15.SyncPushResponse?>()) {
+      return (data != null ? _i15.SyncPushResponse.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i16.SyncResult?>()) {
+      return (data != null ? _i16.SyncResult.fromJson(data) : null) as T;
     }
     if (t == List<_i8.MediaAttachment>) {
       return (data as List)
@@ -669,34 +678,38 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == List<_i7.Note>) {
       return (data as List).map((e) => deserialize<_i7.Note>(e)).toList() as T;
     }
-    if (t == List<_i15.SyncResult>) {
-      return (data as List).map((e) => deserialize<_i15.SyncResult>(e)).toList()
+    if (t == List<_i16.SyncResult>) {
+      return (data as List).map((e) => deserialize<_i16.SyncResult>(e)).toList()
           as T;
     }
-    if (t == List<_i16.Channel>) {
-      return (data as List).map((e) => deserialize<_i16.Channel>(e)).toList()
+    if (t == List<_i17.Channel>) {
+      return (data as List).map((e) => deserialize<_i17.Channel>(e)).toList()
           as T;
     }
-    if (t == List<_i17.Note>) {
-      return (data as List).map((e) => deserialize<_i17.Note>(e)).toList() as T;
+    if (t == List<_i18.Note>) {
+      return (data as List).map((e) => deserialize<_i18.Note>(e)).toList() as T;
     }
     if (t == List<int>) {
       return (data as List).map((e) => deserialize<int>(e)).toList() as T;
     }
-    if (t == List<_i18.ArchiveItem>) {
+    if (t == List<_i19.ArchiveItem>) {
       return (data as List)
-              .map((e) => deserialize<_i18.ArchiveItem>(e))
+              .map((e) => deserialize<_i19.ArchiveItem>(e))
               .toList()
           as T;
     }
-    if (t == List<_i19.SearchResult>) {
+    if (t == List<_i20.Reminder>) {
+      return (data as List).map((e) => deserialize<_i20.Reminder>(e)).toList()
+          as T;
+    }
+    if (t == List<_i21.SearchResult>) {
       return (data as List)
-              .map((e) => deserialize<_i19.SearchResult>(e))
+              .map((e) => deserialize<_i21.SearchResult>(e))
               .toList()
           as T;
     }
-    if (t == List<_i20.SyncChange>) {
-      return (data as List).map((e) => deserialize<_i20.SyncChange>(e)).toList()
+    if (t == List<_i22.SyncChange>) {
+      return (data as List).map((e) => deserialize<_i22.SyncChange>(e)).toList()
           as T;
     }
     try {
@@ -714,12 +727,13 @@ class Protocol extends _i1.SerializationManagerServer {
       _i7.Note => 'Note',
       _i8.MediaAttachment => 'MediaAttachment',
       _i9.PageWatch => 'PageWatch',
-      _i10.SearchResult => 'SearchResult',
-      _i11.AppSettings => 'AppSettings',
-      _i12.SyncChange => 'SyncChange',
-      _i13.SyncPullResponse => 'SyncPullResponse',
-      _i14.SyncPushResponse => 'SyncPushResponse',
-      _i15.SyncResult => 'SyncResult',
+      _i10.Reminder => 'Reminder',
+      _i11.SearchResult => 'SearchResult',
+      _i12.AppSettings => 'AppSettings',
+      _i13.SyncChange => 'SyncChange',
+      _i14.SyncPullResponse => 'SyncPullResponse',
+      _i15.SyncPushResponse => 'SyncPushResponse',
+      _i16.SyncResult => 'SyncResult',
       _ => null,
     };
   }
@@ -748,17 +762,19 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'MediaAttachment';
       case _i9.PageWatch():
         return 'PageWatch';
-      case _i10.SearchResult():
+      case _i10.Reminder():
+        return 'Reminder';
+      case _i11.SearchResult():
         return 'SearchResult';
-      case _i11.AppSettings():
+      case _i12.AppSettings():
         return 'AppSettings';
-      case _i12.SyncChange():
+      case _i13.SyncChange():
         return 'SyncChange';
-      case _i13.SyncPullResponse():
+      case _i14.SyncPullResponse():
         return 'SyncPullResponse';
-      case _i14.SyncPushResponse():
+      case _i15.SyncPushResponse():
         return 'SyncPushResponse';
-      case _i15.SyncResult():
+      case _i16.SyncResult():
         return 'SyncResult';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -795,23 +811,26 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'PageWatch') {
       return deserialize<_i9.PageWatch>(data['data']);
     }
+    if (dataClassName == 'Reminder') {
+      return deserialize<_i10.Reminder>(data['data']);
+    }
     if (dataClassName == 'SearchResult') {
-      return deserialize<_i10.SearchResult>(data['data']);
+      return deserialize<_i11.SearchResult>(data['data']);
     }
     if (dataClassName == 'AppSettings') {
-      return deserialize<_i11.AppSettings>(data['data']);
+      return deserialize<_i12.AppSettings>(data['data']);
     }
     if (dataClassName == 'SyncChange') {
-      return deserialize<_i12.SyncChange>(data['data']);
+      return deserialize<_i13.SyncChange>(data['data']);
     }
     if (dataClassName == 'SyncPullResponse') {
-      return deserialize<_i13.SyncPullResponse>(data['data']);
+      return deserialize<_i14.SyncPullResponse>(data['data']);
     }
     if (dataClassName == 'SyncPushResponse') {
-      return deserialize<_i14.SyncPushResponse>(data['data']);
+      return deserialize<_i15.SyncPushResponse>(data['data']);
     }
     if (dataClassName == 'SyncResult') {
-      return deserialize<_i15.SyncResult>(data['data']);
+      return deserialize<_i16.SyncResult>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);

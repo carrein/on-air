@@ -17,14 +17,15 @@ import 'package:memoka_client/src/protocol/chat/note.dart' as _i4;
 import 'package:memoka_client/src/protocol/chat/archive_item.dart' as _i5;
 import 'package:memoka_client/src/protocol/chat/chat_event.dart' as _i6;
 import 'package:memoka_client/src/protocol/pagewatch/page_watch.dart' as _i7;
-import 'package:memoka_client/src/protocol/search/search_result.dart' as _i8;
-import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i9;
+import 'package:memoka_client/src/protocol/reminder/reminder.dart' as _i8;
+import 'package:memoka_client/src/protocol/search/search_result.dart' as _i9;
+import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i10;
 import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart'
-    as _i10;
-import 'package:memoka_client/src/protocol/sync/sync_push_response.dart'
     as _i11;
-import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i12;
-import 'protocol.dart' as _i13;
+import 'package:memoka_client/src/protocol/sync/sync_push_response.dart'
+    as _i12;
+import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i13;
+import 'protocol.dart' as _i14;
 
 /// Endpoint for managing channels and notes with real-time updates.
 /// {@category Endpoint}
@@ -258,6 +259,98 @@ class EndpointPageWatch extends _i1.EndpointRef {
       );
 }
 
+/// Endpoint for managing reminders on notes.
+/// {@category Endpoint}
+class EndpointReminder extends _i1.EndpointRef {
+  EndpointReminder(_i1.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'reminder';
+
+  /// Creates or upserts a reminder for a note.
+  _i2.Future<_i8.Reminder> createReminder(
+    int noteId,
+    DateTime scheduledAt, {
+    String? recurrenceRule,
+    DateTime? recurrenceEndAt,
+  }) => caller.callServerEndpoint<_i8.Reminder>(
+    'reminder',
+    'createReminder',
+    {
+      'noteId': noteId,
+      'scheduledAt': scheduledAt,
+      'recurrenceRule': recurrenceRule,
+      'recurrenceEndAt': recurrenceEndAt,
+    },
+  );
+
+  /// Deletes a reminder for a note.
+  _i2.Future<void> deleteReminder(int noteId) =>
+      caller.callServerEndpoint<void>(
+        'reminder',
+        'deleteReminder',
+        {'noteId': noteId},
+      );
+
+  /// Returns the reminder for a note, or null if none.
+  _i2.Future<_i8.Reminder?> getReminder(int noteId) =>
+      caller.callServerEndpoint<_i8.Reminder?>(
+        'reminder',
+        'getReminder',
+        {'noteId': noteId},
+      );
+
+  /// Updates the scheduled time for a reminder.
+  _i2.Future<_i8.Reminder> updateReminder(
+    int noteId,
+    DateTime scheduledAt, {
+    String? recurrenceRule,
+    DateTime? recurrenceEndAt,
+  }) => caller.callServerEndpoint<_i8.Reminder>(
+    'reminder',
+    'updateReminder',
+    {
+      'noteId': noteId,
+      'scheduledAt': scheduledAt,
+      'recurrenceRule': recurrenceRule,
+      'recurrenceEndAt': recurrenceEndAt,
+    },
+  );
+
+  /// Returns all reminders for a channel (for MediaPanel).
+  _i2.Future<List<_i8.Reminder>> getReminders(int channelId) =>
+      caller.callServerEndpoint<List<_i8.Reminder>>(
+        'reminder',
+        'getReminders',
+        {'channelId': channelId},
+      );
+
+  /// Returns all fired but unacknowledged reminders (for reconnect delivery).
+  _i2.Future<List<_i8.Reminder>> getFiredReminders() =>
+      caller.callServerEndpoint<List<_i8.Reminder>>(
+        'reminder',
+        'getFiredReminders',
+        {},
+      );
+
+  /// Returns all unfired reminders (for client-side timer seeding).
+  _i2.Future<List<_i8.Reminder>> getActiveReminders() =>
+      caller.callServerEndpoint<List<_i8.Reminder>>(
+        'reminder',
+        'getActiveReminders',
+        {},
+      );
+
+  /// Acknowledges a fired reminder — deletes the row (one-shot only).
+  /// Recurring reminders auto-reschedule and never have fired=true.
+  _i2.Future<void> acknowledgeReminder(int noteId) =>
+      caller.callServerEndpoint<void>(
+        'reminder',
+        'acknowledgeReminder',
+        {'noteId': noteId},
+      );
+}
+
 /// Endpoint for full-text, substring, and typo-tolerant search across notes.
 /// {@category Endpoint}
 class EndpointSearch extends _i1.EndpointRef {
@@ -276,11 +369,11 @@ class EndpointSearch extends _i1.EndpointRef {
   /// Multi-word queries use AND logic — all terms must match a note.
   /// Final score = avg(per-term scores) + channel boost (0.15).
   /// Results ranked by score DESC, then recency DESC as tiebreaker.
-  _i2.Future<List<_i8.SearchResult>> searchNotes(
+  _i2.Future<List<_i9.SearchResult>> searchNotes(
     String query, {
     int? channelId,
     required int limit,
-  }) => caller.callServerEndpoint<List<_i8.SearchResult>>(
+  }) => caller.callServerEndpoint<List<_i9.SearchResult>>(
     'search',
     'searchNotes',
     {
@@ -319,16 +412,16 @@ class EndpointSettings extends _i1.EndpointRef {
   String get name => 'settings';
 
   /// Returns the current application settings.
-  _i2.Future<_i9.AppSettings> getSettings() =>
-      caller.callServerEndpoint<_i9.AppSettings>(
+  _i2.Future<_i10.AppSettings> getSettings() =>
+      caller.callServerEndpoint<_i10.AppSettings>(
         'settings',
         'getSettings',
         {},
       );
 
   /// Updates application settings.
-  _i2.Future<_i9.AppSettings> updateSettings(_i9.AppSettings settings) =>
-      caller.callServerEndpoint<_i9.AppSettings>(
+  _i2.Future<_i10.AppSettings> updateSettings(_i10.AppSettings settings) =>
+      caller.callServerEndpoint<_i10.AppSettings>(
         'settings',
         'updateSettings',
         {'settings': settings},
@@ -350,8 +443,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Includes tombstoned entities (deletedAt != null) so clients can remove them.
   /// Pass sinceVersion = 0 for a full sync (first launch / fresh install).
-  _i2.Future<_i10.SyncPullResponse> syncPull(int sinceVersion) =>
-      caller.callServerEndpoint<_i10.SyncPullResponse>(
+  _i2.Future<_i11.SyncPullResponse> syncPull(int sinceVersion) =>
+      caller.callServerEndpoint<_i11.SyncPullResponse>(
         'sync',
         'syncPull',
         {'sinceVersion': sinceVersion},
@@ -361,8 +454,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Each change is processed in its own transaction — partial apply is supported.
   /// Returns per-entity results: applied / rejected / already_applied.
-  _i2.Future<_i11.SyncPushResponse> syncPush(List<_i12.SyncChange> changes) =>
-      caller.callServerEndpoint<_i11.SyncPushResponse>(
+  _i2.Future<_i12.SyncPushResponse> syncPush(List<_i13.SyncChange> changes) =>
+      caller.callServerEndpoint<_i12.SyncPushResponse>(
         'sync',
         'syncPush',
         {'changes': changes},
@@ -389,7 +482,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i13.Protocol(),
+         _i14.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -401,6 +494,7 @@ class Client extends _i1.ServerpodClientShared {
     chat = EndpointChat(this);
     health = EndpointHealth(this);
     pageWatch = EndpointPageWatch(this);
+    reminder = EndpointReminder(this);
     search = EndpointSearch(this);
     settings = EndpointSettings(this);
     sync = EndpointSync(this);
@@ -411,6 +505,8 @@ class Client extends _i1.ServerpodClientShared {
   late final EndpointHealth health;
 
   late final EndpointPageWatch pageWatch;
+
+  late final EndpointReminder reminder;
 
   late final EndpointSearch search;
 
@@ -423,6 +519,7 @@ class Client extends _i1.ServerpodClientShared {
     'chat': chat,
     'health': health,
     'pageWatch': pageWatch,
+    'reminder': reminder,
     'search': search,
     'settings': settings,
     'sync': sync,

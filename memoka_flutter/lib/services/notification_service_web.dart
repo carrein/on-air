@@ -54,3 +54,29 @@ Future<void> showPageChangeNotification({
     }.toJS;
   }
 }
+
+/// Show a notification when a reminder fires.
+Future<void> showReminderNotification({
+  required int noteId,
+  required int channelId,
+  required String body,
+}) async {
+  final permission = web.Notification.permission;
+  if (permission != 'granted') return;
+
+  web.Notification(
+    'Reminder',
+    web.NotificationOptions(body: body, icon: 'favicon.png'),
+  );
+}
+
+/// No-op on web — Web Worker handles scheduling.
+Future<void> scheduleReminderNotification({
+  required int noteId,
+  required int channelId,
+  required DateTime scheduledAt,
+  required String body,
+}) async {}
+
+/// No-op on web — Web Worker handles cancellation.
+Future<void> cancelScheduledReminder(int noteId) async {}

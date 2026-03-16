@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MediaPanel is a right-side panel that displays all media and links from the current channel, organized into four tabs. It provides quick browsing of images, videos, documents, and links without scrolling through the chat history. Clicking a media item scrolls the chat view to the note containing it.
+The MediaPanel is a right-side panel that displays all media and links from the current channel, organized into five tabs. It provides quick browsing of images, videos, documents, and links without scrolling through the chat history. Clicking a media item scrolls the chat view to the note containing it.
 
 **File**: `memoka_flutter/lib/widgets/media_panel.dart`
 **Widget**: `MediaPanel` (ConsumerStatefulWidget)
@@ -12,9 +12,9 @@ The MediaPanel is a right-side panel that displays all media and links from the 
 
 ### Tab Bar
 
-Top navigation bar with four tabs.
+Top navigation bar with five tabs.
 
-- Tabs: `IMAGES` | `VIDEOS` | `DOCS` | `LINKS`
+- Tabs: `IMAGES` | `VIDEOS` | `DOCS` | `LINKS` | `REMIND`
 - Active tab label: `#CE2161` (brand primary), bold 14px
 - Inactive tab label: `#00171F` at 60% opacity, normal 14px
 - Indicator: 3px solid `#CE2161` underline, `BorderRadius.zero` (sharp corners)
@@ -73,6 +73,17 @@ Vertical list of link preview cards.
 - Date: 10px, grey[500], relative format ("5m ago", "3h ago", "2d ago", or "M/D/YYYY")
 - Tap: Opens URL in external browser via `url_launcher`
 
+### Reminder List (`ReminderList` + `ReminderListItem`)
+
+Vertical list of scheduled reminders for the current channel.
+
+- **File**: `lib/widgets/reminder_list.dart`, `lib/widgets/reminder_list_item.dart`
+- Layout: `ListView.separated` with 12px padding and 8px separator
+- Each item shows: note content snippet, channel name with emoji, scheduled date/time
+- Actions per item: tap (scroll to note), edit (change time), cancel (delete reminder)
+- Sorted by `scheduledAt` ascending (soonest first)
+- Data from `channelRemindersProvider(channelId)` (async, fetches from server)
+
 ### Empty States
 
 Each tab shows a centered placeholder when empty.
@@ -82,11 +93,13 @@ Each tab shows a centered placeholder when empty.
   - Videos: `PhosphorIcons.video()`
   - Documents: `PhosphorIcons.file()`
   - Links: `PhosphorIcons.linkBreak()`
+  - Reminders: `PhosphorIcons.clock()`
 - Message: 14px, `#00171F` at 60% opacity, center-aligned
   - "No images"
   - "No videos"
   - "No documents"
   - "No links"
+  - "No reminders"
 
 ## Styling
 
@@ -153,7 +166,7 @@ Clicking any image, video, or document in the grid scrolls the chat view to the 
 
 ### Tab Switching
 
-- `TabController` with 4 tabs, local state
+- `TabController` with 5 tabs, local state
 - Switching tabs filters displayed content (no refetch, data already in memory)
 - Content comes from `channelMediaDataProvider` (synchronous) which derives from `notesProvider`
 
@@ -257,6 +270,8 @@ MediaPanel
 │   │   └── MediaGridItem[] (file icon + filename + size)
 │   └── LinkList
 │       └── LinkListItem[] (favicon + title + description + date)
+│   └── ReminderList
+│       └── ReminderListItem[] (snippet + time + actions)
 └── EmptyState (per tab, when list is empty)
 ```
 
@@ -286,4 +301,7 @@ The MediaPanel is placed as the right-most child in the app's main `Row` layout 
 | `lib/providers/notes_provider.dart` | Source note data |
 | `lib/screens/chat_screen.dart` | Parent layout that hosts the sidebar |
 | `lib/widgets/chat_view.dart` | Listens to scroll provider, performs scroll |
+| `lib/widgets/reminder_list.dart` | Reminder list layout |
+| `lib/widgets/reminder_list_item.dart` | Individual reminder card |
+| `lib/providers/channel_reminders_provider.dart` | Derives reminders from server endpoint |
 | `lib/utils/file_utils.dart` | File icon mapping, size formatting, URL building |

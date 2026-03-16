@@ -24,6 +24,7 @@ u/docs/Search.md
 u/docs/Shortcuts.md
 u/docs/Notification.md
 u/docs/PageWatch.md
+u/docs/Reminder.md
 
 # CLAUDE.md
 
@@ -48,7 +49,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, thumbnail generation, EXIF stripping; fire-and-forget async upload with ghost notes, real-time progress, cancel, and retry
 - **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, compressed badge
 - **Audio Playback**: Inline audio player for audio attachments — HTML Audio API on web, ExoPlayer on Android; scrubber, preview + download buttons
-- **Media Panel**: Right sidebar with 4 tabs (Images/Videos/Documents/Links), responsive layout
+- **Media Panel**: Right sidebar with 5 tabs (Images/Videos/Documents/Links/Reminders), responsive layout
 - **Archive System**: Archive for soft-deleted notes, channel archiving with restore, configurable retention auto-purge (Never/30/60/90 days)
 - **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
 - **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
@@ -57,6 +58,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Search**: Hybrid FTS + trigram search across all notes; ranked results with highlighted snippets, jump-to-context; untracked `note_search` table pattern to work around Serverpod schema validator (see `docs/Search.md`)
 - **Notifications**: Test notification harness in Settings — platform-conditional (Web Notifications API / flutter_local_notifications), lazy-initialized, 10s delay for backgrounding verification (see `docs/Notification.md`)
 - **Page Watch**: Bell icon on single-URL notes to monitor for content changes; server polls periodically, hashes visible text, push notification on change; auto-disable after 5 failures; ETag/conditional request optimization (see `docs/PageWatch.md`)
+- **Reminders**: Schedule notifications on individual notes; one-shot or recurring (Daily/Weekly/Monthly) via RRULE; siren icon indicator, context menu + selection bar creation, zero-polling per-reminder timers on server (priority queue) and client (Web Worker / Android zonedSchedule), three-layer delivery with deduplication, auto-reschedule for recurring, fired-but-unacknowledged delivery on reconnect, MediaPanel Remind tab with repeat indicator (see `docs/Reminder.md`)
 - **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
 
 ## Architecture
@@ -129,6 +131,10 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 **page_watches** (server-only untracked table): noteId (FK → notes, cascade), channelId (FK → channels, cascade), url, contentHash, lastCheckedAt, enabled, consecutiveFailures, lastError, hasUnacknowledgedChange, etag, lastModified, timestamps. Created at startup by `PageWatchSetup`, not in any `.spy.yaml`. See `docs/PageWatch.md`.
 
 **PageWatch** (non-table): noteId, channelId, url, contentHash?, lastCheckedAt?, enabled, consecutiveFailures, lastError?, hasUnacknowledgedChange, createdAt, updatedAt
+
+**reminders** (server-only untracked table): noteId (FK → notes, cascade, UNIQUE), channelId (FK → channels, cascade), scheduledAt, noteContent, fired, createdAt, recurrenceRule, recurrenceEndAt. Created at startup by `ReminderSetup`, not in any `.spy.yaml`. Indexes on scheduledAt (unfired) and fired. See `docs/Reminder.md`.
+
+**Reminder** (non-table): noteId, channelId, scheduledAt, noteContent?, fired, createdAt, recurrenceRule?, recurrenceEndAt?
 
 ## Common Commands
 
@@ -282,6 +288,15 @@ Server serves:
   - `deleteWatch(noteId)` — removes a watch
   - `getWatch(noteId)` — returns watch state or null
   - `acknowledgeChange(noteId)` — clears unacknowledged change flag
+- `reminder`: Note reminder scheduling and delivery
+  - `createReminder(noteId, scheduledAt, {recurrenceRule?, recurrenceEndAt?})` — creates/upserts a reminder (one-shot or recurring)
+  - `deleteReminder(noteId)` — deletes a reminder
+  - `getReminder(noteId)` — returns reminder or null
+  - `updateReminder(noteId, scheduledAt, {recurrenceRule?, recurrenceEndAt?})` — updates scheduled time + recurrence
+  - `getReminders(channelId)` — returns all reminders for a channel (MediaPanel)
+  - `getFiredReminders()` — returns all fired reminders (reconnect delivery)
+  - `getActiveReminders()` — returns all unfired reminders (client-side timer seeding)
+  - `acknowledgeReminder(noteId)` — deletes the fired reminder row
 - File uploads: HTTP route `POST /media/upload` (not RPC) — streams multipart body directly to disk, no in-memory buffering
 
 ## Git Workflow Policy
@@ -334,6 +349,7 @@ interactions, state management, and integration details.
 - **Shortcuts**: `docs/Shortcuts.md` — Keyboard shortcuts (Ctrl+F, Ctrl+K, Escape, arrow keys)
 - **Notifications**: `docs/Notification.md` — Test notification harness, platform-conditional, lazy init
 - **Page Watch**: `docs/PageWatch.md` — URL change monitoring, untracked `page_watches` table, periodic polling with ETag optimization, bell icon states, notification integration
+- **Reminders**: `docs/Reminder.md` — Note reminder scheduling, untracked `reminders` table, zero-polling per-reminder timers (server priority queue + client Web Worker/zonedSchedule), three-layer delivery with deduplication, fired-on-reconnect delivery, siren icon, MediaPanel tab
 
 ## Platform Guides
 

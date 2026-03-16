@@ -80,6 +80,7 @@ The footer is always visible (no hover state). Icons shown depend on context:
 
 | Icon | Archive mode | Regular mode | Document-only note |
 |------|-------------|--------------|-------------------|
+| Reminder siren (`siren` fill) | hidden | visible (if reminder set) | visible (if reminder set) |
 | Edit (`pencilSimple`) | hidden | visible | hidden |
 | Copy (`copySimple`) | visible | visible | hidden |
 | Archive/Restore (`archive` / `arrowCounterClockwise`) | restore | archive | archive |
@@ -110,6 +111,7 @@ Menu options differ by view:
 2. Edit — populates NoteInput with note content
 3. Archive — soft-deletes, broadcasts WebSocket event
 4. Select — enters selection mode with this note pre-selected
+5. Set Reminder — opens date/time picker, creates reminder on server
 
 **Archive view:**
 1. Copy
@@ -138,6 +140,8 @@ When `noteSelectionProvider` is non-empty, the widget renders in selection mode:
 | `notesProvider` | Archive / restore / delete operations |
 | `LinkPreviewCard` | Renders link preview metadata |
 | `MediaAttachmentWidget` | Routes to image/video/document widget by MIME type |
+| `_ReminderSiren` | Reminder siren icon display |
+| `reminderProvider` | Reminder state per note (siren icon visibility) |
 
 ---
 
@@ -150,4 +154,5 @@ When `noteSelectionProvider` is non-empty, the widget renders in selection mode:
 | `lib/providers/editing_note_provider.dart` | Edit state |
 | `lib/widgets/media_attachment_widget.dart` | Media rendering |
 | `lib/widgets/link_preview_card.dart` | Link preview card |
+| `lib/providers/reminder_provider.dart` | Reminder state per note |
 | `docs/DesignSystem.md` | Color and typography tokens |

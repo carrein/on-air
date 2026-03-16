@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 
 final _plugin = FlutterLocalNotificationsPlugin();
@@ -86,4 +87,61 @@ Future<void> showPageChangeNotification({
     ),
     payload: pageUrl,
   );
+}
+
+/// Show a notification when a reminder fires.
+Future<void> showReminderNotification({
+  required int noteId,
+  required int channelId,
+  required String body,
+}) async {
+  await _ensureInitialized();
+  _plugin.show(
+    noteId + 100000, // offset to avoid collision with page watch IDs
+    'Reminder',
+    body,
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'memoka_reminders',
+        'Reminders',
+        channelDescription: 'Notifications for note reminders',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    ),
+  );
+}
+
+/// Schedule a reminder notification at an exact time using the OS alarm system.
+/// Survives app kill, background, and phone reboot.
+Future<void> scheduleReminderNotification({
+  required int noteId,
+  required int channelId,
+  required DateTime scheduledAt,
+  required String body,
+}) async {
+  await _ensureInitialized();
+  final tzTime = tz.TZDateTime.from(scheduledAt, tz.local);
+  await _plugin.zonedSchedule(
+    noteId + 100000,
+    'Reminder',
+    body,
+    tzTime,
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'memoka_reminders',
+        'Reminders',
+        channelDescription: 'Notifications for note reminders',
+        importance: Importance.high,
+        priority: Priority.high,
+      ),
+    ),
+    androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  );
+}
+
+/// Cancel a previously scheduled reminder notification.
+Future<void> cancelScheduledReminder(int noteId) async {
+  await _ensureInitialized();
+  await _plugin.cancel(noteId + 100000);
 }

@@ -1,0 +1,20 @@
+### A reminder entry for time-based note notifications.
+class: Reminder
+
+fields:
+  ### The note ID this reminder is attached to.
+  noteId: int
+  ### The channel ID the note belongs to.
+  channelId: int
+  ### When the reminder should fire.
+  scheduledAt: DateTime
+  ### Cached note content for notification body.
+  noteContent: String?
+  ### Whether the reminder has fired.
+  fired: bool
+  ### When this reminder was created.
+  createdAt: DateTime
+  ### RRULE recurrence rule (null = one-shot).
+  recurrenceRule: String?
+  ### When the recurrence series ends (null = forever).
+  recurrenceEndAt: DateTime?

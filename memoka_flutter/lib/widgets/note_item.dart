@@ -17,6 +17,9 @@ import '../providers/notes_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/page_watch_provider.dart';
+import '../providers/reminder_provider.dart';
+import '../providers/channel_reminders_provider.dart';
+import '../utils/reminder_picker.dart';
 import '../utils/url_utils.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
@@ -336,6 +339,17 @@ class NoteItem extends ConsumerWidget {
               ],
             ),
           ),
+        if (!isArchive)
+          PopupMenuItem(
+            value: 'reminder',
+            child: Row(
+              children: [
+                PhosphorIcon(PhosphorIcons.siren(), size: 18),
+                const SizedBox(width: 12),
+                const Text('Set Reminder'),
+              ],
+            ),
+          ),
         PopupMenuItem(
           value: 'select',
           child: Row(
@@ -366,6 +380,9 @@ class NoteItem extends ConsumerWidget {
           break;
         case 'restore':
           _restoreNote(context, ref);
+          break;
+        case 'reminder':
+          _setReminder(context, ref);
           break;
         case 'select':
           ref.read(noteSelectionProvider.notifier).select(note.id!);
@@ -407,6 +424,29 @@ class NoteItem extends ConsumerWidget {
       );
     } else {
       ToastUtils.show(context, 'Failed to copy image', type: ToastType.error);
+    }
+  }
+
+  void _setReminder(BuildContext context, WidgetRef ref) async {
+    if (note.id == null) return;
+    final result = await showReminderPicker(context);
+    if (result == null || !context.mounted) return;
+    try {
+      await ref
+          .read(reminderProvider(note.id!).notifier)
+          .createReminder(
+            result.scheduledAt,
+            recurrenceRule: result.recurrenceRule,
+            recurrenceEndAt: result.recurrenceEndAt,
+          );
+      ref.invalidate(channelRemindersProvider(channelId));
+      if (context.mounted) {
+        ToastUtils.show(context, 'Reminder set', type: ToastType.success);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ToastUtils.show(context, 'Failed: $e', type: ToastType.error);
+      }
     }
   }
 
@@ -569,6 +609,9 @@ class _NoteFooter extends ConsumerWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (!isArchive && note.id != null) ...[
+                _ReminderSiren(noteId: note.id!, color: color),
+              ],
               if (!isArchive && _hasSingleUrl && note.id != null) ...[
                 _PageWatchBell(noteId: note.id!, color: color),
                 const SizedBox(width: 14),
@@ -750,6 +793,36 @@ class _PageWatchBell extends ConsumerWidget {
         );
       }
     }
+  }
+}
+
+/// Siren icon that appears when a note has an active (unfired) reminder.
+class _ReminderSiren extends ConsumerWidget {
+  const _ReminderSiren({required this.noteId, required this.color});
+
+  final int noteId;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reminderAsync = ref.watch(reminderProvider(noteId));
+
+    return reminderAsync.when(
+      skipLoadingOnRefresh: true,
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (reminder) {
+        if (reminder == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(right: 14),
+          child: PhosphorIcon(
+            PhosphorIcons.siren(PhosphorIconsStyle.fill),
+            size: 14,
+            color: const Color(0xFFCE2161),
+          ),
+        );
+      },
+    );
   }
 }
 

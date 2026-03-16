@@ -4,6 +4,7 @@ import '../providers/channel_media_provider.dart';
 import '../providers/current_channel_provider.dart';
 import 'media_grid.dart';
 import 'link_list.dart';
+import 'reminder_list.dart';
 
 /// Right panel displaying media and links from the current channel.
 /// Shows tabs for IMAGES, VIDEOS, DOCUMENTS, and LINKS.
@@ -23,7 +24,7 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -81,6 +82,7 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
                     Tab(text: 'Videos'),
                     Tab(text: 'Docs'),
                     Tab(text: 'Links'),
+                    Tab(text: 'Remind'),
                   ],
                 ),
               ),
@@ -97,6 +99,7 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
                       type: MediaType.document,
                     ),
                     LinkList(links: media.links),
+                    ReminderList(channelId: channelId),
                   ],
                 ),
               ),
@@ -148,6 +151,7 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
                 Tab(text: 'Videos'),
                 Tab(text: 'Docs'),
                 Tab(text: 'Links'),
+                Tab(text: 'Remind'),
               ],
             ),
           ),
@@ -159,6 +163,7 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
                 MediaGrid(items: [], type: MediaType.video),
                 MediaGrid(items: [], type: MediaType.document),
                 LinkList(links: []),
+                SizedBox.shrink(),
               ],
             ),
           ),

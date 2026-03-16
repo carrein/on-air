@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:timezone/data/latest_all.dart' as tz;
+
 import 'screens/chat_screen.dart';
 import 'screens/server_setup_screen.dart';
 
@@ -76,6 +78,8 @@ Future<void> setServerUrl(String url) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  tz.initializeTimeZones();
 
   if (!kIsWeb) {
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);

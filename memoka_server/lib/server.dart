@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:serverpod/serverpod.dart';
 import 'src/pagewatch/page_watch_service.dart';
 import 'src/pagewatch/page_watch_setup.dart';
+import 'src/reminder/reminder_service.dart';
+import 'src/reminder/reminder_setup.dart';
 import 'src/search/search_setup.dart';
 import 'src/settings/archive_purge_service.dart';
 import 'src/generated/endpoints.dart';
@@ -122,6 +124,17 @@ void run(List<String> args) async {
     const Duration(minutes: 5),
     (_) => PageWatchService.runCheck(pod),
   );
+
+  // Ensure reminders table for time-based note notifications.
+  final reminderSession = await pod.createSession();
+  try {
+    await ReminderSetup.ensureReminderTable(reminderSession);
+  } finally {
+    await reminderSession.close();
+  }
+
+  // Initialize per-reminder timer scheduler (replaces 60s batch poll)
+  await ReminderService.init(pod);
 }
 
 Future<void> _ensureAppSettings(Serverpod pod) async {

@@ -14,11 +14,12 @@ import 'package:serverpod/serverpod.dart' as _i1;
 import '../chat/chat_endpoint.dart' as _i2;
 import '../health_endpoint.dart' as _i3;
 import '../pagewatch/page_watch_endpoint.dart' as _i4;
-import '../search/search_endpoint.dart' as _i5;
-import '../settings/settings_endpoint.dart' as _i6;
-import '../sync/sync_endpoint.dart' as _i7;
-import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i8;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i9;
+import '../reminder/reminder_endpoint.dart' as _i5;
+import '../search/search_endpoint.dart' as _i6;
+import '../settings/settings_endpoint.dart' as _i7;
+import '../sync/sync_endpoint.dart' as _i8;
+import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i9;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i10;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -42,19 +43,25 @@ class Endpoints extends _i1.EndpointDispatch {
           'pageWatch',
           null,
         ),
-      'search': _i5.SearchEndpoint()
+      'reminder': _i5.ReminderEndpoint()
+        ..initialize(
+          server,
+          'reminder',
+          null,
+        ),
+      'search': _i6.SearchEndpoint()
         ..initialize(
           server,
           'search',
           null,
         ),
-      'settings': _i6.SettingsEndpoint()
+      'settings': _i7.SettingsEndpoint()
         ..initialize(
           server,
           'settings',
           null,
         ),
-      'sync': _i7.SyncEndpoint()
+      'sync': _i8.SyncEndpoint()
         ..initialize(
           server,
           'sync',
@@ -478,6 +485,182 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['reminder'] = _i1.EndpointConnector(
+      name: 'reminder',
+      endpoint: endpoints['reminder']!,
+      methodConnectors: {
+        'createReminder': _i1.MethodConnector(
+          name: 'createReminder',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'scheduledAt': _i1.ParameterDescription(
+              name: 'scheduledAt',
+              type: _i1.getType<DateTime>(),
+              nullable: false,
+            ),
+            'recurrenceRule': _i1.ParameterDescription(
+              name: 'recurrenceRule',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'recurrenceEndAt': _i1.ParameterDescription(
+              name: 'recurrenceEndAt',
+              type: _i1.getType<DateTime?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['reminder'] as _i5.ReminderEndpoint)
+                  .createReminder(
+                    session,
+                    params['noteId'],
+                    params['scheduledAt'],
+                    recurrenceRule: params['recurrenceRule'],
+                    recurrenceEndAt: params['recurrenceEndAt'],
+                  ),
+        ),
+        'deleteReminder': _i1.MethodConnector(
+          name: 'deleteReminder',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['reminder'] as _i5.ReminderEndpoint)
+                  .deleteReminder(
+                    session,
+                    params['noteId'],
+                  ),
+        ),
+        'getReminder': _i1.MethodConnector(
+          name: 'getReminder',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['reminder'] as _i5.ReminderEndpoint).getReminder(
+                    session,
+                    params['noteId'],
+                  ),
+        ),
+        'updateReminder': _i1.MethodConnector(
+          name: 'updateReminder',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'scheduledAt': _i1.ParameterDescription(
+              name: 'scheduledAt',
+              type: _i1.getType<DateTime>(),
+              nullable: false,
+            ),
+            'recurrenceRule': _i1.ParameterDescription(
+              name: 'recurrenceRule',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'recurrenceEndAt': _i1.ParameterDescription(
+              name: 'recurrenceEndAt',
+              type: _i1.getType<DateTime?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['reminder'] as _i5.ReminderEndpoint)
+                  .updateReminder(
+                    session,
+                    params['noteId'],
+                    params['scheduledAt'],
+                    recurrenceRule: params['recurrenceRule'],
+                    recurrenceEndAt: params['recurrenceEndAt'],
+                  ),
+        ),
+        'getReminders': _i1.MethodConnector(
+          name: 'getReminders',
+          params: {
+            'channelId': _i1.ParameterDescription(
+              name: 'channelId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['reminder'] as _i5.ReminderEndpoint).getReminders(
+                    session,
+                    params['channelId'],
+                  ),
+        ),
+        'getFiredReminders': _i1.MethodConnector(
+          name: 'getFiredReminders',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['reminder'] as _i5.ReminderEndpoint)
+                  .getFiredReminders(session),
+        ),
+        'getActiveReminders': _i1.MethodConnector(
+          name: 'getActiveReminders',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['reminder'] as _i5.ReminderEndpoint)
+                  .getActiveReminders(session),
+        ),
+        'acknowledgeReminder': _i1.MethodConnector(
+          name: 'acknowledgeReminder',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['reminder'] as _i5.ReminderEndpoint)
+                  .acknowledgeReminder(
+                    session,
+                    params['noteId'],
+                  ),
+        ),
+      },
+    );
     connectors['search'] = _i1.EndpointConnector(
       name: 'search',
       endpoint: endpoints['search']!,
@@ -506,7 +689,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['search'] as _i5.SearchEndpoint).searchNotes(
+                  (endpoints['search'] as _i6.SearchEndpoint).searchNotes(
                     session,
                     params['query'],
                     channelId: params['channelId'],
@@ -537,7 +720,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['search'] as _i5.SearchEndpoint).getNotesAroundId(
+                  (endpoints['search'] as _i6.SearchEndpoint).getNotesAroundId(
                     session,
                     params['channelId'],
                     params['noteId'],
@@ -557,7 +740,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['settings'] as _i6.SettingsEndpoint)
+              ) async => (endpoints['settings'] as _i7.SettingsEndpoint)
                   .getSettings(session),
         ),
         'updateSettings': _i1.MethodConnector(
@@ -565,7 +748,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'settings': _i1.ParameterDescription(
               name: 'settings',
-              type: _i1.getType<_i8.AppSettings>(),
+              type: _i1.getType<_i9.AppSettings>(),
               nullable: false,
             ),
           },
@@ -573,7 +756,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['settings'] as _i6.SettingsEndpoint)
+              ) async => (endpoints['settings'] as _i7.SettingsEndpoint)
                   .updateSettings(
                     session,
                     params['settings'],
@@ -598,7 +781,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i7.SyncEndpoint).syncPull(
+              ) async => (endpoints['sync'] as _i8.SyncEndpoint).syncPull(
                 session,
                 params['sinceVersion'],
               ),
@@ -608,7 +791,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'changes': _i1.ParameterDescription(
               name: 'changes',
-              type: _i1.getType<List<_i9.SyncChange>>(),
+              type: _i1.getType<List<_i10.SyncChange>>(),
               nullable: false,
             ),
           },
@@ -616,7 +799,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['sync'] as _i7.SyncEndpoint).syncPush(
+              ) async => (endpoints['sync'] as _i8.SyncEndpoint).syncPush(
                 session,
                 params['changes'],
               ),

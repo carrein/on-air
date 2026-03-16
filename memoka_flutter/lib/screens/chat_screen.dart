@@ -23,6 +23,7 @@ import '../providers/editing_note_provider.dart';
 import '../providers/global_search_provider.dart';
 import '../providers/input_focus_provider.dart';
 import '../providers/page_change_listener_provider.dart';
+import '../providers/reminder_listener_provider.dart';
 import '../providers/chat_stream_provider.dart';
 import '../providers/connection_provider.dart' as conn;
 import '../providers/sync_engine_provider.dart';
@@ -241,6 +242,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   Widget build(BuildContext context) {
     // Activate the page change listener (fires notifications on WebSocket events)
     ref.watch(pageChangeListenerProvider);
+    // Activate the reminder listener (fires notifications + reconnect pull)
+    ref.watch(reminderListenerProvider);
 
     final isDesktop = ResponsiveUtils.isDesktop(context);
     final mediaPanelVisible = ref.watch(mediaPanelVisibleProvider);

@@ -21,6 +21,15 @@ pageWatch:
   - deleteWatch:
   - getWatch:
   - acknowledgeChange:
+reminder:
+  - createReminder:
+  - deleteReminder:
+  - getReminder:
+  - updateReminder:
+  - getReminders:
+  - getFiredReminders:
+  - getActiveReminders:
+  - acknowledgeReminder:
 search:
   - searchNotes:
   - getNotesAroundId:
