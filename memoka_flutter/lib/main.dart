@@ -113,9 +113,9 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
         textSelectionTheme: TextSelectionThemeData(
-          cursorColor: const Color(0xFFCE2161),
-          selectionColor: const Color(0xFFCE2161).withValues(alpha: 0.3),
-          selectionHandleColor: const Color(0xFFCE2161),
+          cursorColor: const Color(0xFF3450A3),
+          selectionColor: const Color(0xFF3450A3).withValues(alpha: 0.3),
+          selectionHandleColor: const Color(0xFF3450A3),
         ),
       ),
       home: needsServerSetup ? const ServerSetupScreen() : const ChatScreen(),

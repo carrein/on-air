@@ -22,7 +22,7 @@ class OfflineBanner extends ConsumerWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(8),
-      color: const Color(0xFFCE2161),
+      color: const Color(0xFF3450A3),
       child: const Text(
         'Offline',
         textAlign: TextAlign.center,

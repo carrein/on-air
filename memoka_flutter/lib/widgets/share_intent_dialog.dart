@@ -23,7 +23,7 @@ class ShareIntentDialog extends ConsumerStatefulWidget {
 }
 
 class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
-  static const _accent = Color(0xFFCE2161);
+  static const _accent = Color(0xFF3450A3);
   static const _bgDark = Color(0xFF00171F);
 
   int? _selectedChannelId;
@@ -107,7 +107,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
     final channelsAsync = ref.watch(channelsProvider);
 
     return Dialog(
-      backgroundColor: const Color(0xFFF6F0ED),
+      backgroundColor: const Color(0xFFFFFDF6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),

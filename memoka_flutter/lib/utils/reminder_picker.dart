@@ -103,8 +103,8 @@ class _ReminderPickerDialog extends StatefulWidget {
 }
 
 class _ReminderPickerDialogState extends State<_ReminderPickerDialog> {
-  static const _bgColor = Color(0xFFF6F0ED);
-  static const _accentColor = Color(0xFFCE2161);
+  static const _bgColor = Color(0xFFFFFDF6);
+  static const _accentColor = Color(0xFF3450A3);
   static const _textColor = Color(0xFF00171F);
 
   late DateTime _date;
@@ -420,7 +420,7 @@ class _TappableField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             border: Border.all(
-              color: const Color(0xFFCE2161).withValues(alpha: 0.3),
+              color: const Color(0xFF3450A3).withValues(alpha: 0.3),
             ),
             borderRadius: BorderRadius.circular(6),
           ),

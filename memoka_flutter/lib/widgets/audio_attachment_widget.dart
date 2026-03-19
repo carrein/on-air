@@ -35,7 +35,7 @@ class AudioAttachmentWidget extends ConsumerStatefulWidget {
 
 class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
   static const _textPrimary = Color(0xFF00171F);
-  static const _accent = Color(0xFFCE2161);
+  static const _accent = Color(0xFF3450A3);
 
   // ── web ──────────────────────────────────────────────────────────────────
   html.AudioElement? _webAudio;

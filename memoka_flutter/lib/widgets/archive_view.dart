@@ -61,7 +61,7 @@ class _ArchivedChannelItem extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const borderColor = Color(0xFFCE2161);
+    const borderColor = Color(0xFF3450A3);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -89,7 +89,7 @@ class _ArchivedChannelItem extends ConsumerWidget {
                               _showContextMenu(context, ref, null),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF6F0ED),
+                              color: const Color(0xFFFFFDF6),
                               border: Border.all(
                                 color: borderColor,
                                 width: 1.0,
@@ -330,8 +330,8 @@ class _EmptyStateBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F0ED),
-        border: Border.all(color: const Color(0xFFCE2161), width: 1.0),
+        color: const Color(0xFFFFFDF6),
+        border: Border.all(color: const Color(0xFF3450A3), width: 1.0),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -29,12 +29,13 @@ class NoteInput extends ConsumerStatefulWidget {
   ConsumerState<NoteInput> createState() => _NoteInputState();
 }
 
-class _NoteInputState extends ConsumerState<NoteInput> {
+class _NoteInputState extends ConsumerState<NoteInput>
+    with WidgetsBindingObserver {
   // -- Colors (from DesignSystem.md) --
-  static const _barBackground = Color(0xFFF6F0ED);
+  static const _barBackground = Color(0xFFFFFDF6);
   static const _fieldFill = Colors.transparent;
-  static const _borderColor = Color(0xFFCE2161);
-  static const _iconColor = Color(0xFFCE2161);
+  static const _borderColor = Color(0xFF3450A3);
+  static const _iconColor = Color(0xFF3450A3);
   static const _iconDisabledAlpha = 0.4;
   static const _hintTextColor = Color(0xFF00171F);
   static const _hintTextAlpha = 0.4;
@@ -54,6 +55,24 @@ class _NoteInputState extends ConsumerState<NoteInput> {
   final FocusNode _focusNode = FocusNode();
   String? _previewUrl;
   bool _showPreview = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.resumed && _focusNode.hasFocus) {
+      // Android disconnects the IME when backgrounded. Re-request focus
+      // so the keyboard reappears on resume.
+      _focusNode.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
+  }
 
   String? _extractFirstUrl(String text) {
     final match = urlPattern.firstMatch(text);
@@ -542,6 +561,7 @@ class _NoteInputState extends ConsumerState<NoteInput> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();

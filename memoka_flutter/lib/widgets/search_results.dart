@@ -23,7 +23,7 @@ class SearchResults extends ConsumerWidget {
   const SearchResults({super.key});
 
   static const _textColor = Color(0xFF00171F);
-  static const _borderColor = Color(0xFFCE2161);
+  static const _borderColor = Color(0xFF3450A3);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

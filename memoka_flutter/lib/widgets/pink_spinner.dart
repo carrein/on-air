@@ -37,7 +37,7 @@ class _PinkSpinnerState extends State<PinkSpinner>
       child: PhosphorIcon(
         PhosphorIcons.spinnerGap(),
         size: widget.size,
-        color: const Color(0xFFCE2161),
+        color: const Color(0xFF3450A3),
       ),
     );
   }

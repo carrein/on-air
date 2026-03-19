@@ -59,7 +59,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Notifications**: Test notification harness in Settings — platform-conditional (Web Notifications API / flutter_local_notifications), lazy-initialized, 10s delay for backgrounding verification (see `docs/Notification.md`)
 - **Page Watch**: Bell icon on single-URL notes to monitor for content changes; server polls periodically, hashes visible text, push notification on change; auto-disable after 5 failures; ETag/conditional request optimization (see `docs/PageWatch.md`)
 - **Reminders**: Schedule notifications on individual notes; one-shot or recurring (Daily/Weekly/Monthly) via RRULE; siren icon indicator, context menu + selection bar creation, zero-polling per-reminder timers on server (priority queue) and client (Web Worker / Android zonedSchedule), three-layer delivery with deduplication, auto-reschedule for recurring, fired-but-unacknowledged delivery on reconnect, MediaPanel Remind tab with repeat indicator (see `docs/Reminder.md`)
-- **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, chat background picker, custom PWA icons
+- **UI/UX**: Toast notifications, context menus, multi-select, date separators, per-channel drafts, custom PWA icons
 
 ## Architecture
 

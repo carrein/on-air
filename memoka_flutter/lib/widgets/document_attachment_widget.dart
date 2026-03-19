@@ -35,7 +35,7 @@ class DocumentAttachmentWidget extends StatefulWidget {
 
 class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   static const _textPrimary = Color(0xFF00171F);
-  static const _accent = Color(0xFFCE2161);
+  static const _accent = Color(0xFF3450A3);
 
   DownloadHandle? _downloadHandle;
   String? _cachedPath;

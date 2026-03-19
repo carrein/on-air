@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../providers/background_provider.dart';
 import '../main.dart';
 import '../screens/server_setup_screen.dart';
 import '../services/notification_service.dart';
@@ -17,15 +16,8 @@ class SettingsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentBackground = ref.watch(backgroundPreferenceProvider);
-    return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(currentBackground.assetPath),
-          repeat: ImageRepeat.repeat,
-          scale: 1.0,
-        ),
-      ),
+    return ColoredBox(
+      color: const Color(0xFFFFFDF6),
       child: Column(
         children: [
           Expanded(
@@ -33,8 +25,6 @@ class SettingsView extends ConsumerWidget {
               children: [
                 // Server section (native only)
                 if (!kIsWeb) _buildServerSection(context),
-                // Chat Background section
-                _buildBackgroundSection(ref, currentBackground),
                 // Notifications section
                 _buildNotificationsSection(context),
                 // About section
@@ -82,50 +72,11 @@ class SettingsView extends ConsumerWidget {
             },
             child: const Text(
               'Change',
-              style: TextStyle(color: Color(0xFFCE2161)),
+              style: TextStyle(color: Color(0xFF3450A3)),
             ),
           ),
         ),
         const Divider(height: 1),
-      ],
-    );
-  }
-
-  Widget _buildBackgroundSection(
-    WidgetRef ref,
-    BackgroundType currentBackground,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: const Text(
-            'Chat Background',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF00171F),
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 180,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: BackgroundType.values.length,
-            itemBuilder: (context, index) {
-              final background = BackgroundType.values[index];
-              final isSelected = background == currentBackground;
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: _buildBackgroundCard(ref, background, isSelected),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
       ],
     );
   }
@@ -180,7 +131,7 @@ class SettingsView extends ConsumerWidget {
             },
             child: const Text(
               'Send',
-              style: TextStyle(color: Color(0xFFCE2161)),
+              style: TextStyle(color: Color(0xFF3450A3)),
             ),
           ),
         ),
@@ -220,78 +171,6 @@ class SettingsView extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBackgroundCard(
-    WidgetRef ref,
-    BackgroundType background,
-    bool isSelected,
-  ) {
-    return GestureDetector(
-      onTap: () {
-        ref
-            .read(backgroundPreferenceProvider.notifier)
-            .setBackground(background);
-      },
-      child: Container(
-        width: 120,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Background preview
-              Image.asset(
-                background.assetPath,
-                fit: BoxFit.cover,
-              ),
-              // Selected indicator
-              if (isSelected)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFCE2161),
-                      shape: BoxShape.circle,
-                    ),
-                    child: PhosphorIcon(
-                      PhosphorIcons.check(),
-                      color: Colors.white,
-                      size: 16,
-                    ),
-                  ),
-                ),
-              // Label at bottom
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                  ),
-                  child: Text(
-                    background.displayName,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

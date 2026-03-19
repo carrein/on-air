@@ -70,7 +70,7 @@ class VideoAttachmentWidget extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             child: PhosphorIcon(
               PhosphorIcons.play(),
-              color: const Color(0xFFCE2161),
+              color: const Color(0xFF3450A3),
               size: 28,
             ),
           ),
@@ -315,7 +315,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
                   padding: const EdgeInsets.all(10),
                   child: PhosphorIcon(
                     PhosphorIcons.play(),
-                    color: const Color(0xFFCE2161),
+                    color: const Color(0xFF3450A3),
                     size: 30,
                   ),
                 ),
@@ -343,7 +343,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
                   _controller,
                   allowScrubbing: true,
                   colors: VideoProgressColors(
-                    playedColor: const Color(0xFFCE2161),
+                    playedColor: const Color(0xFF3450A3),
                     bufferedColor: Colors.grey[600]!,
                     backgroundColor: Colors.grey[800]!,
                   ),

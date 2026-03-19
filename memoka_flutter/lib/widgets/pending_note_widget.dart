@@ -25,8 +25,8 @@ class PendingNoteWidget extends ConsumerWidget {
 
   final PendingUpload upload;
 
-  static const _borderColor = Color(0xFFCE2161);
-  static const _bgColor = Color(0xFFF6F0ED);
+  static const _borderColor = Color(0xFF3450A3);
+  static const _bgColor = Color(0xFFFFFDF6);
 
   bool get _isGif => upload.mimeType.toLowerCase() == 'image/gif';
 
@@ -336,7 +336,7 @@ class _UploadedImageContentState extends ConsumerState<_UploadedImageContent> {
   /// Visually identical to the uploading footer so there's no intermediate state.
   Widget _buildFrozenProgressFooter() {
     final upload = widget.upload;
-    const borderColor = Color(0xFFCE2161);
+    const borderColor = Color(0xFF3450A3);
     final total = upload.fileSize > 0
         ? FileUtils.formatFileSize(upload.fileSize)
         : 'Done';
@@ -475,7 +475,7 @@ class _FooterButton extends StatelessWidget {
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: Color(0xFFCE2161),
+            color: Color(0xFF3450A3),
           ),
         ),
       ),

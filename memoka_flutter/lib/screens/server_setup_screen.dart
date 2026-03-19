@@ -20,7 +20,7 @@ class ServerSetupScreen extends StatefulWidget {
 
 class _ServerSetupScreenState extends State<ServerSetupScreen> {
   static const _bgColor = Color(0xFF00171F);
-  static const _accent = Color(0xFFCE2161);
+  static const _accent = Color(0xFF3450A3);
 
   final _controller = TextEditingController();
   bool _testing = false;

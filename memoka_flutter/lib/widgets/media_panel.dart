@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/channel_media_provider.dart';
 import '../providers/current_channel_provider.dart';
@@ -48,41 +49,66 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
         return Container(
           width: widget.fixedWidth ? 340 : null,
           decoration: const BoxDecoration(
-            color: Color(0xFFF6F0ED),
+            color: Color(0xFFFFFDF6),
             border: Border(
-              left: BorderSide(color: Color(0xFFCE2161), width: 1),
+              left: BorderSide(color: Color(0xFF3450A3), width: 1),
             ),
           ),
           child: Column(
             children: [
               // Tab bar — flush against content (no separator)
               Container(
-                color: const Color(0xFFF6F0ED),
+                color: const Color(0xFFFFFDF6),
                 child: TabBar(
                   controller: _tabController,
-                  labelColor: const Color(0xFFCE2161),
+                  labelColor: const Color(0xFF3450A3),
                   unselectedLabelColor: const Color(
                     0xFF00171F,
                   ).withValues(alpha: 0.6),
-                  indicatorColor: const Color(0xFFCE2161),
+                  indicatorColor: const Color(0xFF3450A3),
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: const UnderlineTabIndicator(
                     borderRadius: BorderRadius.zero,
-                    borderSide: BorderSide(color: Color(0xFFCE2161), width: 3),
+                    borderSide: BorderSide(color: Color(0xFF3450A3), width: 3),
                   ),
-                  dividerColor: const Color(0xFFCE2161).withValues(alpha: 0.2),
+                  dividerColor: const Color(0xFF3450A3).withValues(alpha: 0.2),
                   dividerHeight: 1,
                   labelStyle: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                   unselectedLabelStyle: const TextStyle(fontSize: 14),
-                  tabs: const [
-                    Tab(text: 'Images'),
-                    Tab(text: 'Videos'),
-                    Tab(text: 'Docs'),
-                    Tab(text: 'Links'),
-                    Tab(text: 'Remind'),
+                  tabs: [
+                    Tab(
+                      icon: PhosphorIcon(
+                        PhosphorIcons.image(PhosphorIconsStyle.bold),
+                        size: 20,
+                      ),
+                    ),
+                    Tab(
+                      icon: PhosphorIcon(
+                        PhosphorIcons.video(PhosphorIconsStyle.bold),
+                        size: 20,
+                      ),
+                    ),
+                    Tab(
+                      icon: PhosphorIcon(
+                        PhosphorIcons.file(PhosphorIconsStyle.bold),
+                        size: 20,
+                      ),
+                    ),
+                    Tab(
+                      icon: PhosphorIcon(
+                        PhosphorIcons.linkSimple(PhosphorIconsStyle.bold),
+                        size: 20,
+                      ),
+                    ),
+                    Tab(
+                      icon: PhosphorIcon(
+                        PhosphorIcons.bellSimple(PhosphorIconsStyle.bold),
+                        size: 20,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -118,28 +144,28 @@ class _MediaPanelState extends ConsumerState<MediaPanel>
     return Container(
       width: widget.fixedWidth ? 340 : null,
       decoration: const BoxDecoration(
-        color: Color(0xFFF6F0ED),
+        color: Color(0xFFFFFDF6),
         border: Border(
-          left: BorderSide(color: Color(0xFFCE2161), width: 1),
+          left: BorderSide(color: Color(0xFF3450A3), width: 1),
         ),
       ),
       child: Column(
         children: [
           Container(
-            color: const Color(0xFFF6F0ED),
+            color: const Color(0xFFFFFDF6),
             child: TabBar(
               controller: _tabController,
-              labelColor: const Color(0xFFCE2161),
+              labelColor: const Color(0xFF3450A3),
               unselectedLabelColor: const Color(
                 0xFF00171F,
               ).withValues(alpha: 0.6),
-              indicatorColor: const Color(0xFFCE2161),
+              indicatorColor: const Color(0xFF3450A3),
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: const UnderlineTabIndicator(
                 borderRadius: BorderRadius.zero,
-                borderSide: BorderSide(color: Color(0xFFCE2161), width: 3),
+                borderSide: BorderSide(color: Color(0xFF3450A3), width: 3),
               ),
-              dividerColor: const Color(0xFFCE2161).withValues(alpha: 0.2),
+              dividerColor: const Color(0xFF3450A3).withValues(alpha: 0.2),
               dividerHeight: 1,
               labelStyle: const TextStyle(
                 fontSize: 14,

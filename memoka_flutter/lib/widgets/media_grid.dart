@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/channel_media.dart';
 import 'media_grid_item.dart';
+import 'media_panel_empty_state.dart';
 
 enum MediaType {
   image,
@@ -51,41 +52,18 @@ class MediaGrid extends StatelessWidget {
     switch (type) {
       case MediaType.image:
         message = 'No images';
-        icon = PhosphorIcons.image();
+        icon = PhosphorIcons.image(PhosphorIconsStyle.bold);
         break;
       case MediaType.video:
         message = 'No videos';
-        icon = PhosphorIcons.video();
+        icon = PhosphorIcons.video(PhosphorIconsStyle.bold);
         break;
       case MediaType.document:
         message = 'No documents';
-        icon = PhosphorIcons.file();
+        icon = PhosphorIcons.file(PhosphorIconsStyle.bold);
         break;
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 36,
-              color: const Color(0xFF00171F).withValues(alpha: 0.6),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: 14,
-                color: const Color(0xFF00171F).withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
+    return MediaPanelEmptyState(icon: icon, message: message);
   }
 }

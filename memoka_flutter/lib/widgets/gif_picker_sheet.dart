@@ -24,9 +24,9 @@ class GifPickerSheet extends StatefulWidget {
 
 class _GifPickerSheetState extends State<GifPickerSheet> {
   // -- Design tokens (DesignSystem.md) --
-  static const _surface = Color(0xFFF6F0ED);
+  static const _surface = Color(0xFFFFFDF6);
   static const _text = Color(0xFF00171F);
-  static const _accent = Color(0xFFCE2161);
+  static const _accent = Color(0xFF3450A3);
   static const _textMutedAlpha = 0.5;
   static const _gridColumns = 3;
   static const _gridSpacing = 4.0;

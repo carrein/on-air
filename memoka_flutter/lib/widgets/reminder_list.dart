@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/channel_reminders_provider.dart';
+import 'media_panel_empty_state.dart';
 import 'reminder_list_item.dart';
 
 /// List of reminders for the current channel, displayed in the MediaPanel.
@@ -18,25 +19,9 @@ class ReminderList extends ConsumerWidget {
       skipLoadingOnRefresh: true,
       data: (reminders) {
         if (reminders.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PhosphorIcon(
-                  PhosphorIcons.clock(),
-                  size: 48,
-                  color: const Color(0xFF00171F).withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'No reminders',
-                  style: TextStyle(
-                    color: const Color(0xFF00171F).withValues(alpha: 0.5),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
+          return MediaPanelEmptyState(
+            icon: PhosphorIcons.bellSimple(PhosphorIconsStyle.bold),
+            message: 'No reminders',
           );
         }
         return ListView.separated(

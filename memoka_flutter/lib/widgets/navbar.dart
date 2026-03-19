@@ -36,12 +36,14 @@ class Navbar extends ConsumerStatefulWidget {
 }
 
 class _NavbarState extends ConsumerState<Navbar> {
-  static const _backgroundColor = Color(0xFFF6F0ED);
-  static const _borderColor = Color(0xFFCE2161);
+  static const _backgroundColor = Color(0xFFFFFDF6);
+  static const _borderColor = Color(0xFF3450A3);
   static const _textColor = Color(0xFF00171F);
 
+  static const _primaryColor = _borderColor;
+
   static const _titleStyle = TextStyle(
-    color: _textColor,
+    color: _primaryColor,
     fontSize: 20,
     fontWeight: FontWeight.bold,
   );
@@ -484,13 +486,13 @@ class _NavbarState extends ConsumerState<Navbar> {
                           cursor: SystemMouseCursors.click,
                           child: PhosphorIcon(
                             getChannelIcon(channel.emoji),
-                            color: _textColor,
+                            color: _primaryColor,
                             size: 22,
                           ),
                         )
                       : PhosphorIcon(
                           getChannelIcon(channel.emoji),
-                          color: _textColor,
+                          color: _primaryColor,
                           size: 22,
                         ),
                 ),

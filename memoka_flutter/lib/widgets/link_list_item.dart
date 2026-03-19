@@ -19,9 +19,9 @@ class LinkListItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFF6F0ED),
+          color: const Color(0xFFFFFDF6),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFCE2161)),
+          border: Border.all(color: const Color(0xFF3450A3)),
         ),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -110,7 +110,7 @@ class LinkListItem extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 10,
-                    color: Color(0xFFCE2161),
+                    color: Color(0xFF3450A3),
                   ),
                 ),
               ],

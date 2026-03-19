@@ -41,7 +41,7 @@ class IconButtonStyled extends StatefulWidget {
   /// If null, scales with icon size: xs=4, sm=6, md=8, lg=8.
   final double? padding;
 
-  /// Icon and border color. Defaults to #CE2161.
+  /// Icon and border color. Defaults to #3450A3.
   final Color color;
 
   const IconButtonStyled({
@@ -50,7 +50,7 @@ class IconButtonStyled extends StatefulWidget {
     required this.onPressed,
     this.size = 24,
     this.padding,
-    this.color = const Color(0xFFCE2161),
+    this.color = const Color(0xFF3450A3),
   });
 
   @override

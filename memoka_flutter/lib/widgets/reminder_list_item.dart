@@ -30,9 +30,9 @@ class ReminderListItem extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F0ED),
+        color: const Color(0xFFFFFDF6),
         border: Border.all(
-          color: const Color(0xFFCE2161).withValues(alpha: 0.3),
+          color: const Color(0xFF3450A3).withValues(alpha: 0.3),
         ),
         borderRadius: BorderRadius.circular(4),
       ),
@@ -54,7 +54,7 @@ class ReminderListItem extends ConsumerWidget {
                     : PhosphorIcons.clock(),
                 size: 14,
                 color: isPast
-                    ? const Color(0xFFCE2161)
+                    ? const Color(0xFF3450A3)
                     : const Color(0xFF00171F).withValues(alpha: 0.5),
               ),
               const SizedBox(width: 4),
@@ -64,7 +64,7 @@ class ReminderListItem extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: isPast
-                        ? const Color(0xFFCE2161)
+                        ? const Color(0xFF3450A3)
                         : const Color(0xFF00171F).withValues(alpha: 0.5),
                   ),
                 ),

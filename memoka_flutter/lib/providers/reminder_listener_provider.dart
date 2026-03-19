@@ -16,6 +16,10 @@ part 'reminder_listener_provider.g.dart';
 /// Deduplicates with client-side scheduler fires via `_firedLocally`.
 @Riverpod(keepAlive: true)
 void reminderListener(Ref ref) {
+  // Eagerly initialize the scheduler so it fetches active reminders
+  // and registers OS alarms (zonedSchedule) on app start.
+  ref.read(reminderSchedulerProvider.notifier);
+
   // Listen for reminder-related WebSocket events
   ref.listen(chatStreamProvider, (_, next) {
     next.whenData((event) {

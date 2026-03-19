@@ -15,7 +15,7 @@ import '../providers/sync_engine_provider.dart';
 class SyncIndicator extends ConsumerWidget {
   const SyncIndicator({super.key});
 
-  static const _accentColor = Color(0xFFCE2161);
+  static const _accentColor = Color(0xFF3450A3);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

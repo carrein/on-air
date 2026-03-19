@@ -410,15 +410,6 @@ All footer icons: 20px, `core.textMuted` (`#00171F` at 60% opacity).
 - **Keyboard**: Space to play/pause, Escape to close
 - **Implementation**: `_VideoLightbox.show()` in `video_attachment_widget.dart`
 
-### Chat Backgrounds
-
-#### Background Picker
-
-- Accessible via Settings overlay — Background Picker screen
-- Selection of themed background patterns (flower, food, gift, leaves, light, memphis, morocco, pentagon, sakura, sun, terrazzo, tree, wheat, wormz)
-- Selected background is applied behind the chat view
-- Persisted via `BackgroundProvider` with Riverpod state management
-
 ### Media Panel
 
 - **Width**: 340px (fixed on desktop), full-width in bottom sheet on mobile

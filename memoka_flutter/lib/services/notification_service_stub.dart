@@ -13,6 +13,15 @@ Future<void> _ensureInitialized() async {
     onDidReceiveNotificationResponse: _onNotificationTap,
   );
   _initialized = true;
+
+  // Request POST_NOTIFICATIONS permission (Android 13+).
+  final androidPlugin = _plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
+  if (androidPlugin != null) {
+    await androidPlugin.requestNotificationsPermission();
+  }
 }
 
 void _onNotificationTap(NotificationResponse response) {

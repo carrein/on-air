@@ -386,7 +386,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         ),
         child: Scaffold(
           resizeToAvoidBottomInset: false,
-          backgroundColor: const Color(0xFFF6F0ED),
+          backgroundColor: const Color(0xFFFFFDF6),
           body: SafeArea(
             child: Column(
               children: [
@@ -431,8 +431,8 @@ class _MobileSearchInputState extends ConsumerState<_MobileSearchInput> {
   final _focusNode = FocusNode();
   Timer? _debounce;
 
-  static const _backgroundColor = Color(0xFFF6F0ED);
-  static const _borderColor = Color(0xFFCE2161);
+  static const _backgroundColor = Color(0xFFFFFDF6);
+  static const _borderColor = Color(0xFF3450A3);
   static const _textColor = Color(0xFF00171F);
 
   @override

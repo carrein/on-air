@@ -22,9 +22,9 @@ class ChannelList extends ConsumerStatefulWidget {
 
 class _ChannelListState extends ConsumerState<ChannelList> {
   // -- Colors --
-  static const _backgroundColor = Color(0xFFF6F0ED);
-  static const _selectedColor = Color(0xFFCE2161);
-  static const _borderColor = Color(0xFFCE2161);
+  static const _backgroundColor = Color(0xFFFFFDF6);
+  static const _selectedColor = Color(0xFF3450A3);
+  static const _borderColor = Color(0xFF3450A3);
   static const _textColor = Color(0xFF00171F);
   static const _previewTextAlpha = 0.7;
 

@@ -44,7 +44,7 @@ class NewChannelModal extends StatefulWidget {
 
 class _NewChannelModalState extends State<NewChannelModal> {
   // -- Colors --
-  static const _borderColor = Color(0xFFCE2161);
+  static const _borderColor = Color(0xFF3450A3);
   static const _darkColor = Color(0xFF00171F);
   static const _emojiCircleBorder = Color(0xFFDADDD8);
 
@@ -75,7 +75,7 @@ class _NewChannelModalState extends State<NewChannelModal> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: const Color(0xFFF6F0ED),
+      backgroundColor: const Color(0xFFFFFDF6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.zero,
         side: const BorderSide(color: _borderColor, width: 1.0),

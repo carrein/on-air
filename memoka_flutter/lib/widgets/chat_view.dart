@@ -13,7 +13,6 @@ import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/pending_uploads_provider.dart';
 import '../providers/scroll_to_note_provider.dart';
-import '../providers/background_provider.dart';
 import '../providers/connection_provider.dart' as conn;
 import '../utils/file_utils.dart';
 import '../models/upload_file_data.dart';
@@ -39,8 +38,8 @@ class _EmptyStateBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F0ED),
-        border: Border.all(color: const Color(0xFFCE2161), width: 1.0),
+        color: const Color(0xFFFFFDF6),
+        border: Border.all(color: const Color(0xFF3450A3), width: 1.0),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -368,7 +367,6 @@ class _ChatViewState extends ConsumerState<ChatView>
   @override
   Widget build(BuildContext context) {
     final currentChannelAsync = ref.watch(currentChannelProvider);
-    final currentBackground = ref.watch(backgroundPreferenceProvider);
 
     // Initialise displayed channel on first load
     if (_displayedChannelId == null && currentChannelAsync.value != null) {
@@ -406,14 +404,9 @@ class _ChatViewState extends ConsumerState<ChatView>
       children: [
         // Static background — never animates
         Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage(currentBackground.assetPath),
-                repeat: ImageRepeat.repeat,
-                scale: 1.0,
-              ),
-            ),
+          child: Image.asset(
+            'assets/images/backgrounds/orange.png',
+            fit: BoxFit.cover,
           ),
         ),
         // Animated notes layer
@@ -509,7 +502,7 @@ class _ChatViewState extends ConsumerState<ChatView>
         margin: const EdgeInsets.symmetric(vertical: 16),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFFCE2161),
+          color: const Color(0xFF3450A3),
           borderRadius: BorderRadius.circular(50),
         ),
         child: Text(
@@ -517,7 +510,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: Color(0xFFFFFFFF),
+            color: Color(0xFFFFFDF6),
           ),
         ),
       ),

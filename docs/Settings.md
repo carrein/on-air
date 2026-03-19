@@ -25,22 +25,12 @@ Displayed only on non-web platforms (`!kIsWeb`).
 
 - **Version**: Three-tier resolution: (1) build-time `--dart-define=APP_VERSION=x.y.z` override, (2) `PackageInfo.fromPlatform()` on native, (3) fallback `—`. On web, use `--dart-define` at build time. On Android, `PackageInfo` reads the version from pubspec.yaml baked into the APK. Read-only, no interaction.
 
-### Chat Background
-
-Horizontal scrolling grid of background thumbnails (120px wide cards, 180px tall row).
-
-- 14 themed patterns: flower, food, gift, leaves, light, memphis, morocco, pentagon, sakura, sun, terrazzo, tree, wheat, wormz
-- Selected background has a `#CE2161` checkmark overlay in the top-right corner
-- Tapping a card calls `backgroundPreferenceProvider.notifier.setBackground(background)`
-- Background is applied immediately to the chat view and persisted via `BackgroundProvider`
-
 ---
 
 ## State
 
 | Provider | Type | Usage |
 |----------|------|-------|
-| `backgroundPreferenceProvider` | `BackgroundType` | Currently selected chat background |
 | `settingsViewProvider` | `bool` | Whether settings is shown (controls detail mode) |
 
 ---
@@ -64,13 +54,11 @@ Closing settings (back button tap) sets `settingsViewProvider` to false, restori
 
 | Element | Value |
 |---------|-------|
-| Background | Current chat background pattern (tiled via `ImageRepeat.repeat`) |
+| Background | Solid `#FFFDF6` |
 | Section header font size | 12px bold, `#00171F` |
 | List tile font size | 14px |
 | Subtitle / muted text | `#00171F` at 50% opacity |
 | Change button text | `#CE2161` |
-| Background card size | 120px wide × 180px tall |
-| Selected indicator | `#CE2161` checkmark (PhosphorIcons) |
 
 ---
 
@@ -80,7 +68,6 @@ Closing settings (back button tap) sets `settingsViewProvider` to false, restori
 |------|---------|
 | `lib/widgets/settings_view.dart` | Widget implementation |
 | `lib/screens/server_setup_screen.dart` | Server URL editing screen |
-| `lib/providers/background_provider.dart` | Background preference state |
 | `lib/providers/settings_view_provider.dart` | Settings visibility state |
 | `docs/components/Navbar.md` | Navbar detail mode (back button, title) |
 | `docs/DesignSystem.md` | Color tokens |

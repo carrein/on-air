@@ -30,7 +30,7 @@ class IconPicker extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: const Color(0xFFF6F0ED),
+      backgroundColor: const Color(0xFFFFFDF6),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -52,7 +52,7 @@ class IconPicker extends StatefulWidget {
 }
 
 class _IconPickerState extends State<IconPicker> {
-  static const _selectedBg = Color(0xFFCE2161);
+  static const _selectedBg = Color(0xFF3450A3);
   static const _gridColumns = 6;
   static const _iconSize = 26.0;
   static const _gridSpacing = 4.0;

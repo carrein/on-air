@@ -34,8 +34,8 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   final _overlayController = OverlayPortalController();
   Timer? _debounce;
 
-  static const _backgroundColor = Color(0xFFF6F0ED);
-  static const _borderColor = Color(0xFFCE2161);
+  static const _backgroundColor = Color(0xFFFFFDF6);
+  static const _borderColor = Color(0xFF3450A3);
 
   @override
   void initState() {
@@ -253,7 +253,7 @@ class _SearchDropdownContent extends ConsumerStatefulWidget {
 class _SearchDropdownContentState
     extends ConsumerState<_SearchDropdownContent> {
   static const _textColor = Color(0xFF00171F);
-  static const _borderColor = Color(0xFFCE2161);
+  static const _borderColor = Color(0xFF3450A3);
 
   /// Cached results from the last successful fetch.
   List<SearchResult>? _lastResults;
@@ -455,7 +455,7 @@ List<TextSpan> parseSnippet(String snippet) {
         text: match.group(1),
         style: const TextStyle(
           fontWeight: FontWeight.bold,
-          color: Color(0xFFCE2161),
+          color: Color(0xFF3450A3),
         ),
       ),
     );

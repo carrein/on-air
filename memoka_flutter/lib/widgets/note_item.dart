@@ -51,7 +51,7 @@ class NoteItem extends ConsumerWidget {
     final isSelectionMode = selection.isNotEmpty;
     final isSelected = selection.contains(note.id);
 
-    const borderColor = Color(0xFFCE2161);
+    const borderColor = Color(0xFF3450A3);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -70,12 +70,12 @@ class NoteItem extends ConsumerWidget {
                     ? PhosphorIcon(
                         PhosphorIcons.checkCircle(),
                         size: 24,
-                        color: const Color(0xFFCE2161),
+                        color: const Color(0xFF3450A3),
                       )
                     : PhosphorIcon(
                         PhosphorIcons.circle(),
                         size: 24,
-                        color: const Color(0xFFCE2161),
+                        color: const Color(0xFF3450A3),
                       ),
               ),
             ),
@@ -106,7 +106,7 @@ class NoteItem extends ConsumerWidget {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF6F0ED),
+                      color: const Color(0xFFFFFDF6),
                       border: Border.all(
                         color: borderColor,
                         width: isHighlighted ? 2.0 : 1.0,
@@ -206,7 +206,7 @@ class NoteItem extends ConsumerWidget {
               color: Color(0xFF00171F),
             ),
             code: const TextStyle(
-              color: Color(0xFFF6F0ED),
+              color: Color(0xFFFFFDF6),
               backgroundColor: Color(0xFF00171F),
             ),
             codeblockDecoration: const BoxDecoration(),
@@ -739,7 +739,7 @@ class _PageWatchBell extends ConsumerWidget {
                       width: 8,
                       height: 8,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFCE2161), // pink
+                        color: Color(0xFF3450A3), // pink
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -818,7 +818,7 @@ class _ReminderSiren extends ConsumerWidget {
           child: PhosphorIcon(
             PhosphorIcons.siren(PhosphorIconsStyle.fill),
             size: 14,
-            color: const Color(0xFFCE2161),
+            color: const Color(0xFF3450A3),
           ),
         );
       },
@@ -856,7 +856,7 @@ class _CodeBlock extends StatelessWidget {
   final String code;
 
   static const _bg = Color(0xFF00171F);
-  static const _fg = Color(0xFFF6F0ED);
+  static const _fg = Color(0xFFFFFDF6);
 
   @override
   Widget build(BuildContext context) {
