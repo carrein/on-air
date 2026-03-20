@@ -1,4 +1,6 @@
 import 'package:memoka_server/src/generated/protocol.dart';
+import 'package:memoka_server/src/pagewatch/page_watch_setup.dart';
+import 'package:memoka_server/src/reminder/reminder_setup.dart';
 import 'package:memoka_server/src/search/search_setup.dart';
 import 'package:test/test.dart';
 
@@ -32,6 +34,8 @@ void main() {
         final session = sessionBuilder.build();
         try {
           await SearchSetup.ensureSearchInfrastructure(session);
+          await PageWatchSetup.ensurePageWatchTable(session);
+          await ReminderSetup.ensureReminderTable(session);
         } finally {
           await session.close();
         }

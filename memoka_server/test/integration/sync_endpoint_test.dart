@@ -1,12 +1,27 @@
 import 'dart:convert';
 
 import 'package:memoka_server/src/generated/sync/sync_change.dart';
+import 'package:memoka_server/src/pagewatch/page_watch_setup.dart';
+import 'package:memoka_server/src/reminder/reminder_setup.dart';
 import 'package:test/test.dart';
 
 import 'test_tools/serverpod_test_tools.dart';
 
 void main() {
-  withServerpod('Given Sync endpoint', (sessionBuilder, endpoints) {
+  withServerpod('Given Sync endpoint', rollbackDatabase: RollbackDatabase.afterAll, (
+    sessionBuilder,
+    endpoints,
+  ) {
+    setUpAll(() async {
+      final session = sessionBuilder.build();
+      try {
+        await PageWatchSetup.ensurePageWatchTable(session);
+        await ReminderSetup.ensureReminderTable(session);
+      } finally {
+        await session.close();
+      }
+    });
+
     group('syncPull', () {
       test('returns channel and note created since version 0', () async {
         final channel = await endpoints.chat.createChannel(
