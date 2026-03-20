@@ -114,8 +114,8 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
               ),
             ),
 
-            // Compress checkbox (for images and videos)
-            if (file.isImage || file.isVideo)
+            // Compress checkbox (videos only)
+            if (file.isVideo)
               SizedBox(
                 width: 140,
                 child: CheckboxListTile(

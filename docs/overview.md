@@ -179,7 +179,7 @@ _Chat View_
 - Absolute timestamps (e.g., "Feb 6, 2:30 PM")
 - Chat bubbles with 4px border radius
 - Image-only notes render without bubble wrapper
-- Compressed badge indicator on media attachments
+- Compressed badge indicator on media attachments (legacy; image compression retired)
 - Right-click/long-press context menu: Copy, Edit, Delete
 - Multi-select via long-press with bulk delete action bar
 - Media attachments displayed inline with pre-sized shimmer placeholders (no layout jump)
@@ -192,7 +192,7 @@ _Chat View_
 _NoteInput_
 
 - Multiline `TextField`, Enter to submit (via `Shortcuts`/`Actions`), Shift+Enter for newline
-- Supported file types: images (jpg, png, gif, webp, heic), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip)
+- Supported file types: images (any `image/*` — non-web-safe formats converted to PNG), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip)
 - Create mode: Send button (enabled if non-empty)
 - Edit mode: Shows Cancel (X) button, Send becomes Save icon
 - Drag-and-drop + paste file upload support

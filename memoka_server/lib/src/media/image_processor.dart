@@ -42,22 +42,26 @@ class _ProcessImageParams {
   final String tempFilePath;
   final String finalFilePath;
   final String channelDir;
-  final bool compress;
 
   _ProcessImageParams({
     required this.tempFilePath,
     required this.finalFilePath,
     required this.channelDir,
-    required this.compress,
   });
 }
 
-/// Image processor for handling compression, thumbnails, and metadata.
+/// Image processor for handling thumbnails and metadata.
 class ImageProcessor {
-  static const int maxDimension = 1920;
   static const int thumbnailSize = 300;
-  static const int compressionQuality = 85;
   static const int thumbnailQuality = 80;
+
+  /// Extensions that browsers can display natively — no conversion needed.
+  static const Set<String> _webSafeExtensions = {
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+  };
 
   /// Calculate SHA-256 hash of file bytes (first 8 characters).
   /// Used for cache busting.
@@ -66,22 +70,23 @@ class ImageProcessor {
     return hash.toString().substring(0, 8);
   }
 
-  /// Process an image file with optional compression.
+  /// Process an image file.
   ///
-  /// Runs in an isolate to avoid blocking the main thread.
-  /// Handles EXIF orientation, compression, thumbnail generation, and content hashing.
+  /// Web-safe images (JPEG, PNG, WebP) are EXIF-stripped and saved in their
+  /// original format. Non-web-safe images (TIFF, BMP, ICO, PSD, etc.) are
+  /// converted to PNG. GIFs are always preserved as-is for animation.
+  ///
+  /// Throws if the image cannot be decoded (caller should fall back to the
+  /// document path).
   static Future<ProcessedImageResult> processImage({
     required String tempFilePath,
     required String finalFilePath,
     required String channelDir,
-    required bool compress,
   }) async {
-    // Run processing in a separate isolate
     final params = _ProcessImageParams(
       tempFilePath: tempFilePath,
       finalFilePath: finalFilePath,
       channelDir: channelDir,
-      compress: compress,
     );
 
     return await _processInIsolate(params);
@@ -142,6 +147,38 @@ class ImageProcessor {
       );
     }
 
+    // WebP: the `image` package has no WebP encoder. Since EXIF in WebP is
+    // rare, just pass the file through untouched.
+    if (ext == '.webp') {
+      int webpWidth = 0;
+      int webpHeight = 0;
+      String? thumbPath;
+
+      if (image != null) {
+        final oriented = img.bakeOrientation(image);
+        webpWidth = oriented.width;
+        webpHeight = oriented.height;
+        try {
+          thumbPath = await _generateThumbnail(
+            oriented.frames.first,
+            params.channelDir,
+            path.basenameWithoutExtension(params.finalFilePath),
+          );
+        } catch (_) {}
+      }
+
+      await tempFile.rename(params.finalFilePath);
+      return ProcessedImageResult(
+        filePath: params.finalFilePath,
+        thumbnailPath: thumbPath,
+        width: webpWidth,
+        height: webpHeight,
+        contentHash: contentHash,
+        compressed: false,
+        animated: false,
+      );
+    }
+
     if (image == null) {
       throw Exception('Failed to decode image');
     }
@@ -152,23 +189,32 @@ class ImageProcessor {
     final originalWidth = image.width;
     final originalHeight = image.height;
 
-    bool wasCompressed = false;
-
     // Strip EXIF metadata after applying orientation
     image.exif.clear();
 
-    // Compress if requested
-    if (params.compress) {
-      image = _compressImage(image);
-      wasCompressed = true;
+    // Determine output format based on whether the input extension is web-safe.
+    final bool isWebSafe = _webSafeExtensions.contains(ext);
+
+    late final String outputPath;
+    late final List<int> encodedBytes;
+
+    if (isWebSafe) {
+      // Web-safe: re-encode in the same format (EXIF stripped).
+      if (ext == '.jpg' || ext == '.jpeg') {
+        encodedBytes = img.encodeJpg(image, quality: 95);
+        outputPath = params.finalFilePath;
+      } else {
+        // .png
+        encodedBytes = img.encodePng(image);
+        outputPath = params.finalFilePath;
+      }
+    } else {
+      // Non-web-safe (TIFF, BMP, ICO, PSD, TGA, etc.): convert to PNG.
+      encodedBytes = img.encodePng(image);
+      outputPath = '${path.withoutExtension(params.finalFilePath)}.png';
     }
 
-    // Save processed image as JPEG (WebP encoding not available in this version)
-    final jpegBytes = img.encodeJpg(
-      image,
-      quality: compressionQuality,
-    );
-    await File(params.finalFilePath).writeAsBytes(jpegBytes);
+    await File(outputPath).writeAsBytes(encodedBytes);
 
     // Delete temp file
     if (await tempFile.exists()) {
@@ -183,39 +229,13 @@ class ImageProcessor {
     );
 
     return ProcessedImageResult(
-      filePath: params.finalFilePath,
+      filePath: outputPath,
       thumbnailPath: thumbnailPath,
       width: originalWidth,
       height: originalHeight,
       contentHash: contentHash,
-      compressed: wasCompressed,
+      compressed: false,
       animated: false,
-    );
-  }
-
-  /// Compress image to max dimension while maintaining aspect ratio.
-  static img.Image _compressImage(img.Image image) {
-    if (image.width <= maxDimension && image.height <= maxDimension) {
-      return image;
-    }
-
-    // Calculate new dimensions maintaining aspect ratio
-    final aspectRatio = image.width / image.height;
-    int newWidth, newHeight;
-
-    if (image.width > image.height) {
-      newWidth = maxDimension;
-      newHeight = (maxDimension / aspectRatio).round();
-    } else {
-      newHeight = maxDimension;
-      newWidth = (maxDimension * aspectRatio).round();
-    }
-
-    return img.copyResize(
-      image,
-      width: newWidth,
-      height: newHeight,
-      interpolation: img.Interpolation.linear,
     );
   }
 

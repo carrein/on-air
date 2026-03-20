@@ -25,6 +25,7 @@ u/docs/Shortcuts.md
 u/docs/Notification.md
 u/docs/PageWatch.md
 u/docs/Reminder.md
+u/docs/Seed.md
 
 # CLAUDE.md
 
@@ -46,8 +47,8 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Notes**: Create, update, delete with cursor-based pagination, archive/restore
 - **Real-time**: WebSocket streaming via MessageCentral for live updates
 - **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
-- **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, thumbnail generation, EXIF stripping; fire-and-forget async upload with ghost notes, real-time progress, cancel, and retry
-- **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, compressed badge
+- **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, thumbnail generation, EXIF stripping; any `image/*` format accepted (non-web-safe formats converted to PNG); fire-and-forget async upload with ghost notes, real-time progress, cancel, and retry
+- **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support
 - **Audio Playback**: Inline audio player for audio attachments — HTML Audio API on web, ExoPlayer on Android; scrubber, preview + download buttons
 - **Media Panel**: Right sidebar with 5 tabs (Images/Videos/Documents/Links/Reminders), responsive layout
 - **Archive System**: Archive for soft-deleted notes, channel archiving with restore, configurable retention auto-purge (Never/30/60/90 days)
@@ -195,16 +196,19 @@ perl -0777 -pi -e 's/serviceWorkerSettings:\s*\{[^}]*\}//' ../memoka_server/web/
 From `memoka_server/`:
 
 ```bash
-# Seed — 26+ channels, 500+ notes (load testing) + Search channel
+# Seed — 6 channels, 50+ notes each (dogfood testing)
 dart run bin/seed.dart
 ```
 
-Both scripts prompt for confirmation before wiping all data (channels, notes, media files).
+Creates 6 purpose-specific channels: General (text), Images, Videos, Documents, Links, Reminders. Each gets 50+ notes (except Reminders which is deferred). No confirmation prompt — runs directly.
 
-The seed script prompts for confirmation before wiping all data (channels, notes, media files). The Search channel (~40 notes) is included in both demo and full modes for dogfooding the search feature.
+Media channels require fixture files in `fixtures/seed/{images,videos,docs}/`. If fewer than 50 files exist, the seed cycles through available files. Links channel fetches live link previews in batches.
 
 **Directory layout:**
-- `bin/seed.dart` — load-test seed (executable)
+- `bin/seed.dart` — dogfood seed (executable)
+- `fixtures/seed/images/` — image files for Images channel
+- `fixtures/seed/videos/` — video files for Videos channel
+- `fixtures/seed/docs/` — document files for Documents channel
 
 ### Testing
 
@@ -350,6 +354,7 @@ interactions, state management, and integration details.
 - **Notifications**: `docs/Notification.md` — Test notification harness, platform-conditional, lazy init
 - **Page Watch**: `docs/PageWatch.md` — URL change monitoring, untracked `page_watches` table, periodic polling with ETag optimization, bell icon states, notification integration
 - **Reminders**: `docs/Reminder.md` — Note reminder scheduling, untracked `reminders` table, zero-polling per-reminder timers (server priority queue + client Web Worker/zonedSchedule), three-layer delivery with deduplication, fired-on-reconnect delivery, siren icon, MediaPanel tab
+- **Seed**: `docs/Seed.md` — Dogfood seed script, 6 channels (text/media/links/reminders), fixture directories, media cycling, batch link preview fetching
 
 ## Platform Guides
 

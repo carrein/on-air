@@ -136,16 +136,12 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
 
                   const SizedBox(height: 16),
 
-                  // Compression option (images and videos)
-                  if (_isImage || _isVideo)
+                  // Compression option (videos only)
+                  if (_isVideo)
                     CheckboxListTile(
-                      title: Text(
-                        _isVideo ? 'Compress video' : 'Compress image',
-                      ),
-                      subtitle: Text(
-                        _isVideo
-                            ? 'Server-side compression to 720p (recommended)'
-                            : 'Reduces file size, maintains quality',
+                      title: const Text('Compress video'),
+                      subtitle: const Text(
+                        'Server-side compression to 720p (recommended)',
                       ),
                       value: _compress,
                       onChanged: (value) =>
@@ -191,7 +187,7 @@ class _FileUploadDialogState extends State<FileUploadDialog> {
   }
 
   void _handleSend() {
-    final shouldCompress = (_isImage || _isVideo) ? _compress : false;
+    final shouldCompress = _isVideo ? _compress : false;
     Navigator.of(context).pop();
     widget.onSend(shouldCompress);
   }

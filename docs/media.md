@@ -7,7 +7,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 ### Phase 1 (Completed): Single File Upload
 - Paste images from clipboard (Ctrl+V)
 - Drag-drop single file support
-- Upload dialog with compression option
+- Upload dialog with compression option (video only)
 - Display inline in chat messages
 - No captions required
 - 1GB file size limit
@@ -18,7 +18,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 - **Drag-drop multiple files** at once
 - **Paste multiple files** from clipboard
 - **Upload dialog**: `MultiFileUploadDialog` with progress tracking
-- **Per-file compression**: Individual toggle for each image/video
+- **Per-file compression**: Individual toggle for each video
 - **Sequential upload**: Files uploaded one-by-one to avoid overwhelming server
 - **Progress indicator**: Shows "Uploading X of Y..." with progress bar
 - **Document support**: PDF, Text, Word, Excel, Zip file support
@@ -35,7 +35,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 - Camera capture uses `photo.path` instead of `photo.readAsBytes()`
 - New HTTP multipart route (`POST /media/upload`) streams file directly to a temp file — zero bytes held in memory on server
 - Client constructs a `MultipartRequest`, finalizes it into a `StreamedRequest`, and pipes the body through a progress-tracking stream
-- Client-side compression (`flutter_image_compress`, `video_compress`) removed entirely — compress toggle sends flag to server which does WebP/720p conversion
+- Client-side compression (`flutter_image_compress`, `video_compress`) removed entirely — compress toggle sends flag to server for 720p video conversion. Image compression retired; images are stored losslessly in a web-safe format
 - `ShareIntentDialog` uses `file.path` directly instead of `File(file.path).readAsBytes()` — same OOM fix
 
 **Optimistic UI — `PendingUploads` + `PendingNoteWidget`:**
@@ -95,7 +95,7 @@ Wraps the *outgoing network stream* (via `multipart.finalize() → StreamedReque
 2. **Use channel ID (not name)** - Avoids brittleness from channel renames
 3. **Store original filename in DB only** - Security: user input never used in paths
 4. **Separate thumbnails directory** - Organized, easy to regenerate
-5. **WebP for compressed** - Better compression than JPEG, wide support
+5. **Lossless conversion** - Non-web-safe formats (TIFF, BMP, etc.) converted to PNG; web-safe formats kept as-is
 
 **Docker Volume Binding:**
 ```yaml
@@ -224,9 +224,7 @@ Future<void> _handlePaste() async {
 
 **Upload Dialog:**
 - Preview image (scaled to fit)
-- Checkbox: "Compress image" (checked by default)
-  - Full size: Original image (max 1GB)
-  - Compressed: Resize to max 1920px, quality 85%, WebP format (server-side)
+- Checkbox: "Compress video" (video uploads only; no compression option for images)
 - Buttons: "Cancel" | "Send"
 
 **Upload Process (Phase 3 — Async / Optimistic):**
@@ -247,108 +245,21 @@ See `memoka_flutter/lib/providers/pending_uploads_provider.dart` for implementat
 
 **Image Processing (in Isolate):**
 
-```dart
-class _ImageProcessResult {
-  final int fileSize;
-  final int width;
-  final int height;
-  final String? thumbnailPath;
-  final String finalMimeType;
-  final bool animated;
-  final String hash;
-}
+Any `image/*` MIME type is treated as an image. Processing depends on format:
 
-Future<_ImageProcessResult> _processImage(
-  String tempFilePath,
-  bool compress,
-  String mimeType,
-) async {
-  // Run in isolate to avoid blocking main thread
-  return await compute(_processImageIsolate, {
-    'path': tempFilePath,
-    'compress': compress,
-    'mimeType': mimeType,
-  });
-}
+| Input | Output | Conversion? | EXIF stripped? |
+|---|---|---|---|
+| JPEG (.jpg/.jpeg) | JPEG (quality 95) | Re-encoded only | Yes |
+| PNG (.png) | PNG | Re-encoded only | Yes |
+| WebP (.webp) | WebP (as-is) | No (no WebP encoder) | No (rare in WebP) |
+| GIF (.gif) | GIF (as-is) | No (preserves animation) | No |
+| TIFF, BMP, ICO, PSD, TGA | PNG | Yes | Yes |
+| Undecodable (e.g. HEIC) | Document fallback | N/A | N/A |
 
-Future<_ImageProcessResult> _processImageIsolate(Map<String, dynamic> params) async {
-  final file = File(params['path']);
-  final bytes = await file.readAsBytes();
-  
-  // Decode image
-  Image? image;
-  bool animated = false;
-  
-  if (params['mimeType'] == 'image/gif') {
-    final gif = decodeGif(bytes);
-    if (gif != null && gif.numFrames > 1) {
-      // Animated GIF: preserve original, generate static thumbnail
-      animated = true;
-      image = gif.frames.first;  // Use first frame for thumbnail
-    } else {
-      image = gif;
-    }
-  } else {
-    image = decodeImage(bytes);
-  }
-  
-  if (image == null) {
-    throw Exception('Failed to decode image');
-  }
-  
-  // Apply EXIF orientation BEFORE stripping metadata
-  image = bakeOrientation(image);
-  
-  int width = image.width;
-  int height = image.height;
-  String finalMimeType = params['mimeType'];
-  
-  // Compress if requested and not animated GIF
-  if (params['compress'] && !animated) {
-    // Resize if too large
-    if (width > 1920 || height > 1920) {
-      image = copyResize(image, 
-        width: width > height ? 1920 : null,
-        height: height > width ? 1920 : null,
-      );
-      width = image.width;
-      height = image.height;
-    }
-    
-    // Convert to WebP
-    final webpBytes = encodeWebP(image, quality: 85);
-    await file.writeAsBytes(webpBytes);
-    finalMimeType = 'image/webp';
-  }
-  
-  // Generate thumbnail (300px wide) in isolate
-  final thumbnail = copyResize(image, width: 300);
-  final thumbnailBytes = encodeWebP(thumbnail, quality: 80);
-  
-  final thumbnailDir = Directory('${file.parent.path}/thumbnails');
-  await thumbnailDir.create();
-  
-  final uuid = path.basenameWithoutExtension(file.path);
-  final thumbnailPath = 'thumbnails/${uuid}_thumb.webp';
-  final thumbnailFile = File('${file.parent.path}/$thumbnailPath');
-  await thumbnailFile.writeAsBytes(thumbnailBytes);
-  
-  // Calculate content hash for cache busting
-  final hash = sha256.convert(await file.readAsBytes()).toString().substring(0, 8);
-  
-  final fileSize = await file.length();
-  
-  return _ImageProcessResult(
-    fileSize: fileSize,
-    width: width,
-    height: height,
-    thumbnailPath: thumbnailPath,
-    finalMimeType: finalMimeType,
-    animated: animated,
-    hash: hash,
-  );
-}
-```
+All images get a JPEG thumbnail (300px, quality 80) and content hash.
+If `package:image` cannot decode a format, the upload route falls back to the document path (stored as-is with document card display).
+
+See `memoka_server/lib/src/media/image_processor.dart` for implementation.
 
 **Serving Files (Static Route - Public Access):**
 
@@ -472,13 +383,13 @@ Size computeDisplaySize({
 - **Monitoring:** Optional disk usage alert at 85%
 - **Rationale:** Self-hosted server with sufficient storage capacity
 
-### Compression Settings
+### Image Processing
 
-**Images:**
-- **Default:** Compression off (user opts in)
-- **Compressed:** Max 1920px, WebP format, 85% quality
-- **Original:** Keep original if unchecked
-- **Thumbnails:** 300px wide, WebP format, generated in isolate
+**No image compression.** Images are stored losslessly in a browser-viewable format:
+- **Web-safe formats** (JPEG, PNG, WebP, GIF): kept as-is (EXIF stripped for JPEG/PNG)
+- **Non-web-safe formats** (TIFF, BMP, ICO, PSD, TGA, etc.): converted to PNG
+- **Undecodable formats** (HEIC, etc.): stored as documents (fallback)
+- **Thumbnails:** 300px wide, JPEG format, generated in isolate
 
 **Videos:**
 - **Default:** Compression off (user opts in)
@@ -489,7 +400,7 @@ Size computeDisplaySize({
 
 **All file types are accepted.** The server applies type-specific processing:
 
-- **Images** (JPEG, PNG, WebP, GIF, HEIC): compression, thumbnail generation, EXIF stripping
+- **Images** (any `image/*` MIME type): EXIF stripping, format conversion if needed, thumbnail generation. No compression or resizing.
 - **Videos** (MP4, MOV, WebM, AVI, MKV): thumbnail generation, optional 720p compression via ffmpeg
 - **Documents & other files**: stored as-is with a content hash; no image/video processing
 
@@ -498,14 +409,14 @@ Files with unknown or missing MIME types (`application/octet-stream`) are accept
 ### Upload Behavior
 - **Multi-file support:** Select, drag, or paste multiple files at once
 - **Paste priority:** If clipboard has files, ignore text — intercepts even when text field is focused
-- **Default compression:** Compress toggle defaults to **off** (user opts in)
+- **Video compression:** Compress toggle shown for videos only (defaults to off)
 - **Progress indicator:** Shows upload count and progress for multi-file uploads
 - **Error handling:** Toast notifications (success/error) with human-readable messages
 - **Streaming:** Upload via stream (memory-safe)
 - **Sequential processing:** Files uploaded one-by-one to avoid server overload
 - **Dialog routing**:
-  - Single file → `FileUploadDialog` (simple preview + compression)
-  - Multiple files → `MultiFileUploadDialog` (list view + per-file compression)
+  - Single file → `FileUploadDialog` (simple preview + video compression toggle)
+  - Multiple files → `MultiFileUploadDialog` (list view + per-video compression toggle)
 
 ### Display & Interaction
 - **Delete:** Delete entire note to remove images (no individual image delete yet)
@@ -887,10 +798,10 @@ withServerpod('Given MediaUploadRoute', (sessionBuilder, endpoints) {
 - Fast fade-in (150ms) for disk-cached images to avoid perceived re-loading on scroll-back
 - Pre-sized shimmer placeholders prevent layout shifts during cache reads
 
-### Image Optimization
-- WebP format (30% smaller than JPEG)
-- Thumbnail generation (300px vs full size)
-- Lazy loading in gallery view (future)
+### Image Handling
+- Lossless storage (no compression, no resizing)
+- Non-web-safe formats converted to PNG for browser display
+- Thumbnail generation (300px JPEG for all images)
 - Animated GIF detection (preserve vs static)
 
 ### Query Performance

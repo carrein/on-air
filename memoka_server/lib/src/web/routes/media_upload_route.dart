@@ -29,14 +29,9 @@ class MediaUploadRoute extends Route {
   /// Maximum file size (1GB).
   static const int maxFileSize = 1024 * 1024 * 1024;
 
-  /// Allowed image MIME types.
-  static const List<String> _imageTypes = [
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-    'image/heic',
-  ];
+  /// Check if a MIME type is an image (any image/* subtype).
+  static bool _isImageMime(String mime) =>
+      mime.toLowerCase().startsWith('image/');
 
   /// Allowed video MIME types.
   static const List<String> _videoTypes = [
@@ -45,6 +40,7 @@ class MediaUploadRoute extends Route {
     'video/webm',
     'video/x-msvideo',
     'video/x-matroska',
+    'video/x-ms-wmv',
   ];
 
   static Headers _corsHeaders() => Headers.build((mh) {
@@ -282,7 +278,7 @@ class MediaUploadRoute extends Route {
 
     try {
       // Process file based on type.
-      final bool isImage = _imageTypes.contains(mimeType.toLowerCase());
+      final bool isImage = _isImageMime(mimeType);
       final bool isVideo = _videoTypes.contains(mimeType.toLowerCase());
       late final String resultFilePath;
       int? width;
@@ -294,19 +290,31 @@ class MediaUploadRoute extends Route {
       String? contentHash;
 
       if (isImage) {
-        final result = await ImageProcessor.processImage(
-          tempFilePath: channelTempPath,
-          finalFilePath: finalFilePath,
-          channelDir: channelDirPath,
-          compress: compress,
-        );
-        resultFilePath = result.filePath;
-        width = result.width;
-        height = result.height;
-        thumbnailPath = result.thumbnailPath;
-        compressed = result.compressed;
-        animated = result.animated;
-        contentHash = result.contentHash;
+        try {
+          final result = await ImageProcessor.processImage(
+            tempFilePath: channelTempPath,
+            finalFilePath: finalFilePath,
+            channelDir: channelDirPath,
+          );
+          resultFilePath = result.filePath;
+          width = result.width;
+          height = result.height;
+          thumbnailPath = result.thumbnailPath;
+          compressed = result.compressed;
+          animated = result.animated;
+          contentHash = result.contentHash;
+        } catch (e) {
+          // Image decode failed — fall back to document path.
+          session.log(
+            'Image processing failed, treating as document: $e',
+            level: LogLevel.warning,
+          );
+          await File(channelTempPath).rename(finalFilePath);
+          resultFilePath = finalFilePath;
+
+          final fileBytes = await File(finalFilePath).readAsBytes();
+          contentHash = await ImageProcessor.calculateHash(fileBytes);
+        }
       } else if (isVideo) {
         final result = await VideoProcessor.processVideo(
           tempFilePath: channelTempPath,
@@ -353,12 +361,16 @@ class MediaUploadRoute extends Route {
           from: mediaBaseDir.path,
         );
 
+        // Use MIME type from the actual result file — the processor may have
+        // converted browser-incompatible formats (e.g. TIFF) to PNG.
+        final resultMimeType = lookupMimeType(resultFilePath) ?? mimeType!;
+
         final attachment = MediaAttachment(
           noteId: savedNote.id!,
           channelId: channelId,
           filePath: relativePath,
           originalFilename: originalFilename!,
-          mimeType: mimeType!,
+          mimeType: resultMimeType,
           fileSize: totalFileBytes,
           width: width,
           height: height,

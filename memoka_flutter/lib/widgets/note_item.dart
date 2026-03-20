@@ -610,7 +610,11 @@ class _NoteFooter extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (!isArchive && note.id != null) ...[
-                _ReminderSiren(noteId: note.id!, color: color),
+                _ReminderSiren(
+                  noteId: note.id!,
+                  channelId: channelId,
+                  color: color,
+                ),
               ],
               if (!isArchive && _hasSingleUrl && note.id != null) ...[
                 _PageWatchBell(noteId: note.id!, color: color),
@@ -797,22 +801,30 @@ class _PageWatchBell extends ConsumerWidget {
 }
 
 /// Siren icon that appears when a note has an active (unfired) reminder.
+/// Uses the batch channelRemindersProvider (1 RPC per channel) instead of
+/// per-note reminderProvider to avoid N fetches while scrolling.
 class _ReminderSiren extends ConsumerWidget {
-  const _ReminderSiren({required this.noteId, required this.color});
+  const _ReminderSiren({
+    required this.noteId,
+    required this.channelId,
+    required this.color,
+  });
 
   final int noteId;
+  final int channelId;
   final Color color;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reminderAsync = ref.watch(reminderProvider(noteId));
+    final remindersAsync = ref.watch(channelRemindersProvider(channelId));
 
-    return reminderAsync.when(
+    return remindersAsync.when(
       skipLoadingOnRefresh: true,
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
-      data: (reminder) {
-        if (reminder == null) return const SizedBox.shrink();
+      data: (reminders) {
+        final hasReminder = reminders.any((r) => r.noteId == noteId);
+        if (!hasReminder) return const SizedBox.shrink();
         return Padding(
           padding: const EdgeInsets.only(right: 14),
           child: PhosphorIcon(
@@ -831,6 +843,11 @@ class _ReminderSiren extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _CodeBlockBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitText(md.Text text, TextStyle? preferredStyle) {
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
     String language = '';
