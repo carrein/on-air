@@ -110,7 +110,7 @@ class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   Widget _buildOverlay(BuildContext overlayContext) {
     // Clamp dropdown height to available space below the search bar.
     final box = context.findRenderObject() as RenderBox?;
-    final screenHeight = MediaQuery.of(context).size.height;
+    final screenHeight = MediaQuery.sizeOf(context).height;
     final barBottom = box != null
         ? box.localToGlobal(Offset.zero).dy + box.size.height
         : 0.0;

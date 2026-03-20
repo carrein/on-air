@@ -174,7 +174,7 @@ class _NoteInputState extends ConsumerState<NoteInput>
                       style: const TextStyle(color: Color(0xFF00171F)),
                       cursorColor: _iconColor,
                       decoration: InputDecoration(
-                        isDense: true,
+                        isDense: false,
                         hintText: isEditMode
                             ? 'Edit note... (Shift+Enter for new line)'
                             : 'Keyboard goes brrrr...',

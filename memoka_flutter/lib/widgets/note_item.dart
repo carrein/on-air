@@ -17,6 +17,7 @@ import '../providers/notes_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/note_selection_provider.dart';
 import '../providers/page_watch_provider.dart';
+import '../providers/channel_page_watches_provider.dart';
 import '../providers/reminder_provider.dart';
 import '../providers/channel_reminders_provider.dart';
 import '../utils/reminder_picker.dart';
@@ -112,10 +113,7 @@ class NoteItem extends ConsumerWidget {
                         width: isHighlighted ? 2.0 : 1.0,
                       ),
                     ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isHighlighted ? 11 : 12,
-                      vertical: isHighlighted ? 9 : 10,
-                    ),
+                    padding: EdgeInsets.all(isHighlighted ? 11 : 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -151,6 +149,7 @@ class NoteItem extends ConsumerWidget {
 
   Widget _buildContent(BuildContext context, WidgetRef ref) {
     final parts = <Widget>[];
+    int checkboxIndex = 0;
 
     if (note.content.isNotEmpty) {
       // Convert HTML break tags to markdown line breaks (two trailing spaces).
@@ -159,6 +158,7 @@ class NoteItem extends ConsumerWidget {
         MarkdownBody(
           data: content,
           selectable: kIsWeb,
+          listItemCrossAxisAlignment: MarkdownListItemCrossAxisAlignment.start,
           onTapLink: (text, href, title) async {
             if (href != null) {
               final uri = Uri.tryParse(href);
@@ -167,13 +167,41 @@ class NoteItem extends ConsumerWidget {
               }
             }
           },
-          builders: {'pre': _CodeBlockBuilder()},
+          inlineSyntaxes: [md.EmojiSyntax()],
+          builders: {
+            'pre': _CodeBlockBuilder(),
+            'blockquote': _BlockquoteBuilder(),
+          },
+          paddingBuilders: {
+            'code': _CodePaddingBuilder(),
+          },
+          checkboxBuilder: (checked) {
+            final idx = checkboxIndex++;
+            return MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => _toggleCheckbox(ref, idx),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 4, top: 4),
+                  child: PhosphorIcon(
+                    checked
+                        ? PhosphorIcons.checkSquare(PhosphorIconsStyle.fill)
+                        : PhosphorIcons.square(),
+                    size: 16,
+                    color: const Color(0xFF3450A3),
+                  ),
+                ),
+              ),
+            );
+          },
           styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
             p: const TextStyle(fontSize: 16, color: Color(0xFF00171F)),
             a: const TextStyle(
               fontSize: 16,
               color: Color(0xFF0F52BA),
-              decoration: TextDecoration.none,
+              decoration: TextDecoration.underline,
+              decorationStyle: TextDecorationStyle.dashed,
+              decorationColor: Color(0xFF0F52BA),
             ),
             h1: const TextStyle(
               fontSize: 24,
@@ -205,12 +233,25 @@ class NoteItem extends ConsumerWidget {
               fontWeight: FontWeight.bold,
               color: Color(0xFF00171F),
             ),
-            code: const TextStyle(
-              color: Color(0xFFFFFDF6),
-              backgroundColor: Color(0xFF00171F),
+            code: TextStyle(
+              color: const Color(0xFFFFFDF6),
+              backgroundColor: const Color(0xFF00171F),
+              fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
+              fontSize: 14,
             ),
             codeblockDecoration: const BoxDecoration(),
-            blockquote: const TextStyle(color: Color(0xFF00171F)),
+            blockquoteDecoration: const BoxDecoration(),
+            blockquotePadding: EdgeInsets.zero,
+            listIndent: 16,
+            horizontalRuleDecoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(
+                  color: Color(0xFF00171F),
+                  width: 2,
+                ),
+              ),
+            ),
+            superscriptFontFeatureTag: 'numr',
           ),
         ),
       );
@@ -450,6 +491,24 @@ class NoteItem extends ConsumerWidget {
     }
   }
 
+  void _toggleCheckbox(WidgetRef ref, int index) {
+    if (note.id == null) return;
+    int count = 0;
+    final regex = RegExp(r'- \[([ xX])\]');
+    final newContent = note.content.replaceAllMapped(regex, (match) {
+      if (count++ == index) {
+        final isChecked = match.group(1) != ' ';
+        return isChecked ? '- [ ]' : '- [x]';
+      }
+      return match.group(0)!;
+    });
+    if (newContent != note.content) {
+      ref
+          .read(notesProvider(channelId).notifier)
+          .updateNote(note.id!, newContent);
+    }
+  }
+
   Future<void> _restoreNote(BuildContext context, WidgetRef ref) async {
     try {
       await client.chat.restoreNote(note.id!);
@@ -617,7 +676,11 @@ class _NoteFooter extends ConsumerWidget {
                 ),
               ],
               if (!isArchive && _hasSingleUrl && note.id != null) ...[
-                _PageWatchBell(noteId: note.id!, color: color),
+                _PageWatchBell(
+                  noteId: note.id!,
+                  channelId: channelId,
+                  color: color,
+                ),
                 const SizedBox(width: 14),
               ],
               if (!isArchive && !_isDocumentOnly) ...[
@@ -684,19 +747,27 @@ class _NoteFooter extends ConsumerWidget {
 }
 
 /// Bell icon for toggling page watch on a single-URL note.
+/// Uses the batch channelPageWatchesProvider (1 RPC per channel) instead of
+/// per-note pageWatchProvider to avoid N fetches while scrolling.
 /// States: outline (not watching), filled (watching), filled+pink dot (change),
 /// red (error/disabled after failures).
 class _PageWatchBell extends ConsumerWidget {
-  const _PageWatchBell({required this.noteId, required this.color});
+  const _PageWatchBell({
+    required this.noteId,
+    required this.channelId,
+    required this.color,
+  });
 
   final int noteId;
+  final int channelId;
   final Color color;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final watchAsync = ref.watch(pageWatchProvider(noteId));
+    final watchesAsync = ref.watch(channelPageWatchesProvider(channelId));
 
-    return watchAsync.when(
+    return watchesAsync.when(
+      skipLoadingOnRefresh: true,
       loading: () => Icon(
         PhosphorIcons.bell(),
         size: 20,
@@ -707,7 +778,8 @@ class _PageWatchBell extends ConsumerWidget {
         size: 20,
         color: color,
       ),
-      data: (watch) {
+      data: (watches) {
+        final watch = watches.where((w) => w.noteId == noteId).firstOrNull;
         final isWatching = watch != null && watch.enabled;
         final hasChange = watch?.hasUnacknowledgedChange ?? false;
         final hasError =
@@ -767,6 +839,7 @@ class _PageWatchBell extends ConsumerWidget {
     if (watch != null && watch.hasUnacknowledgedChange) {
       try {
         await notifier.acknowledgeChange();
+        ref.invalidate(channelPageWatchesProvider(channelId));
       } catch (e) {
         if (context.mounted) {
           ToastUtils.show(
@@ -781,6 +854,7 @@ class _PageWatchBell extends ConsumerWidget {
 
     try {
       final nowWatching = await notifier.toggleWatch();
+      ref.invalidate(channelPageWatchesProvider(channelId));
       if (context.mounted) {
         ToastUtils.show(
           context,
@@ -839,8 +913,68 @@ class _ReminderSiren extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Code-block custom renderer
+// Custom renderers
 // ---------------------------------------------------------------------------
+
+class _BlockquoteBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final children = <Widget>[];
+    _buildChildren(element, children);
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFF3450A3), width: 3)),
+      ),
+      padding: const EdgeInsets.only(left: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  void _buildChildren(md.Element element, List<Widget> widgets) {
+    for (final child in element.children ?? []) {
+      if (child is md.Element && child.tag == 'blockquote') {
+        final nested = <Widget>[];
+        _buildChildren(child, nested);
+        widgets.add(
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                left: BorderSide(color: Color(0xFF3450A3), width: 3),
+              ),
+            ),
+            padding: const EdgeInsets.only(left: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: nested,
+            ),
+          ),
+        );
+      } else {
+        final text = child.textContent.trim();
+        if (text.isNotEmpty) {
+          widgets.add(
+            Text(
+              text,
+              style: const TextStyle(
+                color: Color(0xFF3450A3),
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
+}
+
+class _CodePaddingBuilder extends MarkdownPaddingBuilder {
+  @override
+  EdgeInsets getPadding() => const EdgeInsets.symmetric(horizontal: 2);
+}
 
 class _CodeBlockBuilder extends MarkdownElementBuilder {
   @override

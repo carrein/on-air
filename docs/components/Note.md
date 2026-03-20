@@ -26,6 +26,7 @@ Individual note card widget that renders note content, footer actions, context m
 | `note` | `Note` | Yes | The note data to display |
 | `channelId` | `int` | Yes | Parent channel ID (for API calls) |
 | `allImageUrls` | `List<String>` | No (default `[]`) | All image URLs in the current chat, used for lightbox gallery navigation |
+| `isHighlighted` | `bool` | No (default `false`) | When true, renders a 2px border (instead of 1px) for jump-to-context highlighting |
 
 ---
 
@@ -99,6 +100,26 @@ All icons: 20px, `Color(0xFF00171F).withValues(alpha: 0.5)`.
 - **Mobile**: Text selection is **disabled** so long-press correctly triggers selection mode instead of the OS text-selection handles
 - **Web**: Text selection is **enabled** (expected desktop behaviour)
 
+## Markdown Rendering
+
+`MarkdownBody` from `flutter_markdown` with custom builders and styling:
+
+| Feature | Implementation |
+|---------|---------------|
+| **Emoji** | `:shortcodes:` rendered as Unicode via `md.EmojiSyntax()` inline syntax |
+| **Links** | Navy blue (`#0F52BA`), dashed underline, opens in external browser |
+| **Horizontal rule** | 2px `core.text` (`#00171F`) top border |
+| **Footnotes** | Superscript via OpenType `numr` font feature |
+| **Code (inline)** | `#FFFDF6` on `#00171F`, Space Grotesk, 14px, 2px horizontal padding (`_CodePaddingBuilder`) |
+| **Code (block)** | Dark header bar with language label + copy button, Space Grotesk 13px body (`_CodeBlockBuilder` / `_CodeBlock`) |
+| **Blockquote** | 3px left bar in `#3450A3`, bold 16px text, recursive nesting (`_BlockquoteBuilder`) |
+| **Checkboxes** | Interactive Phosphor icons (`checkSquare` / `square`), toggle via regex replacement on note content |
+| **Tables** | Notes containing tables skip the max-width constraint (`_wrapConstraints`) |
+
+**Not supported** (flutter_markdown limitation): inline math, raw HTML elements.
+
+---
+
 ## Context Menu
 
 - **Desktop**: Right-click (`onPointerDown` with `event.buttons == 2`)
@@ -140,8 +161,12 @@ When `noteSelectionProvider` is non-empty, the widget renders in selection mode:
 | `notesProvider` | Archive / restore / delete operations |
 | `LinkPreviewCard` | Renders link preview metadata |
 | `MediaAttachmentWidget` | Routes to image/video/document widget by MIME type |
-| `_ReminderSiren` | Reminder siren icon display |
-| `reminderProvider` | Reminder state per note (siren icon visibility) |
+| `_ReminderSiren` | Reminder siren icon display (batch via `channelRemindersProvider`) |
+| `_PageWatchBell` | Page watch bell icon (batch via `channelPageWatchesProvider` — 1 RPC per channel) |
+| `channelPageWatchesProvider` | All page watches for a channel (avoids N per-note fetches) |
+| `channelRemindersProvider` | All reminders for a channel (avoids N per-note fetches) |
+| `pageWatchProvider` | Per-note watch state (used for mutations only) |
+| `reminderProvider` | Per-note reminder state (used for mutations only) |
 
 ---
 

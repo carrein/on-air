@@ -87,6 +87,14 @@ class PageWatchEndpoint extends Endpoint {
     return _rowToPageWatch(rows.first.toColumnMap());
   }
 
+  /// Returns all page watches for a channel.
+  Future<List<PageWatch>> getWatches(Session session, int channelId) async {
+    final rows = await session.db.unsafeQuery(
+      'SELECT * FROM "page_watches" WHERE "channelId" = $channelId',
+    );
+    return rows.map((r) => _rowToPageWatch(r.toColumnMap())).toList();
+  }
+
   /// Acknowledges a content change (clears the pink dot).
   Future<void> acknowledgeChange(Session session, int noteId) async {
     final now = DateTime.now().toIso8601String();

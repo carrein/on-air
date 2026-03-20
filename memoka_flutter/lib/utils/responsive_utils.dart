@@ -15,18 +15,18 @@ class ResponsiveUtils {
 
   /// Check if the current screen width is mobile (< 600px)
   static bool isMobile(BuildContext context) {
-    return MediaQuery.of(context).size.width < mobileBreakpoint;
+    return MediaQuery.sizeOf(context).width < mobileBreakpoint;
   }
 
   /// Check if the current screen width is tablet (600-1199px)
   static bool isTablet(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final width = MediaQuery.sizeOf(context).width;
     return width >= mobileBreakpoint && width < tabletBreakpoint;
   }
 
   /// Check if the current screen width is desktop (≥ 1200px)
   static bool isDesktop(BuildContext context) {
-    return MediaQuery.of(context).size.width >= tabletBreakpoint;
+    return MediaQuery.sizeOf(context).width >= tabletBreakpoint;
   }
 
   /// Check if media panel should be visible by default (desktop only)

@@ -250,6 +250,14 @@ class EndpointPageWatch extends _i1.EndpointRef {
         {'noteId': noteId},
       );
 
+  /// Returns all page watches for a channel.
+  _i2.Future<List<_i7.PageWatch>> getWatches(int channelId) =>
+      caller.callServerEndpoint<List<_i7.PageWatch>>(
+        'pageWatch',
+        'getWatches',
+        {'channelId': channelId},
+      );
+
   /// Acknowledges a content change (clears the pink dot).
   _i2.Future<void> acknowledgeChange(int noteId) =>
       caller.callServerEndpoint<void>(

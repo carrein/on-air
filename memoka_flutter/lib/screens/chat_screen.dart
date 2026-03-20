@@ -395,9 +395,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 Expanded(
                   child: Row(
                     children: [
-                      if (!isInDetailMode) const ChannelList(),
-                      buildContentColumn(),
-                      if (showMediaPanel && !isInDetailMode) const MediaPanel(),
+                      if (!isInDetailMode)
+                        const KeyedSubtree(
+                          key: ValueKey('channel-list'),
+                          child: ChannelList(),
+                        ),
+                      KeyedSubtree(
+                        key: const ValueKey('content'),
+                        child: buildContentColumn(),
+                      ),
+                      if (showMediaPanel && !isInDetailMode)
+                        const KeyedSubtree(
+                          key: ValueKey('media-panel'),
+                          child: MediaPanel(),
+                        ),
                     ],
                   ),
                 ),
@@ -406,7 +417,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ? const _MobileSearchInput()
                       : const NoteInput(),
                 SizedBox(
-                  height: MediaQuery.of(context).viewInsets.bottom,
+                  height: MediaQuery.viewInsetsOf(context).bottom,
                 ),
               ],
             ),

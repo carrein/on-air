@@ -105,7 +105,7 @@ void main(List<String> args) async {
   }
 }
 
-// ── General channel: 55 varied markdown notes ─────────────────────────────
+// ── General channel: varied markdown notes ─────────────────────────────────
 
 Future<void> _seedGeneral(Session session, Channel channel) async {
   print('\nSeeding General...');
@@ -529,6 +529,39 @@ const _generalNotes = [
   'Note to self: the `chatStreamProvider` has a `cancelled` flag to prevent stale generator race conditions. Don\'t remove it thinking it\'s dead code.',
   'Fractional ordering for channels:\n\nInstead of integer sort orders that require reindexing, we use doubles.\n\nInsert between positions 1.0 and 2.0? Use 1.5.\nInsert between 1.0 and 1.5? Use 1.25.\n\nEventually the precision runs out, but for a personal notes app with < 100 channels, this is more than sufficient.',
   'Why we chose Riverpod over BLoC:\n\n1. Less boilerplate -- no event classes, no state classes\n2. Provider dependencies are explicit and type-safe\n3. Code generation with `@riverpod` annotation\n4. Better testing support with `ProviderContainer`\n5. `keepAlive` for persistent state without global singletons',
+
+  // H4 / H5 / H6
+  '#### H4 Heading\n\nThis is an H4 heading. Useful for deeply nested sections.\n\n##### H5 Heading\n\nEven deeper nesting.\n\n###### H6 Heading\n\nThe smallest heading level.',
+
+  // Horizontal rules
+  'Section one content.\n\n---\n\nSection two content after a horizontal rule.\n\n***\n\nSection three after another style of rule.',
+
+  // Markdown links
+  'Some useful links:\n- [Dart language tour](https://dart.dev/language)\n- [Flutter documentation](https://docs.flutter.dev)\n- [Serverpod docs](https://docs.serverpod.dev)\n\nInline link: check out [pub.dev](https://pub.dev) for packages.',
+
+  // Markdown images
+  '![Dart logo](https://dart.dev/assets/img/shared/dart/logo+text/horizontal/white.svg)\n\nMarkdown image syntax test (may not render if URL is unreachable).',
+
+  // Tables
+  '| Method | Endpoint | Description |\n|--------|----------|-------------|\n| GET | /api/channels | List all channels |\n| POST | /api/channels | Create a channel |\n| PUT | /api/channels/:id | Update a channel |\n| DELETE | /api/channels/:id | Delete a channel |',
+
+  // Nested lists
+  'Project structure:\n- Server\n  - Endpoints\n    - chat_endpoint.dart\n    - sync_endpoint.dart\n  - Models\n    - channel.spy.yaml\n    - note.spy.yaml\n- Client (generated)\n- Flutter app\n  - Screens\n  - Widgets\n  - Providers',
+
+  // Task lists
+  'Release checklist:\n- [x] Run all integration tests\n- [x] Update changelog\n- [ ] Tag release in git\n- [ ] Build Docker image\n- [ ] Deploy to production\n- [ ] Verify healthcheck',
+
+  // Nested blockquotes
+  '> First level quote\n>\n> > Nested quote inside the first\n> >\n> > > Triple-nested quote for emphasis\n>\n> Back to first level.',
+
+  // Escape characters
+  'Markdown escape test:\n\n\\*This is not italic\\*\n\n\\# This is not a heading\n\n\\`This is not code\\`\n\nPipe in text: 10 \\| 20 \\| 30',
+
+  // Mixed: link + bold + code
+  'Check the [**official Dart docs**](https://dart.dev) for `pattern matching` syntax. The new `switch` expressions with *guard clauses* are especially useful.',
+
+  // Long table
+  '## HTTP Status Codes\n\n| Code | Name | Usage |\n|------|------|-------|\n| 200 | OK | Successful request |\n| 201 | Created | Resource created |\n| 204 | No Content | Successful, no body |\n| 400 | Bad Request | Invalid input |\n| 401 | Unauthorized | Auth required |\n| 403 | Forbidden | Access denied |\n| 404 | Not Found | Resource missing |\n| 409 | Conflict | Version conflict |\n| 500 | Internal Error | Server bug |',
 ];
 
 // ── Curated stable URLs for Links channel ─────────────────────────────────

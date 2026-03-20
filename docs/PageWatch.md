@@ -131,6 +131,10 @@ Removes the watch. Returns `void`.
 
 Returns the current watch state, or `null` if no watch exists. Returns `PageWatch?`.
 
+### getWatches(session, channelId)
+
+Returns all page watches for a channel. Used by `channelPageWatchesProvider` to batch-fetch watch state for all notes in a channel (1 RPC instead of N per-note fetches). Returns `List<PageWatch>`.
+
 ### acknowledgeChange(session, noteId)
 
 Clears `hasUnacknowledgedChange` flag. Returns `void`.
@@ -221,5 +225,6 @@ Uses the same platform-conditional notification infrastructure as the test notif
 | `memoka_server/lib/src/page_watch/page_watch_poller.dart` | Periodic URL polling loop |
 | `memoka_server/lib/src/page_watch/page_watch.spy.yaml` | PageWatch protocol model (non-table) |
 | `memoka_server/lib/server.dart` | Startup: `PageWatchSetup` + `PageWatchPoller` init |
-| `memoka_flutter/lib/providers/page_watch_provider.dart` | Watch state per note |
-| `memoka_flutter/lib/widgets/note_item.dart` | Bell icon rendering in note footer |
+| `memoka_flutter/lib/providers/page_watch_provider.dart` | Watch state per note (mutations) |
+| `memoka_flutter/lib/providers/channel_page_watches_provider.dart` | Batch watch state per channel (display) |
+| `memoka_flutter/lib/widgets/note_item.dart` | Bell icon rendering in note footer (`_PageWatchBell`) |

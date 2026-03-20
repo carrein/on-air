@@ -148,7 +148,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
             ),
             // Close button
             Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
+              top: MediaQuery.paddingOf(context).top + 16,
               right: 16,
               child: IconButtonStyled(
                 icon: PhosphorIcons.x(),

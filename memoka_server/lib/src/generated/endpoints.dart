@@ -464,6 +464,25 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['noteId'],
                   ),
         ),
+        'getWatches': _i1.MethodConnector(
+          name: 'getWatches',
+          params: {
+            'channelId': _i1.ParameterDescription(
+              name: 'channelId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['pageWatch'] as _i4.PageWatchEndpoint).getWatches(
+                    session,
+                    params['channelId'],
+                  ),
+        ),
         'acknowledgeChange': _i1.MethodConnector(
           name: 'acknowledgeChange',
           params: {

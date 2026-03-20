@@ -29,9 +29,10 @@ import 'sync/sync_result.dart' as _i16;
 import 'package:memoka_server/src/generated/chat/channel.dart' as _i17;
 import 'package:memoka_server/src/generated/chat/note.dart' as _i18;
 import 'package:memoka_server/src/generated/chat/archive_item.dart' as _i19;
-import 'package:memoka_server/src/generated/reminder/reminder.dart' as _i20;
-import 'package:memoka_server/src/generated/search/search_result.dart' as _i21;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i22;
+import 'package:memoka_server/src/generated/pagewatch/page_watch.dart' as _i20;
+import 'package:memoka_server/src/generated/reminder/reminder.dart' as _i21;
+import 'package:memoka_server/src/generated/search/search_result.dart' as _i22;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i23;
 export 'chat/archive_item.dart';
 export 'chat/channel.dart';
 export 'chat/chat_event.dart';
@@ -698,18 +699,22 @@ class Protocol extends _i1.SerializationManagerServer {
               .toList()
           as T;
     }
-    if (t == List<_i20.Reminder>) {
-      return (data as List).map((e) => deserialize<_i20.Reminder>(e)).toList()
+    if (t == List<_i20.PageWatch>) {
+      return (data as List).map((e) => deserialize<_i20.PageWatch>(e)).toList()
           as T;
     }
-    if (t == List<_i21.SearchResult>) {
+    if (t == List<_i21.Reminder>) {
+      return (data as List).map((e) => deserialize<_i21.Reminder>(e)).toList()
+          as T;
+    }
+    if (t == List<_i22.SearchResult>) {
       return (data as List)
-              .map((e) => deserialize<_i21.SearchResult>(e))
+              .map((e) => deserialize<_i22.SearchResult>(e))
               .toList()
           as T;
     }
-    if (t == List<_i22.SyncChange>) {
-      return (data as List).map((e) => deserialize<_i22.SyncChange>(e)).toList()
+    if (t == List<_i23.SyncChange>) {
+      return (data as List).map((e) => deserialize<_i23.SyncChange>(e)).toList()
           as T;
     }
     try {

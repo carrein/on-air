@@ -243,7 +243,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
             ),
             // Close button
             Positioned(
-              top: MediaQuery.of(context).padding.top + 16,
+              top: MediaQuery.paddingOf(context).top + 16,
               right: 16,
               child: IconButtonStyled(
                 icon: PhosphorIcons.x(),
@@ -281,7 +281,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
       return PinkSpinner();
     }
 
-    final screenSize = MediaQuery.of(context).size;
+    final screenSize = MediaQuery.sizeOf(context);
     final videoAspect = _controller.value.aspectRatio;
     // Fit video within 90% of screen
     final maxW = screenSize.width * 0.9;
