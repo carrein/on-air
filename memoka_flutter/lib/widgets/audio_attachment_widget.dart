@@ -10,8 +10,12 @@ import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/audio_player_provider.dart';
-import '../utils/download_utils.dart';
+import 'package:gal/gal.dart';
+import 'package:open_filex/open_filex.dart';
+
+import '../utils/download_tracker.dart';
 import '../utils/file_utils.dart';
+import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
 
 /// Inline audio player for audio file attachments.
@@ -51,11 +55,11 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
   bool _seeking = false;
   String? _error;
 
-  DownloadHandle? _downloadHandle;
-  int _receivedBytes = 0;
-  int _totalBytes = -1;
+  final _tracker = DownloadTracker.instance;
 
-  bool get _isDownloading => _downloadHandle != null;
+  String get _downloadKey => widget.attachment.filePath;
+  bool get _isDownloading =>
+      _tracker[_downloadKey]?.status == DownloadStatus.downloading;
 
   final List<StreamSubscription<dynamic>> _subs = [];
 
@@ -72,6 +76,13 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
   @override
   void initState() {
     super.initState();
+    _tracker.addListener(_onTrackerChanged);
+    if (!kIsWeb) {
+      final entry = _tracker[_downloadKey];
+      if (entry != null && entry.status == DownloadStatus.completed) {
+        _tracker.acknowledge(_downloadKey);
+      }
+    }
     if (kIsWeb) {
       _initWeb();
     } else {
@@ -142,11 +153,10 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
 
   @override
   void dispose() {
+    _tracker.removeListener(_onTrackerChanged);
     for (final s in _subs) {
       s.cancel();
     }
-    // Do NOT cancel downloads — let them finish in the background so the file
-    // is cached when the user switches back. Callbacks guard with `mounted`.
     if (kIsWeb) {
       _webAudio?.pause();
       _webAudio?.src = '';
@@ -209,50 +219,54 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
 
   // ── download ─────────────────────────────────────────────────────────────
 
-  void _cancelDownload() {
-    _downloadHandle?.cancel();
-    if (mounted) {
-      setState(() {
-        _downloadHandle = null;
-        _receivedBytes = 0;
-        _totalBytes = -1;
-      });
+  void _onTrackerChanged() {
+    if (!mounted) return;
+    final entry = _tracker[_downloadKey];
+    if (entry != null && entry.status == DownloadStatus.completed) {
+      final path = entry.cachedPath;
+      _tracker.acknowledge(_downloadKey);
+      if (path != null) {
+        _dispatchDownloadedFile(path);
+      }
+    }
+    setState(() {});
+  }
+
+  Future<void> _dispatchDownloadedFile(String path) async {
+    final mime = widget.attachment.mimeType.toLowerCase();
+    if (mime.startsWith('image/')) {
+      await Gal.putImage(path);
+      if (mounted) {
+        ToastUtils.show(context, 'Saved to gallery', type: ToastType.success);
+      }
+    } else if (mime.startsWith('video/')) {
+      await Gal.putVideo(path);
+      if (mounted) {
+        ToastUtils.show(context, 'Saved to gallery', type: ToastType.success);
+      }
+    } else {
+      final result = await OpenFilex.open(path);
+      if (result.type != ResultType.done && mounted) {
+        ToastUtils.show(context, 'Could not open file', type: ToastType.error);
+      }
     }
   }
 
-  void _handleDownload(BuildContext context) {
+  void _cancelDownload() {
+    _tracker.cancel(_downloadKey);
+  }
+
+  void _handleDownload() {
     if (kIsWeb) {
       html.AnchorElement()
         ..href = _audioUrl
         ..setAttribute('download', widget.attachment.originalFilename)
         ..click();
     } else {
-      setState(() {
-        _receivedBytes = 0;
-        _totalBytes = -1;
-      });
-      _downloadHandle = DownloadUtils.downloadToDevice(
-        context,
+      _tracker.startCacheDownload(
+        _downloadKey,
         _audioUrl,
         widget.attachment.originalFilename,
-        mimeType: widget.attachment.mimeType,
-        onProgress: (received, total) {
-          if (mounted) {
-            setState(() {
-              _receivedBytes = received;
-              _totalBytes = total;
-            });
-          }
-        },
-        onComplete: () {
-          if (mounted) {
-            setState(() {
-              _downloadHandle = null;
-              _receivedBytes = 0;
-              _totalBytes = -1;
-            });
-          }
-        },
       );
     }
   }
@@ -393,7 +407,7 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
                             : PhosphorIcons.downloadSimple(),
                         onPressed: _isDownloading
                             ? _cancelDownload
-                            : () => _handleDownload(context),
+                            : _handleDownload,
                         size: IconButtonStyled.sm,
                       ),
                     ],
@@ -405,20 +419,32 @@ class _AudioAttachmentWidgetState extends ConsumerState<AudioAttachmentWidget> {
         ),
         if (_isDownloading) ...[
           const SizedBox(height: 6),
-          LinearProgressIndicator(
-            value: _totalBytes > 0 ? _receivedBytes / _totalBytes : null,
-            color: _accent,
-            backgroundColor: _accent.withValues(alpha: 0.15),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            _totalBytes > 0
-                ? '${FileUtils.formatFileSize(_receivedBytes)} / ${FileUtils.formatFileSize(_totalBytes)}'
-                : FileUtils.formatFileSize(_receivedBytes),
-            style: TextStyle(
-              fontSize: 10,
-              color: _textPrimary.withValues(alpha: 0.5),
-            ),
+          Builder(
+            builder: (_) {
+              final entry = _tracker[_downloadKey];
+              final received = entry?.receivedBytes ?? 0;
+              final total = entry?.totalBytes ?? -1;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(
+                    value: total > 0 ? received / total : null,
+                    color: _accent,
+                    backgroundColor: _accent.withValues(alpha: 0.15),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    total > 0
+                        ? '${FileUtils.formatFileSize(received)} / ${FileUtils.formatFileSize(total)}'
+                        : FileUtils.formatFileSize(received),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: _textPrimary.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ],

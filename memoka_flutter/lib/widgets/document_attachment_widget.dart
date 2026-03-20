@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/download_tracker.dart';
 import '../utils/download_utils.dart';
 import '../utils/file_utils.dart';
 import '../utils/toast_utils.dart';
@@ -37,12 +38,12 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   static const _textPrimary = Color(0xFF00171F);
   static const _accent = Color(0xFF3450A3);
 
-  DownloadHandle? _downloadHandle;
+  final _tracker = DownloadTracker.instance;
   String? _cachedPath;
-  int _receivedBytes = 0;
-  int _totalBytes = -1;
 
-  bool get _isDownloading => _downloadHandle != null;
+  String get _key => widget.attachment.filePath;
+  bool get _isDownloading =>
+      _tracker[_key]?.status == DownloadStatus.downloading;
   bool get _isDownloaded => _cachedPath != null;
 
   String get _extension =>
@@ -62,14 +63,31 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) _checkCache();
+    _tracker.addListener(_onTrackerChanged);
+    if (!kIsWeb) {
+      final entry = _tracker[_key];
+      if (entry != null && entry.status == DownloadStatus.completed) {
+        _cachedPath = entry.cachedPath;
+        _tracker.acknowledge(_key);
+      }
+      _checkCache();
+    }
   }
 
   @override
   void dispose() {
-    // Do NOT cancel downloads — let them finish in the background so the file
-    // is cached when the user switches back. Callbacks guard with `mounted`.
+    _tracker.removeListener(_onTrackerChanged);
     super.dispose();
+  }
+
+  void _onTrackerChanged() {
+    if (!mounted) return;
+    final entry = _tracker[_key];
+    if (entry != null && entry.status == DownloadStatus.completed) {
+      _cachedPath = entry.cachedPath;
+      _tracker.acknowledge(_key);
+    }
+    setState(() {});
   }
 
   Future<void> _checkCache() async {
@@ -121,20 +139,32 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
         ),
         if (_isDownloading) ...[
           const SizedBox(height: 6),
-          LinearProgressIndicator(
-            value: _totalBytes > 0 ? _receivedBytes / _totalBytes : null,
-            color: _accent,
-            backgroundColor: _accent.withValues(alpha: 0.15),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            _totalBytes > 0
-                ? '${FileUtils.formatFileSize(_receivedBytes)} / ${FileUtils.formatFileSize(_totalBytes)}'
-                : FileUtils.formatFileSize(_receivedBytes),
-            style: TextStyle(
-              fontSize: 10,
-              color: _textPrimary.withValues(alpha: 0.5),
-            ),
+          Builder(
+            builder: (_) {
+              final entry = _tracker[_key];
+              final received = entry?.receivedBytes ?? 0;
+              final total = entry?.totalBytes ?? -1;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(
+                    value: total > 0 ? received / total : null,
+                    color: _accent,
+                    backgroundColor: _accent.withValues(alpha: 0.15),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    total > 0
+                        ? '${FileUtils.formatFileSize(received)} / ${FileUtils.formatFileSize(total)}'
+                        : FileUtils.formatFileSize(received),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: _textPrimary.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ],
@@ -215,39 +245,12 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   }
 
   void _startDownload() {
-    final url = _buildDocumentUrl();
-    setState(() {
-      _receivedBytes = 0;
-      _totalBytes = -1;
-    });
-    _downloadHandle = DownloadUtils.downloadToCache(
-      url,
+    _tracker.startCacheDownload(
+      _key,
+      _buildDocumentUrl(),
       widget.attachment.originalFilename,
-      onProgress: (received, total) {
-        if (mounted) {
-          setState(() {
-            _receivedBytes = received;
-            _totalBytes = total;
-          });
-        }
-      },
-      onSuccess: (path) {
-        if (mounted) {
-          setState(() {
-            _cachedPath = path;
-            _downloadHandle = null;
-            _receivedBytes = 0;
-            _totalBytes = -1;
-          });
-        }
-      },
       onError: (error) {
         if (mounted) {
-          setState(() {
-            _downloadHandle = null;
-            _receivedBytes = 0;
-            _totalBytes = -1;
-          });
           ToastUtils.show(
             context,
             'Download failed: $error',
@@ -259,14 +262,7 @@ class _DocumentAttachmentWidgetState extends State<DocumentAttachmentWidget> {
   }
 
   void _cancelDownload() {
-    _downloadHandle?.cancel();
-    if (mounted) {
-      setState(() {
-        _downloadHandle = null;
-        _receivedBytes = 0;
-        _totalBytes = -1;
-      });
-    }
+    _tracker.cancel(_key);
   }
 
   Future<void> _handleOpen() async {
