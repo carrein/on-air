@@ -195,34 +195,6 @@ class _ImageAttachmentWidget extends StatelessWidget {
                     },
                   ),
           ),
-          // Compressed indicator (hidden for media-only notes)
-          if (attachment.compressed && !isMediaNote)
-            Positioned(
-              bottom: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    PhosphorIcon(
-                      PhosphorIcons.arrowsInSimple(),
-                      color: Colors.white70,
-                      size: 12,
-                    ),
-                    const SizedBox(width: 3),
-                    const Text(
-                      'Compressed',
-                      style: TextStyle(color: Colors.white70, fontSize: 10),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );

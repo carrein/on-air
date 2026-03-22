@@ -7,7 +7,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 ### Phase 1 (Completed): Single File Upload
 - Paste images from clipboard (Ctrl+V)
 - Drag-drop single file support
-- Upload dialog with compression option (video only)
+- Upload dialog with file preview
 - Display inline in chat messages
 - No captions required
 - 1GB file size limit
@@ -18,11 +18,11 @@ Covers media upload, storage, and display for images, videos, and documents in t
 - **Drag-drop multiple files** at once
 - **Paste multiple files** from clipboard
 - **Upload dialog**: `MultiFileUploadDialog` with progress tracking
-- **Per-file compression**: Individual toggle for each video
+- **Per-file removal**: Individual remove button for each file
 - **Sequential upload**: Files uploaded one-by-one to avoid overwhelming server
 - **Progress indicator**: Shows "Uploading X of Y..." with progress bar
 - **Document support**: PDF, Text, Word, Excel, Zip file support
-- **Video support**: MP4, MOV, WebM, AVI, MKV with thumbnail generation and optional 720p compression
+- **Video support**: MP4, MOV, WebM, AVI, MKV with thumbnail generation
 - **File picker UI**: `FilePicker` with custom file type extensions
 
 ### Phase 3 (Completed): Async Upload (OOM Fix + Optimistic UI)
@@ -35,7 +35,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 - Camera capture uses `photo.path` instead of `photo.readAsBytes()`
 - New HTTP multipart route (`POST /media/upload`) streams file directly to a temp file — zero bytes held in memory on server
 - Client constructs a `MultipartRequest`, finalizes it into a `StreamedRequest`, and pipes the body through a progress-tracking stream
-- Client-side compression (`flutter_image_compress`, `video_compress`) removed entirely — compress toggle sends flag to server for 720p video conversion. Image compression retired; web-safe formats (JPEG, PNG, WebP) are stored as-is with no re-encoding or EXIF stripping
+- All compression removed — neither client-side nor server-side compression is applied. Images and videos are stored as-is. Web-safe image formats (JPEG, PNG, WebP) are stored with no re-encoding or EXIF stripping
 - `ShareIntentDialog` uses `file.path` directly instead of `File(file.path).readAsBytes()` — same OOM fix
 
 **Optimistic UI — `PendingUploads` + `PendingNoteWidget`:**
@@ -136,7 +136,7 @@ fields:
   # Thumbnail path (if generated)
   thumbnailPath: String?
   
-  # Compression flag
+  # Legacy compression flag (always false, retained for schema compatibility)
   compressed: bool, default=false
   
   # Is this an animated GIF?
@@ -180,7 +180,7 @@ SELECT notes.*,
            'width', ma.width,
            'height', ma.height,
            'thumbnailPath', ma."thumbnailPath",
-           'compressed', ma.compressed,
+           'compressed', ma.compressed,  -- legacy, always false
            'animated', ma.animated,
            'contentHash', ma."contentHash"
          )
@@ -224,7 +224,7 @@ Future<void> _handlePaste() async {
 
 **Upload Dialog:**
 - Preview image (scaled to fit)
-- Checkbox: "Compress video" (video uploads only; no compression option for images)
+- File preview (images shown in justified grid, non-images in list)
 - Buttons: "Cancel" | "Send"
 
 **Upload Process (Phase 3 — Async / Optimistic):**
@@ -342,7 +342,7 @@ Key display behavior:
 - **Fast fade-in**: `fadeInDuration: 150ms` so disk-cached images appear near-instantly (vs default 500ms)
 - **Aspect-ratio preservation**: `computeDisplaySize()` helper clamps to max constraints (600x500 for images, 400x300 for videos) while maintaining aspect ratio
 - **Fallback sizing**: If `width`/`height` metadata is null, falls back to 300x200
-- **Animated GIF handling**: GIFs use `Image.network` (not `CachedNetworkImage`) to preserve animation. Non-GIF images use `CachedNetworkImage` for disk caching. The `attachment.animated` flag is retained for server-side processing logic (preserving original GIF vs compressing) but does not affect the Flutter rendering path.
+- **Animated GIF handling**: GIFs use `Image.network` (not `CachedNetworkImage`) to preserve animation. Non-GIF images use `CachedNetworkImage` for disk caching. The `attachment.animated` flag is retained for server-side processing logic (preserving original GIF) but does not affect the Flutter rendering path.
 - **Image precaching**: When notes load for the displayed channel, `chat_view.dart` fires `precacheImage()` for the 20 most recent image attachments into Flutter's `ImageCache`. On channel revisit, these images are served from memory cache synchronously — `CachedNetworkImage` skips the placeholder entirely and the shimmer does not appear.
 
 **Video Lightbox:**
@@ -392,8 +392,7 @@ Size computeDisplaySize({
 - **Thumbnails:** 300px wide, JPEG format, generated in isolate
 
 **Videos:**
-- **Default:** Compression off (user opts in)
-- **Compressed:** Max 1280×720, H.264 codec, medium quality preset (server-side via ffmpeg)
+- **No compression** — videos are stored as-is
 - **Thumbnails:** Generated from the 1-second mark via ffprobe/ffmpeg
 
 ### Supported Formats
@@ -401,7 +400,7 @@ Size computeDisplaySize({
 **All file types are accepted.** The server applies type-specific processing:
 
 - **Images** (any `image/*` MIME type): format conversion if needed (non-web-safe only), thumbnail generation. No compression, resizing, or EXIF stripping for web-safe formats.
-- **Videos** (MP4, MOV, WebM, AVI, MKV): thumbnail generation, optional 720p compression via ffmpeg
+- **Videos** (MP4, MOV, WebM, AVI, MKV): thumbnail generation, metadata extraction (no compression)
 - **Documents & other files**: stored as-is with a content hash; no image/video processing
 
 Files with unknown or missing MIME types (`application/octet-stream`) are accepted and stored using the original filename's extension.
@@ -409,14 +408,14 @@ Files with unknown or missing MIME types (`application/octet-stream`) are accept
 ### Upload Behavior
 - **Multi-file support:** Select, drag, or paste multiple files at once
 - **Paste priority:** If clipboard has files, ignore text — intercepts even when text field is focused
-- **Video compression:** Compress toggle shown for videos only (defaults to off)
+- **No compression:** Files are uploaded and stored as-is
 - **Progress indicator:** Shows upload count and progress for multi-file uploads
 - **Error handling:** Toast notifications (success/error) with human-readable messages
 - **Streaming:** Upload via stream (memory-safe)
 - **Sequential processing:** Files uploaded one-by-one to avoid server overload
 - **Dialog routing**:
-  - Single file → `FileUploadDialog` (simple preview + video compression toggle)
-  - Multiple files → `MultiFileUploadDialog` (list view + per-video compression toggle)
+  - Single file → `MultiFileUploadDialog` (simple preview)
+  - Multiple files → `MultiFileUploadDialog` (justified grid + file list)
 
 ### Display & Interaction
 - **Delete:** Delete entire note to remove images (no individual image delete yet)
@@ -690,8 +689,7 @@ dependencies:
   cached_network_image: ^3.4.1      # Image caching
   photo_view: ^0.14.0               # Full screen viewer
   http: ^1.3.0                      # Multipart upload streaming
-  # NOTE: flutter_image_compress and video_compress removed in Phase 3
-  # Client-side compression is gone; compress flag is sent to server instead
+  # NOTE: All compression removed — files stored as-is
 ```
 
 ---
@@ -711,7 +709,7 @@ CREATE TABLE media_attachments (
   width INTEGER,
   height INTEGER,
   "thumbnailPath" TEXT,
-  compressed BOOLEAN DEFAULT false,
+  compressed BOOLEAN DEFAULT false,  -- legacy, always false
   animated BOOLEAN DEFAULT false,
   "contentHash" TEXT,
   "uploadedAt" TIMESTAMP NOT NULL DEFAULT NOW()

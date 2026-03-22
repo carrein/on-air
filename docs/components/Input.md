@@ -77,7 +77,7 @@ Appears above the NoteInput when a URL is detected in the text.
 
 ### Dialogs (File Upload, Multi-File Upload)
 
-- **Single file**: `FileUploadDialog` with compression option
+- **Single file**: `MultiFileUploadDialog` with preview
 - **Multi-file**: `MultiFileUploadDialog` for batch uploads
 - Both show toast notifications on success/failure
 
@@ -153,12 +153,12 @@ Not yet implemented.
 
 - File picker supports: images (jpg, png, gif, webp, heic), videos (mp4, mov, webm, avi, mkv), documents (pdf, txt, md, doc, docx, xls, xlsx), archives (zip) — any file type accepted
 - Camera capture on mobile (via `image_picker`)
-- Single file: opens `FileUploadDialog` with compression option
+- Single file: opens `MultiFileUploadDialog` with preview
 - Multiple files: opens `MultiFileUploadDialog` for batch upload
 - **Fire-and-forget**: tapping Send in either dialog dismisses it immediately; upload is handed off to `pendingUploadsProvider`. Ghost note appears in chat instantly with a progress indicator
 - On native, `FilePicker` uses `withData: false` (file path only, no bytes in memory). On web, `withData: true` is used because web has no file system paths
 - Current text field content is attached as note text for single file uploads
-- Compression flag is passed to server; no client-side compression
+- No compression applied — files stored as-is
 
 ## State Management
 

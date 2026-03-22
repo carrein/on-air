@@ -48,7 +48,7 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 - **Notes**: Create, update, delete with cursor-based pagination, archive/restore
 - **Real-time**: WebSocket streaming via MessageCentral for live updates
 - **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
-- **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, thumbnail generation, EXIF stripping; any `image/*` format accepted (non-web-safe formats converted to PNG); fire-and-forget async upload with ghost notes, real-time progress, cancel, and retry
+- **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, thumbnail generation; any `image/*` format accepted (non-web-safe formats converted to PNG); no compression applied; fire-and-forget async upload with ghost notes, real-time progress, cancel, and retry
 - **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support
 - **Audio Playback**: Inline audio player for audio attachments — HTML Audio API on web, ExoPlayer on Android; scrubber, preview + download buttons
 - **Media Panel**: Right sidebar with 5 tabs (Images/Videos/Documents/Links/Reminders), responsive layout

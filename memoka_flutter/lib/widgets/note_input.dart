@@ -412,7 +412,6 @@ class _NoteInputState extends ConsumerState<NoteInput>
             fileBytes: response.bodyBytes,
             fileName: fileName,
             noteContent: '',
-            compress: false,
             mediaWidth: gif.width,
             mediaHeight: gif.height,
           );
@@ -511,7 +510,6 @@ class _NoteInputState extends ConsumerState<NoteInput>
                   fileBytes: file.bytes,
                   fileName: file.fileName,
                   noteContent: '',
-                  compress: file.compress,
                 );
           }
         },

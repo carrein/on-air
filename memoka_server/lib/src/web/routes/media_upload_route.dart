@@ -115,7 +115,6 @@ class MediaUploadRoute extends Route {
     // Collect text fields and stream the file to a temp path.
     String? channelIdStr;
     String? noteContent;
-    String? compressStr;
     String? originalFilename;
     String? mimeType;
     String? tempFilePath;
@@ -181,9 +180,6 @@ class MediaUploadRoute extends Route {
           case 'noteContent':
             noteContent = value;
             break;
-          case 'compress':
-            compressStr = value;
-            break;
         }
       }
     }
@@ -211,7 +207,6 @@ class MediaUploadRoute extends Route {
       );
     }
 
-    final compress = compressStr == 'true';
     noteContent ??= '';
     originalFilename ??= 'upload';
     mimeType ??= 'application/octet-stream';
@@ -320,14 +315,12 @@ class MediaUploadRoute extends Route {
           tempFilePath: channelTempPath,
           finalFilePath: finalFilePath,
           channelDir: channelDirPath,
-          compress: compress,
         );
         resultFilePath = result.filePath;
         width = result.width;
         height = result.height;
         duration = result.duration;
         thumbnailPath = result.thumbnailPath;
-        compressed = result.compressed;
         contentHash = result.contentHash;
       } else {
         // Document — rename to final path.

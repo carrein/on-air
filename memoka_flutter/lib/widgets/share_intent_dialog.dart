@@ -29,7 +29,6 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
   int? _selectedChannelId;
   final _textController = TextEditingController();
   final bool _sending = false;
-  bool _compress = false;
 
   @override
   void initState() {
@@ -88,7 +87,6 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
               noteContent: text.isNotEmpty && file == _mediaFiles.first
                   ? text
                   : '',
-              compress: _compress,
             );
       }
     } else if (text.isNotEmpty) {
@@ -238,20 +236,6 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                       );
                     },
                   ),
-                ),
-                // Compress toggle
-                CheckboxListTile(
-                  value: _compress,
-                  onChanged: _sending
-                      ? null
-                      : (v) => setState(() => _compress = v ?? false),
-                  title: Text(
-                    'Compress files',
-                    style: GoogleFonts.spaceGrotesk(fontSize: 14),
-                  ),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
                 ),
               ],
 

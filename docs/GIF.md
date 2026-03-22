@@ -19,7 +19,7 @@ User taps GIF icon
   → User taps a GIF thumbnail
   → Sheet closes, returns KlipyGif
   → NoteInput downloads GIF bytes from gif.url (Klipy CDN)
-  → Enqueues upload via PendingUploads (compress: false)
+  → Enqueues upload via PendingUploads
   → Ghost note appears in chat (existing PendingNoteWidget)
   → Upload completes via POST /media/upload
   → Server detects animated GIF → preserves original, generates static thumbnail
@@ -82,7 +82,7 @@ The existing pipeline handles animated GIFs:
 | Send flow | Tap GIF → sends immediately | No confirmation needed for GIFs — lightweight content |
 | Storage | Download from CDN → upload to server | Self-hosted, no external dependency after upload |
 | API key | `--dart-define` at build time | Not committed to repo, graceful degradation |
-| Compression | Always `false` | Server already preserves animated GIF originals |
+| Storage | As-is | No processing applied; server preserves animated GIF originals |
 | Grid previews | `tinygif` format for grid, full `gif` for send | Smaller previews load faster in the picker grid |
 | Image eviction | `_EvictableNetworkImage` evicts on dispose | Prevents `DomException: AbortError` on web when sheet closes |
 

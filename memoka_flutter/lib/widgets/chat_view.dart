@@ -659,7 +659,6 @@ class _ChatViewState extends ConsumerState<ChatView>
                   fileBytes: file.bytes,
                   fileName: file.fileName,
                   noteContent: '',
-                  compress: file.compress,
                 );
           }
         },

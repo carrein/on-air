@@ -31,7 +31,6 @@ class PendingUpload {
   final String? localFilePath; // native only
   final Uint8List? localBytes; // web only
   final String noteContent;
-  final bool compress;
   final int fileSize;
   final int? mediaWidth;
   final int? mediaHeight;
@@ -50,7 +49,6 @@ class PendingUpload {
     this.localFilePath,
     this.localBytes,
     required this.noteContent,
-    required this.compress,
     this.fileSize = 0,
     this.mediaWidth,
     this.mediaHeight,
@@ -78,7 +76,6 @@ class PendingUpload {
       localFilePath: localFilePath,
       localBytes: localBytes,
       noteContent: noteContent,
-      compress: compress,
       fileSize: fileSize,
       mediaWidth: mediaWidth,
       mediaHeight: mediaHeight,
@@ -132,7 +129,6 @@ class PendingUploads extends _$PendingUploads {
     Uint8List? fileBytes,
     required String fileName,
     required String noteContent,
-    required bool compress,
     int? mediaWidth,
     int? mediaHeight,
   }) async {
@@ -183,7 +179,6 @@ class PendingUploads extends _$PendingUploads {
       localFilePath: localFilePath,
       localBytes: localBytes,
       noteContent: noteContent,
-      compress: compress,
       fileSize: fileSize,
       mediaWidth: mediaWidth,
       mediaHeight: mediaHeight,
@@ -240,7 +235,6 @@ class PendingUploads extends _$PendingUploads {
         fileName: '',
         mimeType: '',
         noteContent: '',
-        compress: false,
       ),
     );
     if (pending.localFilePath != null) {
@@ -275,7 +269,6 @@ class PendingUploads extends _$PendingUploads {
         fileName: '',
         mimeType: '',
         noteContent: '',
-        compress: false,
       ),
     );
     if (pending.id.isEmpty) return;
@@ -285,7 +278,6 @@ class PendingUploads extends _$PendingUploads {
       final multipart = http.MultipartRequest('POST', Uri.parse(_uploadUrl));
       multipart.fields['channelId'] = pending.channelId.toString();
       multipart.fields['noteContent'] = pending.noteContent;
-      multipart.fields['compress'] = pending.compress.toString();
 
       final contentType = MediaType.parse(pending.mimeType);
 

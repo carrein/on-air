@@ -78,7 +78,7 @@ fields:
   height: int?
   duration: double?
   thumbnailPath: String?
-  compressed: bool, default=false
+  compressed: bool, default=false  # legacy, always false
   animated: bool, default=false
   contentHash: String?
   uploadedAt: DateTime, default=now
@@ -179,7 +179,7 @@ _Chat View_
 - Absolute timestamps (e.g., "Feb 6, 2:30 PM")
 - Chat bubbles with 4px border radius
 - Image-only notes render without bubble wrapper
-- Compressed badge indicator on media attachments (legacy; image compression retired)
+- Media attachments displayed inline with type-specific rendering
 - Right-click/long-press context menu: Copy, Edit, Delete
 - Multi-select via long-press with bulk delete action bar
 - Media attachments displayed inline with pre-sized shimmer placeholders (no layout jump)
