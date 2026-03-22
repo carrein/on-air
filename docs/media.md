@@ -35,7 +35,7 @@ Covers media upload, storage, and display for images, videos, and documents in t
 - Camera capture uses `photo.path` instead of `photo.readAsBytes()`
 - New HTTP multipart route (`POST /media/upload`) streams file directly to a temp file — zero bytes held in memory on server
 - Client constructs a `MultipartRequest`, finalizes it into a `StreamedRequest`, and pipes the body through a progress-tracking stream
-- Client-side compression (`flutter_image_compress`, `video_compress`) removed entirely — compress toggle sends flag to server for 720p video conversion. Image compression retired; images are stored losslessly in a web-safe format
+- Client-side compression (`flutter_image_compress`, `video_compress`) removed entirely — compress toggle sends flag to server for 720p video conversion. Image compression retired; web-safe formats (JPEG, PNG, WebP) are stored as-is with no re-encoding or EXIF stripping
 - `ShareIntentDialog` uses `file.path` directly instead of `File(file.path).readAsBytes()` — same OOM fix
 
 **Optimistic UI — `PendingUploads` + `PendingNoteWidget`:**
@@ -249,11 +249,11 @@ Any `image/*` MIME type is treated as an image. Processing depends on format:
 
 | Input | Output | Conversion? | EXIF stripped? |
 |---|---|---|---|
-| JPEG (.jpg/.jpeg) | JPEG (quality 95) | Re-encoded only | Yes |
-| PNG (.png) | PNG | Re-encoded only | Yes |
-| WebP (.webp) | WebP (as-is) | No (no WebP encoder) | No (rare in WebP) |
+| JPEG (.jpg/.jpeg) | JPEG (as-is) | No | No |
+| PNG (.png) | PNG (as-is) | No | No |
+| WebP (.webp) | WebP (as-is) | No | No |
 | GIF (.gif) | GIF (as-is) | No (preserves animation) | No |
-| TIFF, BMP, ICO, PSD, TGA | PNG | Yes | Yes |
+| TIFF, BMP, ICO, PSD, TGA | PNG | Yes | Yes (converted to PNG) |
 | Undecodable (e.g. HEIC) | Document fallback | N/A | N/A |
 
 All images get a JPEG thumbnail (300px, quality 80) and content hash.
@@ -386,7 +386,7 @@ Size computeDisplaySize({
 ### Image Processing
 
 **No image compression.** Images are stored losslessly in a browser-viewable format:
-- **Web-safe formats** (JPEG, PNG, WebP, GIF): kept as-is (EXIF stripped for JPEG/PNG)
+- **Web-safe formats** (JPEG, PNG, WebP, GIF): kept as-is (no re-encoding, no EXIF stripping)
 - **Non-web-safe formats** (TIFF, BMP, ICO, PSD, TGA, etc.): converted to PNG
 - **Undecodable formats** (HEIC, etc.): stored as documents (fallback)
 - **Thumbnails:** 300px wide, JPEG format, generated in isolate
@@ -400,7 +400,7 @@ Size computeDisplaySize({
 
 **All file types are accepted.** The server applies type-specific processing:
 
-- **Images** (any `image/*` MIME type): EXIF stripping, format conversion if needed, thumbnail generation. No compression or resizing.
+- **Images** (any `image/*` MIME type): format conversion if needed (non-web-safe only), thumbnail generation. No compression, resizing, or EXIF stripping for web-safe formats.
 - **Videos** (MP4, MOV, WebM, AVI, MKV): thumbnail generation, optional 720p compression via ffmpeg
 - **Documents & other files**: stored as-is with a content hash; no image/video processing
 
@@ -429,8 +429,7 @@ Files with unknown or missing MIME types (`application/octet-stream`) are accept
 ### Security & Privacy
 - **Public access:** No authentication required (single-user/trusted environment)
 - **Channel validation:** Verify channel exists but no user permissions
-- **EXIF stripping:** Remove GPS and personal metadata AFTER rotation
-- **EXIF orientation:** Apply rotation before stripping (iPhone compatibility)
+- **EXIF preserved:** Web-safe formats (JPEG, PNG, WebP) are stored as-is; no EXIF stripping or rotation applied. Dimensions are read from the decoded image but the file is not modified.
 - **File validation:** Decode image on server to ensure valid file
 - **Path sanitization:** UUID filenames, whitelist chars, ignore user input
 
@@ -520,16 +519,9 @@ if (gif.numFrames > 1) {
 }
 ```
 
-### 9. EXIF Orientation ✅
-**Problem:** iPhone photos appear sideways after EXIF stripped  
-**Solution:** Apply bakeOrientation() BEFORE stripping EXIF  
-**Implementation:**
-```dart
-1. Decode image
-2. image = bakeOrientation(image);  // Rotate based on EXIF
-3. Strip all EXIF metadata
-4. Encode to WebP
-```
+### 9. EXIF Handling ✅
+**Previous approach:** Strip EXIF after applying bakeOrientation() — re-encoded the file.
+**Current approach:** Web-safe formats (JPEG, PNG, WebP) are passed through as-is with no re-encoding. EXIF metadata (including orientation) is preserved in the original file. Dimensions are read from the decoded image for display sizing, but the file bytes are not modified. Non-web-safe formats are converted to PNG (which inherently discards EXIF).
 
 ### 10. Resumable Uploads ⏸️
 **Status:** Deferred
@@ -664,7 +656,7 @@ if (!await _hasChannelAccess(session, channelId)) {
 - ✅ Decode image to validate format
 - ✅ Sanitize all file paths
 - ✅ UUID prevents directory traversal
-- ✅ Strip EXIF metadata (privacy)
+- ✅ EXIF preserved for web-safe formats (no stripping); non-web-safe formats converted to PNG (EXIF discarded)
 
 ### Path Traversal Prevention
 ```dart

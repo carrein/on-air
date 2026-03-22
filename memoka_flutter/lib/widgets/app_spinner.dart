@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-/// A spinning pink Phosphor spinner-ball icon.
+/// A spinning Phosphor spinner-gap icon.
 /// Replaces all CircularProgressIndicator instances across the app.
-class PinkSpinner extends StatefulWidget {
+class AppSpinner extends StatefulWidget {
   final double size;
-  const PinkSpinner({super.key, this.size = 24});
+  final Color color;
+  const AppSpinner({
+    super.key,
+    this.size = 24,
+    this.color = const Color(0xFF3450A3),
+  });
 
   @override
-  State<PinkSpinner> createState() => _PinkSpinnerState();
+  State<AppSpinner> createState() => _AppSpinnerState();
 }
 
-class _PinkSpinnerState extends State<PinkSpinner>
+class _AppSpinnerState extends State<AppSpinner>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
@@ -37,7 +42,7 @@ class _PinkSpinnerState extends State<PinkSpinner>
       child: PhosphorIcon(
         PhosphorIcons.spinnerGap(),
         size: widget.size,
-        color: const Color(0xFF3450A3),
+        color: widget.color,
       ),
     );
   }

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../main.dart';
-import '../widgets/pink_spinner.dart';
+import '../widgets/app_text_button.dart';
 import 'chat_screen.dart';
 
 /// Screen for configuring the server URL on native platforms.
@@ -167,50 +167,23 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                   ),
 
                 // Test Connection button
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _testing ? null : _testConnection,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _accent,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(0),
-                      ),
-                    ),
-                    child: _testing
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: PinkSpinner(size: 16),
-                          )
-                        : Text(
-                            'Test Connection',
-                            style: GoogleFonts.spaceGrotesk(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                  ),
+                AppTextButton(
+                  label: 'Test Connection',
+                  onPressed: _testing ? null : _testConnection,
+                  variant: AppTextButtonVariant.primary,
+                  expand: true,
+                  loading: _testing,
                 ),
 
                 // Cancel button (editing mode only)
                 if (widget.isEditing) ...[
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: Text(
-                        'Cancel',
-                        style: GoogleFonts.spaceGrotesk(
-                          color: Colors.white54,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
+                  AppTextButton(
+                    label: 'Cancel',
+                    onPressed: () => Navigator.of(context).pop(false),
+                    variant: AppTextButtonVariant.secondary,
+                    expand: true,
+                    color: Colors.white54,
                   ),
                 ],
               ],

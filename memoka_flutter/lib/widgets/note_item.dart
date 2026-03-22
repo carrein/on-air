@@ -31,6 +31,19 @@ import 'link_preview_card.dart';
 import 'media_attachment_widget.dart';
 import 'pending_note_widget.dart' show kFooterHeight, NoteConstraints;
 
+/// Returns true when a note should render without card chrome —
+/// i.e. empty text, no link preview, and all attachments are image/video.
+bool isMediaOnlyNote(Note note) {
+  if (note.content.trim().isNotEmpty) return false;
+  if (note.linkPreview != null) return false;
+  final atts = note.attachments;
+  if (atts == null || atts.isEmpty) return false;
+  return atts.every((a) {
+    final mime = a.mimeType.toLowerCase();
+    return mime.startsWith('image/') || mime.startsWith('video/');
+  });
+}
+
 /// Individual note card with content, footer actions, and context menu.
 class NoteItem extends ConsumerWidget {
   const NoteItem({
@@ -51,6 +64,7 @@ class NoteItem extends ConsumerWidget {
     final selection = ref.watch(noteSelectionProvider);
     final isSelectionMode = selection.isNotEmpty;
     final isSelected = selection.contains(note.id);
+    final mediaOnly = isMediaOnlyNote(note);
 
     const borderColor = Color(0xFF3450A3);
 
@@ -80,64 +94,155 @@ class NoteItem extends ConsumerWidget {
                       ),
               ),
             ),
-          // Note content — skip max-width constraint when note has a table
+          // Note content
           Flexible(
-            child: _wrapConstraints(
-              hasTable: note.content.contains(RegExp(r'^\|', multiLine: true)),
-              child: Listener(
-                onPointerDown: (event) {
-                  if (event.buttons == 2) {
-                    _showContextMenu(context, ref, event.position);
-                  }
-                },
-                child: GestureDetector(
-                  onTap: isSelectionMode
-                      ? () => ref
-                            .read(noteSelectionProvider.notifier)
-                            .toggle(note.id!)
-                      : null,
-                  onLongPress: () {
-                    if (isSelectionMode) {
-                      ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-                    } else if (ResponsiveUtils.isMobile(context)) {
-                      ref.read(noteSelectionProvider.notifier).select(note.id!);
-                    } else {
-                      _showContextMenu(context, ref, null);
-                    }
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFDF6),
-                      border: Border.all(
-                        color: borderColor,
-                        width: isHighlighted ? 2.0 : 1.0,
-                      ),
-                    ),
-                    padding: EdgeInsets.all(isHighlighted ? 11 : 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildContent(context, ref),
-                        const SizedBox(height: 6),
-                        _NoteFooter(
-                          note: note,
-                          channelId: channelId,
-                          onEdit: () => ref
-                              .read(editingNoteProvider.notifier)
-                              .startEditing(note.id!),
-                          onArchive: () => ref
-                              .read(notesProvider(channelId).notifier)
-                              .deleteNote(note.id!),
-                          onRestore: () => _restoreNote(context, ref),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            child: mediaOnly
+                ? _buildMediaOnlyNote(context, ref, isSelectionMode)
+                : _buildCardNote(context, ref, isSelectionMode, borderColor),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Standard card rendering (cream bg, blue border, footer).
+  Widget _buildCardNote(
+    BuildContext context,
+    WidgetRef ref,
+    bool isSelectionMode,
+    Color borderColor,
+  ) {
+    return _wrapConstraints(
+      hasTable: note.content.contains(RegExp(r'^\|', multiLine: true)),
+      child: Listener(
+        onPointerDown: (event) {
+          if (event.buttons == 2) {
+            _showContextMenu(context, ref, event.position);
+          }
+        },
+        child: GestureDetector(
+          onTap: isSelectionMode
+              ? () => ref.read(noteSelectionProvider.notifier).toggle(note.id!)
+              : null,
+          onLongPress: () {
+            if (isSelectionMode) {
+              ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+            } else if (ResponsiveUtils.isMobile(context)) {
+              ref.read(noteSelectionProvider.notifier).select(note.id!);
+            } else {
+              _showContextMenu(context, ref, null);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFDF6),
+              border: Border.all(
+                color: borderColor,
+                width: isHighlighted ? 2.0 : 1.0,
+              ),
+            ),
+            padding: EdgeInsets.all(isHighlighted ? 11 : 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildContent(context, ref),
+                const SizedBox(height: 6),
+                _NoteFooter(
+                  note: note,
+                  channelId: channelId,
+                  onEdit: () => ref
+                      .read(editingNoteProvider.notifier)
+                      .startEditing(note.id!),
+                  onArchive: () => ref
+                      .read(notesProvider(channelId).notifier)
+                      .deleteNote(note.id!),
+                  onRestore: () => _restoreNote(context, ref),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Media-only rendering: no card chrome, timestamp pill overlay.
+  Widget _buildMediaOnlyNote(
+    BuildContext context,
+    WidgetRef ref,
+    bool isSelectionMode,
+  ) {
+    final attachments = note.attachments!;
+
+    // Build media widgets
+    final mediaWidgets = <Widget>[];
+    for (var i = 0; i < attachments.length; i++) {
+      if (i > 0) mediaWidgets.add(const SizedBox(height: 4));
+      final attachment = attachments[i];
+      final url = FileUtils.buildMediaUrl(
+        serverUrl,
+        attachment.filePath,
+        attachment.contentHash,
+      );
+      final imageIndex = allImageUrls.indexOf(url);
+      mediaWidgets.add(
+        MediaAttachmentWidget(
+          attachment: attachment,
+          serverUrl: serverUrl,
+          allImageUrls: allImageUrls,
+          initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
+          isMediaNote: true,
+        ),
+      );
+    }
+
+    Widget content = Stack(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: mediaWidgets,
+        ),
+        Positioned(
+          bottom: 6,
+          right: 6,
+          child: _TimestampPill(dateTime: note.createdAt),
+        ),
+      ],
+    );
+
+    // Highlight border for search jump
+    if (isHighlighted) {
+      content = Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: const Color(0xFF3450A3),
+            width: 2.0,
+          ),
+        ),
+        child: content,
+      );
+    }
+
+    return Listener(
+      onPointerDown: (event) {
+        if (event.buttons == 2) {
+          _showContextMenu(context, ref, event.position);
+        }
+      },
+      child: GestureDetector(
+        onTap: isSelectionMode
+            ? () => ref.read(noteSelectionProvider.notifier).toggle(note.id!)
+            : null,
+        onLongPress: () {
+          if (isSelectionMode) {
+            ref.read(noteSelectionProvider.notifier).toggle(note.id!);
+          } else if (ResponsiveUtils.isMobile(context)) {
+            ref.read(noteSelectionProvider.notifier).select(note.id!);
+          } else {
+            _showContextMenu(context, ref, null);
+          }
+        },
+        child: content,
       ),
     );
   }
@@ -524,6 +629,31 @@ class NoteItem extends ConsumerWidget {
         );
       }
     }
+  }
+}
+
+/// Semi-transparent timestamp pill for media-only notes.
+class _TimestampPill extends StatelessWidget {
+  const _TimestampPill({required this.dateTime});
+
+  final DateTime dateTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.zero,
+      ),
+      child: Text(
+        FileUtils.formatDateTime(dateTime),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+        ),
+      ),
+    );
   }
 }
 

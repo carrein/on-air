@@ -6,9 +6,10 @@ import '../main.dart' show client;
 import '../providers/archive_items_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/toast_utils.dart';
+import 'app_text_button.dart';
 import 'icon_button_styled.dart';
 import 'note_item.dart';
-import 'pink_spinner.dart';
+import 'app_spinner.dart';
 
 /// Archive view showing a mixed list of archived notes and channels.
 class ArchiveView extends ConsumerWidget {
@@ -43,7 +44,7 @@ class ArchiveView extends ConsumerWidget {
           },
         );
       },
-      loading: () => Center(child: PinkSpinner()),
+      loading: () => Center(child: AppSpinner()),
       error: (err, stack) => const Center(
         child: Text('Unable to load notes. Check your connection.'),
       ),
@@ -267,18 +268,14 @@ class _ArchivedChannelItem extends ConsumerWidget {
             style: const TextStyle(color: Colors.white),
           ),
           actions: [
-            ElevatedButton(
+            AppTextButton(
+              label: 'Cancel',
               onPressed: () => Navigator.pop(ctx),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF00171F),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
-                ),
-              ),
-              child: const Text('Cancel'),
+              variant: AppTextButtonVariant.secondary,
+              color: Colors.white,
             ),
-            ElevatedButton(
+            AppTextButton(
+              label: 'Delete',
               onPressed: () async {
                 Navigator.pop(ctx);
                 try {
@@ -302,14 +299,7 @@ class _ArchivedChannelItem extends ConsumerWidget {
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFDB0000),
-                foregroundColor: Colors.white,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
-                ),
-              ),
-              child: const Text('Delete'),
+              variant: AppTextButtonVariant.destructive,
             ),
           ],
         ),

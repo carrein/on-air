@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../main.dart';
 import '../screens/server_setup_screen.dart';
 import '../services/notification_service.dart';
+import 'app_text_button.dart';
 
 /// Build-time version via --dart-define=APP_VERSION=$(git describe --tags --abbrev=0).
 /// Shows the git tag version in production builds, "DEV" in local dev.
@@ -62,7 +63,8 @@ class SettingsView extends ConsumerWidget {
             ),
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: TextButton(
+          trailing: AppTextButton(
+            label: 'Change',
             onPressed: () async {
               await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
@@ -70,10 +72,7 @@ class SettingsView extends ConsumerWidget {
                 ),
               );
             },
-            child: const Text(
-              'Change',
-              style: TextStyle(color: Color(0xFF3450A3)),
-            ),
+            variant: AppTextButtonVariant.secondary,
           ),
         ),
         const Divider(height: 1),
@@ -114,7 +113,8 @@ class SettingsView extends ConsumerWidget {
               color: const Color(0xFF00171F).withValues(alpha: 0.6),
             ),
           ),
-          trailing: TextButton(
+          trailing: AppTextButton(
+            label: 'Send',
             onPressed: () async {
               final granted = await scheduleTestNotification();
               if (!context.mounted) return;
@@ -129,10 +129,7 @@ class SettingsView extends ConsumerWidget {
                 ),
               );
             },
-            child: const Text(
-              'Send',
-              style: TextStyle(color: Color(0xFF3450A3)),
-            ),
+            variant: AppTextButtonVariant.secondary,
           ),
         ),
       ],

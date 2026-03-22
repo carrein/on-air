@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:memoka_client/memoka_client.dart';
 import '../utils/icon_utils.dart';
+import 'app_text_button.dart';
 import 'icon_picker.dart';
 
 /// Modal dialog for creating or editing a channel.
@@ -158,27 +159,15 @@ class _NewChannelModalState extends State<NewChannelModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
+                  AppTextButton(
+                    label: 'Cancel',
                     onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      foregroundColor: _darkColor,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero,
-                      ),
-                    ),
-                    child: const Text('Cancel'),
+                    variant: AppTextButtonVariant.secondary,
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
+                  AppTextButton(
+                    label: _isEditMode ? 'Save' : 'Create',
                     onPressed: _onConfirm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _darkColor,
-                      foregroundColor: Colors.white,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.zero,
-                      ),
-                    ),
-                    child: Text(_isEditMode ? 'Save' : 'Create'),
                   ),
                 ],
               ),

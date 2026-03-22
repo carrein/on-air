@@ -9,7 +9,8 @@ import '../providers/notes_provider.dart';
 import '../providers/pending_uploads_provider.dart';
 import '../utils/icon_utils.dart';
 import '../utils/toast_utils.dart';
-import 'pink_spinner.dart';
+import 'app_spinner.dart';
+import 'app_text_button.dart';
 
 /// Dialog shown when content is shared to Memoka from another app.
 /// Lets the user pick a channel and send text/files.
@@ -23,7 +24,6 @@ class ShareIntentDialog extends ConsumerStatefulWidget {
 }
 
 class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
-  static const _accent = Color(0xFF3450A3);
   static const _bgDark = Color(0xFF00171F);
 
   int? _selectedChannelId;
@@ -170,7 +170,7 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
                         : (id) => setState(() => _selectedChannelId = id),
                   );
                 },
-                loading: () => Center(child: PinkSpinner()),
+                loading: () => Center(child: AppSpinner()),
                 error: (e, _) => Text('Failed to load channels: $e'),
               ),
               const SizedBox(height: 12),
@@ -261,39 +261,20 @@ class _ShareIntentDialogState extends ConsumerState<ShareIntentDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
+                  AppTextButton(
+                    label: 'Cancel',
                     onPressed: _sending
                         ? null
                         : () => Navigator.of(context).pop(false),
-                    child: Text(
-                      'Cancel',
-                      style: GoogleFonts.spaceGrotesk(color: Colors.black54),
-                    ),
+                    variant: AppTextButtonVariant.secondary,
                   ),
                   const SizedBox(width: 8),
-                  ElevatedButton(
+                  AppTextButton(
+                    label: 'Send',
                     onPressed: _sending || _selectedChannelId == null
                         ? null
                         : _send,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _accent,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(0),
-                      ),
-                    ),
-                    child: _sending
-                        ? SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: PinkSpinner(size: 16),
-                          )
-                        : Text(
-                            'Send',
-                            style: GoogleFonts.spaceGrotesk(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                    loading: _sending,
                   ),
                 ],
               ),

@@ -3,6 +3,7 @@ u/docs/Android.md
 u/docs/Emulator.md
 u/docs/Channel.md
 u/docs/Media.md
+u/docs/ImageGrid.md
 u/docs/Overview.md
 u/docs/Security.md
 u/docs/DesignSystem.md
@@ -342,7 +343,9 @@ interactions, state management, and integration details.
 - **Note** (NoteItem): `docs/components/Note.md`
 - **Preview** (link previews): `docs/components/Preview.md`
 - **Audio** (audio player): `docs/components/Audio.md`
+- **Button** (AppTextButton): `docs/components/Button.md`
 - **Search** (search bar, results, jump-to): `docs/components/Search.md`
+- **UploadDialog** (upload confirmation): `docs/components/UploadDialog.md`
 
 ## Architecture Guides
 

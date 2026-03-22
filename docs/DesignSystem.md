@@ -452,28 +452,44 @@ All footer icons: 20px, `core.textMuted` (`#00171F` at 60% opacity).
 
 ### Loading Spinner
 
-All loading and pending states must use the `PinkSpinner` widget (`lib/widgets/pink_spinner.dart`). **Never use `CircularProgressIndicator` or `CupertinoActivityIndicator`.**
+All loading and pending states must use the `AppSpinner` widget (`lib/widgets/app_spinner.dart`). **Never use `CircularProgressIndicator` or `CupertinoActivityIndicator`.**
 
 | Property | Value |
 |----------|-------|
-| Icon | `PhosphorIcons.spinnerBall(PhosphorIconsStyle.fill)` |
-| Color | `brand.primary` (`#CE2161`) |
+| Icon | `PhosphorIcons.spinnerGap()` |
+| Color | `#3450A3` |
 | Animation | `RotationTransition`, 800ms continuous loop |
 | Default size | 24px |
-| Small variant | `PinkSpinner(size: 16)` — for inline/button contexts |
+| Small variant | `AppSpinner(size: 16)` — for inline/button contexts |
 
 **Usage**:
 ```dart
 // Full-size (page/section loading)
-Center(child: PinkSpinner())
+Center(child: AppSpinner())
 
 // Inline (buttons, small containers)
-PinkSpinner(size: 16)
+AppSpinner(size: 16)
 ```
 
-**Where it applies**: channel list loading, notes loading, archive loading, image/video loading placeholders, GIF picker, server connection test, share intent dialog, media grid thumbnails, and any future loading/pending state.
+**Where it applies**: channel list loading, notes loading, archive loading, image/video loading placeholders, GIF picker, server connection test, share intent dialog, media grid thumbnails, upload dialog, search, reminders, and any future loading/pending state.
 
 `LinearProgressIndicator` remains appropriate for progress bars with determinate values (e.g., file upload progress).
+
+---
+
+### Text Button
+
+All action buttons in dialogs, forms, and sheets must use `AppTextButton` (`lib/widgets/app_text_button.dart`). **Never use raw `TextButton`, `ElevatedButton`, or `FilledButton`.**
+
+Three variants:
+
+| Variant | Background | Text | Border |
+|-------------|-----------|-------|--------|
+| `primary` | `#3450A3` | white | none |
+| `secondary` | transparent | `#00171F` | 1px `#3450A3` |
+| `destructive`| `#DB0000` | white | none |
+
+Sharp corners, 16h/10v padding, 14px font, 100ms animated feedback. `loading: true` shows `AppSpinner(size: 16)` in foreground color. `expand: true` for full-width 48px height buttons. Optional `color` override. See `docs/components/Button.md` for full spec.
 
 ---
 

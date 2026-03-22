@@ -5,7 +5,8 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../services/klipy_service.dart';
-import 'pink_spinner.dart';
+import 'app_spinner.dart';
+import 'app_text_button.dart';
 import 'styled_search_field.dart';
 
 /// Modal bottom sheet for searching and selecting GIFs via the Klipy API.
@@ -26,7 +27,6 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
   // -- Design tokens (DesignSystem.md) --
   static const _surface = Color(0xFFFFFDF6);
   static const _text = Color(0xFF00171F);
-  static const _accent = Color(0xFF3450A3);
   static const _textMutedAlpha = 0.5;
   static const _gridColumns = 3;
   static const _gridSpacing = 4.0;
@@ -191,7 +191,7 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
   Widget _buildContent() {
     if (_isLoading) {
       return Center(
-        child: PinkSpinner(),
+        child: AppSpinner(),
       );
     }
 
@@ -214,14 +214,12 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            TextButton(
+            AppTextButton(
+              label: 'Retry',
               onPressed: _lastQuery.isEmpty
                   ? _loadFeatured
                   : () => _search(_lastQuery),
-              child: const Text(
-                'Retry',
-                style: TextStyle(color: _accent),
-              ),
+              variant: AppTextButtonVariant.secondary,
             ),
           ],
         ),
@@ -252,7 +250,7 @@ class _GifPickerSheetState extends State<GifPickerSheet> {
           return Center(
             child: Padding(
               padding: EdgeInsets.all(16),
-              child: PinkSpinner(),
+              child: AppSpinner(),
             ),
           );
         }

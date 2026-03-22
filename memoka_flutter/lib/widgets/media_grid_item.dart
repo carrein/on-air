@@ -6,7 +6,7 @@ import '../main.dart' show serverUrl;
 import '../providers/scroll_to_note_provider.dart';
 import '../utils/file_utils.dart';
 import 'media_grid.dart';
-import 'pink_spinner.dart';
+import 'app_spinner.dart';
 
 /// Individual grid item displaying a media thumbnail or document card.
 class MediaGridItem extends ConsumerWidget {
@@ -174,7 +174,7 @@ class MediaGridItem extends ConsumerWidget {
     return Container(
       color: Colors.grey[200],
       child: Center(
-        child: PinkSpinner(size: 16),
+        child: AppSpinner(size: 16),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_text_button.dart';
 
 /// Result from the reminder picker dialog.
 class ReminderPickerResult {
@@ -200,13 +201,14 @@ class _ReminderPickerDialogState extends State<_ReminderPickerDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        AppTextButton(
+          label: 'Cancel',
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel', style: TextStyle(color: _textColor)),
+          variant: AppTextButtonVariant.secondary,
         ),
-        TextButton(
+        AppTextButton(
+          label: 'Confirm',
           onPressed: _onConfirm,
-          child: const Text('Confirm', style: TextStyle(color: _accentColor)),
         ),
       ],
     );

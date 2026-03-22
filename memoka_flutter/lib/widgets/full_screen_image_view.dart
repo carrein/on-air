@@ -8,7 +8,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
-import 'pink_spinner.dart';
+import 'app_spinner.dart';
 
 /// Full screen image viewer overlay with gallery support and keyboard navigation.
 class FullScreenImageView extends StatefulWidget {
@@ -143,7 +143,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                 );
               },
               loadingBuilder: (context, event) => Center(
-                child: PinkSpinner(),
+                child: AppSpinner(),
               ),
             ),
             // Close button
@@ -203,7 +203,7 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                     ),
                     decoration: BoxDecoration(
                       color: Colors.black54,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: Text(
                       '${_currentIndex + 1} / ${widget.imageUrls.length}',

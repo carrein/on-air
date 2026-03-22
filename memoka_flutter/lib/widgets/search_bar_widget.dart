@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/current_channel_provider.dart';
+import 'app_spinner.dart';
 import 'icon_button_styled.dart';
 import 'styled_search_field.dart';
 import '../providers/global_search_provider.dart';
@@ -304,11 +305,7 @@ class _SearchDropdownContentState
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+          child: AppSpinner(size: 20),
         ),
       );
     }

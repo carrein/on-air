@@ -16,7 +16,6 @@ import '../utils/toast_utils.dart';
 import '../utils/url_utils.dart';
 import '../models/upload_file_data.dart';
 import 'input_link_preview.dart';
-import 'file_upload_dialog.dart';
 import 'gif_picker_sheet.dart';
 import 'multi_file_upload_dialog.dart';
 import 'icon_button_styled.dart';
@@ -364,13 +363,13 @@ class _NoteInputState extends ConsumerState<NoteInput>
       final fileName = photo.name;
       final ext = fileName.split('.').last;
 
-      await _showFileUploadDialog(
+      await _showMultiFileUploadDialog([
         UploadFileData(
           filePath: photo.path,
           fileName: fileName,
           extension: ext,
         ),
-      );
+      ]);
     } catch (e) {
       if (mounted) {
         ToastUtils.show(context, 'Camera failed: $e', type: ToastType.error);
@@ -478,11 +477,7 @@ class _NoteInputState extends ConsumerState<NoteInput>
       }
 
       // Show appropriate dialog based on number of files
-      if (uploadFiles.length == 1) {
-        await _showFileUploadDialog(uploadFiles.first);
-      } else {
-        await _showMultiFileUploadDialog(uploadFiles);
-      }
+      await _showMultiFileUploadDialog(uploadFiles);
     } catch (e) {
       if (mounted) {
         ToastUtils.show(
@@ -492,41 +487,6 @@ class _NoteInputState extends ConsumerState<NoteInput>
         );
       }
     }
-  }
-
-  Future<void> _showFileUploadDialog(UploadFileData file) async {
-    final channelId = ref.read(currentChannelProvider).value;
-    if (channelId == null) return;
-
-    await showDialog(
-      context: context,
-      builder: (_) => FileUploadDialog(
-        file: file,
-        onSend: (compress) {
-          // Get current text content
-          final noteContent = _controller.text.trim();
-
-          // Enqueue optimistic upload — fire-and-forget
-          ref
-              .read(pendingUploadsProvider.notifier)
-              .enqueue(
-                channelId: channelId,
-                filePath: file.filePath,
-                fileBytes: file.bytes,
-                fileName: file.fileName,
-                noteContent: noteContent,
-                compress: compress,
-              );
-
-          // Clear text field
-          _controller.clear();
-          setState(() {
-            _previewUrl = null;
-            _showPreview = true;
-          });
-        },
-      ),
-    );
   }
 
   Future<void> _showMultiFileUploadDialog(

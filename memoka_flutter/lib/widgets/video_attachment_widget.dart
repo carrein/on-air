@@ -8,27 +8,28 @@ import 'package:video_player/video_player.dart';
 import '../utils/file_utils.dart';
 import 'icon_button_styled.dart';
 import 'media_attachment_widget.dart';
-import 'pink_spinner.dart';
+import 'app_spinner.dart';
 
 /// Widget for displaying a video attachment inline in chat.
 /// Shows thumbnail with play button overlay. Tapping opens lightbox player.
 class VideoAttachmentWidget extends StatelessWidget {
   final MediaAttachment attachment;
   final String serverUrl;
+  final double maxWidth;
+  final double maxHeight;
 
   const VideoAttachmentWidget({
     super.key,
     required this.attachment,
     required this.serverUrl,
+    this.maxWidth = 400,
+    this.maxHeight = 300,
   });
 
   @override
   Widget build(BuildContext context) {
     final videoUrl = _buildVideoUrl();
     final thumbnailUrl = _buildThumbnailUrl();
-
-    const double maxWidth = 400;
-    const double maxHeight = 300;
 
     final displaySize = computeDisplaySize(
       width: attachment.width,
@@ -278,7 +279,7 @@ class _VideoLightboxState extends State<_VideoLightbox> {
     }
 
     if (!_isInitialized) {
-      return PinkSpinner();
+      return AppSpinner();
     }
 
     final screenSize = MediaQuery.sizeOf(context);

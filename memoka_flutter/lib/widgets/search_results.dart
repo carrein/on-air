@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'app_spinner.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/global_search_provider.dart';
 import '../providers/notes_provider.dart';
@@ -68,11 +69,7 @@ class SearchResults extends ConsumerWidget {
       loading: () => const Center(
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+          child: AppSpinner(size: 24),
         ),
       ),
       error: (e, _) => Center(

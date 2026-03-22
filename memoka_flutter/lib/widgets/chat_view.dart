@@ -17,11 +17,10 @@ import '../providers/connection_provider.dart' as conn;
 import '../utils/file_utils.dart';
 import '../models/upload_file_data.dart';
 import 'archive_view.dart';
-import 'file_upload_dialog.dart';
 import 'note_item.dart';
 import 'multi_file_upload_dialog.dart';
 import 'pending_note_widget.dart';
-import 'pink_spinner.dart';
+import 'app_spinner.dart';
 
 // Cross-platform HTML imports
 import 'package:universal_html/html.dart' as html;
@@ -230,7 +229,13 @@ class _ChatViewState extends ConsumerState<ChatView>
           attachment.filePath,
           attachment.contentHash,
         );
-        unawaited(precacheImage(CachedNetworkImageProvider(url), context));
+        unawaited(
+          precacheImage(
+            CachedNetworkImageProvider(url),
+            context,
+            onError: (_, __) {},
+          ),
+        );
         if (++count >= _kPrecacheImageCount) return;
       }
     }
@@ -250,7 +255,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           ),
         );
       }
-      return Center(child: PinkSpinner());
+      return Center(child: AppSpinner());
     }
     if (channelId == -1) return const ArchiveView();
 
@@ -264,7 +269,7 @@ class _ChatViewState extends ConsumerState<ChatView>
     // (e.g. tab-switch reconnect), preserving scroll position.
     final allNotes = notesAsync.value;
     if (allNotes == null) {
-      if (notesAsync.isLoading) return Center(child: PinkSpinner());
+      if (notesAsync.isLoading) return Center(child: AppSpinner());
       return const Center(
         child: Text('Unable to load notes. Check your connection.'),
       );
@@ -631,36 +636,7 @@ class _ChatViewState extends ConsumerState<ChatView>
   /// Shows the appropriate upload dialog for the collected files.
   Future<void> _showUploadDialogs(List<UploadFileData> uploadFiles) async {
     if (uploadFiles.isEmpty) return;
-    if (uploadFiles.length == 1) {
-      await _showFileUploadDialog(uploadFiles.first);
-    } else {
-      await _showMultiFileUploadDialog(uploadFiles);
-    }
-  }
-
-  Future<void> _showFileUploadDialog(UploadFileData file) async {
-    final channelId = ref.read(currentChannelProvider).value;
-    if (channelId == null) return;
-
-    await showDialog(
-      context: context,
-      builder: (_) => FileUploadDialog(
-        file: file,
-        onSend: (compress) {
-          // Enqueue optimistic upload — fire-and-forget
-          ref
-              .read(pendingUploadsProvider.notifier)
-              .enqueue(
-                channelId: channelId,
-                filePath: file.filePath,
-                fileBytes: file.bytes,
-                fileName: file.fileName,
-                noteContent: '',
-                compress: compress,
-              );
-        },
-      ),
-    );
+    await _showMultiFileUploadDialog(uploadFiles);
   }
 
   Future<void> _showMultiFileUploadDialog(

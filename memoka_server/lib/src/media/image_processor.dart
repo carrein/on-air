@@ -72,9 +72,10 @@ class ImageProcessor {
 
   /// Process an image file.
   ///
-  /// Web-safe images (JPEG, PNG, WebP) are EXIF-stripped and saved in their
-  /// original format. Non-web-safe images (TIFF, BMP, ICO, PSD, etc.) are
-  /// converted to PNG. GIFs are always preserved as-is for animation.
+  /// Web-safe images (JPEG, PNG, WebP) are passed through untouched — the
+  /// original bytes are kept as-is (no re-encoding, no EXIF stripping).
+  /// Non-web-safe images (TIFF, BMP, ICO, PSD, etc.) are converted to PNG.
+  /// GIFs are always preserved as-is for animation.
   ///
   /// Throws if the image cannot be decoded (caller should fall back to the
   /// document path).
@@ -147,17 +148,18 @@ class ImageProcessor {
       );
     }
 
-    // WebP: the `image` package has no WebP encoder. Since EXIF in WebP is
-    // rare, just pass the file through untouched.
-    if (ext == '.webp') {
-      int webpWidth = 0;
-      int webpHeight = 0;
+    // Web-safe formats (JPEG, PNG, WebP): pass through the original file
+    // untouched. Decode only to extract dimensions (after orientation).
+    final bool isWebSafe = _webSafeExtensions.contains(ext);
+    if (isWebSafe) {
+      int wsWidth = 0;
+      int wsHeight = 0;
       String? thumbPath;
 
       if (image != null) {
         final oriented = img.bakeOrientation(image);
-        webpWidth = oriented.width;
-        webpHeight = oriented.height;
+        wsWidth = oriented.width;
+        wsHeight = oriented.height;
         try {
           thumbPath = await _generateThumbnail(
             oriented.frames.first,
@@ -171,48 +173,25 @@ class ImageProcessor {
       return ProcessedImageResult(
         filePath: params.finalFilePath,
         thumbnailPath: thumbPath,
-        width: webpWidth,
-        height: webpHeight,
+        width: wsWidth,
+        height: wsHeight,
         contentHash: contentHash,
         compressed: false,
         animated: false,
       );
     }
 
+    // Non-web-safe (TIFF, BMP, ICO, PSD, TGA, etc.): convert to PNG.
     if (image == null) {
       throw Exception('Failed to decode image');
     }
 
-    // Apply EXIF orientation BEFORE stripping metadata
     image = img.bakeOrientation(image);
-
     final originalWidth = image.width;
     final originalHeight = image.height;
 
-    // Strip EXIF metadata after applying orientation
-    image.exif.clear();
-
-    // Determine output format based on whether the input extension is web-safe.
-    final bool isWebSafe = _webSafeExtensions.contains(ext);
-
-    late final String outputPath;
-    late final List<int> encodedBytes;
-
-    if (isWebSafe) {
-      // Web-safe: re-encode in the same format (EXIF stripped).
-      if (ext == '.jpg' || ext == '.jpeg') {
-        encodedBytes = img.encodeJpg(image, quality: 95);
-        outputPath = params.finalFilePath;
-      } else {
-        // .png
-        encodedBytes = img.encodePng(image);
-        outputPath = params.finalFilePath;
-      }
-    } else {
-      // Non-web-safe (TIFF, BMP, ICO, PSD, TGA, etc.): convert to PNG.
-      encodedBytes = img.encodePng(image);
-      outputPath = '${path.withoutExtension(params.finalFilePath)}.png';
-    }
+    final encodedBytes = img.encodePng(image);
+    final outputPath = '${path.withoutExtension(params.finalFilePath)}.png';
 
     await File(outputPath).writeAsBytes(encodedBytes);
 

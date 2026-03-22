@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'app_spinner.dart';
 import '../providers/channel_reminders_provider.dart';
 import 'media_panel_empty_state.dart';
 import 'reminder_list_item.dart';
@@ -37,7 +38,7 @@ class ReminderList extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: AppSpinner()),
       error: (_, _) => const Center(child: Text('Failed to load reminders')),
     );
   }

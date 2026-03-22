@@ -17,6 +17,12 @@ const kImageMaxWidth = 300.0;
 /// Max display height for inline images in chat.
 const kImageMaxHeight = 250.0;
 
+/// Max display width for media-only notes (no card chrome).
+const kMediaNoteMaxWidth = 400.0;
+
+/// Max display height for media-only notes (no card chrome).
+const kMediaNoteMaxHeight = 350.0;
+
 /// Compute display size from attachment metadata, clamped to max constraints.
 /// Maintains aspect ratio. Falls back to [fallback] if dimensions are null.
 Size computeDisplaySize({
@@ -47,6 +53,7 @@ class MediaAttachmentWidget extends StatelessWidget {
   final String serverUrl;
   final List<String> allImageUrls;
   final int initialImageIndex;
+  final bool isMediaNote;
 
   const MediaAttachmentWidget({
     super.key,
@@ -54,6 +61,7 @@ class MediaAttachmentWidget extends StatelessWidget {
     required this.serverUrl,
     this.allImageUrls = const [],
     this.initialImageIndex = 0,
+    this.isMediaNote = false,
   });
 
   bool get _isImage {
@@ -82,11 +90,14 @@ class MediaAttachmentWidget extends StatelessWidget {
         serverUrl: serverUrl,
         allImageUrls: allImageUrls,
         initialImageIndex: initialImageIndex,
+        isMediaNote: isMediaNote,
       );
     } else if (_isVideo) {
       return VideoAttachmentWidget(
         attachment: attachment,
         serverUrl: serverUrl,
+        maxWidth: isMediaNote ? kMediaNoteMaxWidth : 400,
+        maxHeight: isMediaNote ? kMediaNoteMaxHeight : 300,
       );
     } else if (_isAudio) {
       return AudioAttachmentWidget(
@@ -108,12 +119,14 @@ class _ImageAttachmentWidget extends StatelessWidget {
   final String serverUrl;
   final List<String> allImageUrls;
   final int initialImageIndex;
+  final bool isMediaNote;
 
   const _ImageAttachmentWidget({
     required this.attachment,
     required this.serverUrl,
     required this.allImageUrls,
     required this.initialImageIndex,
+    this.isMediaNote = false,
   });
 
   bool get _isGif => attachment.mimeType.toLowerCase() == 'image/gif';
@@ -126,11 +139,16 @@ class _ImageAttachmentWidget extends StatelessWidget {
       attachment.contentHash,
     );
 
+    final effectiveMaxWidth = isMediaNote ? kMediaNoteMaxWidth : kImageMaxWidth;
+    final effectiveMaxHeight = isMediaNote
+        ? kMediaNoteMaxHeight
+        : kImageMaxHeight;
+
     final displaySize = computeDisplaySize(
       width: attachment.width,
       height: attachment.height,
-      maxWidth: kImageMaxWidth,
-      maxHeight: kImageMaxHeight,
+      maxWidth: effectiveMaxWidth,
+      maxHeight: effectiveMaxHeight,
     );
 
     return GestureDetector(
@@ -177,8 +195,8 @@ class _ImageAttachmentWidget extends StatelessWidget {
                     },
                   ),
           ),
-          // Compressed indicator
-          if (attachment.compressed)
+          // Compressed indicator (hidden for media-only notes)
+          if (attachment.compressed && !isMediaNote)
             Positioned(
               bottom: 4,
               right: 4,
