@@ -14,14 +14,16 @@ class UploadFileData {
   final String? filePath;
   final String fileName;
   final String extension;
-  bool compress;
+
+  /// Thumbnail bytes for video files (populated async by the upload dialog).
+  Uint8List? thumbnailBytes;
 
   UploadFileData({
     this.bytes,
     this.filePath,
     required this.fileName,
     required this.extension,
-    this.compress = false,
+    this.thumbnailBytes,
   }) : assert(
          bytes != null || filePath != null,
          'Either bytes or filePath must be provided',
@@ -31,6 +33,8 @@ class UploadFileData {
     final ext = extension.toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].contains(ext);
   }
+
+  bool get isMedia => isImage || isVideo;
 
   bool get isVideo {
     final ext = extension.toLowerCase();
