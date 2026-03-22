@@ -65,9 +65,14 @@ class _NoteInputState extends ConsumerState<NoteInput>
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
     if (lifecycleState == AppLifecycleState.resumed && _focusNode.hasFocus) {
-      // Android disconnects the IME when backgrounded. Re-show the keyboard
-      // directly without unfocus/refocus to avoid visible flicker.
-      SystemChannels.textInput.invokeMethod('TextInput.show');
+      // Android dismisses the keyboard when the window loses focus on
+      // background. Wait one frame for Flutter's InputConnection to
+      // re-establish, then re-show the keyboard.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _focusNode.hasFocus) {
+          SystemChannels.textInput.invokeMethod('TextInput.show');
+        }
+      });
     }
   }
 
