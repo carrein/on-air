@@ -233,7 +233,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           precacheImage(
             CachedNetworkImageProvider(url),
             context,
-            onError: (_, __) {},
+            onError: (_, _) {},
           ),
         );
         if (++count >= _kPrecacheImageCount) return;
