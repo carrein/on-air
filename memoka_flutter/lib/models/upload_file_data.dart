@@ -15,15 +15,11 @@ class UploadFileData {
   final String fileName;
   final String extension;
 
-  /// Thumbnail bytes for video files (populated async by the upload dialog).
-  Uint8List? thumbnailBytes;
-
   UploadFileData({
     this.bytes,
     this.filePath,
     required this.fileName,
     required this.extension,
-    this.thumbnailBytes,
   }) : assert(
          bytes != null || filePath != null,
          'Either bytes or filePath must be provided',
@@ -39,6 +35,18 @@ class UploadFileData {
   bool get isVideo {
     final ext = extension.toLowerCase();
     return ['mp4', 'mov', 'webm', 'avi', 'mkv'].contains(ext);
+  }
+
+  /// Infer MIME type from extension for video files.
+  String get mimeType {
+    const map = {
+      'mp4': 'video/mp4',
+      'mov': 'video/quicktime',
+      'webm': 'video/webm',
+      'avi': 'video/x-msvideo',
+      'mkv': 'video/x-matroska',
+    };
+    return map[extension.toLowerCase()] ?? 'video/mp4';
   }
 
   IconData get fileIcon => FileUtils.getFileIcon(extension);

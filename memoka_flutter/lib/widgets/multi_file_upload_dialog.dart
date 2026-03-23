@@ -6,13 +6,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:video_player/video_player.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
 
 import '../models/upload_file_data.dart';
 import '../utils/video_thumbnail_web.dart'
-    if (dart.library.io) '../utils/video_thumbnail_stub.dart'
-    as vt_web;
+    if (dart.library.io) '../utils/video_thumbnail_native.dart'
+    as vt;
 import 'app_text_button.dart';
 import 'icon_button_styled.dart';
 import 'app_spinner.dart';
@@ -35,16 +33,37 @@ class MultiFileUploadDialog extends StatefulWidget {
     required this.onSend,
   });
 
+  /// Key for the currently open dialog instance (if any).
+  static final activeKey = GlobalKey<_MultiFileUploadDialogState>();
+
+  /// Whether a dialog is currently open.
+  static bool get isOpen => activeKey.currentState != null;
+
+  /// Add files to the currently open dialog.
+  static void addFiles(List<UploadFileData> files) {
+    activeKey.currentState?._addFiles(files);
+  }
+
   @override
   State<MultiFileUploadDialog> createState() => _MultiFileUploadDialogState();
 }
 
+/// Cache width for preview images — 2x dialog width for retina sharpness.
+/// Must match between _precacheMedia and the Image widgets so cache keys align.
+const _kPreviewCacheWidth = 1200;
+
 class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
   late List<UploadFileData> _files;
   final Map<UploadFileData, double> _aspectRatios = {};
+  final Map<UploadFileData, Uint8List> _videoThumbnails = {};
+  final Set<UploadFileData> _precachedFiles = {};
 
   /// True once all aspect ratios are resolved AND all images are precached.
   bool _loaded = false;
+
+  /// Generation counter — prevents a stale _resolveAndPrecache from setting
+  /// _loaded = true after _addFiles starts a newer resolution pass.
+  int _resolveGeneration = 0;
 
   @override
   void initState() {
@@ -53,28 +72,43 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
     _resolveAndPrecache();
   }
 
+  /// Add new files to the existing dialog, resolve their previews.
+  void _addFiles(List<UploadFileData> newFiles) {
+    _files.addAll(newFiles);
+    _loaded = false;
+    setState(() {});
+    _resolveAndPrecache();
+  }
+
   // ---------------------------------------------------------------------------
   // Resolution + precaching
   // ---------------------------------------------------------------------------
 
   Future<void> _resolveAndPrecache() async {
+    final gen = ++_resolveGeneration;
     final media = _files.where((f) => f.isMedia).toList();
 
     // Phase 1: Resolve aspect ratios + generate video thumbnails.
     await Future.wait(
       media.map((file) async {
-        if (file.isVideo) {
+        if (file.isVideo && !_videoThumbnails.containsKey(file)) {
           await _resolveVideoThumbnail(file);
         }
-        final ratio = await _getAspectRatio(file);
-        _aspectRatios[file] = ratio;
+        if (!_aspectRatios.containsKey(file)) {
+          _aspectRatios[file] = await _getAspectRatio(file);
+        }
       }),
     );
+    if (gen != _resolveGeneration) return;
 
-    // Phase 2: Precache all media so images are fully decoded before showing.
+    // Phase 2: Precache media not yet cached.
     await Future.wait(
-      media.map((file) => _precacheMedia(file)),
+      media.where((f) => !_precachedFiles.contains(f)).map((file) async {
+        await _precacheMedia(file);
+        _precachedFiles.add(file);
+      }),
     );
+    if (gen != _resolveGeneration) return;
 
     if (mounted) setState(() => _loaded = true);
   }
@@ -84,16 +118,20 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
     try {
       ImageProvider? provider;
       if (file.isVideo) {
-        if (file.thumbnailBytes != null) {
-          provider = MemoryImage(file.thumbnailBytes!);
+        final thumb = _videoThumbnails[file];
+        if (thumb != null) {
+          provider = MemoryImage(thumb);
         }
       } else if (!kIsWeb && file.filePath != null) {
         provider = ResizeImage(
           FileImage(File(file.filePath!)),
-          width: 800,
+          width: _kPreviewCacheWidth,
         );
       } else if (file.bytes != null) {
-        provider = ResizeImage(MemoryImage(file.bytes!), width: 800);
+        provider = ResizeImage(
+          MemoryImage(file.bytes!),
+          width: _kPreviewCacheWidth,
+        );
       }
       if (provider != null && mounted) {
         await precacheImage(provider, context);
@@ -103,59 +141,30 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
     }
   }
 
-  /// Generate a thumbnail for a video file and store it on the model.
+  /// Generate a thumbnail for a video file and store it in _videoThumbnails.
   Future<void> _resolveVideoThumbnail(UploadFileData file) async {
     try {
-      if (kIsWeb) {
-        // Use HTML video API to extract a frame on web.
-        if (file.bytes != null) {
-          final thumb = await vt_web.extractVideoThumbnail(file.bytes!);
-          if (thumb != null && thumb.isNotEmpty) {
-            file.thumbnailBytes = thumb;
-          }
-        }
-        return;
-      }
-
-      if (file.filePath == null) return;
-
-      // Get video duration to extract frame from the middle.
-      int timeMs = 0;
-      try {
-        final controller = VideoPlayerController.file(File(file.filePath!));
-        await controller.initialize();
-        timeMs = controller.value.duration.inMilliseconds ~/ 2;
-        await controller.dispose();
-      } catch (_) {
-        // Fall back to 0ms if duration detection fails.
-      }
-
-      final thumb = await VideoThumbnail.thumbnailData(
-        video: file.filePath!,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 800,
-        quality: 75,
-        timeMs: timeMs,
+      final thumb = await vt.extractVideoThumbnail(
+        file.filePath ?? '',
+        mimeType: file.mimeType,
+        bytes: file.bytes,
       );
       if (thumb != null && thumb.isNotEmpty) {
-        file.thumbnailBytes = thumb;
+        _videoThumbnails[file] = thumb;
       }
-    } catch (e) {
-      debugPrint('Video thumbnail generation failed: $e');
+    } catch (_) {
+      // Thumbnail generation failed — will use placeholder.
     }
   }
 
   Future<double> _getAspectRatio(UploadFileData file) async {
     try {
-      // For videos, use the generated thumbnail bytes.
       if (file.isVideo) {
-        if (file.thumbnailBytes != null) {
-          return _aspectRatioFromBytes(file.thumbnailBytes!);
-        }
+        final thumb = _videoThumbnails[file];
+        if (thumb != null) return _aspectRatioFromBytes(thumb);
         return 16 / 9;
       }
 
-      // For images, resolve from file/bytes.
       final completer = Completer<ui.Image?>();
       late ImageProvider provider;
       if (!kIsWeb && file.filePath != null) {
@@ -179,7 +188,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
       );
       stream.addListener(listener);
       final image = await completer.future;
-      if (image == null) return 1.0;
+      if (image == null || image.height == 0) return 1.0;
       return image.width / image.height;
     } catch (_) {
       return 1.0;
@@ -203,7 +212,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
     );
     stream.addListener(listener);
     final image = await completer.future;
-    if (image == null) return 16 / 9;
+    if (image == null || image.height == 0) return 16 / 9;
     return image.width / image.height;
   }
 
@@ -220,6 +229,8 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
   void _removeFile(UploadFileData file) {
     _files.remove(file);
     _aspectRatios.remove(file);
+    _videoThumbnails.remove(file);
+    _precachedFiles.remove(file);
     if (_files.isEmpty) {
       Navigator.of(context).pop();
     } else {
@@ -307,17 +318,43 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
   // Build
   // ---------------------------------------------------------------------------
 
+  /// Compute dialog width so a single media item fits within the viewport.
+  double _computeDialogWidth(BuildContext context) {
+    const maxWidth = 600.0;
+    const minWidth = 300.0;
+
+    final media = _mediaFiles;
+    if (!_loaded || media.length != 1) return maxWidth;
+
+    final ar = _aspectRatios[media.first] ?? 1.0;
+    final mq = MediaQuery.of(context);
+    final screenHeight = mq.size.height;
+    final safeVertical = mq.viewPadding.top + mq.viewPadding.bottom;
+
+    // Vertical space consumed by non-media elements:
+    // - AlertDialog insets: 24 top + 24 bottom = 48
+    // - contentPadding: 12 top + 12 bottom = 24
+    // - button row height: ~44
+    // - gap between media and buttons: 12
+    // - safe area
+    final chromeHeight = 48.0 + 24.0 + 44.0 + 12.0 + safeVertical;
+    final maxMediaHeight = screenHeight - chromeHeight;
+
+    return (maxMediaHeight * ar).clamp(minWidth, maxWidth);
+  }
+
   @override
   Widget build(BuildContext context) {
     final media = _mediaFiles;
     final others = _otherFiles;
+    final dialogWidth = _computeDialogWidth(context);
 
     return AlertDialog(
       shape: const RoundedRectangleBorder(),
       backgroundColor: const Color(0xFFF6F0ED),
       contentPadding: const EdgeInsets.all(12),
       content: SizedBox(
-        width: 600,
+        width: dialogWidth,
         child: !_loaded && media.isNotEmpty
             ? const SizedBox(
                 height: 100,
@@ -334,11 +371,8 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
                           return SingleChildScrollView(
                             child: Column(
                               children: rows.map((row) {
-                                return Padding(
-                                  padding: EdgeInsets.zero,
-                                  child: Row(
-                                    children: _buildRowWidgets(row),
-                                  ),
+                                return Row(
+                                  children: _buildRowWidgets(row),
                                 );
                               }).toList(),
                             ),
@@ -373,32 +407,27 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
   }
 
   List<Widget> _buildRowWidgets(List<_RowItem> row) {
-    final widgets = <Widget>[];
-    for (var i = 0; i < row.length; i++) {
-      final item = row[i];
-      widgets.add(
-        SizedBox(
-          width: item.width,
-          height: item.height,
-          child: Stack(
-            children: [
-              SizedBox.expand(child: _buildMediaPreview(item.file)),
-              Positioned(
-                top: 6,
-                right: 6,
-                child: IconButtonStyled(
-                  icon: PhosphorIcons.trashSimple(),
-                  size: IconButtonStyled.xs,
-                  color: Colors.white,
-                  onPressed: () => _removeFile(item.file),
-                ),
+    return row.map((item) {
+      return SizedBox(
+        width: item.width,
+        height: item.height,
+        child: Stack(
+          children: [
+            SizedBox.expand(child: _buildMediaPreview(item.file)),
+            Positioned(
+              top: 6,
+              right: 6,
+              child: IconButtonStyled(
+                icon: PhosphorIcons.trashSimple(),
+                size: IconButtonStyled.xs,
+                color: Colors.white,
+                onPressed: () => _removeFile(item.file),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
-    }
-    return widgets;
+    }).toList();
   }
 
   Widget _buildOtherFileRow(UploadFileData file) {
@@ -435,9 +464,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
   // ---------------------------------------------------------------------------
 
   Widget _buildMediaPreview(UploadFileData file) {
-    if (file.isVideo) {
-      return _buildVideoPreview(file);
-    }
+    if (file.isVideo) return _buildVideoPreview(file);
     return _buildImagePreview(file);
   }
 
@@ -446,41 +473,37 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
       return Image.file(
         File(file.filePath!),
         fit: BoxFit.cover,
-        cacheWidth: 800,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(file.fileIcon, size: 40);
-        },
+        cacheWidth: _kPreviewCacheWidth,
+        errorBuilder: (_, _, _) => Icon(file.fileIcon, size: 40),
       );
     }
     if (file.bytes != null) {
       return Image.memory(
         file.bytes!,
         fit: BoxFit.cover,
-        cacheWidth: 800,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(file.fileIcon, size: 40);
-        },
+        cacheWidth: _kPreviewCacheWidth,
+        errorBuilder: (_, _, _) => Icon(file.fileIcon, size: 40),
       );
     }
     return Icon(file.fileIcon, size: 40);
   }
 
   Widget _buildVideoPreview(UploadFileData file) {
-    if (file.thumbnailBytes != null) {
+    final thumb = _videoThumbnails[file];
+    if (thumb != null) {
       return Stack(
         fit: StackFit.expand,
         children: [
           Image.memory(
-            file.thumbnailBytes!,
+            thumb,
             fit: BoxFit.cover,
-            cacheWidth: 800,
+            cacheWidth: _kPreviewCacheWidth,
             errorBuilder: (_, _, _) => _videoPlaceholder(),
           ),
           _playIconOverlay(),
         ],
       );
     }
-
     return Stack(
       fit: StackFit.expand,
       children: [

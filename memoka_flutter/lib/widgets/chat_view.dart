@@ -645,9 +645,16 @@ class _ChatViewState extends ConsumerState<ChatView>
     final channelId = ref.read(currentChannelProvider).value;
     if (channelId == null) return;
 
+    // If dialog is already open, add files to it instead of opening a second.
+    if (MultiFileUploadDialog.isOpen) {
+      MultiFileUploadDialog.addFiles(uploadFiles);
+      return;
+    }
+
     await showDialog(
       context: context,
       builder: (_) => MultiFileUploadDialog(
+        key: MultiFileUploadDialog.activeKey,
         files: uploadFiles,
         onSend: (files) {
           for (final file in files) {
