@@ -98,7 +98,7 @@ data/media/
 
 - **Deduplication**: Same source URL always maps to the same file (hash-based naming)
 - **Size limit**: 5MB max per image; larger images are skipped (stored as null)
-- **Backward compatibility**: Legacy external URLs (starting with `http`) are passed through by `FileUtils.resolvePreviewUrl()` on the client; new previews store relative paths
+- **External URL rejection**: `FileUtils.resolvePreviewUrl()` returns `null` for legacy external URLs (starting with `http`) — they are not rendered, preventing CanvasKit cross-origin crashes on web. The startup migration converts these to self-hosted relative paths.
 - **Startup migration**: `_migrateExternalPreviewImages()` in `server.dart` runs once on first startup after deploy, re-downloads existing external preview images to local storage. Marker file (`previews/.migrated`) prevents re-runs.
 
 ## Edge Cases

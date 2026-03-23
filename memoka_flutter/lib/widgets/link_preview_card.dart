@@ -29,16 +29,14 @@ class LinkPreviewCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image (if available)
-            if (preview.imageUrl != null)
+            // Image (if available and resolvable)
+            if (FileUtils.resolvePreviewUrl(serverUrl, preview.imageUrl)
+                case final resolvedImageUrl?)
               SizedBox(
                 height: 160,
                 width: double.infinity,
                 child: CachedNetworkImage(
-                  imageUrl: FileUtils.resolvePreviewUrl(
-                    serverUrl,
-                    preview.imageUrl,
-                  )!,
+                  imageUrl: resolvedImageUrl,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
                     color: bg,
@@ -94,12 +92,13 @@ class LinkPreviewCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      if (preview.faviconUrl != null)
-                        CachedNetworkImage(
-                          imageUrl: FileUtils.resolvePreviewUrl(
+                      if (FileUtils.resolvePreviewUrl(
                             serverUrl,
                             preview.faviconUrl,
-                          )!,
+                          )
+                          case final resolvedFaviconUrl?)
+                        CachedNetworkImage(
+                          imageUrl: resolvedFaviconUrl,
                           width: 16,
                           height: 16,
                           errorWidget: (context, url, error) => PhosphorIcon(

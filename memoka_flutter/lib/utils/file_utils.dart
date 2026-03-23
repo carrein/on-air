@@ -161,11 +161,12 @@ class FileUtils {
 
   /// Resolve a link preview image URL.
   /// New previews store a relative path (e.g. "previews/abc.jpg") that is
-  /// served via /media. Legacy previews store an absolute external URL.
+  /// served via /media. Legacy external URLs are skipped (return null) because
+  /// cross-origin images crash CanvasKit on Flutter web.
   static String? resolvePreviewUrl(String serverUrl, String? urlOrPath) {
     if (urlOrPath == null) return null;
     if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
-      return urlOrPath;
+      return null;
     }
     return buildMediaUrl(serverUrl, urlOrPath, null);
   }

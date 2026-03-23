@@ -33,12 +33,10 @@ class LinkListItem extends StatelessWidget {
               // Title and favicon row
               Row(
                 children: [
-                  if (link.faviconUrl != null) ...[
+                  if (FileUtils.resolvePreviewUrl(serverUrl, link.faviconUrl)
+                      case final resolvedFaviconUrl?) ...[
                     Image.network(
-                      FileUtils.resolvePreviewUrl(
-                        serverUrl,
-                        link.faviconUrl,
-                      )!,
+                      resolvedFaviconUrl,
                       width: 16,
                       height: 16,
                       errorBuilder: (context, error, stackTrace) {
