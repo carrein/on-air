@@ -3,6 +3,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../main.dart' show serverUrl;
+import '../utils/file_utils.dart';
 import 'app_spinner.dart';
 
 /// Card widget displaying link preview metadata below a message.
@@ -33,7 +35,10 @@ class LinkPreviewCard extends StatelessWidget {
                 height: 160,
                 width: double.infinity,
                 child: CachedNetworkImage(
-                  imageUrl: preview.imageUrl!,
+                  imageUrl: FileUtils.resolvePreviewUrl(
+                    serverUrl,
+                    preview.imageUrl,
+                  )!,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
                     color: bg,
@@ -91,7 +96,10 @@ class LinkPreviewCard extends StatelessWidget {
                     children: [
                       if (preview.faviconUrl != null)
                         CachedNetworkImage(
-                          imageUrl: preview.faviconUrl!,
+                          imageUrl: FileUtils.resolvePreviewUrl(
+                            serverUrl,
+                            preview.faviconUrl,
+                          )!,
                           width: 16,
                           height: 16,
                           errorWidget: (context, url, error) => PhosphorIcon(

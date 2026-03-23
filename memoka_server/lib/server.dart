@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:serverpod/serverpod.dart';
+import 'src/chat/link_preview_service.dart';
 import 'src/pagewatch/page_watch_service.dart';
 import 'src/pagewatch/page_watch_setup.dart';
 import 'src/reminder/reminder_service.dart';
@@ -135,6 +136,10 @@ void run(List<String> args) async {
 
   // Initialize per-reminder timer scheduler (replaces 60s batch poll)
   await ReminderService.init(pod);
+
+  // One-time migration: download external preview images to local storage.
+  // Idempotent — skips notes whose imageUrl/faviconUrl are already local paths.
+  unawaited(_migrateExternalPreviewImages(pod));
 }
 
 Future<void> _ensureAppSettings(Serverpod pod) async {
@@ -153,6 +158,94 @@ Future<void> _ensureAppSettings(Serverpod pod) async {
       VALUES (1, 0)
       ON CONFLICT ("id") DO NOTHING
     ''');
+  } finally {
+    await session.close();
+  }
+}
+
+/// One-time migration: re-download external preview images to local storage.
+/// After this, imageUrl/faviconUrl fields store relative paths served via /media.
+/// Idempotent: skips notes whose URLs are already relative (non-http) paths.
+Future<void> _migrateExternalPreviewImages(Serverpod pod) async {
+  // Skip if already completed
+  final marker = File('${ServerConstants.mediaBaseDir}/previews/.migrated');
+  if (await marker.exists()) return;
+
+  final session = await pod.createSession();
+  try {
+    // ColumnSerializable (JSONB) doesn't support notEquals, so use raw SQL
+    // to get IDs of notes with link previews, then load via ORM.
+    final rows = await session.db.unsafeQuery(
+      '''SELECT "id" FROM "notes" WHERE "linkPreview" IS NOT NULL''',
+    );
+    if (rows.isEmpty) {
+      await marker.parent.create(recursive: true);
+      await marker.writeAsString('');
+      return;
+    }
+
+    final ids = rows.map((r) => r.toColumnMap()['id'] as int).toList();
+    final notes = await Note.db.find(
+      session,
+      where: (t) => t.id.inSet(ids.toSet()),
+    );
+
+    var migrated = 0;
+    for (final note in notes) {
+      final preview = note.linkPreview;
+      if (preview == null) continue;
+      var changed = false;
+
+      var newImageUrl = preview.imageUrl;
+      var newFaviconUrl = preview.faviconUrl;
+
+      // Download external OG image
+      if (newImageUrl != null &&
+          (newImageUrl.startsWith('http://') ||
+              newImageUrl.startsWith('https://'))) {
+        newImageUrl = await LinkPreviewService.downloadPreviewImage(
+          newImageUrl,
+          'previews',
+        );
+        changed = true;
+      }
+
+      // Download external favicon
+      if (newFaviconUrl != null &&
+          (newFaviconUrl.startsWith('http://') ||
+              newFaviconUrl.startsWith('https://'))) {
+        newFaviconUrl = await LinkPreviewService.downloadPreviewImage(
+          newFaviconUrl,
+          'previews/favicons',
+        );
+        changed = true;
+      }
+
+      if (changed) {
+        note.linkPreview = LinkPreview(
+          url: preview.url,
+          title: preview.title,
+          description: preview.description,
+          imageUrl: newImageUrl,
+          faviconUrl: newFaviconUrl,
+          fetchedAt: preview.fetchedAt,
+        );
+        await Note.db.updateRow(session, note);
+        migrated++;
+      }
+    }
+
+    if (migrated > 0) {
+      session.log(
+        'Migrated $migrated link preview(s) to self-hosted images',
+      );
+    }
+
+    // Mark migration as complete
+    await marker.parent.create(recursive: true);
+    await marker.writeAsString('');
+  } catch (e) {
+    session.log('Preview image migration error: $e', level: LogLevel.warning);
   } finally {
     await session.close();
   }

@@ -159,6 +159,17 @@ class FileUtils {
     return '$m:$s';
   }
 
+  /// Resolve a link preview image URL.
+  /// New previews store a relative path (e.g. "previews/abc.jpg") that is
+  /// served via /media. Legacy previews store an absolute external URL.
+  static String? resolvePreviewUrl(String serverUrl, String? urlOrPath) {
+    if (urlOrPath == null) return null;
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      return urlOrPath;
+    }
+    return buildMediaUrl(serverUrl, urlOrPath, null);
+  }
+
   /// Build media URL with cache busting.
   /// Serverpod runs the API on port 8080 and the web server (which serves
   /// /media) on port 8082. If the server URL uses port 8080, swap to 8082.

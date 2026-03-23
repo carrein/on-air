@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../main.dart' show serverUrl;
 import '../models/channel_media.dart';
+import '../utils/file_utils.dart';
 
 /// Individual list item displaying a link preview card.
 class LinkListItem extends StatelessWidget {
@@ -33,7 +35,10 @@ class LinkListItem extends StatelessWidget {
                 children: [
                   if (link.faviconUrl != null) ...[
                     Image.network(
-                      link.faviconUrl!,
+                      FileUtils.resolvePreviewUrl(
+                        serverUrl,
+                        link.faviconUrl,
+                      )!,
                       width: 16,
                       height: 16,
                       errorBuilder: (context, error, stackTrace) {

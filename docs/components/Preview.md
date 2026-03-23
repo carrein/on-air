@@ -6,6 +6,7 @@ The link preview feature automatically detects URLs in messages and generates ri
 
 ### Hybrid Approach
 - **Server-side fetching**: Prevents CORS issues, ensures consistent data across clients
+- **Self-hosted images**: OG images and favicons are downloaded to `data/media/previews/` during fetch, served via `/media` with CORS headers — eliminates CanvasKit crashes on web
 - **Async processing**: Link previews are fetched after note creation to avoid blocking
 - **Real-time updates**: Previews broadcast via WebSocket when ready
 - **Client-side indication**: Simple "Link detected" banner while typing
@@ -21,8 +22,8 @@ fields:
   url: String              # The fully qualified URL
   title: String?           # Page title (from OG or <title> tag)
   description: String?     # Description (from OG or meta description)
-  imageUrl: String?        # Image URL (from OG image)
-  faviconUrl: String?      # Favicon URL
+  imageUrl: String?        # Relative path to self-hosted OG image (e.g. "previews/abc123.jpg")
+  faviconUrl: String?      # Relative path to self-hosted favicon (e.g. "previews/favicons/abc123.ico")
   fetchedAt: DateTime      # When the preview was fetched
 ```
 
@@ -36,7 +37,9 @@ Location: `memoka_server/lib/src/chat/link_preview_service.dart`
 
 **Key methods:**
 - `extractFirstUrl(String content)` - Extracts the first fully qualified URL using regex
-- `fetchPreview(String url)` - Fetches and parses link metadata via HTTP
+- `fetchPreview(String url)` - Fetches and parses link metadata via HTTP, downloads OG image and favicon to local disk
+- `downloadPreviewImage(url, subDir)` - Public entry point for downloading an external image (used by startup migration)
+- `_downloadImage(url, subDir)` - Streams image to `data/media/{subDir}/{urlHash}.{ext}`, 5MB max, SHA-256 URL hash for dedup
 - `_extractMeta()` - Extracts OpenGraph and meta tags
 - `_makeAbsoluteUrl()` - Converts relative URLs to absolute URLs
 - `_extractFavicon()` - Extracts and resolves favicon URL
@@ -81,12 +84,29 @@ Links in markdown are made clickable via `MarkdownBody` with `url_launcher`.
 - `url_launcher: ^6.3.1` - Opening links in external browser
 - `cached_network_image: ^3.4.1` - Efficient image loading and caching
 
+## Image Storage
+
+Preview images are downloaded server-side and stored locally:
+
+```
+data/media/
+└── previews/
+    ├── {urlHash}.{ext}        # OG images (SHA-256 hash of source URL, first 16 chars)
+    └── favicons/
+        └── {urlHash}.{ext}    # Favicons
+```
+
+- **Deduplication**: Same source URL always maps to the same file (hash-based naming)
+- **Size limit**: 5MB max per image; larger images are skipped (stored as null)
+- **Backward compatibility**: Legacy external URLs (starting with `http`) are passed through by `FileUtils.resolvePreviewUrl()` on the client; new previews store relative paths
+- **Startup migration**: `_migrateExternalPreviewImages()` in `server.dart` runs once on first startup after deploy, re-downloads existing external preview images to local storage. Marker file (`previews/.migrated`) prevents re-runs.
+
 ## Edge Cases
 
 - **Multiple links**: Only first URL is previewed (others remain clickable)
 - **Invalid URLs**: Gracefully ignored, note creation succeeds
 - **Image failures**: Shows broken image icon
-- **CORS**: Server-side fetching avoids browser restrictions
+- **CORS**: OG images and favicons are self-hosted via `/media` — no cross-origin issues on web
 
 ## Related Files
 

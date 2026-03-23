@@ -88,6 +88,10 @@ Wraps the *outgoing network stream* (via `multipart.finalize() → StreamedReque
 │   │   ├── {uuid}.webp
 │   │   └── thumbnails/
 │   │       └── {uuid}_thumb.webp
+└── previews/                     # Link preview assets (self-hosted)
+    ├── {urlHash}.{ext}           # OG images (SHA-256 hash of source URL)
+    └── favicons/
+        └── {urlHash}.{ext}       # Favicons
 ```
 
 **Key Decisions:**
