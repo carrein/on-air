@@ -159,14 +159,32 @@ class FileUtils {
     return '$m:$s';
   }
 
+  /// Extensions that CanvasKit can decode as raster images.
+  static const _safeImageExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webp',
+    'bmp',
+    'wbmp',
+  };
+
   /// Resolve a link preview image URL.
   /// New previews store a relative path (e.g. "previews/abc.jpg") that is
-  /// served via /media. Legacy external URLs are skipped (return null) because
-  /// cross-origin images crash CanvasKit on Flutter web.
+  /// served via /media. Returns null for:
+  /// - Legacy external URLs (cross-origin crashes CanvasKit on web)
+  /// - Non-raster formats like SVG/ICO (CanvasKit can't decode them)
   static String? resolvePreviewUrl(String serverUrl, String? urlOrPath) {
     if (urlOrPath == null) return null;
     if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
       return null;
+    }
+    // Reject non-raster formats that CanvasKit can't decode
+    final dot = urlOrPath.lastIndexOf('.');
+    if (dot != -1) {
+      final ext = urlOrPath.substring(dot + 1).toLowerCase();
+      if (!_safeImageExtensions.contains(ext)) return null;
     }
     return buildMediaUrl(serverUrl, urlOrPath, null);
   }

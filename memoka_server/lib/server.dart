@@ -140,6 +140,10 @@ void run(List<String> args) async {
   // One-time migration: download external preview images to local storage.
   // Idempotent — skips notes whose imageUrl/faviconUrl are already local paths.
   unawaited(_migrateExternalPreviewImages(pod));
+
+  // One-time cleanup: null out non-raster preview paths (SVG, ICO, etc.)
+  // that were downloaded before the format filter was added.
+  unawaited(_cleanupNonRasterPreviews(pod));
 }
 
 Future<void> _ensureAppSettings(Serverpod pod) async {
@@ -246,6 +250,102 @@ Future<void> _migrateExternalPreviewImages(Serverpod pod) async {
     await marker.writeAsString('');
   } catch (e) {
     session.log('Preview image migration error: $e', level: LogLevel.warning);
+  } finally {
+    await session.close();
+  }
+}
+
+/// One-time cleanup: null out non-raster preview image/favicon paths (SVG, ICO,
+/// etc.) that were downloaded before the raster-only filter was added.
+/// These formats crash CanvasKit on Flutter web.
+Future<void> _cleanupNonRasterPreviews(Serverpod pod) async {
+  const safeExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webp',
+    'bmp',
+    'wbmp',
+  };
+
+  final marker = File(
+    '${ServerConstants.mediaBaseDir}/previews/.format_cleaned',
+  );
+  if (await marker.exists()) return;
+
+  final session = await pod.createSession();
+  try {
+    final rows = await session.db.unsafeQuery(
+      '''SELECT "id" FROM "notes" WHERE "linkPreview" IS NOT NULL''',
+    );
+    if (rows.isEmpty) {
+      await marker.parent.create(recursive: true);
+      await marker.writeAsString('');
+      return;
+    }
+
+    final ids = rows.map((r) => r.toColumnMap()['id'] as int).toList();
+    final notes = await Note.db.find(
+      session,
+      where: (t) => t.id.inSet(ids.toSet()),
+    );
+
+    bool isUnsafe(String? path) {
+      if (path == null) return false;
+      // External URLs are handled separately; only check local paths
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        return false;
+      }
+      final dot = path.lastIndexOf('.');
+      if (dot == -1) return true; // no extension — unsafe
+      final ext = path.substring(dot + 1).toLowerCase();
+      return !safeExtensions.contains(ext);
+    }
+
+    var cleaned = 0;
+    for (final note in notes) {
+      final preview = note.linkPreview;
+      if (preview == null) continue;
+      var changed = false;
+
+      var newImageUrl = preview.imageUrl;
+      var newFaviconUrl = preview.faviconUrl;
+
+      if (isUnsafe(newImageUrl)) {
+        newImageUrl = null;
+        changed = true;
+      }
+      if (isUnsafe(newFaviconUrl)) {
+        newFaviconUrl = null;
+        changed = true;
+      }
+
+      if (changed) {
+        note.linkPreview = LinkPreview(
+          url: preview.url,
+          title: preview.title,
+          description: preview.description,
+          imageUrl: newImageUrl,
+          faviconUrl: newFaviconUrl,
+          fetchedAt: preview.fetchedAt,
+        );
+        await Note.db.updateRow(session, note);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      session.log('Cleaned $cleaned non-raster preview path(s)');
+    }
+
+    await marker.parent.create(recursive: true);
+    await marker.writeAsString('');
+  } catch (e) {
+    session.log(
+      'Non-raster preview cleanup error: $e',
+      level: LogLevel.warning,
+    );
   } finally {
     await session.close();
   }

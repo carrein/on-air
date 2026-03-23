@@ -16,6 +16,17 @@ class LinkPreviewService {
   static const _timeout = Duration(seconds: 10);
   static const _maxImageBytes = 5 * 1024 * 1024; // 5 MB
 
+  /// File extensions that correspond to CanvasKit-safe raster formats.
+  static const _rasterExtensions = {
+    'jpg',
+    'jpeg',
+    'png',
+    'gif',
+    'webp',
+    'bmp',
+    'wbmp',
+  };
+
   /// Extract first fully qualified URL from content.
   static String? extractFirstUrl(String content) {
     final urlRegex = RegExp(
@@ -110,6 +121,12 @@ class LinkPreviewService {
           _extensionFromContentType(contentType) ??
           _extensionFromUrl(url) ??
           'bin';
+
+      // Reject non-raster formats (SVG, ICO, etc.) — CanvasKit can't decode them
+      if (!_rasterExtensions.contains(ext)) {
+        unawaited(streamed.stream.drain<void>());
+        return null;
+      }
 
       // Hash the URL for deduplication
       final hash = _hashUrl(url);
