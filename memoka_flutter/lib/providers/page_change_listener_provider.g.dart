@@ -56,4 +56,4 @@ final class PageChangeListenerProvider
 }
 
 String _$pageChangeListenerHash() =>
-    r'355273e9cd38bc45ccee895ee6b86bbfe839ac85';
+    r'625ebe9490e69a2c3267e2132a50e66ce261c8d1';

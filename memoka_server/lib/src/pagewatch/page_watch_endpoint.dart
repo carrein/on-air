@@ -4,11 +4,8 @@ import '../shared/constants.dart';
 
 /// Endpoint for managing page watches on notes.
 class PageWatchEndpoint extends Endpoint {
-  /// URL regex matching the same pattern used on the client side.
-  static final _urlPattern = RegExp(
-    r'https?://[^\s<>"{}|\\^`\[\]]+',
-    caseSensitive: false,
-  );
+  /// URL regex — uses the shared pattern from ServerConstants.
+  static final _urlPattern = ServerConstants.urlPattern;
 
   /// Creates a page watch for a note. The note must contain exactly one URL.
   Future<PageWatch> createWatch(Session session, int noteId) async {
@@ -117,17 +114,18 @@ class PageWatchEndpoint extends Endpoint {
 
   static PageWatch _rowToPageWatch(Map<String, dynamic> cols) {
     return PageWatch(
-      noteId: cols['noteId'] as int,
-      channelId: cols['channelId'] as int,
-      url: cols['url'] as String,
+      noteId: cols['noteId'] as int? ?? 0,
+      channelId: cols['channelId'] as int? ?? 0,
+      url: cols['url'] as String? ?? '',
       contentHash: cols['contentHash'] as String?,
       lastCheckedAt: cols['lastCheckedAt'] as DateTime?,
-      enabled: cols['enabled'] as bool,
-      consecutiveFailures: cols['consecutiveFailures'] as int,
+      enabled: cols['enabled'] as bool? ?? true,
+      consecutiveFailures: cols['consecutiveFailures'] as int? ?? 0,
       lastError: cols['lastError'] as String?,
-      hasUnacknowledgedChange: cols['hasUnacknowledgedChange'] as bool,
-      createdAt: cols['createdAt'] as DateTime,
-      updatedAt: cols['updatedAt'] as DateTime,
+      hasUnacknowledgedChange:
+          cols['hasUnacknowledgedChange'] as bool? ?? false,
+      createdAt: cols['createdAt'] as DateTime? ?? DateTime.now(),
+      updatedAt: cols['updatedAt'] as DateTime? ?? DateTime.now(),
     );
   }
 }

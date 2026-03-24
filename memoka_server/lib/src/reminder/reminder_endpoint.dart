@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../shared/constants.dart';
+import '../sync/version_helper.dart';
 import 'reminder_service.dart';
 
 /// Endpoint for managing reminders on notes.
@@ -59,7 +60,7 @@ class ReminderEndpoint extends Endpoint {
       );
     }
 
-    await _incrementGlobalVersion(session);
+    await incrementGlobalVersion(session);
 
     // Fetch the created/updated row for its id
     final reminder = await _getReminderByNoteId(session, noteId);
@@ -100,7 +101,7 @@ class ReminderEndpoint extends Endpoint {
       'DELETE FROM "reminders" WHERE "noteId" = $noteId',
     );
 
-    await _incrementGlobalVersion(session);
+    await incrementGlobalVersion(session);
 
     // Notify the in-memory scheduler
     ReminderService.onReminderDeleted(noteId);
@@ -157,7 +158,7 @@ class ReminderEndpoint extends Endpoint {
       'WHERE "noteId" = $noteId',
     );
 
-    await _incrementGlobalVersion(session);
+    await incrementGlobalVersion(session);
 
     // Notify the in-memory scheduler
     ReminderService.onReminderUpdated(
@@ -234,20 +235,14 @@ class ReminderEndpoint extends Endpoint {
 
   static Reminder _rowToReminder(Map<String, dynamic> cols) {
     return Reminder(
-      noteId: cols['noteId'] as int,
-      channelId: cols['channelId'] as int,
-      scheduledAt: cols['scheduledAt'] as DateTime,
+      noteId: cols['noteId'] as int? ?? 0,
+      channelId: cols['channelId'] as int? ?? 0,
+      scheduledAt: cols['scheduledAt'] as DateTime? ?? DateTime.now(),
       noteContent: cols['noteContent'] as String?,
-      fired: cols['fired'] as bool,
-      createdAt: cols['createdAt'] as DateTime,
+      fired: cols['fired'] as bool? ?? false,
+      createdAt: cols['createdAt'] as DateTime? ?? DateTime.now(),
       recurrenceRule: cols['recurrenceRule'] as String?,
       recurrenceEndAt: cols['recurrenceEndAt'] as DateTime?,
-    );
-  }
-
-  Future<void> _incrementGlobalVersion(Session session) async {
-    await session.db.unsafeQuery(
-      'UPDATE "sync_state" SET "globalVersion" = "globalVersion" + 1',
     );
   }
 }

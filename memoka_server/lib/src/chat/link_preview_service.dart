@@ -29,11 +29,7 @@ class LinkPreviewService {
 
   /// Extract first fully qualified URL from content.
   static String? extractFirstUrl(String content) {
-    final urlRegex = RegExp(
-      r'https?://[^\s<>"{}|\\^`\[\]]+',
-      caseSensitive: false,
-    );
-    final match = urlRegex.firstMatch(content);
+    final match = ServerConstants.urlPattern.firstMatch(content);
     return match?.group(0);
   }
 
@@ -92,6 +88,7 @@ class LinkPreviewService {
       );
     } catch (e) {
       // Network error, timeout, or parsing error
+      stderr.writeln('LinkPreviewService.fetchPreview failed for $url: $e');
       return null;
     }
   }

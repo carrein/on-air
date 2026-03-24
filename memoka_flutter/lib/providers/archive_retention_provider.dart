@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../main.dart';
@@ -12,7 +13,8 @@ class ArchiveRetention extends _$ArchiveRetention {
     try {
       final settings = await client.settings.getSettings();
       return settings.archiveRetentionDays;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ArchiveRetention.build failed: $e');
       return 0;
     }
   }
@@ -23,7 +25,8 @@ class ArchiveRetention extends _$ArchiveRetention {
       await client.settings.updateSettings(
         AppSettings(archiveRetentionDays: days),
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ArchiveRetention.updateRetention failed: $e');
       // Revert on failure
       ref.invalidateSelf();
     }

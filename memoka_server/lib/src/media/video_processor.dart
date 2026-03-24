@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
+import 'hash_utils.dart';
+import 'process_params.dart';
 
 /// Result of video processing.
 class ProcessedVideoResult {
@@ -32,19 +34,6 @@ class ProcessedVideoResult {
   });
 }
 
-/// Parameters for video processing in isolate.
-class _ProcessVideoParams {
-  final String tempFilePath;
-  final String finalFilePath;
-  final String channelDir;
-
-  _ProcessVideoParams({
-    required this.tempFilePath,
-    required this.finalFilePath,
-    required this.channelDir,
-  });
-}
-
 /// Video processor for handling thumbnail generation and metadata extraction.
 ///
 /// Requires ffmpeg to be installed on the system.
@@ -67,25 +56,23 @@ class VideoProcessor {
     required String finalFilePath,
     required String channelDir,
   }) async {
-    final params = _ProcessVideoParams(
+    final params = ProcessFileParams(
       tempFilePath: tempFilePath,
       finalFilePath: finalFilePath,
       channelDir: channelDir,
     );
 
-    return await _processInIsolate(params);
+    return await _processFile(params);
   }
 
-  /// Actual processing logic (runs in isolate).
-  static Future<ProcessedVideoResult> _processInIsolate(
-    _ProcessVideoParams params,
+  /// Processes the file: hashes, extracts metadata, generates thumbnail.
+  static Future<ProcessedVideoResult> _processFile(
+    ProcessFileParams params,
   ) async {
     final tempFile = File(params.tempFilePath);
-    final bytes = await tempFile.readAsBytes();
 
-    // Calculate content hash
-    final hash = sha256.convert(bytes);
-    final contentHash = hash.toString().substring(0, 8);
+    // Calculate content hash via streaming (avoids loading entire file into memory)
+    final contentHash = await computeFileHash(params.tempFilePath);
 
     // Check if ffmpeg is available
     final ffmpegAvailable = await _checkFfmpegAvailable();
@@ -125,14 +112,18 @@ class VideoProcessor {
     );
   }
 
-  /// Check if ffmpeg is available on the system.
+  static bool? _ffmpegAvailable;
+
+  /// Check if ffmpeg is available on the system (cached after first check).
   static Future<bool> _checkFfmpegAvailable() async {
+    if (_ffmpegAvailable != null) return _ffmpegAvailable!;
     try {
       final result = await Process.run('ffmpeg', ['-version']);
-      return result.exitCode == 0;
+      _ffmpegAvailable = result.exitCode == 0;
     } catch (_) {
-      return false;
+      _ffmpegAvailable = false;
     }
+    return _ffmpegAvailable!;
   }
 
   /// Get video metadata using ffprobe.

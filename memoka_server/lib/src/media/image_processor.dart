@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
+import 'process_params.dart';
 
 /// Result of image processing.
 class ProcessedImageResult {
@@ -34,19 +35,6 @@ class ProcessedImageResult {
     required this.contentHash,
     required this.compressed,
     required this.animated,
-  });
-}
-
-/// Parameters for image processing in isolate.
-class _ProcessImageParams {
-  final String tempFilePath;
-  final String finalFilePath;
-  final String channelDir;
-
-  _ProcessImageParams({
-    required this.tempFilePath,
-    required this.finalFilePath,
-    required this.channelDir,
   });
 }
 
@@ -84,18 +72,18 @@ class ImageProcessor {
     required String finalFilePath,
     required String channelDir,
   }) async {
-    final params = _ProcessImageParams(
+    final params = ProcessFileParams(
       tempFilePath: tempFilePath,
       finalFilePath: finalFilePath,
       channelDir: channelDir,
     );
 
-    return await _processInIsolate(params);
+    return await _processFile(params);
   }
 
-  /// Actual processing logic (runs in isolate).
-  static Future<ProcessedImageResult> _processInIsolate(
-    _ProcessImageParams params,
+  /// Processes the file: decodes, hashes, converts if needed, generates thumbnail.
+  static Future<ProcessedImageResult> _processFile(
+    ProcessFileParams params,
   ) async {
     final tempFile = File(params.tempFilePath);
     final bytes = await tempFile.readAsBytes();

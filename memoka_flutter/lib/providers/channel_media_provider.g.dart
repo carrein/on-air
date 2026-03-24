@@ -10,21 +10,21 @@ part of 'channel_media_provider.dart';
 // ignore_for_file: type=lint, type=warning
 /// Provides all media and links for a specific channel.
 /// Synchronously derives from notesProvider so the MediaPanel never sees
-/// a loading→data flicker when notes change.
+/// a loading->data flicker when notes change.
 
 @ProviderFor(channelMediaData)
 final channelMediaDataProvider = ChannelMediaDataFamily._();
 
 /// Provides all media and links for a specific channel.
 /// Synchronously derives from notesProvider so the MediaPanel never sees
-/// a loading→data flicker when notes change.
+/// a loading->data flicker when notes change.
 
 final class ChannelMediaDataProvider
     extends $FunctionalProvider<ChannelMedia, ChannelMedia, ChannelMedia>
     with $Provider<ChannelMedia> {
   /// Provides all media and links for a specific channel.
   /// Synchronously derives from notesProvider so the MediaPanel never sees
-  /// a loading→data flicker when notes change.
+  /// a loading->data flicker when notes change.
   ChannelMediaDataProvider._({
     required ChannelMediaDataFamily super.from,
     required int super.argument,
@@ -80,7 +80,7 @@ String _$channelMediaDataHash() => r'b7f1208217f06f104fe40cf663494ca2513d1949';
 
 /// Provides all media and links for a specific channel.
 /// Synchronously derives from notesProvider so the MediaPanel never sees
-/// a loading→data flicker when notes change.
+/// a loading->data flicker when notes change.
 
 final class ChannelMediaDataFamily extends $Family
     with $FunctionalFamilyOverride<ChannelMedia, int> {
@@ -95,7 +95,7 @@ final class ChannelMediaDataFamily extends $Family
 
   /// Provides all media and links for a specific channel.
   /// Synchronously derives from notesProvider so the MediaPanel never sees
-  /// a loading→data flicker when notes change.
+  /// a loading->data flicker when notes change.
 
   ChannelMediaDataProvider call(int channelId) =>
       ChannelMediaDataProvider._(argument: channelId, from: this);

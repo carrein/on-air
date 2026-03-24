@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
+import '../constants/chat_event_types.dart';
 import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
@@ -18,12 +20,12 @@ class ArchiveItems extends _$ArchiveItems {
     ref.listen(chatStreamProvider, (_, event) {
       event.whenData((chatEvent) {
         if ([
-          'noteArchived',
-          'noteRestored',
-          'noteDeleted',
-          'channelArchived',
-          'channelRestored',
-          'channelDeleted',
+          ChatEventTypes.noteArchived,
+          ChatEventTypes.noteRestored,
+          ChatEventTypes.noteDeleted,
+          ChatEventTypes.channelArchived,
+          ChatEventTypes.channelRestored,
+          ChatEventTypes.channelDeleted,
         ].contains(chatEvent.type)) {
           _refetchAndCache();
         }
@@ -40,7 +42,10 @@ class ArchiveItems extends _$ArchiveItems {
 
     // 1. Load from cache and emit immediately
     final cached = await db.getCachedArchiveItems().catchError(
-      (_) => <ArchiveItem>[],
+      (e) {
+        debugPrint('ArchiveItems.build cache load failed: $e');
+        return <ArchiveItem>[];
+      },
     );
     if (cached.isNotEmpty) {
       state = AsyncData(cached);
@@ -51,11 +56,12 @@ class ArchiveItems extends _$ArchiveItems {
       final items = await client.chat.getArchiveItems(limit: 50);
       try {
         await db.cacheArchiveItems(items);
-      } catch (_) {
-        // Cache write failed; items still returned.
+      } catch (e) {
+        debugPrint('ArchiveItems.build cache write failed: $e');
       }
       return items;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('ArchiveItems.build server fetch failed: $e');
       return state.value ?? [];
     }
   }
@@ -67,9 +73,11 @@ class ArchiveItems extends _$ArchiveItems {
       try {
         final db = ref.read(appDatabaseProvider);
         await db.cacheArchiveItems(items);
-      } catch (_) {}
-    } catch (_) {
-      // Keep current state on error
+      } catch (e) {
+        debugPrint('ArchiveItems._refetchAndCache cache write failed: $e');
+      }
+    } catch (e) {
+      debugPrint('ArchiveItems._refetchAndCache failed: $e');
     }
   }
 

@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
+import '../constants/chat_event_types.dart';
 import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
@@ -21,19 +24,32 @@ class Channels extends _$Channels {
   /// (avoids primary key conflicts in the cache tables).
   static int _nextProvisionalId = -DateTime.now().millisecondsSinceEpoch;
 
+  Timer? _refetchTimer;
+
+  void _scheduleRefetch() {
+    _refetchTimer?.cancel();
+    _refetchTimer = Timer(const Duration(milliseconds: 300), () {
+      _refetchAndCache();
+    });
+  }
+
   @override
   Future<List<Channel>> build() async {
     final db = ref.read(appDatabaseProvider);
 
+    ref.onDispose(() {
+      _refetchTimer?.cancel();
+    });
+
     // Listen to chat stream for real-time updates
     ref.listen(chatStreamProvider, (_, event) {
       event.whenData((chatEvent) {
-        if (chatEvent.type == 'channelCreated' ||
-            chatEvent.type == 'channelDeleted' ||
-            chatEvent.type == 'channelUpdated' ||
-            chatEvent.type == 'channelArchived' ||
-            chatEvent.type == 'channelRestored') {
-          _refetchAndCache();
+        if (chatEvent.type == ChatEventTypes.channelCreated ||
+            chatEvent.type == ChatEventTypes.channelDeleted ||
+            chatEvent.type == ChatEventTypes.channelUpdated ||
+            chatEvent.type == ChatEventTypes.channelArchived ||
+            chatEvent.type == ChatEventTypes.channelRestored) {
+          _scheduleRefetch();
         }
       });
     });
@@ -53,7 +69,8 @@ class Channels extends _$Channels {
       );
       await db.cacheChannels(serverChannels);
       return serverChannels;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Channels.build server fetch failed: $e');
       return state.value ?? [];
     }
   }
@@ -64,8 +81,8 @@ class Channels extends _$Channels {
       final db = ref.read(appDatabaseProvider);
       await db.cacheChannels(channels);
       state = AsyncData(channels);
-    } catch (_) {
-      // Keep current state on error
+    } catch (e) {
+      debugPrint('Channels._refetchAndCache failed: $e');
     }
   }
 

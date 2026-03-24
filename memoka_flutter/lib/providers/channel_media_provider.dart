@@ -8,7 +8,7 @@ part 'channel_media_provider.g.dart';
 
 /// Provides all media and links for a specific channel.
 /// Synchronously derives from notesProvider so the MediaPanel never sees
-/// a loading→data flicker when notes change.
+/// a loading->data flicker when notes change.
 @riverpod
 ChannelMedia channelMediaData(Ref ref, int channelId) {
   final notesAsync = ref.watch(notesProvider(channelId));

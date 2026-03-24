@@ -55,7 +55,7 @@ final class NotesProvider extends $AsyncNotifierProvider<Notes, List<Note>> {
   }
 }
 
-String _$notesHash() => r'2d3b820a20734b5ea8413bc5e4fb5ebdd273c2d6';
+String _$notesHash() => r'88b50fc42245956cc97b9d191d427e2fd87974d8';
 
 /// Manages notes for a specific channel with local-first caching,
 /// pagination, and real-time updates.

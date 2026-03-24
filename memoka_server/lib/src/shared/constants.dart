@@ -7,6 +7,13 @@ const int maxNoteContentLength = 200000;
 class ServerConstants {
   static const String mediaBaseDir = 'data/media';
 
+  /// Regex pattern for matching fully qualified URLs in text content.
+  /// Shared between link preview extraction, page watch, and other URL detection.
+  static final RegExp urlPattern = RegExp(
+    r'https?://[^\s<>"{}|\\^`\[\]]+',
+    caseSensitive: false,
+  );
+
   /// Error substring thrown when attempting to delete/archive the last channel.
   /// Matched by the client for typed error detection.
   static const String lastChannelError = 'last remaining channel';
@@ -28,8 +35,12 @@ class ServerConstants {
         event,
         global: true,
       );
-    } catch (_) {
+    } catch (e) {
       // Redis not available (e.g., in test mode), skip broadcasting
+      session.log(
+        'broadcastEvent failed: $e',
+        level: LogLevel.warning,
+      );
     }
   }
 }

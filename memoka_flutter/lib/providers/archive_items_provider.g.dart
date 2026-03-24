@@ -36,7 +36,7 @@ final class ArchiveItemsProvider
   ArchiveItems create() => ArchiveItems();
 }
 
-String _$archiveItemsHash() => r'0ed66631a73f6376150f2552dcde384ac89287f2';
+String _$archiveItemsHash() => r'7cbdf26d54a0c94e97b8eeaca1af8ca10e182aef';
 
 /// Manages the mixed archive list (notes + channels) with real-time updates.
 

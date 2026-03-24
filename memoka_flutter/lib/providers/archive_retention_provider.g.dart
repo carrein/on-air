@@ -36,7 +36,7 @@ final class ArchiveRetentionProvider
   ArchiveRetention create() => ArchiveRetention();
 }
 
-String _$archiveRetentionHash() => r'9c55c63ebebde1726658783e28657408b3612475';
+String _$archiveRetentionHash() => r'7ec7802569bd017deed58d46feaeb7a58b7db733';
 
 /// Manages the archive retention setting (days). 0 = never purge.
 

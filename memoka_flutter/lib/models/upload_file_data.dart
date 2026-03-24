@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import '../services/media_service.dart';
 import '../utils/file_utils.dart';
 
 /// Helper class for upload file data.
@@ -15,6 +16,9 @@ class UploadFileData {
   final String fileName;
   final String extension;
   final Uint8List? thumbnailBytes;
+
+  /// Cached file size string, computed once.
+  late final String fileSizeFormatted = _computeFileSizeFormatted();
 
   UploadFileData({
     this.bytes,
@@ -39,21 +43,13 @@ class UploadFileData {
     return ['mp4', 'mov', 'webm', 'avi', 'mkv'].contains(ext);
   }
 
-  /// Infer MIME type from extension for video files.
-  String get mimeType {
-    const map = {
-      'mp4': 'video/mp4',
-      'mov': 'video/quicktime',
-      'webm': 'video/webm',
-      'avi': 'video/x-msvideo',
-      'mkv': 'video/x-matroska',
-    };
-    return map[extension.toLowerCase()] ?? 'video/mp4';
-  }
+  /// Infer MIME type from file name using [MediaService].
+  String get mimeType =>
+      MediaService.getMimeTypeFromExtension(fileName, filePath: filePath);
 
   IconData get fileIcon => FileUtils.getFileIcon(extension);
 
-  String get fileSizeFormatted {
+  String _computeFileSizeFormatted() {
     if (bytes != null) {
       return FileUtils.formatFileSize(bytes!.length);
     }

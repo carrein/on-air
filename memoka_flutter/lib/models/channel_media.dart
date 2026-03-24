@@ -17,10 +17,10 @@ class ChannelMedia {
 
   factory ChannelMedia.empty() {
     return ChannelMedia(
-      images: [],
-      videos: [],
-      documents: [],
-      links: [],
+      images: const [],
+      videos: const [],
+      documents: const [],
+      links: const [],
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../constants/chat_event_types.dart';
 import 'chat_stream_provider.dart';
 import 'page_watch_provider.dart';
 import '../services/notification_service.dart';
@@ -11,7 +12,7 @@ part 'page_change_listener_provider.g.dart';
 void pageChangeListener(Ref ref) {
   ref.listen(chatStreamProvider, (_, next) {
     next.whenData((event) {
-      if (event.type == 'pageChanged' && event.noteId != null) {
+      if (event.type == ChatEventTypes.pageChanged && event.noteId != null) {
         // Refresh the watch provider for badge update
         ref.invalidate(pageWatchProvider(event.noteId!));
 
@@ -32,7 +33,8 @@ void pageChangeListener(Ref ref) {
           pageUrl: preview?.url,
           faviconUrl: preview?.faviconUrl,
         );
-      } else if (event.type == 'pageWatchDisabled' && event.noteId != null) {
+      } else if (event.type == ChatEventTypes.pageWatchDisabled &&
+          event.noteId != null) {
         ref.invalidate(pageWatchProvider(event.noteId!));
       }
     });

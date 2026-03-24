@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:serverpod/serverpod.dart';
 
 import '../../generated/protocol.dart';
+import '../../media/hash_utils.dart';
 import '../../media/image_processor.dart';
 import '../../media/video_processor.dart';
 import '../../shared/constants.dart';
@@ -275,9 +276,14 @@ class MediaUploadRoute extends Route {
     final channelTempPath = path.join(channelDirPath, '$uuid.tmp');
     final finalFilePath = path.join(channelDirPath, filename);
 
-    // Move from system temp to channel dir (may be cross-device, so copy+delete).
-    await File(tempFilePath).copy(channelTempPath);
-    await File(tempFilePath).delete();
+    // Move from system temp to channel dir. Try rename first (same device),
+    // fall back to copy+delete if cross-device.
+    try {
+      await File(tempFilePath).rename(channelTempPath);
+    } on FileSystemException {
+      await File(tempFilePath).copy(channelTempPath);
+      await File(tempFilePath).delete();
+    }
 
     try {
       // Process file based on type.
@@ -315,8 +321,7 @@ class MediaUploadRoute extends Route {
           await File(channelTempPath).rename(finalFilePath);
           resultFilePath = finalFilePath;
 
-          final fileBytes = await File(finalFilePath).readAsBytes();
-          contentHash = await ImageProcessor.calculateHash(fileBytes);
+          contentHash = await computeFileHash(finalFilePath);
         }
       } else if (isVideo) {
         final result = await VideoProcessor.processVideo(
@@ -335,9 +340,7 @@ class MediaUploadRoute extends Route {
         await File(channelTempPath).rename(finalFilePath);
         resultFilePath = finalFilePath;
 
-        final fileBytes = await File(finalFilePath).readAsBytes();
-        final digest = await ImageProcessor.calculateHash(fileBytes);
-        contentHash = digest.substring(0, 8);
+        contentHash = await computeFileHash(finalFilePath);
       }
 
       // Prefer client-measured dimensions for images — Flutter's native codec

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../constants/chat_event_types.dart';
 import '../main.dart';
 import '../services/notification_service.dart';
 import 'chat_stream_provider.dart';
@@ -23,7 +25,7 @@ void reminderListener(Ref ref) {
   // Listen for reminder-related WebSocket events
   ref.listen(chatStreamProvider, (_, next) {
     next.whenData((event) {
-      if (event.type == 'reminderDue' && event.noteId != null) {
+      if (event.type == ChatEventTypes.reminderDue && event.noteId != null) {
         // Check if the client-side scheduler already fired this one
         final scheduler = ref.read(reminderSchedulerProvider.notifier);
         if (scheduler.firedLocally.contains(event.noteId)) {
@@ -57,14 +59,16 @@ void reminderListener(Ref ref) {
 
         // Auto-acknowledge one-shot reminders only
         _acknowledgeIfOneShot(event.noteId!);
-      } else if (event.type == 'reminderCreated' && event.noteId != null) {
+      } else if (event.type == ChatEventTypes.reminderCreated &&
+          event.noteId != null) {
         ref.invalidate(reminderProvider(event.noteId!));
         if (event.channelId != null) {
           ref.invalidate(channelRemindersProvider(event.channelId!));
         }
         // Fetch the new reminder and schedule it locally
         _fetchAndSchedule(ref, event.noteId!);
-      } else if (event.type == 'reminderDeleted' && event.noteId != null) {
+      } else if (event.type == ChatEventTypes.reminderDeleted &&
+          event.noteId != null) {
         ref.invalidate(reminderProvider(event.noteId!));
         if (event.channelId != null) {
           ref.invalidate(channelRemindersProvider(event.channelId!));
@@ -92,7 +96,9 @@ Future<void> _fetchAndSchedule(Ref ref, int noteId) async {
     if (reminder != null && !reminder.fired) {
       ref.read(reminderSchedulerProvider.notifier).schedule(reminder);
     }
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('_fetchAndSchedule failed: $e');
+  }
 }
 
 Future<void> _acknowledgeIfOneShot(int noteId) async {
@@ -101,7 +107,8 @@ Future<void> _acknowledgeIfOneShot(int noteId) async {
     if (current == null || current.recurrenceRule == null) {
       client.reminder.acknowledgeReminder(noteId);
     }
-  } catch (_) {
+  } catch (e) {
+    debugPrint('_acknowledgeIfOneShot failed: $e');
     // Fallback: try to acknowledge anyway
     client.reminder.acknowledgeReminder(noteId);
   }
@@ -128,7 +135,7 @@ Future<void> _pullFiredReminders(Ref ref) async {
       await client.reminder.acknowledgeReminder(reminder.noteId);
       ref.invalidate(reminderProvider(reminder.noteId));
     }
-  } catch (_) {
-    // Server may not support reminders yet — ignore
+  } catch (e) {
+    debugPrint('_pullFiredReminders failed: $e');
   }
 }

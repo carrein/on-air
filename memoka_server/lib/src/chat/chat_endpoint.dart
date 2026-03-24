@@ -4,6 +4,7 @@ import '../generated/protocol.dart';
 import '../shared/constants.dart';
 import '../shared/note_query.dart';
 import '../shared/purge_helper.dart';
+import '../shared/validation.dart';
 import '../sync/version_helper.dart';
 import 'link_preview_service.dart';
 
@@ -15,9 +16,12 @@ class ChatEndpoint extends Endpoint {
     final channels = await Channel.db.find(
       session,
       where: (t) => t.archived.equals(false) & t.deletedAt.equals(null),
+      orderBy: (t) => t.pinned,
+      orderDescending: true,
     );
 
-    // Sort: pinned first, then by position ascending, then by updatedAt descending
+    // Secondary sort: by position ascending, then by updatedAt descending.
+    // Serverpod ORM only supports a single orderBy, so secondary sort is in Dart.
     channels.sort((a, b) {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -56,15 +60,10 @@ class ChatEndpoint extends Endpoint {
     String emoji = 'chatCircle',
   }) async {
     // Input validation
-    if (name.trim().isEmpty) {
-      throw Exception('Channel name cannot be empty');
-    }
-    if (name.length > 100) {
-      throw Exception('Channel name too long (max 100 characters)');
-    }
-    if (emoji.length > 30) {
-      throw Exception('Icon key too long (max 30 characters)');
-    }
+    final nameError = Validation.validateChannelName(name);
+    if (nameError != null) throw Exception(nameError);
+    final emojiError = Validation.validateEmojiKey(emoji);
+    if (emojiError != null) throw Exception(emojiError);
 
     // Assign sortOrder / position as max + 1 so new channels appear at bottom
     final existing = await Channel.db.find(
@@ -116,9 +115,8 @@ class ChatEndpoint extends Endpoint {
     }
 
     if (name != null) {
-      if (name.trim().isEmpty) {
-        throw Exception('Channel name cannot be empty');
-      }
+      final nameError = Validation.validateChannelName(name);
+      if (nameError != null) throw Exception(nameError);
       channel.name = name;
     }
 
@@ -151,26 +149,35 @@ class ChatEndpoint extends Endpoint {
 
   /// Reorders channels within a group (pinned or unpinned).
   /// Accepts an ordered list of channel IDs; assigns position = index + 1.
-  /// Normalises all positions to 1.0, 2.0, 3.0... when any two adjacent
-  /// positions differ by less than epsilon (1e-10).
+  /// Uses a single bulk UPDATE query instead of per-channel findById+updateRow.
   Future<void> reorderChannels(
     Session session,
     List<int> channelIds,
   ) async {
+    if (channelIds.isEmpty) return;
+
     await session.db.transaction((tx) async {
       final newVersion = await incrementGlobalVersion(session, transaction: tx);
+
+      // Build a single UPDATE with CASE for position and sortOrder
+      final positionCases = StringBuffer();
+      final sortOrderCases = StringBuffer();
       for (var i = 0; i < channelIds.length; i++) {
-        final channel = await Channel.db.findById(
-          session,
-          channelIds[i],
-          transaction: tx,
-        );
-        if (channel == null) continue;
-        channel.sortOrder = i;
-        channel.position = (i + 1).toDouble();
-        channel.version = newVersion;
-        await Channel.db.updateRow(session, channel, transaction: tx);
+        final id = channelIds[i];
+        final position = (i + 1).toDouble();
+        positionCases.write('WHEN id = $id THEN $position ');
+        sortOrderCases.write('WHEN id = $id THEN $i ');
       }
+
+      await session.db.unsafeQuery(
+        'UPDATE "channels" SET '
+        '"position" = CASE ${positionCases}END, '
+        '"sortOrder" = CASE ${sortOrderCases}END, '
+        '"version" = $newVersion, '
+        '"updatedAt" = NOW() '
+        'WHERE "id" IN (${channelIds.join(",")})',
+        transaction: tx,
+      );
     });
 
     await ServerConstants.broadcastEvent(
@@ -198,12 +205,8 @@ class ChatEndpoint extends Endpoint {
     String? clientMutationId,
   }) async {
     // Input validation
-    if (content.trim().isEmpty) {
-      throw Exception('Note content cannot be empty');
-    }
-    if (content.length > maxNoteContentLength) {
-      throw Exception('Note content too long (max 200,000 characters)');
-    }
+    final contentError = Validation.validateNoteContent(content);
+    if (contentError != null) throw Exception(contentError);
 
     // Idempotency: if this mutation was already applied, return the existing note.
     if (clientMutationId != null) {
@@ -254,8 +257,11 @@ class ChatEndpoint extends Endpoint {
   }
 
   /// Fetch link preview metadata asynchronously and broadcast update.
+  /// Re-fetches the note from DB by ID to avoid mutating a stale reference.
   Future<void> _fetchLinkPreviewAsync(Session session, Note note) async {
     try {
+      final noteId = note.id!;
+
       // Extract first URL from content
       final url = LinkPreviewService.extractFirstUrl(note.content);
       if (url == null) return;
@@ -267,17 +273,21 @@ class ChatEndpoint extends Endpoint {
         return;
       }
 
+      // Re-fetch fresh note from DB to avoid mutating a stale object
+      final freshNote = await Note.db.findById(session, noteId);
+      if (freshNote == null) return;
+
       // Update note with preview — bump version
-      note.linkPreview = preview;
-      note.updatedAt = DateTime.now();
+      freshNote.linkPreview = preview;
+      freshNote.updatedAt = DateTime.now();
 
       final updated = await session.db.transaction((tx) async {
         final newVersion = await incrementGlobalVersion(
           session,
           transaction: tx,
         );
-        note.version = newVersion;
-        return Note.db.updateRow(session, note, transaction: tx);
+        freshNote.version = newVersion;
+        return Note.db.updateRow(session, freshNote, transaction: tx);
       });
 
       await ServerConstants.broadcastEvent(
@@ -299,12 +309,8 @@ class ChatEndpoint extends Endpoint {
   /// Updates a note's content (last-write-wins strategy).
   Future<Note> updateNote(Session session, int id, String content) async {
     // Input validation
-    if (content.trim().isEmpty) {
-      throw Exception('Note content cannot be empty');
-    }
-    if (content.length > maxNoteContentLength) {
-      throw Exception('Note content too long (max 200,000 characters)');
-    }
+    final contentError = Validation.validateNoteContent(content);
+    if (contentError != null) throw Exception(contentError);
 
     final note = await Note.db.findById(session, id);
     if (note == null) {
@@ -362,7 +368,7 @@ class ChatEndpoint extends Endpoint {
   }
 
   /// Archives a note by marking it as archived (soft delete).
-  /// Also disables any page watch on this note.
+  /// Also disables any page watch on this note (inside the same transaction).
   Future<void> _archiveNote(Session session, Note note) async {
     final now = DateTime.now();
     note.archived = true;
@@ -373,13 +379,14 @@ class ChatEndpoint extends Endpoint {
       final newVersion = await incrementGlobalVersion(session, transaction: tx);
       note.version = newVersion;
       await Note.db.updateRow(session, note, transaction: tx);
-    });
 
-    // Disable page watch if one exists
-    await session.db.unsafeQuery(
-      'UPDATE "page_watches" SET "enabled" = false '
-      'WHERE "noteId" = ${note.id}',
-    );
+      // Disable page watch if one exists (inside transaction)
+      await session.db.unsafeQuery(
+        'UPDATE "page_watches" SET "enabled" = false '
+        'WHERE "noteId" = ${note.id}',
+        transaction: tx,
+      );
+    });
 
     await ServerConstants.broadcastEvent(
       session,

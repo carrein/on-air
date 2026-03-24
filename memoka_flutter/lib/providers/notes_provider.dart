@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:memoka_client/memoka_client.dart';
+import '../constants/chat_event_types.dart';
 import '../local_db/database.dart';
 import '../main.dart';
 import 'chat_stream_provider.dart';
@@ -28,9 +31,26 @@ class Notes extends _$Notes {
   /// (avoids primary key conflicts in the CachedNotes table).
   static int _nextProvisionalId = -DateTime.now().millisecondsSinceEpoch;
 
+  /// Debounce timer for cache-write coalescing after rapid WebSocket events.
+  Timer? _cacheWriteTimer;
+
+  /// Schedule a debounced cache write so rapid-fire events (e.g. bulk archive)
+  /// coalesce into a single DB write.
+  void _scheduleCacheWrite() {
+    _cacheWriteTimer?.cancel();
+    _cacheWriteTimer = Timer(const Duration(milliseconds: 300), () {
+      final db = ref.read(appDatabaseProvider);
+      db.cacheNotes(channelId, _notes);
+    });
+  }
+
   @override
   Future<List<Note>> build(int channelId) async {
     final db = ref.read(appDatabaseProvider);
+
+    ref.onDispose(() {
+      _cacheWriteTimer?.cancel();
+    });
 
     // Listen to chat stream for real-time note updates
     ref.listen(chatStreamProvider, (_, event) {
@@ -112,10 +132,8 @@ class Notes extends _$Notes {
     final currentState = state.value;
     if (currentState == null) return;
 
-    final db = ref.read(appDatabaseProvider);
-
     switch (event.type) {
-      case 'noteCreated':
+      case ChatEventTypes.noteCreated:
         if (event.note?.channelId == channelId) {
           final incoming = event.note!;
           // Replace provisional note that matches by clientMutationId (offline path)
@@ -130,7 +148,7 @@ class Notes extends _$Notes {
                 ..._notes.sublist(idx + 1),
               ];
               state = AsyncValue.data(_notes);
-              db.cacheNotes(channelId, _notes);
+              _scheduleCacheWrite();
               break;
             }
           }
@@ -138,22 +156,22 @@ class Notes extends _$Notes {
           if (_notes.any((n) => n.id == incoming.id)) break;
           _notes = [incoming, ..._notes];
           state = AsyncValue.data(_notes);
-          db.cacheNotes(channelId, _notes);
+          _scheduleCacheWrite();
         }
         break;
 
-      case 'noteArchived':
+      case ChatEventTypes.noteArchived:
         if (event.channelId == channelId) {
           _notes = currentState.where((n) => n.id != event.noteId).toList();
           state = AsyncValue.data(_notes);
-          db.cacheNotes(channelId, _notes);
+          _scheduleCacheWrite();
         }
         if (channelId == -1) {
           ref.invalidateSelf();
         }
         break;
 
-      case 'noteRestored':
+      case ChatEventTypes.noteRestored:
         if (channelId == -1) {
           _notes = currentState.where((n) => n.id != event.noteId).toList();
           state = AsyncValue.data(_notes);
@@ -163,26 +181,26 @@ class Notes extends _$Notes {
           _notes = [event.note!, ...currentState];
           _sortNotes();
           state = AsyncValue.data(_notes);
-          db.cacheNotes(channelId, _notes);
+          _scheduleCacheWrite();
         }
         break;
 
-      case 'noteUpdated':
-      case 'noteLinkPreviewReady':
+      case ChatEventTypes.noteUpdated:
+      case ChatEventTypes.noteLinkPreviewReady:
         if (event.note?.channelId == channelId) {
           _notes = currentState
               .map((n) => n.id == event.note!.id ? event.note! : n)
               .toList();
           state = AsyncValue.data(_notes);
-          db.cacheNotes(channelId, _notes);
+          _scheduleCacheWrite();
         }
         break;
 
-      case 'noteDeleted':
+      case ChatEventTypes.noteDeleted:
         if (event.channelId == channelId) {
           _notes = currentState.where((n) => n.id != event.noteId).toList();
           state = AsyncValue.data(_notes);
-          db.cacheNotes(channelId, _notes);
+          _scheduleCacheWrite();
         }
         break;
     }
@@ -233,8 +251,8 @@ class Notes extends _$Notes {
         _oldestNoteId = notes.last.id;
       }
       state = AsyncData(_notes);
-    } catch (_) {
-      // If the server call fails, don't disrupt the current state.
+    } catch (e) {
+      debugPrint('Notes.loadAroundNote failed: $e');
     }
   }
 

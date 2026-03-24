@@ -16,12 +16,17 @@ late Client client;
 
 late String serverUrl;
 
+/// Cached web server URL. Computed once from [serverUrl].
+String? _cachedWebServerUrl;
+
 /// Web server URL (port 8082 in dev, same port otherwise).
 /// Used by upload route, media serving, etc.
 String getWebServerUrl() {
+  if (_cachedWebServerUrl != null) return _cachedWebServerUrl!;
   final uri = Uri.parse(serverUrl);
   final port = uri.port == 8080 ? 8082 : uri.port;
-  return '${uri.scheme}://${uri.host}:$port';
+  _cachedWebServerUrl = '${uri.scheme}://${uri.host}:$port';
+  return _cachedWebServerUrl!;
 }
 
 /// SharedPreferences key for stored server URL.
@@ -67,6 +72,7 @@ bool get needsServerSetup => !kIsWeb && serverUrl.isEmpty;
 /// Update the server URL and reinitialize the client.
 Future<void> setServerUrl(String url) async {
   serverUrl = url;
+  _cachedWebServerUrl = null; // Invalidate cached web URL
   client = Client(serverUrl)
     ..connectivityMonitor = kIsWeb ? null : FlutterConnectivityMonitor();
 

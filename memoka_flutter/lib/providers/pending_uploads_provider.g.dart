@@ -44,7 +44,7 @@ final class PendingUploadsProvider
   }
 }
 
-String _$pendingUploadsHash() => r'bc46d6eb736b5539df755ef29b4dc632c8c3de4b';
+String _$pendingUploadsHash() => r'c739b76d0a87b2dd12bc401209b9cb3e37a48c52';
 
 /// Manages optimistic uploads with progress tracking and retry.
 

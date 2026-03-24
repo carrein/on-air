@@ -3,6 +3,7 @@ import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../shared/constants.dart';
 import '../shared/note_query.dart';
+import '../shared/validation.dart';
 import 'version_helper.dart';
 
 /// Endpoint for state-based reconciliation sync.
@@ -53,8 +54,10 @@ class SyncEndpoint extends Endpoint {
       ..sort((a, b) {
         final typeCmp = a.entityType.compareTo(b.entityType);
         if (typeCmp != 0) return typeCmp;
-        final aId = a.tempId ?? _extractId(a.entityJson) ?? 0;
-        final bId = b.tempId ?? _extractId(b.entityJson) ?? 0;
+        final aId =
+            a.tempId ?? _extractIdFromMap(_decodeEntityJson(a.entityJson)) ?? 0;
+        final bId =
+            b.tempId ?? _extractIdFromMap(_decodeEntityJson(b.entityJson)) ?? 0;
         return aId.compareTo(bId);
       });
 
@@ -100,7 +103,7 @@ class SyncEndpoint extends Endpoint {
     Session session,
     SyncChange change,
   ) async {
-    final entityMap = jsonDecode(change.entityJson) as Map<String, dynamic>;
+    final entityMap = _decodeEntityJson(change.entityJson);
     final isCreate = change.baseVersion == 0 && change.tempId != null;
 
     if (isCreate) {
@@ -123,18 +126,11 @@ class SyncEndpoint extends Endpoint {
 
       // Validate input
       final name = (entityMap['name'] as String?)?.trim() ?? '';
-      if (name.isEmpty) {
+      final nameError = Validation.validateChannelName(name);
+      if (nameError != null) {
         return SyncResult(
           status: 'rejected',
-          reason: 'Channel name cannot be empty',
-          entityType: 'channel',
-          tempId: change.tempId,
-        );
-      }
-      if (name.length > 100) {
-        return SyncResult(
-          status: 'rejected',
-          reason: 'Channel name too long (max 100 characters)',
+          reason: nameError,
           entityType: 'channel',
           tempId: change.tempId,
         );
@@ -185,7 +181,7 @@ class SyncEndpoint extends Endpoint {
     }
 
     // Update or delete
-    final serverId = _extractId(change.entityJson);
+    final serverId = _extractIdFromMap(entityMap);
     if (serverId == null) {
       return SyncResult(
         status: 'rejected',
@@ -263,10 +259,11 @@ class SyncEndpoint extends Endpoint {
     // Regular update — apply fields from entityJson
     final name = (entityMap['name'] as String?)?.trim();
     if (name != null) {
-      if (name.isEmpty) {
+      final nameError = Validation.validateChannelName(name);
+      if (nameError != null) {
         return SyncResult(
           status: 'rejected',
-          reason: 'Channel name cannot be empty',
+          reason: nameError,
           entityType: 'channel',
           entityJson: jsonEncode(channel.toJson()),
         );
@@ -320,7 +317,7 @@ class SyncEndpoint extends Endpoint {
     Session session,
     SyncChange change,
   ) async {
-    final entityMap = jsonDecode(change.entityJson) as Map<String, dynamic>;
+    final entityMap = _decodeEntityJson(change.entityJson);
     final isCreate = change.baseVersion == 0 && change.tempId != null;
 
     if (isCreate) {
@@ -342,18 +339,11 @@ class SyncEndpoint extends Endpoint {
       }
 
       final content = (entityMap['content'] as String?)?.trim() ?? '';
-      if (content.isEmpty) {
+      final contentError = Validation.validateNoteContent(content);
+      if (contentError != null) {
         return SyncResult(
           status: 'rejected',
-          reason: 'Note content cannot be empty',
-          entityType: 'note',
-          tempId: change.tempId,
-        );
-      }
-      if (content.length > maxNoteContentLength) {
-        return SyncResult(
-          status: 'rejected',
-          reason: 'Note content too long (max 200,000 characters)',
+          reason: contentError,
           entityType: 'note',
           tempId: change.tempId,
         );
@@ -416,7 +406,7 @@ class SyncEndpoint extends Endpoint {
     }
 
     // Update or delete
-    final serverId = _extractId(change.entityJson);
+    final serverId = _extractIdFromMap(entityMap);
     if (serverId == null) {
       return SyncResult(
         status: 'rejected',
@@ -480,18 +470,11 @@ class SyncEndpoint extends Endpoint {
     // Regular update
     final content = (entityMap['content'] as String?)?.trim();
     if (content != null) {
-      if (content.isEmpty) {
+      final contentError = Validation.validateNoteContent(content);
+      if (contentError != null) {
         return SyncResult(
           status: 'rejected',
-          reason: 'Note content cannot be empty',
-          entityType: 'note',
-          entityJson: jsonEncode(note.toJson()),
-        );
-      }
-      if (content.length > maxNoteContentLength) {
-        return SyncResult(
-          status: 'rejected',
-          reason: 'Note content too long (max 200,000 characters)',
+          reason: contentError,
           entityType: 'note',
           entityJson: jsonEncode(note.toJson()),
         );
@@ -530,15 +513,20 @@ class SyncEndpoint extends Endpoint {
     );
   }
 
-  int? _extractId(String entityJson) {
+  /// Decodes entity JSON string to a Map. Returns empty map on failure.
+  static Map<String, dynamic> _decodeEntityJson(String entityJson) {
     try {
-      final map = jsonDecode(entityJson) as Map<String, dynamic>;
-      final id = map['id'];
-      if (id is int) return id;
-      if (id is String) return int.tryParse(id);
-      return null;
+      return jsonDecode(entityJson) as Map<String, dynamic>;
     } catch (_) {
-      return null;
+      return {};
     }
+  }
+
+  /// Extracts the 'id' field from an already-decoded entity map.
+  static int? _extractIdFromMap(Map<String, dynamic> map) {
+    final id = map['id'];
+    if (id is int) return id;
+    if (id is String) return int.tryParse(id);
+    return null;
   }
 }

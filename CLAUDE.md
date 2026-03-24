@@ -18,6 +18,9 @@ u/docs/components/MediaPanel.md
 u/docs/components/Note.md
 u/docs/components/Preview.md
 u/docs/components/Audio.md
+u/docs/components/Button.md
+u/docs/components/Search.md
+u/docs/components/UploadDialog.md
 u/docs/Sync.md
 u/docs/GIF.md
 u/docs/ArchiveRetention.md
@@ -118,6 +121,8 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 
 **LinkPreview** (non-table): url, title, description, imageUrl, faviconUrl, fetchedAt
 
+**SearchResult** (non-table): noteId, channelId, channelName, channelEmoji, snippet, createdAt, score
+
 **ChatEvent** (non-table): type, note, noteId, channelId, channel
 
 **ArchiveItem** (non-table): type, note, channel, archivedAt
@@ -130,7 +135,7 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 
 **note_search** (server-only untracked table): note_id (PK, FK → notes, cascade), search_vector (tsvector). Created at startup by `SearchSetup`, not in any `.spy.yaml` — invisible to Serverpod's schema validator. GIN index on search_vector, trigger-maintained from `notes.content`. See `docs/Search.md`.
 
-**page_watches** (server-only untracked table): noteId (FK → notes, cascade), channelId (FK → channels, cascade), url, contentHash, lastCheckedAt, enabled, consecutiveFailures, lastError, hasUnacknowledgedChange, etag, lastModified, timestamps. Created at startup by `PageWatchSetup`, not in any `.spy.yaml`. See `docs/PageWatch.md`.
+**page_watches** (server-only untracked table): noteId (FK → notes, cascade), channelId (FK → channels, cascade), url, contentHash, lastCheckedAt, enabled, consecutiveFailures, lastError, hasUnacknowledgedChange, etag (SQL-only), lastModified (SQL-only), timestamps. Created at startup by `PageWatchSetup`, not in any `.spy.yaml`. See `docs/PageWatch.md`.
 
 **PageWatch** (non-table): noteId, channelId, url, contentHash?, lastCheckedAt?, enabled, consecutiveFailures, lastError?, hasUnacknowledgedChange, createdAt, updatedAt
 
@@ -286,7 +291,7 @@ Server serves:
   - `getSettings()` — returns current AppSettings (archiveRetentionDays)
   - `updateSettings(settings)` — updates AppSettings singleton
 - `search`: Full-text and trigram search across notes
-  - `searchNotes(query, {limit})` — hybrid FTS + trigram, returns ranked `SearchResult` list with snippets
+  - `searchNotes(query, {channelId?, limit})` — hybrid FTS + trigram with optional channel boost, returns ranked `SearchResult` list with snippets
   - `getNotesAroundId(channelId, noteId, {limit})` — loads notes surrounding a target for jump-to-context
 - `pageWatch`: URL change monitoring
   - `createWatch(noteId)` — creates/re-enables a watch for a single-URL note
@@ -302,6 +307,7 @@ Server serves:
   - `getFiredReminders()` — returns all fired reminders (reconnect delivery)
   - `getActiveReminders()` — returns all unfired reminders (client-side timer seeding)
   - `acknowledgeReminder(noteId)` — deletes the fired reminder row
+- `health`: Built-in Serverpod health check endpoint used for connectivity probing (`client.health.ping()`)
 - File uploads: HTTP route `POST /media/upload` (not RPC) — streams multipart body directly to disk, no in-memory buffering
 
 ## Git Workflow Policy
