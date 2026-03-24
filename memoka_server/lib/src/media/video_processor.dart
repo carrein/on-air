@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
+import 'ffmpeg_utils.dart';
 import 'hash_utils.dart';
 import 'process_params.dart';
 
@@ -38,8 +39,6 @@ class ProcessedVideoResult {
 ///
 /// Requires ffmpeg to be installed on the system.
 class VideoProcessor {
-  static const int thumbnailSize = 720;
-
   /// Calculate SHA-256 hash of file bytes (first 8 characters).
   /// Used for cache busting.
   static Future<String> calculateHash(List<int> bytes) async {
@@ -75,7 +74,7 @@ class VideoProcessor {
     final contentHash = await computeFileHash(params.tempFilePath);
 
     // Check if ffmpeg is available
-    final ffmpegAvailable = await _checkFfmpegAvailable();
+    final ffmpegAvailable = await FfmpegUtils.checkAvailable();
     if (!ffmpegAvailable) {
       // If ffmpeg is not available, skip processing
       await tempFile.rename(params.finalFilePath);
@@ -110,20 +109,6 @@ class VideoProcessor {
       duration: metadata?.duration,
       contentHash: contentHash,
     );
-  }
-
-  static bool? _ffmpegAvailable;
-
-  /// Check if ffmpeg is available on the system (cached after first check).
-  static Future<bool> _checkFfmpegAvailable() async {
-    if (_ffmpegAvailable != null) return _ffmpegAvailable!;
-    try {
-      final result = await Process.run('ffmpeg', ['-version']);
-      _ffmpegAvailable = result.exitCode == 0;
-    } catch (_) {
-      _ffmpegAvailable = false;
-    }
-    return _ffmpegAvailable!;
   }
 
   /// Get video metadata using ffprobe.
@@ -176,25 +161,24 @@ class VideoProcessor {
     }
   }
 
-  /// Generate thumbnail from video (first frame).
+  /// Generate thumbnail from video (lossless WebP at 1200px longest side).
   static Future<String?> _generateThumbnail(
     String videoPath,
     String channelDir,
     String baseName,
   ) async {
     try {
-      // Create thumbnails directory
       final thumbnailDir = Directory(path.join(channelDir, 'thumbnails'));
       if (!await thumbnailDir.exists()) {
         await thumbnailDir.create(recursive: true);
       }
 
-      // Extract frame at 1 second (or first frame if video is shorter)
       final thumbnailPath = path.join(
         thumbnailDir.path,
-        '${baseName}_thumb.jpg',
+        '${baseName}_thumb.webp',
       );
 
+      final size = FfmpegUtils.thumbnailSize;
       final result = await Process.run('ffmpeg', [
         '-i',
         videoPath,
@@ -203,7 +187,11 @@ class VideoProcessor {
         '-vframes',
         '1',
         '-vf',
-        'scale=$thumbnailSize:$thumbnailSize:force_original_aspect_ratio=decrease',
+        'scale=$size:$size:force_original_aspect_ratio=decrease',
+        '-lossless',
+        '1',
+        '-compression_level',
+        '${FfmpegUtils.thumbnailCompressionLevel}',
         '-y',
         thumbnailPath,
       ]);
@@ -212,7 +200,6 @@ class VideoProcessor {
         return null;
       }
 
-      // Return relative path from channel directory
       return path.relative(thumbnailPath, from: channelDir);
     } catch (_) {
       return null;

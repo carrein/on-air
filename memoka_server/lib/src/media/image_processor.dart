@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
+import 'ffmpeg_utils.dart';
 import 'process_params.dart';
 
 /// Result of image processing.
@@ -40,9 +41,6 @@ class ProcessedImageResult {
 
 /// Image processor for handling thumbnails and metadata.
 class ImageProcessor {
-  static const int thumbnailSize = 800;
-  static const int thumbnailQuality = 80;
-
   /// Extensions that browsers can display natively — no conversion needed.
   static const Set<String> _webSafeExtensions = {
     '.jpg',
@@ -109,20 +107,19 @@ class ImageProcessor {
     if (ext == '.gif') {
       int gifWidth = 0;
       int gifHeight = 0;
-      String? thumbPath;
 
       if (image != null) {
         final oriented = img.bakeOrientation(image);
         gifWidth = oriented.width;
         gifHeight = oriented.height;
-        try {
-          thumbPath = await _generateThumbnail(
-            oriented.frames.first,
-            params.channelDir,
-            path.basenameWithoutExtension(params.finalFilePath),
-          );
-        } catch (_) {}
       }
+
+      // ffmpeg can thumbnail GIFs even when the image package can't decode them
+      final thumbPath = await _generateThumbnail(
+        params.tempFilePath,
+        params.channelDir,
+        path.basenameWithoutExtension(params.finalFilePath),
+      );
 
       await tempFile.rename(params.finalFilePath);
       return ProcessedImageResult(
@@ -142,20 +139,18 @@ class ImageProcessor {
     if (isWebSafe) {
       int wsWidth = 0;
       int wsHeight = 0;
-      String? thumbPath;
 
       if (image != null) {
         final oriented = img.bakeOrientation(image);
         wsWidth = oriented.width;
         wsHeight = oriented.height;
-        try {
-          thumbPath = await _generateThumbnail(
-            oriented.frames.first,
-            params.channelDir,
-            path.basenameWithoutExtension(params.finalFilePath),
-          );
-        } catch (_) {}
       }
+
+      final thumbPath = await _generateThumbnail(
+        params.tempFilePath,
+        params.channelDir,
+        path.basenameWithoutExtension(params.finalFilePath),
+      );
 
       await tempFile.rename(params.finalFilePath);
       return ProcessedImageResult(
@@ -188,9 +183,9 @@ class ImageProcessor {
       await tempFile.delete();
     }
 
-    // Generate thumbnail
+    // Generate thumbnail from the converted PNG
     final thumbnailPath = await _generateThumbnail(
-      image,
+      outputPath,
       params.channelDir,
       path.basenameWithoutExtension(params.finalFilePath),
     );
@@ -206,35 +201,42 @@ class ImageProcessor {
     );
   }
 
-  /// Generate thumbnail image.
-  static Future<String> _generateThumbnail(
-    img.Image image,
+  /// Generate thumbnail via ffmpeg (lossless WebP at 1200px longest side).
+  static Future<String?> _generateThumbnail(
+    String sourceFilePath,
     String channelDir,
     String baseName,
   ) async {
-    // Create thumbnails directory
+    if (!await FfmpegUtils.checkAvailable()) return null;
+
     final thumbnailDir = Directory(path.join(channelDir, 'thumbnails'));
     if (!await thumbnailDir.exists()) {
       await thumbnailDir.create(recursive: true);
     }
 
-    // Resize to thumbnail size
-    final thumbnail = img.copyResize(
-      image,
-      width: image.width > image.height ? thumbnailSize : null,
-      height: image.width <= image.height ? thumbnailSize : null,
-      interpolation: img.Interpolation.linear,
-    );
-
-    // Save as JPEG (WebP encoding not available)
     final thumbnailPath = path.join(
       thumbnailDir.path,
-      '${baseName}_thumb.jpg',
+      '${baseName}_thumb.webp',
     );
-    final jpegBytes = img.encodeJpg(thumbnail, quality: thumbnailQuality);
-    await File(thumbnailPath).writeAsBytes(jpegBytes);
 
-    // Return relative path from channel directory (e.g., "thumbnails/uuid_thumb.jpg")
+    final size = FfmpegUtils.thumbnailSize;
+    final result = await Process.run('ffmpeg', [
+      '-i',
+      sourceFilePath,
+      '-vframes',
+      '1',
+      '-vf',
+      'scale=$size:$size:force_original_aspect_ratio=decrease',
+      '-lossless',
+      '1',
+      '-compression_level',
+      '${FfmpegUtils.thumbnailCompressionLevel}',
+      '-y',
+      thumbnailPath,
+    ]);
+
+    if (result.exitCode != 0) return null;
+
     return path.relative(thumbnailPath, from: channelDir);
   }
 }

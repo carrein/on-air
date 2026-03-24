@@ -42,7 +42,8 @@ class MediaGridItem extends ConsumerWidget {
   }
 
   Widget _buildImageContent() {
-    final imageUrl = item.getMediaUrl(serverUrl);
+    final imageUrl =
+        item.getThumbnailUrl(serverUrl) ?? item.getMediaUrl(serverUrl);
 
     return Stack(
       fit: StackFit.expand,
@@ -50,7 +51,7 @@ class MediaGridItem extends ConsumerWidget {
         Image.network(
           imageUrl,
           fit: BoxFit.cover,
-          cacheWidth: 400,
+          cacheWidth: 600,
           errorBuilder: (context, error, stackTrace) {
             return _buildErrorPlaceholder(
               PhosphorIcons.imageBroken(),
