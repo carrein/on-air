@@ -14,9 +14,7 @@ name: memoka_flutter
 description: Memoka — chat-style notes organized in topical channels.
 publish_to: 'none'
 
-# Version is display-only in local dev ("DEV"). Production builds receive
-# the real version via --dart-define=APP_VERSION from the release workflow.
-version: 0.0.0+1
+version: 0.6.0
 
 environment:
   sdk: '^3.8.0'
