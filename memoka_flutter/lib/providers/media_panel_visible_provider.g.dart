@@ -9,16 +9,19 @@ part of 'media_panel_visible_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Manages the visibility state of the media panel.
+/// Persisted to SharedPreferences so it survives hard refresh.
 /// Defaults to visible on web (desktop), hidden on native (mobile).
 
 @ProviderFor(MediaPanelVisible)
 final mediaPanelVisibleProvider = MediaPanelVisibleProvider._();
 
 /// Manages the visibility state of the media panel.
+/// Persisted to SharedPreferences so it survives hard refresh.
 /// Defaults to visible on web (desktop), hidden on native (mobile).
 final class MediaPanelVisibleProvider
     extends $NotifierProvider<MediaPanelVisible, bool> {
   /// Manages the visibility state of the media panel.
+  /// Persisted to SharedPreferences so it survives hard refresh.
   /// Defaults to visible on web (desktop), hidden on native (mobile).
   MediaPanelVisibleProvider._()
     : super(
@@ -26,7 +29,7 @@ final class MediaPanelVisibleProvider
         argument: null,
         retry: null,
         name: r'mediaPanelVisibleProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -47,9 +50,10 @@ final class MediaPanelVisibleProvider
   }
 }
 
-String _$mediaPanelVisibleHash() => r'efa308357adc5d3b8e684024ded4920405cb3b52';
+String _$mediaPanelVisibleHash() => r'2230ab9eae71355c2a0faba867d7451f693bd5e9';
 
 /// Manages the visibility state of the media panel.
+/// Persisted to SharedPreferences so it survives hard refresh.
 /// Defaults to visible on web (desktop), hidden on native (mobile).
 
 abstract class _$MediaPanelVisible extends $Notifier<bool> {

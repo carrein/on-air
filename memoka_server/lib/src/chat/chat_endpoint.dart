@@ -201,7 +201,7 @@ class ChatEndpoint extends Endpoint {
     if (content.trim().isEmpty) {
       throw Exception('Note content cannot be empty');
     }
-    if (content.length > 200000) {
+    if (content.length > maxNoteContentLength) {
       throw Exception('Note content too long (max 200,000 characters)');
     }
 
@@ -302,7 +302,7 @@ class ChatEndpoint extends Endpoint {
     if (content.trim().isEmpty) {
       throw Exception('Note content cannot be empty');
     }
-    if (content.length > 200000) {
+    if (content.length > maxNoteContentLength) {
       throw Exception('Note content too long (max 200,000 characters)');
     }
 

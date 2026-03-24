@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../main.dart' show serverUrl;
 import '../utils/file_utils.dart';
-import 'app_spinner.dart';
 
 /// Card widget displaying link preview metadata below a message.
 class LinkPreviewCard extends StatelessWidget {
@@ -35,14 +33,17 @@ class LinkPreviewCard extends StatelessWidget {
               SizedBox(
                 height: 160,
                 width: double.infinity,
-                child: CachedNetworkImage(
-                  imageUrl: resolvedImageUrl,
+                child: Image.network(
+                  resolvedImageUrl,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: bg,
-                    child: Center(child: AppSpinner()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
+                  frameBuilder:
+                      (context, child, frame, wasSynchronouslyLoaded) {
+                        if (wasSynchronouslyLoaded || frame != null) {
+                          return child;
+                        }
+                        return Container(color: bg);
+                      },
+                  errorBuilder: (context, error, stack) => Container(
                     color: bg,
                     child: Center(
                       child: PhosphorIcon(
@@ -97,11 +98,11 @@ class LinkPreviewCard extends StatelessWidget {
                             preview.faviconUrl,
                           )
                           case final resolvedFaviconUrl?)
-                        CachedNetworkImage(
-                          imageUrl: resolvedFaviconUrl,
+                        Image.network(
+                          resolvedFaviconUrl,
                           width: 16,
                           height: 16,
-                          errorWidget: (context, url, error) => PhosphorIcon(
+                          errorBuilder: (context, error, stack) => PhosphorIcon(
                             PhosphorIcons.globe(),
                             size: 16,
                             color: fg,

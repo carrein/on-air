@@ -346,8 +346,8 @@ Key display behavior:
 - **Fast fade-in**: `fadeInDuration: 150ms` so disk-cached images appear near-instantly (vs default 500ms)
 - **Aspect-ratio preservation**: `computeDisplaySize()` helper clamps to max constraints (600x500 for images, 400x300 for videos) while maintaining aspect ratio
 - **Fallback sizing**: If `width`/`height` metadata is null, falls back to 300x200
-- **Animated GIF handling**: GIFs use `Image.network` (not `CachedNetworkImage`) to preserve animation. Non-GIF images use `CachedNetworkImage` for disk caching. The `attachment.animated` flag is retained for server-side processing logic (preserving original GIF) but does not affect the Flutter rendering path.
-- **Image precaching**: When notes load for the displayed channel, `chat_view.dart` fires `precacheImage()` for the 20 most recent image attachments into Flutter's `ImageCache`. On channel revisit, these images are served from memory cache synchronously — `CachedNetworkImage` skips the placeholder entirely and the shimmer does not appear.
+- **Animated GIF handling**: All images (including GIFs) use `Image.network` with browser HTTP cache (`Cache-Control: immutable`). Freshly uploaded images use `LocalImageCache` (in-memory) for instant rendering via `Image.memory`. The `attachment.animated` flag is retained for server-side processing logic (preserving original GIF) but does not affect the Flutter rendering path.
+- **Image caching**: Server media responses include `Cache-Control: public, max-age=31536000, immutable` headers. Browser caches images on disk — no re-fetch on return visits. `_ImageAttachmentWidget._loadedUrls` tracks decoded images to skip shimmer on re-render (scroll recycle, channel switch). Visited channels stay mounted via `Offstage` to preserve decoded image frames across channel switches.
 
 **Video Lightbox:**
 
@@ -535,7 +535,7 @@ if (gif.numFrames > 1) {
 
 ## Future Extensibility
 
-### Media Gallery Tab (Phase 2)
+### Media Gallery Tab (Future Enhancement)
 
 **UI Design:**
 - Tab in channel view (beside chat)
@@ -565,7 +565,7 @@ Future<List<MediaAttachment>> getChannelMedia(
 }
 ```
 
-### Resumable Uploads (Phase 2)
+### Resumable Uploads (Future Enhancement)
 
 **Chunked Upload Protocol:**
 ```
@@ -593,7 +593,7 @@ Server:
 - Cleanup of abandoned uploads
 - State management
 
-### Search and Filter (Phase 3)
+### Search and Filter (Future Enhancement)
 
 **Backend Indexing:**
 ```yaml
@@ -690,7 +690,6 @@ dependencies:
 ```yaml
 dependencies:
   image_picker: ^1.0.0              # Camera capture
-  cached_network_image: ^3.4.1      # Image caching
   photo_view: ^0.14.0               # Full screen viewer
   http: ^1.3.0                      # Multipart upload streaming
   # NOTE: All compression removed — files stored as-is
@@ -786,7 +785,7 @@ withServerpod('Given MediaUploadRoute', (sessionBuilder, endpoints) {
 - Pre-generated = faster gallery loading
 
 ### Caching
-- Client: CachedNetworkImage with disk cache
+- Client: browser HTTP cache (`Cache-Control: immutable`) + `LocalImageCache` for uploads
 - Server: `Cache-Control: public, max-age=31536000, immutable`
 - Cache busting via content hash in URL param
 - Fast fade-in (150ms) for disk-cached images to avoid perceived re-loading on scroll-back

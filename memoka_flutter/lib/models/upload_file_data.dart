@@ -14,12 +14,14 @@ class UploadFileData {
   final String? filePath;
   final String fileName;
   final String extension;
+  final Uint8List? thumbnailBytes;
 
   UploadFileData({
     this.bytes,
     this.filePath,
     required this.fileName,
     required this.extension,
+    this.thumbnailBytes,
   }) : assert(
          bytes != null || filePath != null,
          'Either bytes or filePath must be provided',

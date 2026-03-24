@@ -350,7 +350,7 @@ class SyncEndpoint extends Endpoint {
           tempId: change.tempId,
         );
       }
-      if (content.length > 200000) {
+      if (content.length > maxNoteContentLength) {
         return SyncResult(
           status: 'rejected',
           reason: 'Note content too long (max 200,000 characters)',
@@ -488,10 +488,10 @@ class SyncEndpoint extends Endpoint {
           entityJson: jsonEncode(note.toJson()),
         );
       }
-      if (content.length > 200000) {
+      if (content.length > maxNoteContentLength) {
         return SyncResult(
           status: 'rejected',
-          reason: 'Note content too long',
+          reason: 'Note content too long (max 200,000 characters)',
           entityType: 'note',
           entityJson: jsonEncode(note.toJson()),
         );

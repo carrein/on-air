@@ -6,21 +6,23 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:memoka_client/memoka_client.dart';
 import 'package:http_parser/http_parser.dart' show MediaType;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:uuid/uuid.dart';
 
 import '../main.dart' show getWebServerUrl;
+import '../services/local_image_cache.dart';
 import '../services/media_service.dart';
+import '../widgets/chat_view.dart' show ChatView;
 import '../services/upload_transport.dart' as transport;
 import 'notes_provider.dart';
 
 part 'pending_uploads_provider.g.dart';
 
 /// Upload status for a pending upload.
-enum UploadStatus { uploading, error, uploaded }
+enum UploadStatus { uploading, error }
 
 /// Represents a file being uploaded optimistically.
 class PendingUpload {
@@ -34,12 +36,10 @@ class PendingUpload {
   final int fileSize;
   final int? mediaWidth;
   final int? mediaHeight;
+  final Uint8List? thumbnailBytes; // video thumbnail
   final double progress;
   final UploadStatus status;
   final String? errorMessage;
-  final String? serverImageUrl;
-  final DateTime? noteCreatedAt;
-  final int? serverNoteId;
 
   const PendingUpload({
     required this.id,
@@ -52,21 +52,16 @@ class PendingUpload {
     this.fileSize = 0,
     this.mediaWidth,
     this.mediaHeight,
+    this.thumbnailBytes,
     this.progress = 0.0,
     this.status = UploadStatus.uploading,
     this.errorMessage,
-    this.serverImageUrl,
-    this.noteCreatedAt,
-    this.serverNoteId,
   });
 
   PendingUpload copyWith({
     double? progress,
     UploadStatus? status,
     String? errorMessage,
-    String? serverImageUrl,
-    DateTime? noteCreatedAt,
-    int? serverNoteId,
   }) {
     return PendingUpload(
       id: id,
@@ -79,12 +74,10 @@ class PendingUpload {
       fileSize: fileSize,
       mediaWidth: mediaWidth,
       mediaHeight: mediaHeight,
+      thumbnailBytes: thumbnailBytes,
       progress: progress ?? this.progress,
       status: status ?? this.status,
       errorMessage: errorMessage,
-      serverImageUrl: serverImageUrl ?? this.serverImageUrl,
-      noteCreatedAt: noteCreatedAt ?? this.noteCreatedAt,
-      serverNoteId: serverNoteId ?? this.serverNoteId,
     );
   }
 
@@ -131,6 +124,7 @@ class PendingUploads extends _$PendingUploads {
     required String noteContent,
     int? mediaWidth,
     int? mediaHeight,
+    Uint8List? thumbnailBytes,
   }) async {
     final id = const Uuid().v4();
     final mimeType = MediaService.getMimeTypeFromExtension(
@@ -159,12 +153,22 @@ class PendingUploads extends _$PendingUploads {
       fileSize = fileBytes.length;
     }
 
-    // Read image dimensions from file header if not provided.
+    // Read dimensions from file header if not provided.
     if (mimeType.startsWith('image/') && mediaWidth == null) {
       final dims = await _readImageDimensions(
         filePath: localFilePath,
         bytes: localBytes ?? fileBytes,
       );
+      if (dims != null) {
+        mediaWidth = dims.$1;
+        mediaHeight = dims.$2;
+      }
+    }
+    // For videos, read dimensions from thumbnail if available.
+    if (mimeType.startsWith('video/') &&
+        mediaWidth == null &&
+        thumbnailBytes != null) {
+      final dims = await _readImageDimensions(bytes: thumbnailBytes);
       if (dims != null) {
         mediaWidth = dims.$1;
         mediaHeight = dims.$2;
@@ -182,6 +186,7 @@ class PendingUploads extends _$PendingUploads {
       fileSize: fileSize,
       mediaWidth: mediaWidth,
       mediaHeight: mediaHeight,
+      thumbnailBytes: thumbnailBytes,
     );
 
     // Prepend so newest ghost notes are first (they render at bottom of
@@ -216,12 +221,6 @@ class PendingUploads extends _$PendingUploads {
 
     // Remove ghost note and delete local file.
     remove(id);
-  }
-
-  /// Called by PendingNoteWidget when the server image has loaded.
-  /// Removes the ghost and lets NoteItem take over seamlessly.
-  void completeUpload(String id) {
-    state = state.where((p) => p.id != id).toList();
   }
 
   /// Dismiss a failed upload (remove ghost note).
@@ -278,6 +277,12 @@ class PendingUploads extends _$PendingUploads {
       final multipart = http.MultipartRequest('POST', Uri.parse(_uploadUrl));
       multipart.fields['channelId'] = pending.channelId.toString();
       multipart.fields['noteContent'] = pending.noteContent;
+      if (pending.mediaWidth != null) {
+        multipart.fields['width'] = pending.mediaWidth.toString();
+      }
+      if (pending.mediaHeight != null) {
+        multipart.fields['height'] = pending.mediaHeight.toString();
+      }
 
       final contentType = MediaType.parse(pending.mimeType);
 
@@ -323,67 +328,55 @@ class PendingUploads extends _$PendingUploads {
       final responseBytes = result.bodyBytes;
 
       if (statusCode >= 200 && statusCode < 300) {
-        // Delete the local copy.
-        if (!kIsWeb && pending.localFilePath != null) {
-          final f = File(pending.localFilePath!);
-          if (await f.exists()) await f.delete();
-        }
+        // Parse the Note from the response so we can insert it directly.
+        Note? uploadedNote;
+        try {
+          final json =
+              jsonDecode(utf8.decode(responseBytes)) as Map<String, dynamic>;
+          uploadedNote = Note.fromJson(json);
 
-        if (pending.isImage) {
-          // Parse response to get the server image URL so the ghost note
-          // can load it in-place before handing off to NoteItem.
-          String? imageUrl;
-          DateTime? createdAt;
-          int? noteId;
-          try {
-            final json =
-                jsonDecode(utf8.decode(responseBytes)) as Map<String, dynamic>;
-            noteId = json['id'] as int?;
-            final createdAtStr = json['createdAt'] as String?;
-            if (createdAtStr != null) {
-              createdAt = DateTime.tryParse(createdAtStr);
-            }
+          // Store local bytes in LocalImageCache so NoteItem renders instantly.
+          if (pending.isImage) {
             final attachments = json['attachments'] as List?;
             if (attachments != null && attachments.isNotEmpty) {
               final att = attachments[0] as Map<String, dynamic>;
               final filePath = att['filePath'] as String?;
               final contentHash = att['contentHash'] as String?;
               if (filePath != null) {
-                imageUrl =
+                final imageUrl =
                     '${getWebServerUrl()}/media/$filePath?v=${contentHash ?? ''}';
+                final bytes =
+                    pending.localBytes ??
+                    (pending.localFilePath != null
+                        ? await File(pending.localFilePath!).readAsBytes()
+                        : null);
+                if (bytes != null) {
+                  LocalImageCache.put(imageUrl, bytes);
+                }
               }
             }
-          } catch (_) {
-            // Parse failed — fall through to immediate removal.
           }
-
-          if (imageUrl != null) {
-            // Keep ghost alive — PendingNoteWidget will load the server image
-            // and call completeUpload() when ready.
-            state = [
-              for (final p in state)
-                if (p.id == id)
-                  p.copyWith(
-                    status: UploadStatus.uploaded,
-                    serverImageUrl: imageUrl,
-                    noteCreatedAt: createdAt,
-                    serverNoteId: noteId,
-                  )
-                else
-                  p,
-            ];
-            // Start fetching notes so NoteItem is ready when ghost is removed.
-            ref.invalidate(notesProvider(pending.channelId));
-          } else {
-            // Couldn't parse — remove ghost immediately.
-            state = state.where((p) => p.id != id).toList();
-            ref.invalidate(notesProvider(pending.channelId));
-          }
-        } else {
-          // Non-image: remove ghost immediately.
-          state = state.where((p) => p.id != id).toList();
-          ref.invalidate(notesProvider(pending.channelId));
+        } catch (_) {
+          // Parse failed — note will appear via WebSocket instead.
         }
+
+        // Delete the local copy.
+        if (!kIsWeb && pending.localFilePath != null) {
+          final f = File(pending.localFilePath!);
+          if (await f.exists()) await f.delete();
+        }
+
+        // Insert the note directly so NoteItem appears in the same frame
+        // as the ghost removal — no gap, no flicker.
+        if (uploadedNote != null) {
+          ref
+              .read(notesProvider(pending.channelId).notifier)
+              .insertUploadedNote(uploadedNote);
+        }
+
+        // Remove ghost and scroll to the new note at the bottom.
+        state = state.where((p) => p.id != id).toList();
+        _scrollToBottom(pending.channelId);
       } else {
         _setError(id, 'Server error ($statusCode)');
       }
@@ -394,6 +387,13 @@ class PendingUploads extends _$PendingUploads {
       }
     } finally {
       _cancelFunctions.remove(id);
+    }
+  }
+
+  void _scrollToBottom(int channelId) {
+    final controller = ChatView.channelScrollControllers[channelId];
+    if (controller != null && controller.isAttached) {
+      controller.jumpTo(index: 0);
     }
   }
 
@@ -437,8 +437,9 @@ class PendingUploads extends _$PendingUploads {
 
   /// Reads image display dimensions (EXIF-aware).
   ///
-  /// Uses [instantiateImageCodec] + first frame decode so the returned
-  /// width/height reflect EXIF orientation (portrait photos report correctly).
+  /// Uses [instantiateImageCodec] + first frame decode. On web, the codec may
+  /// not apply EXIF orientation, so we read the JPEG EXIF orientation tag from
+  /// the raw bytes and swap width/height for 90/270 degree rotations.
   Future<(int, int)?> _readImageDimensions({
     String? filePath,
     Uint8List? bytes,
@@ -458,7 +459,112 @@ class PendingUploads extends _$PendingUploads {
       final h = frame.image.height;
       frame.image.dispose();
       codec.dispose();
+
+      // On web, instantiateImageCodec may not apply EXIF orientation.
+      // Check JPEG EXIF and swap dims for 90/270 degree rotations.
+      if (kIsWeb) {
+        final orientation = _readJpegExifOrientation(data);
+        if (orientation != null && orientation >= 5) {
+          return (h, w);
+        }
+      }
+
       return (w, h);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Reads JPEG EXIF orientation tag (1-8) from raw bytes.
+  /// Returns null for non-JPEG, missing EXIF, or parse failure.
+  static int? _readJpegExifOrientation(Uint8List bytes) {
+    try {
+      if (bytes.length < 14 || bytes[0] != 0xFF || bytes[1] != 0xD8) {
+        return null; // Not JPEG
+      }
+
+      var offset = 2;
+      while (offset < bytes.length - 1) {
+        if (bytes[offset] != 0xFF) return null;
+        final marker = bytes[offset + 1];
+
+        if (marker == 0xE1) break; // APP1 (EXIF)
+        if (marker == 0xDA || marker == 0xD9) return null; // SOS or EOI
+
+        // Skip segment: 2-byte length follows the marker.
+        if (offset + 3 >= bytes.length) return null;
+        final segLen = (bytes[offset + 2] << 8) | bytes[offset + 3];
+        offset += 2 + segLen;
+        continue;
+      }
+
+      // Parse APP1 EXIF segment.
+      if (offset + 3 >= bytes.length) return null;
+      final exifStart = offset + 4;
+      // Verify "Exif\0\0" header.
+      if (exifStart + 6 > bytes.length) return null;
+      if (bytes[exifStart] != 0x45 ||
+          bytes[exifStart + 1] != 0x78 ||
+          bytes[exifStart + 2] != 0x69 ||
+          bytes[exifStart + 3] != 0x66 ||
+          bytes[exifStart + 4] != 0x00 ||
+          bytes[exifStart + 5] != 0x00) {
+        return null;
+      }
+
+      final tiffStart = exifStart + 6;
+      if (tiffStart + 8 > bytes.length) return null;
+
+      // Byte order: "II" (little-endian) or "MM" (big-endian).
+      final bool littleEndian;
+      if (bytes[tiffStart] == 0x49 && bytes[tiffStart + 1] == 0x49) {
+        littleEndian = true;
+      } else if (bytes[tiffStart] == 0x4D && bytes[tiffStart + 1] == 0x4D) {
+        littleEndian = false;
+      } else {
+        return null;
+      }
+
+      int readUint16(int pos) {
+        if (pos + 1 >= bytes.length) return 0;
+        return littleEndian
+            ? bytes[pos] | (bytes[pos + 1] << 8)
+            : (bytes[pos] << 8) | bytes[pos + 1];
+      }
+
+      int readUint32(int pos) {
+        if (pos + 3 >= bytes.length) return 0;
+        return littleEndian
+            ? bytes[pos] |
+                  (bytes[pos + 1] << 8) |
+                  (bytes[pos + 2] << 16) |
+                  (bytes[pos + 3] << 24)
+            : (bytes[pos] << 24) |
+                  (bytes[pos + 1] << 16) |
+                  (bytes[pos + 2] << 8) |
+                  bytes[pos + 3];
+      }
+
+      // Verify TIFF magic number (42).
+      if (readUint16(tiffStart + 2) != 42) return null;
+
+      // Read IFD0 offset and scan entries.
+      final ifd0Offset = readUint32(tiffStart + 4);
+      final ifdAbsolute = tiffStart + ifd0Offset;
+      if (ifdAbsolute + 2 > bytes.length) return null;
+
+      final entryCount = readUint16(ifdAbsolute);
+      for (var i = 0; i < entryCount; i++) {
+        final entryOffset = ifdAbsolute + 2 + (i * 12);
+        if (entryOffset + 12 > bytes.length) return null;
+        final tag = readUint16(entryOffset);
+        if (tag == 0x0112) {
+          // Orientation tag — value is at offset+8 (SHORT type).
+          return readUint16(entryOffset + 8);
+        }
+      }
+
+      return null;
     } catch (_) {
       return null;
     }

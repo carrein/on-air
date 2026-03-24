@@ -6,8 +6,8 @@ import 'package:web/web.dart' as web;
 
 /// Extracts a thumbnail frame from video bytes using the HTML Video API.
 ///
-/// Creates a temporary video element, seeks to the midpoint, draws the frame
-/// onto a canvas, and returns the image as JPEG bytes.
+/// Creates a temporary video element, draws the first frame onto a canvas,
+/// and returns the image as JPEG bytes.
 Future<Uint8List?> extractVideoThumbnail(
   String filePath, {
   String mimeType = 'video/mp4',
@@ -44,18 +44,7 @@ Future<Uint8List?> extractVideoThumbnail(
       video.load();
       await metaCompleter.future.timeout(const Duration(seconds: 10));
 
-      // Seek to the middle of the video.
-      video.currentTime = video.duration / 2;
-
-      // Wait for seek to complete.
-      final seekCompleter = Completer<void>();
-      video.addEventListener(
-        'seeked',
-        ((web.Event e) => seekCompleter.complete()).toJS,
-      );
-      await seekCompleter.future.timeout(const Duration(seconds: 10));
-
-      // Draw the frame onto a canvas.
+      // Draw the first frame onto a canvas.
       final width = video.videoWidth;
       final height = video.videoHeight;
       if (width == 0 || height == 0) return null;

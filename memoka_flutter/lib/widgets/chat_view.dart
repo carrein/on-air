@@ -1,12 +1,9 @@
-import 'dart:async' show unawaited;
 import 'dart:typed_data';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../main.dart' show serverUrl;
 import '../providers/notes_provider.dart';
@@ -63,19 +60,27 @@ class _EmptyStateBox extends StatelessWidget {
 class ChatView extends ConsumerStatefulWidget {
   const ChatView({super.key});
 
+  /// Per-channel scroll controllers — accessible by [PendingUploads] to
+  /// scroll to bottom after upload completes.
+  static final Map<int, ItemScrollController> channelScrollControllers = {};
+
   @override
   ConsumerState<ChatView> createState() => _ChatViewState();
 }
 
 class _ChatViewState extends ConsumerState<ChatView>
     with SingleTickerProviderStateMixin {
-  final ItemScrollController _itemScrollController = ItemScrollController();
-  final ItemPositionsListener _itemPositionsListener =
-      ItemPositionsListener.create();
+  // Per-channel state — keeps visited channel views alive.
+  final Set<int> _visitedChannelIds = {};
+  Map<int, ItemScrollController> get _scrollControllers =>
+      ChatView.channelScrollControllers;
+  final Map<int, ItemPositionsListener> _positionListeners = {};
+  final Map<int, GlobalKey> _channelKeys = {};
+  final Map<int, int> _scrollKeyCounters = {};
+
   int? _highlightedNoteId;
   bool _highlightGuard = false;
   int? _scrollTargetNoteId;
-  int _scrollKeyCounter = 0;
   bool _isDragOver = false;
 
   // Channel switch animation
@@ -85,10 +90,22 @@ class _ChatViewState extends ConsumerState<ChatView>
   bool _isAnimatingIn = true;
   int? _pendingChannelId; // queued target when an animation is already running
 
+  ItemScrollController _scrollController(int channelId) =>
+      _scrollControllers.putIfAbsent(channelId, ItemScrollController.new);
+
+  ItemPositionsListener _positionListener(int channelId) =>
+      _positionListeners.putIfAbsent(channelId, () {
+        final listener = ItemPositionsListener.create();
+        listener.itemPositions.addListener(_onScroll);
+        return listener;
+      });
+
+  GlobalKey _channelKey(int channelId) =>
+      _channelKeys.putIfAbsent(channelId, GlobalKey.new);
+
   @override
   void initState() {
     super.initState();
-    _itemPositionsListener.itemPositions.addListener(_onScroll);
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 100),
       vsync: this,
@@ -175,15 +192,18 @@ class _ChatViewState extends ConsumerState<ChatView>
   void _onScroll() {
     if (!_highlightGuard) _clearHighlight();
 
+    final channelId = _displayedChannelId;
+    if (channelId == null || channelId <= 0) return;
+
     // Load more when the highest visible index is near the end of the list
-    final positions = _itemPositionsListener.itemPositions.value;
+    final listener = _positionListeners[channelId];
+    if (listener == null) return;
+    final positions = listener.itemPositions.value;
     if (positions.isEmpty) return;
 
     final maxIndex = positions
         .map((p) => p.index)
         .reduce((a, b) => a > b ? a : b);
-    final channelId = _displayedChannelId;
-    if (channelId == null || channelId == -1) return;
 
     final notes = ref.read(notesProvider(channelId)).value;
     if (notes == null) return;
@@ -202,9 +222,13 @@ class _ChatViewState extends ConsumerState<ChatView>
   }
 
   void _setScrollTarget(int noteId) {
+    final channelId = _displayedChannelId;
     setState(() {
       _scrollTargetNoteId = noteId;
-      _scrollKeyCounter++;
+      if (channelId != null) {
+        _scrollKeyCounters[channelId] =
+            (_scrollKeyCounters[channelId] ?? 0) + 1;
+      }
       _highlightedNoteId = noteId;
       _highlightGuard = true;
     });
@@ -214,35 +238,10 @@ class _ChatViewState extends ConsumerState<ChatView>
     });
   }
 
-  // Number of most-recent images to warm into the memory cache.
-  // Covers a typical viewport without over-allocating memory.
-  static const _kPrecacheImageCount = 20;
-
-  void _precacheRecentImages(List<Note> notes) {
-    var count = 0;
-    for (final note in notes) {
-      if (!mounted) return;
-      for (final attachment in note.attachments ?? []) {
-        if (!attachment.mimeType.toLowerCase().startsWith('image/')) continue;
-        final url = FileUtils.buildMediaUrl(
-          serverUrl,
-          attachment.filePath,
-          attachment.contentHash,
-        );
-        unawaited(
-          precacheImage(
-            CachedNetworkImageProvider(url),
-            context,
-            onError: (_, _) {},
-          ),
-        );
-        if (++count >= _kPrecacheImageCount) return;
-      }
-    }
-  }
-
   Widget _buildDisplayedContent() {
     final channelId = _displayedChannelId;
+
+    // Loading / disconnected / archive — render directly, no Offstage.
     if (channelId == null) {
       final isDisconnected =
           ref.watch(conn.connectionProvider) ==
@@ -259,14 +258,34 @@ class _ChatViewState extends ConsumerState<ChatView>
     }
     if (channelId == -1) return const ArchiveView();
 
+    // Track this channel so its widget tree stays alive.
+    _visitedChannelIds.add(channelId);
+
+    // Build all visited channels — active is visible, others offstage.
+    return Stack(
+      children: [
+        for (final id in _visitedChannelIds)
+          Offstage(
+            offstage: id != channelId,
+            child: TickerMode(
+              enabled: id == channelId,
+              child: KeyedSubtree(
+                key: _channelKey(id),
+                child: _buildChannelContent(id),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildChannelContent(int channelId) {
     final notesAsync = ref.watch(notesProvider(channelId));
     final pending = ref
         .watch(pendingUploadsProvider)
         .where((p) => p.channelId == channelId)
         .toList();
 
-    // Use .value so the list stays mounted during background reloads
-    // (e.g. tab-switch reconnect), preserving scroll position.
     final allNotes = notesAsync.value;
     if (allNotes == null) {
       if (notesAsync.isLoading) return Center(child: AppSpinner());
@@ -275,17 +294,7 @@ class _ChatViewState extends ConsumerState<ChatView>
       );
     }
 
-    // Filter out notes that already have an "uploaded" ghost note to
-    // prevent duplicates during the brief overlap window.
-    final uploadedNoteIds = pending
-        .where(
-          (p) => p.status == UploadStatus.uploaded && p.serverNoteId != null,
-        )
-        .map((p) => p.serverNoteId!)
-        .toSet();
-    final notes = uploadedNoteIds.isEmpty
-        ? allNotes
-        : allNotes.where((n) => !uploadedNoteIds.contains(n.id)).toList();
+    final notes = allNotes;
 
     if (notes.isEmpty && pending.isEmpty) {
       return const Center(
@@ -310,13 +319,8 @@ class _ChatViewState extends ConsumerState<ChatView>
         )
         .toList();
 
-    // Total items = pending ghost notes + real notes.
-    // In the reversed list, index 0 is the bottom (newest).
-    // Pending uploads occupy indices 0..<pending.length>,
-    // real notes occupy indices pending.length..<totalItems>.
     final totalItems = notes.length + pending.length;
 
-    // If a scroll target was requested, start the list at that index.
     int initialScrollIndex = 0;
     if (_scrollTargetNoteId != null) {
       final idx = notes.indexWhere((n) => n.id == _scrollTargetNoteId);
@@ -326,18 +330,19 @@ class _ChatViewState extends ConsumerState<ChatView>
       _scrollTargetNoteId = null;
     }
 
+    final scrollKey = _scrollKeyCounters[channelId] ?? 0;
+
     return ScrollablePositionedList.builder(
-      key: ValueKey(_scrollKeyCounter),
+      key: ValueKey('channel_${channelId}_$scrollKey'),
       initialScrollIndex: initialScrollIndex,
       initialAlignment: initialScrollIndex > 0 ? 0.33 : 0.0,
-      itemScrollController: _itemScrollController,
-      itemPositionsListener: _itemPositionsListener,
+      itemScrollController: _scrollController(channelId),
+      itemPositionsListener: _positionListener(channelId),
       physics: const ClampingScrollPhysics(),
       reverse: true,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       itemCount: totalItems,
       itemBuilder: (context, index) {
-        // Pending ghost notes at bottom (lowest indices in reversed list)
         if (index < pending.length) {
           return Align(
             alignment: Alignment.centerLeft,
@@ -345,7 +350,6 @@ class _ChatViewState extends ConsumerState<ChatView>
           );
         }
 
-        // Real notes
         final noteIndex = index - pending.length;
         final note = notes[noteIndex];
         final previousNote = noteIndex > 0 ? notes[noteIndex - 1] : null;
@@ -357,6 +361,7 @@ class _ChatViewState extends ConsumerState<ChatView>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             NoteItem(
+              key: ValueKey(note.id),
               note: note,
               channelId: channelId,
               allImageUrls: allImageUrls,
@@ -386,14 +391,6 @@ class _ChatViewState extends ConsumerState<ChatView>
         }
       });
     });
-
-    // Precache the most recent images whenever notes load for the displayed channel
-    final displayedChannelId = _displayedChannelId;
-    if (displayedChannelId != null && displayedChannelId != -1) {
-      ref.listen(notesProvider(displayedChannelId), (_, next) {
-        next.whenData(_precacheRecentImages);
-      });
-    }
 
     // Listen for scroll-to-note requests from search / media panel
     ref.listen(scrollToNoteProvider, (prev, noteId) {
@@ -666,6 +663,7 @@ class _ChatViewState extends ConsumerState<ChatView>
                   fileBytes: file.bytes,
                   fileName: file.fileName,
                   noteContent: '',
+                  thumbnailBytes: file.thumbnailBytes,
                 );
           }
         },
@@ -675,7 +673,9 @@ class _ChatViewState extends ConsumerState<ChatView>
 
   @override
   void dispose() {
-    _itemPositionsListener.itemPositions.removeListener(_onScroll);
+    for (final listener in _positionListeners.values) {
+      listener.itemPositions.removeListener(_onScroll);
+    }
     _fadeController.dispose();
     super.dispose();
   }

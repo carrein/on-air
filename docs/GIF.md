@@ -70,7 +70,7 @@ If no `KLIPY_API_KEY` is provided, `KlipyService.isAvailable` returns `false` an
 The existing pipeline handles animated GIFs:
 
 - `MediaAttachmentWidget` routes `image/gif` to `_ImageAttachmentWidget`
-- GIFs use `Image.network` (not `CachedNetworkImage`) to preserve animation
+- GIFs use `Image.network` with browser HTTP cache to preserve animation
 - Lightbox gallery includes GIFs in `allImageUrls`
 - Server preserves original animation, generates static JPEG thumbnail from frame 1
 - `animated: true` set on `MediaAttachment`

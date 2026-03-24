@@ -1,10 +1,11 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../services/local_image_cache.dart';
 import '../utils/file_utils.dart';
 import 'audio_attachment_widget.dart';
 import 'document_attachment_widget.dart';
@@ -115,6 +116,11 @@ class MediaAttachmentWidget extends StatelessWidget {
 
 /// Internal widget for displaying image attachments.
 class _ImageAttachmentWidget extends StatelessWidget {
+  /// URLs that have been decoded at least once this session.
+  /// On re-render (scroll recycle, channel switch), skip shimmer — browser
+  /// cache serves the image in 1-2 frames (imperceptible).
+  static final _loadedUrls = <String>{};
+
   final MediaAttachment attachment;
   final String serverUrl;
   final List<String> allImageUrls;
@@ -129,15 +135,17 @@ class _ImageAttachmentWidget extends StatelessWidget {
     this.isMediaNote = false,
   });
 
-  bool get _isGif => attachment.mimeType.toLowerCase() == 'image/gif';
-
   @override
   Widget build(BuildContext context) {
-    final imageUrl = FileUtils.buildMediaUrl(
+    // Full URL for lightbox and LocalImageCache (upload hot path).
+    final fullImageUrl = FileUtils.buildMediaUrl(
       serverUrl,
       attachment.filePath,
       attachment.contentHash,
     );
+    // Thumbnail URL for inline chat display (smaller, faster decode).
+    final thumbnailUrl = FileUtils.buildThumbnailUrl(serverUrl, attachment);
+    final displayUrl = thumbnailUrl ?? fullImageUrl;
 
     final effectiveMaxWidth = isMediaNote ? kMediaNoteMaxWidth : kImageMaxWidth;
     final effectiveMaxHeight = isMediaNote
@@ -151,11 +159,14 @@ class _ImageAttachmentWidget extends StatelessWidget {
       maxHeight: effectiveMaxHeight,
     );
 
+    // Upload hot path: local bytes keyed by full URL.
+    final Uint8List? localBytes = LocalImageCache.get(fullImageUrl);
+
     return GestureDetector(
       onTap: () {
         FullScreenImageView.show(
           context,
-          imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [imageUrl],
+          imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [fullImageUrl],
           initialIndex: allImageUrls.isNotEmpty ? initialImageIndex : 0,
         );
       },
@@ -164,33 +175,31 @@ class _ImageAttachmentWidget extends StatelessWidget {
           SizedBox(
             width: displaySize.width,
             height: displaySize.height,
-            child: _isGif
-                ? Image.network(
-                    imageUrl,
+            child: localBytes != null
+                ? Image.memory(
+                    localBytes,
+                    fit: BoxFit.cover,
+                    cacheWidth: 1200,
+                    errorBuilder: (context, error, stack) {
+                      return _buildErrorWidget(displaySize, error);
+                    },
+                  )
+                : Image.network(
+                    displayUrl,
                     fit: BoxFit.cover,
                     frameBuilder:
                         (context, child, frame, wasSynchronouslyLoaded) {
                           if (wasSynchronouslyLoaded || frame != null) {
+                            _loadedUrls.add(displayUrl);
                             return child;
                           }
+                          if (_loadedUrls.contains(displayUrl)) return child;
                           return ShimmerPlaceholder(
                             width: displaySize.width,
                             height: displaySize.height,
                           );
                         },
                     errorBuilder: (context, error, stack) {
-                      return _buildErrorWidget(displaySize, error);
-                    },
-                  )
-                : CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    fadeInDuration: const Duration(milliseconds: 150),
-                    placeholder: (context, url) => ShimmerPlaceholder(
-                      width: displaySize.width,
-                      height: displaySize.height,
-                    ),
-                    errorWidget: (context, url, error) {
                       return _buildErrorWidget(displaySize, error);
                     },
                   ),

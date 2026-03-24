@@ -71,7 +71,7 @@ Inline icon button, using `IconButtonStyled`.
 Icon button between the pin button and new channel button, always visible.
 
 - Icon: `PhosphorIcons.sidebar()` (rotated 180°) when panel is hidden; `PhosphorIconsFill.sidebar` (rotated 180°) when visible
-- **Desktop**: tap toggles `mediaPanelVisibleProvider` sidebar panel; defaults to hidden on startup
+- **Desktop**: tap toggles `mediaPanelVisibleProvider` sidebar panel; persisted to SharedPreferences (survives hard refresh), defaults to visible on web
 - **Mobile/tablet**: tap opens media bottom sheet (see below)
 
 #### New Channel Button
@@ -221,7 +221,7 @@ Draggable modal bottom sheet showing `MediaPanel`. Mobile/tablet only.
 | `channelsProvider`          | `AsyncValue<List<Channel>>` | Channel list for name/icon lookup  |
 | `settingsVisibilityProvider`| `bool`                      | Whether settings view is open      |
 | `noteSelectionProvider`     | `Set<int>`                  | Selected note IDs (selection mode) |
-| `mediaPanelVisibleProvider` | `bool`                      | Media panel toggle state (desktop) |
+| `mediaPanelVisibleProvider` | `bool`                      | Media panel toggle state (desktop), persisted via SharedPreferences |
 | `archiveRetentionProvider` | `AsyncValue<int>`           | Retention setting for dropdown (archive only) |
 | `globalSearchProvider`     | `GlobalSearchState`         | Search activation (mobile search icon) |
 

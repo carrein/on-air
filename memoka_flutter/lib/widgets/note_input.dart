@@ -517,6 +517,7 @@ class _NoteInputState extends ConsumerState<NoteInput>
                   fileBytes: file.bytes,
                   fileName: file.fileName,
                   noteContent: '',
+                  thumbnailBytes: file.thumbnailBytes,
                 );
           }
         },

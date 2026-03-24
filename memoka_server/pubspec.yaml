@@ -13,7 +13,6 @@ dependencies:
   image: ^4.0.0
   mime: ^2.0.0
   path: ^1.8.0
-  uuid: ^4.0.0
   crypto: ^3.0.0
 
 dev_dependencies:

@@ -115,6 +115,8 @@ class MediaUploadRoute extends Route {
     // Collect text fields and stream the file to a temp path.
     String? channelIdStr;
     String? noteContent;
+    String? clientWidthStr;
+    String? clientHeightStr;
     String? originalFilename;
     String? mimeType;
     String? tempFilePath;
@@ -180,6 +182,12 @@ class MediaUploadRoute extends Route {
           case 'noteContent':
             noteContent = value;
             break;
+          case 'width':
+            clientWidthStr = value;
+            break;
+          case 'height':
+            clientHeightStr = value;
+            break;
         }
       }
     }
@@ -223,7 +231,7 @@ class MediaUploadRoute extends Route {
     }
 
     // Validate note content length
-    if (noteContent.length > 200000) {
+    if (noteContent.length > maxNoteContentLength) {
       await File(tempFilePath).delete();
       return Response.badRequest(
         body: Body.fromString(
@@ -330,6 +338,25 @@ class MediaUploadRoute extends Route {
         final fileBytes = await File(finalFilePath).readAsBytes();
         final digest = await ImageProcessor.calculateHash(fileBytes);
         contentHash = digest.substring(0, 8);
+      }
+
+      // Prefer client-measured dimensions for images — Flutter's native codec
+      // handles EXIF orientation correctly, while the server's `image` package
+      // sometimes fails for certain JPEGs.
+      if (isImage) {
+        final clientWidth = clientWidthStr != null
+            ? int.tryParse(clientWidthStr)
+            : null;
+        final clientHeight = clientHeightStr != null
+            ? int.tryParse(clientHeightStr)
+            : null;
+        if (clientWidth != null &&
+            clientWidth > 0 &&
+            clientHeight != null &&
+            clientHeight > 0) {
+          width = clientWidth;
+          height = clientHeight;
+        }
       }
 
       // Create note + attachment in transaction (with version increment).

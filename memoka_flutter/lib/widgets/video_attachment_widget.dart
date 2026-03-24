@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:memoka_client/memoka_client.dart';
@@ -49,15 +48,20 @@ class VideoAttachmentWidget extends StatelessWidget {
             width: displaySize.width,
             height: displaySize.height,
             child: thumbnailUrl != null
-                ? CachedNetworkImage(
-                    imageUrl: thumbnailUrl,
+                ? Image.network(
+                    thumbnailUrl,
                     fit: BoxFit.cover,
-                    fadeInDuration: const Duration(milliseconds: 100),
-                    placeholder: (context, url) => ShimmerPlaceholder(
-                      width: displaySize.width,
-                      height: displaySize.height,
-                    ),
-                    errorWidget: (context, url, error) {
+                    frameBuilder:
+                        (context, child, frame, wasSynchronouslyLoaded) {
+                          if (wasSynchronouslyLoaded || frame != null) {
+                            return child;
+                          }
+                          return ShimmerPlaceholder(
+                            width: displaySize.width,
+                            height: displaySize.height,
+                          );
+                        },
+                    errorBuilder: (context, error, stack) {
                       return _defaultVideoThumbnail(displaySize);
                     },
                   )

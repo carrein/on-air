@@ -98,6 +98,16 @@ class Notes extends _$Notes {
     return _notes;
   }
 
+  /// Insert a note from the upload response so it appears immediately
+  /// without waiting for the WebSocket event.
+  void insertUploadedNote(Note note) {
+    if (_notes.any((n) => n.id == note.id)) return;
+    _notes = [note, ..._notes];
+    state = AsyncValue.data(_notes);
+    final db = ref.read(appDatabaseProvider);
+    db.cacheNotes(note.channelId, _notes);
+  }
+
   void _handleChatEvent(ChatEvent event, int channelId) {
     final currentState = state.value;
     if (currentState == null) return;

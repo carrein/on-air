@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../models/upload_file_data.dart';
@@ -349,59 +349,75 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
     final others = _otherFiles;
     final dialogWidth = _computeDialogWidth(context);
 
-    return AlertDialog(
-      shape: const RoundedRectangleBorder(),
-      backgroundColor: const Color(0xFFF6F0ED),
-      contentPadding: const EdgeInsets.all(12),
-      content: SizedBox(
-        width: dialogWidth,
-        child: !_loaded && media.isNotEmpty
-            ? const SizedBox(
-                height: 100,
-                child: Center(child: AppSpinner(size: 32)),
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (media.isNotEmpty)
-                    Flexible(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final rows = _buildRows(media, constraints.maxWidth);
-                          return SingleChildScrollView(
-                            child: Column(
-                              children: rows.map((row) {
-                                return Row(
-                                  children: _buildRowWidgets(row),
-                                );
-                              }).toList(),
-                            ),
-                          );
-                        },
+    return Focus(
+      autofocus: true,
+      onKeyEvent: (node, event) {
+        if (kIsWeb &&
+            event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.enter &&
+            _files.isNotEmpty) {
+          _handleSend();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: AlertDialog(
+        shape: const RoundedRectangleBorder(),
+        backgroundColor: const Color(0xFFF6F0ED),
+        contentPadding: const EdgeInsets.all(12),
+        content: SizedBox(
+          width: dialogWidth,
+          child: !_loaded && media.isNotEmpty
+              ? const SizedBox(
+                  height: 100,
+                  child: Center(child: AppSpinner(size: 32)),
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (media.isNotEmpty)
+                      Flexible(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final rows = _buildRows(
+                              media,
+                              constraints.maxWidth,
+                            );
+                            return SingleChildScrollView(
+                              child: Column(
+                                children: rows.map((row) {
+                                  return Row(
+                                    children: _buildRowWidgets(row),
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  if (others.isNotEmpty) ...[
-                    if (media.isNotEmpty) const SizedBox(height: 8),
-                    ...others.map((file) => _buildOtherFileRow(file)),
-                  ],
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      AppTextButton(
-                        label: 'Cancel',
-                        onPressed: () => Navigator.of(context).pop(),
-                        variant: AppTextButtonVariant.secondary,
-                      ),
-                      const SizedBox(width: 8),
-                      AppTextButton(
-                        label: 'Upload All',
-                        onPressed: _files.isEmpty ? null : _handleSend,
-                      ),
+                    if (others.isNotEmpty) ...[
+                      if (media.isNotEmpty) const SizedBox(height: 8),
+                      ...others.map((file) => _buildOtherFileRow(file)),
                     ],
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        AppTextButton(
+                          label: 'Cancel',
+                          onPressed: () => Navigator.of(context).pop(),
+                          variant: AppTextButtonVariant.secondary,
+                        ),
+                        const SizedBox(width: 8),
+                        AppTextButton(
+                          label: 'Upload All',
+                          onPressed: _files.isEmpty ? null : _handleSend,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -546,7 +562,21 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
 
   void _handleSend() {
     Navigator.of(context).pop();
-    widget.onSend(_files);
+    // Enrich video files with thumbnail bytes generated during preview.
+    final enriched = _files.map((f) {
+      final thumb = _videoThumbnails[f];
+      if (f.isVideo && thumb != null) {
+        return UploadFileData(
+          bytes: f.bytes,
+          filePath: f.filePath,
+          fileName: f.fileName,
+          extension: f.extension,
+          thumbnailBytes: thumb,
+        );
+      }
+      return f;
+    }).toList();
+    widget.onSend(enriched);
   }
 }
 

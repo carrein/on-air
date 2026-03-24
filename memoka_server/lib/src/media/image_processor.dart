@@ -52,7 +52,7 @@ class _ProcessImageParams {
 
 /// Image processor for handling thumbnails and metadata.
 class ImageProcessor {
-  static const int thumbnailSize = 300;
+  static const int thumbnailSize = 800;
   static const int thumbnailQuality = 80;
 
   /// Extensions that browsers can display natively — no conversion needed.

@@ -82,7 +82,6 @@ Links in markdown are made clickable via `MarkdownBody` with `url_launcher`.
 
 ### Flutter
 - `url_launcher: ^6.3.1` - Opening links in external browser
-- `cached_network_image: ^3.4.1` - Efficient image loading and caching
 
 ## Image Storage
 

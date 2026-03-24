@@ -26,10 +26,12 @@ class CorsMediaRoute extends Route {
     final result = await _inner.handleCall(session, request);
     if (result is Response) {
       return result.copyWith(
-        headers: result.headers.transform(
-          (mh) => mh.accessControlAllowOrigin =
-              const AccessControlAllowOriginHeader.wildcard(),
-        ),
+        headers: result.headers.transform((mh) {
+          mh.accessControlAllowOrigin =
+              const AccessControlAllowOriginHeader.wildcard();
+          // Media URLs are immutable (?v=contentHash) — cache indefinitely.
+          mh['Cache-Control'] = ['public, max-age=31536000, immutable'];
+        }),
       );
     }
     return result;

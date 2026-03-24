@@ -1,6 +1,9 @@
 import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 
+/// Maximum allowed length for note content (in characters).
+const int maxNoteContentLength = 200000;
+
 class ServerConstants {
   static const String mediaBaseDir = 'data/media';
 

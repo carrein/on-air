@@ -1,10 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../services/local_image_cache.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import 'icon_button_styled.dart';
@@ -134,10 +134,12 @@ class _FullScreenImageViewState extends State<FullScreenImageView> {
                 color: Colors.transparent,
               ),
               builder: (context, index) {
+                final url = widget.imageUrls[index];
+                final localBytes = LocalImageCache.get(url);
                 return PhotoViewGalleryPageOptions(
-                  imageProvider: CachedNetworkImageProvider(
-                    widget.imageUrls[index],
-                  ),
+                  imageProvider: localBytes != null
+                      ? MemoryImage(localBytes)
+                      : NetworkImage(url),
                   minScale: PhotoViewComputedScale.contained,
                   maxScale: PhotoViewComputedScale.covered * 3.0,
                 );

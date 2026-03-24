@@ -236,4 +236,4 @@ _Delete Behavior_
 - `editingNoteIdProvider`: StateProvider<int?> (null = create mode)
 - `connectionProvider`: Notifier<ConnectionState> (keepAlive) — set by `chatStreamProvider` ping + WebSocket lifecycle
 - `channelMediaDataProvider(channelId)`: Synchronous family provider deriving media panel data from `notesProvider`
-- `mediaPanelVisibleProvider`: Global state for media panel visibility on mobile/tablet
+- `mediaPanelVisibleProvider`: Global state for media panel visibility (keepAlive, persisted to SharedPreferences)

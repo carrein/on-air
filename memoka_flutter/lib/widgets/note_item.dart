@@ -196,32 +196,26 @@ class NoteItem extends ConsumerWidget {
       );
     }
 
-    Widget content = Stack(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: mediaWidgets,
-        ),
-        Positioned(
-          bottom: 6,
-          right: 6,
-          child: _TimestampPill(dateTime: note.createdAt),
-        ),
-      ],
-    );
-
-    // Highlight border for search jump
-    if (isHighlighted) {
-      content = Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: const Color(0xFF3450A3),
-            width: 2.0,
+    Widget content = Container(
+      decoration: isHighlighted
+          ? BoxDecoration(
+              border: Border.all(color: const Color(0xFF3450A3), width: 2.0),
+            )
+          : null,
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: mediaWidgets,
           ),
-        ),
-        child: content,
-      );
-    }
+          Positioned(
+            bottom: 6,
+            right: 6,
+            child: _TimestampPill(dateTime: note.createdAt),
+          ),
+        ],
+      ),
+    );
 
     return Listener(
       onPointerDown: (event) {

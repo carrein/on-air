@@ -434,7 +434,7 @@ All footer icons: 20px, `core.textMuted` (`#00171F` at 60% opacity).
 #### Scroll Virtualization
 
 - Flutter's `ListView` disposes off-screen widgets; scrolling back re-creates them
-- `CachedNetworkImage` reads from disk cache but still shows a placeholder during the read
+- `Image.network` reads from browser HTTP cache; `_loadedUrls` skips shimmer for previously-decoded images
 - **Mitigation**: Pre-sized shimmer + 150ms fade-in makes cache reads feel instant (vs default 500ms spinner)
 
 #### Media Panel Images
