@@ -37,69 +37,75 @@ class VideoAttachmentWidget extends StatelessWidget {
       maxHeight: maxHeight,
     );
 
-    return GestureDetector(
-      onTap: () {
-        _VideoLightbox.show(context, videoUrl: videoUrl);
-      },
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: displaySize.width,
-            height: displaySize.height,
-            child: thumbnailUrl != null
-                ? Image.network(
-                    thumbnailUrl,
-                    fit: BoxFit.cover,
-                    frameBuilder:
-                        (context, child, frame, wasSynchronouslyLoaded) {
-                          if (wasSynchronouslyLoaded || frame != null) {
-                            return child;
-                          }
-                          return ShimmerPlaceholder(
-                            width: displaySize.width,
-                            height: displaySize.height,
-                          );
-                        },
-                    errorBuilder: (context, error, stack) {
-                      return _defaultVideoThumbnail(displaySize);
-                    },
-                  )
-                : _defaultVideoThumbnail(displaySize),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.75),
-              shape: BoxShape.circle,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          _VideoLightbox.show(context, videoUrl: videoUrl);
+        },
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox(
+              width: displaySize.width,
+              height: displaySize.height,
+              child: thumbnailUrl != null
+                  ? Image.network(
+                      thumbnailUrl,
+                      fit: BoxFit.cover,
+                      frameBuilder:
+                          (context, child, frame, wasSynchronouslyLoaded) {
+                            if (wasSynchronouslyLoaded || frame != null) {
+                              return child;
+                            }
+                            return ShimmerPlaceholder(
+                              width: displaySize.width,
+                              height: displaySize.height,
+                            );
+                          },
+                      errorBuilder: (context, error, stack) {
+                        return _defaultVideoThumbnail(displaySize);
+                      },
+                    )
+                  : _defaultVideoThumbnail(displaySize),
             ),
-            padding: const EdgeInsets.all(8),
-            child: PhosphorIcon(
-              PhosphorIcons.play(),
-              color: const Color(0xFF3450A3),
-              size: 28,
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.75),
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(8),
+              child: PhosphorIcon(
+                PhosphorIcons.play(),
+                color: const Color(0xFF3450A3),
+                size: 28,
+              ),
             ),
-          ),
-          if (attachment.duration != null)
-            Positioned(
-              bottom: 8,
-              right: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  FileUtils.formatDuration(attachment.duration!),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+            if (attachment.duration != null)
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    FileUtils.formatDuration(attachment.duration!),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

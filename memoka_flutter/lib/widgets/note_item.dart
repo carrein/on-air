@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:universal_html/html.dart' as html;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../main.dart' show serverUrl, client;
@@ -397,6 +398,13 @@ class NoteItem extends ConsumerWidget {
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
     final isArchive = channelId == -1;
+    final isMediaOnly = !isArchive && isMediaOnlyNote(note);
+    final hasReminder =
+        ref
+            .read(channelRemindersProvider(channelId))
+            .value
+            ?.any((r) => r.noteId == note.id) ??
+        false;
 
     final Offset position =
         globalPosition ??
@@ -411,6 +419,17 @@ class NoteItem extends ConsumerWidget {
         overlay.size.height - position.dy,
       ),
       items: [
+        if (isMediaOnly)
+          PopupMenuItem(
+            value: 'save',
+            child: Row(
+              children: [
+                PhosphorIcon(PhosphorIcons.downloadSimple(), size: 18),
+                const SizedBox(width: 12),
+                const Text('Save'),
+              ],
+            ),
+          ),
         PopupMenuItem(
           value: 'copy',
           child: Row(
@@ -421,7 +440,8 @@ class NoteItem extends ConsumerWidget {
             ],
           ),
         ),
-        if (kIsWeb &&
+        if (!isMediaOnly &&
+            kIsWeb &&
             (note.attachments?.any(
                   (a) => a.mimeType.toLowerCase().startsWith('image/'),
                 ) ??
@@ -436,7 +456,7 @@ class NoteItem extends ConsumerWidget {
               ],
             ),
           ),
-        if (!isArchive)
+        if (!isMediaOnly && !isArchive)
           PopupMenuItem(
             value: 'edit',
             child: Row(
@@ -447,7 +467,7 @@ class NoteItem extends ConsumerWidget {
               ],
             ),
           ),
-        if (channelId == -1) ...[
+        if (isArchive) ...[
           PopupMenuItem(
             value: 'restore',
             child: Row(
@@ -481,12 +501,12 @@ class NoteItem extends ConsumerWidget {
           ),
         if (!isArchive)
           PopupMenuItem(
-            value: 'reminder',
+            value: hasReminder ? 'remove_reminder' : 'reminder',
             child: Row(
               children: [
                 PhosphorIcon(PhosphorIcons.siren(), size: 18),
                 const SizedBox(width: 12),
-                const Text('Set Reminder'),
+                Text(hasReminder ? 'Remove Reminder' : 'Set Reminder'),
               ],
             ),
           ),
@@ -505,8 +525,15 @@ class NoteItem extends ConsumerWidget {
       if (value == null) return;
       if (!context.mounted) return;
       switch (value) {
+        case 'save':
+          _saveMedia(context);
+          break;
         case 'copy':
-          _copyToClipboard(context, note.content);
+          if (isMediaOnly) {
+            _copyMedia(context);
+          } else {
+            _copyToClipboard(context, note.content);
+          }
           break;
         case 'copy_image':
           _copyImageToClipboard(context).ignore();
@@ -523,6 +550,9 @@ class NoteItem extends ConsumerWidget {
           break;
         case 'reminder':
           _setReminder(context, ref);
+          break;
+        case 'remove_reminder':
+          _removeReminder(context, ref);
           break;
         case 'select':
           ref.read(noteSelectionProvider.notifier).select(note.id!);
@@ -582,6 +612,82 @@ class NoteItem extends ConsumerWidget {
       ref.invalidate(channelRemindersProvider(channelId));
       if (context.mounted) {
         ToastUtils.show(context, 'Reminder set', type: ToastType.success);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ToastUtils.show(context, 'Failed: $e', type: ToastType.error);
+      }
+    }
+  }
+
+  void _saveMedia(BuildContext context) async {
+    final attachments = note.attachments;
+    if (attachments == null || attachments.isEmpty) return;
+    final attachment = attachments.first;
+    final url = FileUtils.buildMediaUrl(
+      serverUrl,
+      attachment.filePath,
+      attachment.contentHash,
+    );
+    if (kIsWeb) {
+      try {
+        final request = await html.HttpRequest.request(
+          url,
+          responseType: 'blob',
+        );
+        final blob = request.response as html.Blob;
+        final objectUrl = html.Url.createObjectUrlFromBlob(blob);
+        html.AnchorElement()
+          ..href = objectUrl
+          ..setAttribute('download', attachment.originalFilename)
+          ..click();
+        html.Url.revokeObjectUrl(objectUrl);
+      } catch (e) {
+        if (context.mounted) {
+          ToastUtils.show(context, 'Download failed', type: ToastType.error);
+        }
+      }
+    } else {
+      ToastUtils.show(context, 'Downloading...', type: ToastType.info);
+      DownloadUtils.downloadToDevice(
+        context,
+        url,
+        attachment.originalFilename,
+        mimeType: attachment.mimeType,
+      );
+    }
+  }
+
+  void _copyMedia(BuildContext context) {
+    final attachments = note.attachments;
+    if (attachments == null || attachments.isEmpty) return;
+    final attachment = attachments.first;
+    if (kIsWeb && attachment.mimeType.toLowerCase().startsWith('image/')) {
+      _copyImageToClipboard(context).ignore();
+    } else {
+      final url = FileUtils.buildMediaUrl(
+        serverUrl,
+        attachment.filePath,
+        attachment.contentHash,
+      );
+      Clipboard.setData(ClipboardData(text: url));
+      if (context.mounted) {
+        ToastUtils.show(context, 'URL copied', type: ToastType.info);
+      }
+    }
+  }
+
+  void _removeReminder(BuildContext context, WidgetRef ref) async {
+    if (note.id == null) return;
+    try {
+      await ref.read(reminderProvider(note.id!).notifier).deleteReminder();
+      ref.invalidate(channelRemindersProvider(channelId));
+      if (context.mounted) {
+        ToastUtils.show(
+          context,
+          'Reminder removed',
+          type: ToastType.success,
+        );
       }
     } catch (e) {
       if (context.mounted) {

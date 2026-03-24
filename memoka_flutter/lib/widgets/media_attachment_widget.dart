@@ -162,49 +162,52 @@ class _ImageAttachmentWidget extends StatelessWidget {
     // Upload hot path: local bytes keyed by full URL.
     final Uint8List? localBytes = LocalImageCache.get(fullImageUrl);
 
-    return GestureDetector(
-      onTap: () {
-        FullScreenImageView.show(
-          context,
-          imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [fullImageUrl],
-          initialIndex: allImageUrls.isNotEmpty ? initialImageIndex : 0,
-        );
-      },
-      child: Stack(
-        children: [
-          SizedBox(
-            width: displaySize.width,
-            height: displaySize.height,
-            child: localBytes != null
-                ? Image.memory(
-                    localBytes,
-                    fit: BoxFit.cover,
-                    cacheWidth: 1200,
-                    errorBuilder: (context, error, stack) {
-                      return _buildErrorWidget(displaySize, error);
-                    },
-                  )
-                : Image.network(
-                    displayUrl,
-                    fit: BoxFit.cover,
-                    frameBuilder:
-                        (context, child, frame, wasSynchronouslyLoaded) {
-                          if (wasSynchronouslyLoaded || frame != null) {
-                            _loadedUrls.add(displayUrl);
-                            return child;
-                          }
-                          if (_loadedUrls.contains(displayUrl)) return child;
-                          return ShimmerPlaceholder(
-                            width: displaySize.width,
-                            height: displaySize.height,
-                          );
-                        },
-                    errorBuilder: (context, error, stack) {
-                      return _buildErrorWidget(displaySize, error);
-                    },
-                  ),
-          ),
-        ],
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          FullScreenImageView.show(
+            context,
+            imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [fullImageUrl],
+            initialIndex: allImageUrls.isNotEmpty ? initialImageIndex : 0,
+          );
+        },
+        child: Stack(
+          children: [
+            SizedBox(
+              width: displaySize.width,
+              height: displaySize.height,
+              child: localBytes != null
+                  ? Image.memory(
+                      localBytes,
+                      fit: BoxFit.cover,
+                      cacheWidth: 1200,
+                      errorBuilder: (context, error, stack) {
+                        return _buildErrorWidget(displaySize, error);
+                      },
+                    )
+                  : Image.network(
+                      displayUrl,
+                      fit: BoxFit.cover,
+                      frameBuilder:
+                          (context, child, frame, wasSynchronouslyLoaded) {
+                            if (wasSynchronouslyLoaded || frame != null) {
+                              _loadedUrls.add(displayUrl);
+                              return child;
+                            }
+                            if (_loadedUrls.contains(displayUrl)) return child;
+                            return ShimmerPlaceholder(
+                              width: displaySize.width,
+                              height: displaySize.height,
+                            );
+                          },
+                      errorBuilder: (context, error, stack) {
+                        return _buildErrorWidget(displaySize, error);
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

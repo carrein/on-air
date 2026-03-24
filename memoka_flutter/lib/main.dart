@@ -123,6 +123,16 @@ class MyApp extends StatelessWidget {
           selectionColor: const Color(0xFF3450A3).withValues(alpha: 0.3),
           selectionHandleColor: const Color(0xFF3450A3),
         ),
+        popupMenuTheme: PopupMenuThemeData(
+          color: const Color(0xFFF6F0ED),
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: Color(0xFF3450A3)),
+          ),
+          textStyle: const TextStyle(
+            color: Color(0xFF00171F),
+            fontSize: 14,
+          ),
+        ),
       ),
       home: needsServerSetup ? const ServerSetupScreen() : const ChatScreen(),
     );
