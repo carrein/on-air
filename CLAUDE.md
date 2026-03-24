@@ -30,6 +30,7 @@ u/docs/Notification.md
 u/docs/PageWatch.md
 u/docs/Reminder.md
 u/docs/Seed.md
+u/docs/TechDebt.md
 
 # CLAUDE.md
 
