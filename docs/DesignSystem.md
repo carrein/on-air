@@ -22,7 +22,7 @@ Canonical style reference and interaction guidelines for the Memoka app. All com
 
 | Token              | Hex       | RGB              | Usage                                  |
 |--------------------|-----------|------------------|----------------------------------------|
-| `brand.primary`    | `#CE2161` | `206, 33, 97`    | Selected states, primary actions, borders, tab indicators, date separator background |
+| `brand.primary`    | `#3450A3` | `52, 80, 163`    | Selected states, primary actions, borders, tab indicators, date separator background |
 
 #### Semantic
 
@@ -99,9 +99,9 @@ These rules apply to ALL widgets and screens in the app:
 
 2. **All body text on light surfaces** uses `core.text` (`#00171F`). Never use `Colors.black`, `Colors.black87`, `Colors.black54` etc. for text — always use `Color(0xFF00171F)` or `Color(0xFF00171F).withValues(alpha: X)`.
 
-3. **All borders on light surfaces** use `brand.primary` (`#CE2161`). Never use grey borders for note cards, link cards, or any UI container that has a border. The only exception is neutral drag handles and shimmer placeholders.
+3. **All borders on light surfaces** use `brand.primary` (`#3450A3`). Never use grey borders for note cards, link cards, or any UI container that has a border. The only exception is neutral drag handles and shimmer placeholders.
 
-4. **All brand/pink accents** (selected indicators, action icons) use `brand.primary` (`#CE2161`). Never use `Colors.blue` for brand actions — use CE2161.
+4. **All brand accents** (selected indicators, action icons) use `brand.primary` (`#3450A3`). Never use `Colors.blue` for brand actions — use `#3450A3`.
 
 5. **Muted/secondary text and icons** use `Color(0xFF00171F).withValues(alpha: 0.6)` (`core.textMuted`). Never use `Colors.grey[400]`, `Colors.grey[500]`, `Colors.grey[600]`, or `Colors.grey[700]` on light surfaces — always use `core.textMuted`.
 
