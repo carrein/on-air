@@ -1,4 +1,4 @@
-# memoka
+# <img src="logo.png" width="28"> memoka
 
 ![memoka](memoka.png)
 
