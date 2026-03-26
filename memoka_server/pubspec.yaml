@@ -1,6 +1,6 @@
 name: memoka_server
 description: Starting point for a Serverpod server.
-version: 0.6.0
+version: 0.7.0
 
 environment:
   sdk: '^3.8.0'

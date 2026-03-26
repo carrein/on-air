@@ -14,7 +14,7 @@ name: memoka_flutter
 description: Memoka — chat-style notes organized in topical channels.
 publish_to: 'none'
 
-version: 0.6.0
+version: 0.7.0
 
 environment:
   sdk: '^3.8.0'
