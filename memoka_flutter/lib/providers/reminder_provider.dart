@@ -26,6 +26,7 @@ class ReminderNotifier extends _$ReminderNotifier {
       recurrenceRule: recurrenceRule,
       recurrenceEndAt: recurrenceEndAt,
     );
+    if (!ref.mounted) return reminder;
     state = AsyncData(reminder);
     ref.read(reminderSchedulerProvider.notifier).schedule(reminder);
     return reminder;
@@ -34,6 +35,7 @@ class ReminderNotifier extends _$ReminderNotifier {
   /// Deletes the reminder.
   Future<void> deleteReminder() async {
     await client.reminder.deleteReminder(arg);
+    if (!ref.mounted) return;
     state = const AsyncData(null);
     ref.read(reminderSchedulerProvider.notifier).cancel(arg);
   }
@@ -50,6 +52,7 @@ class ReminderNotifier extends _$ReminderNotifier {
       recurrenceRule: recurrenceRule,
       recurrenceEndAt: recurrenceEndAt,
     );
+    if (!ref.mounted) return reminder;
     state = AsyncData(reminder);
     ref.read(reminderSchedulerProvider.notifier).schedule(reminder);
     return reminder;
@@ -58,6 +61,7 @@ class ReminderNotifier extends _$ReminderNotifier {
   /// Force refresh from server.
   Future<void> refresh() async {
     final reminder = await client.reminder.getReminder(arg);
+    if (!ref.mounted) return;
     state = AsyncData(reminder);
   }
 
