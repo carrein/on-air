@@ -346,29 +346,38 @@ class _NavbarState extends ConsumerState<Navbar> {
       ),
       child: Row(
         children: [
-          Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: '${selection.length}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: _textColor,
-                  ),
-                ),
-                const TextSpan(
-                  text: ' selected',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: _textColor,
-                  ),
-                ),
-              ],
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: const BoxDecoration(
+              color: Color(0xFF3450A3),
+              borderRadius: BorderRadius.all(Radius.circular(2)),
+            ),
+            constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+            child: Text(
+              '${selection.length}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'selected',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.normal,
+              color: _textColor,
             ),
           ),
           const Spacer(),
+          IconButtonStyled(
+            icon: PhosphorIcons.copy(),
+            onPressed: () => _copySelected(selection),
+          ),
+          const SizedBox(width: 4),
           IconButtonStyled(
             icon: PhosphorIcons.siren(),
             onPressed: () => _setReminderForSelected(selection),
@@ -386,6 +395,21 @@ class _NavbarState extends ConsumerState<Navbar> {
         ],
       ),
     );
+  }
+
+  void _copySelected(Set<int> selection) {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+    final notes = ref.read(notesProvider(channelId)).value ?? [];
+    final texts = notes
+        .where((n) => selection.contains(n.id) && n.content.trim().isNotEmpty)
+        .map((n) => n.content.trim())
+        .toList();
+    if (texts.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: texts.join('\n')));
+    if (mounted) {
+      ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
+    }
   }
 
   Future<void> _archiveSelected(Set<int> selection) async {

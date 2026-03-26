@@ -69,38 +69,78 @@ class NoteItem extends ConsumerWidget {
 
     const borderColor = Color(0xFF3450A3);
 
-    return Padding(
+    final noteRow = Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Selection checkbox (visible in selection mode)
-          if (isSelectionMode)
-            Padding(
+          // Animated checkbox area — slides in/out on selection mode change
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeInOut,
+            width: isSelectionMode ? 32 : 0,
+            clipBehavior: Clip.hardEdge,
+            decoration: const BoxDecoration(),
+            child: Padding(
               padding: const EdgeInsets.only(right: 8, top: 8),
-              child: GestureDetector(
-                onTap: () =>
-                    ref.read(noteSelectionProvider.notifier).toggle(note.id!),
-                child: isSelected
-                    ? PhosphorIcon(
-                        PhosphorIcons.checkCircle(),
-                        size: 24,
-                        color: const Color(0xFF3450A3),
-                      )
-                    : PhosphorIcon(
-                        PhosphorIcons.circle(),
-                        size: 24,
-                        color: const Color(0xFF3450A3),
-                      ),
+              child: PhosphorIcon(
+                isSelected
+                    ? PhosphorIcons.checkCircle(PhosphorIconsStyle.fill)
+                    : PhosphorIcons.circle(),
+                size: 24,
+                color: const Color(0xFF3450A3),
               ),
             ),
+          ),
           // Note content
           Flexible(
             child: mediaOnly
-                ? _buildMediaOnlyNote(context, ref, isSelectionMode)
-                : _buildCardNote(context, ref, isSelectionMode, borderColor),
+                ? _buildMediaOnlyNote(context, ref)
+                : _buildCardNote(context, ref, borderColor),
           ),
+        ],
+      ),
+    );
+
+    // Stack children order must be stable so AnimatedContainer keeps its state.
+    // The highlight Positioned is always present (transparent when inactive)
+    // to prevent index shifts that would recreate the AbsorbPointer subtree.
+    return SizedBox(
+      width: double.infinity,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: -14,
+            right: -14,
+            top: 0,
+            bottom: 0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              color: isSelectionMode && isSelected
+                  ? const Color(0xFF3450A3).withValues(alpha: 0.15)
+                  : Colors.transparent,
+            ),
+          ),
+          AbsorbPointer(
+            absorbing: isSelectionMode,
+            child: noteRow,
+          ),
+          if (isSelectionMode)
+            Positioned(
+              left: -14,
+              right: -14,
+              top: 0,
+              bottom: 0,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () =>
+                    ref.read(noteSelectionProvider.notifier).toggle(note.id!),
+                onLongPress: () =>
+                    ref.read(noteSelectionProvider.notifier).toggle(note.id!),
+              ),
+            ),
         ],
       ),
     );
@@ -110,7 +150,6 @@ class NoteItem extends ConsumerWidget {
   Widget _buildCardNote(
     BuildContext context,
     WidgetRef ref,
-    bool isSelectionMode,
     Color borderColor,
   ) {
     return _wrapConstraints(
@@ -122,13 +161,9 @@ class NoteItem extends ConsumerWidget {
           }
         },
         child: GestureDetector(
-          onTap: isSelectionMode
-              ? () => ref.read(noteSelectionProvider.notifier).toggle(note.id!)
-              : null,
           onLongPress: () {
-            if (isSelectionMode) {
-              ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-            } else if (ResponsiveUtils.isMobile(context)) {
+            if (ResponsiveUtils.isMobile(context)) {
+              HapticFeedback.mediumImpact();
               ref.read(noteSelectionProvider.notifier).select(note.id!);
             } else {
               _showContextMenu(context, ref, null);
@@ -171,7 +206,6 @@ class NoteItem extends ConsumerWidget {
   Widget _buildMediaOnlyNote(
     BuildContext context,
     WidgetRef ref,
-    bool isSelectionMode,
   ) {
     final attachments = note.attachments!;
 
@@ -225,13 +259,9 @@ class NoteItem extends ConsumerWidget {
         }
       },
       child: GestureDetector(
-        onTap: isSelectionMode
-            ? () => ref.read(noteSelectionProvider.notifier).toggle(note.id!)
-            : null,
         onLongPress: () {
-          if (isSelectionMode) {
-            ref.read(noteSelectionProvider.notifier).toggle(note.id!);
-          } else if (ResponsiveUtils.isMobile(context)) {
+          if (ResponsiveUtils.isMobile(context)) {
+            HapticFeedback.mediumImpact();
             ref.read(noteSelectionProvider.notifier).select(note.id!);
           } else {
             _showContextMenu(context, ref, null);
