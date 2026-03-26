@@ -75,7 +75,7 @@ Set globally via `GoogleFonts.spaceGrotesk()` in `main.dart`. No secondary font.
 | Token              | Value | Usage                                |
 |--------------------|-------|--------------------------------------|
 | `radius.note`      | 0px   | Chat bubble corners (sharp)          |
-| `radius.pill`      | 50px  | Date separator pills                 |
+| `radius.pill`      | 0px   | Date separator (sharp)               |
 | `divider.weight`   | 1px   | Sidebar border, navbar border, note card borders |
 
 ---
@@ -318,7 +318,7 @@ All footer icons: 20px, `core.textMuted` (`#00171F` at 60% opacity).
 
 - **Background**: `brand.primary` (`#CE2161`)
 - **Text**: `#FFFFFF`, 12px, medium weight (w500)
-- **Border radius**: 50px (pill)
+- **Border radius**: 0px (sharp)
 - **Padding**: 14px horizontal, 6px vertical
 - **Margin**: 16px vertical
 

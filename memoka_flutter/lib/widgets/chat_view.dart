@@ -505,7 +505,7 @@ class _ChatViewState extends ConsumerState<ChatView>
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: const Color(0xFF3450A3),
-          borderRadius: BorderRadius.circular(50),
+          borderRadius: BorderRadius.zero,
         ),
         child: Text(
           dateText,
