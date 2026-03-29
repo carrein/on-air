@@ -104,7 +104,7 @@ class ThumbnailRegenService {
   }) async {
     final rows = await session.db.unsafeQuery(
       '''
-      SELECT ma.id, ma."channelId", ma."filePath", ma."thumbnailPath"
+      SELECT ma.id, ma."channelId", ma."filePath"
       FROM   media_attachments ma
       JOIN   notes n ON n.id = ma."noteId"
       WHERE  n."deletedAt" IS NULL
@@ -121,7 +121,6 @@ class ThumbnailRegenService {
       final id = row[0] as int;
       final channelId = row[1] as int;
       final filePath = row[2] as String;
-      final existingThumbPath = row[3] as String?;
 
       final sourceFile = File('$_mediaBaseDir/$filePath');
       if (!await sourceFile.exists()) {
@@ -162,18 +161,12 @@ class ThumbnailRegenService {
 
       final newThumbRelative = path.relative(thumbFilePath, from: channelDir);
       final newHash = await computeFileHash(thumbFilePath);
+      final escaped = newThumbRelative.replaceAll("'", "''");
 
-      if (existingThumbPath == null) {
-        final escaped = newThumbRelative.replaceAll("'", "''");
-        await session.db.unsafeQuery(
-          'UPDATE media_attachments SET "thumbnailPath" = \'$escaped\', '
-          '"contentHash" = \'$newHash\' WHERE id = $id',
-        );
-      } else {
-        await session.db.unsafeQuery(
-          'UPDATE media_attachments SET "contentHash" = \'$newHash\' WHERE id = $id',
-        );
-      }
+      await session.db.unsafeQuery(
+        'UPDATE media_attachments SET "thumbnailPath" = \'$escaped\', '
+        '"contentHash" = \'$newHash\' WHERE id = $id',
+      );
 
       log?.call('  [$id] OK — $newThumbRelative');
       ThumbnailRegenJob.processed++;
