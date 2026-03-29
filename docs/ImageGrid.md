@@ -1,16 +1,26 @@
 # Image Grid / Album Feature
 
-Future feature: group multiple images into a single note with a visual grid layout.
+Justified media grid for multi-attachment notes, rendering images/videos in proportional rows (Google Photos / Telegram album style).
 
 ## Current State
 
-Each image upload creates a separate note with one `MediaAttachment`. Multi-file drag-and-drop produces N separate notes.
+**Implemented** in `note_item.dart` via `_buildJustifiedMediaGrid()`. Multi-file uploads already create one note with multiple `MediaAttachment` records.
 
-## Target Behavior
+### What Works
+- Notes with 2+ visual media attachments (images/videos) render as a justified row grid
+- Greedy row-filling algorithm: items fill rows until row height drops to target (150px)
+- Last row balancing: steals from previous row if last row is too tall (>1.5x target)
+- Aspect ratios from attachment metadata; falls back to 1:1 if missing
+- Shimmer placeholders during image load
+- Image tap opens full-screen lightbox at correct gallery index
+- Media-only notes (no text) and mixed notes (text + media) both support the grid
+- Non-visual media (documents, audio) rendered individually below the grid
+- `precomputedWidth` parameter handles IntrinsicWidth ancestor constraint on desktop
 
-- Batch multiple images into a single note (one note, multiple `MediaAttachment` records)
-- Render grouped images as a proportional mosaic/grid in the media-only note UI
-- Max per group: 10 (following Telegram/Discord convention)
+### Known Limitations
+- **Video tap in grid is a no-op** — grid cells render thumbnail + play overlay but tapping does nothing (VideoAttachmentWidget's lightbox not integrated into grid cells)
+- No drag-to-reorder within an album
+- No max-per-group limit enforced
 
 ## Industry Reference
 
@@ -23,34 +33,30 @@ Each image upload creates a separate note with one `MediaAttachment`. Multi-file
 | WhatsApp | Separate bubbles | None (vertical stack) | 30 |
 | Slack | One message, attachments | Vertical file cards | 10 |
 
-## Common Grid Patterns
+## Implementation Details
 
-- 1 image: full width
-- 2 images: side by side (proportional to aspect ratio)
-- 3 images: 1 large + 2 small (1 top full-width, 2 bottom half-width)
-- 4 images: 2x2 grid
-- 5-10 images: mosaic with rows of 2-3, proportionally sized
+### Grid Algorithm (`_computeRows`)
 
-Telegram's mosaic algorithm arranges images into rows where each row's images share the same height, with widths proportional to aspect ratios. This is the gold standard.
+1. Iterate attachments, accumulating aspect ratio sum per row
+2. When row height (`containerWidth / sumAR`) drops to/below `targetRowHeight` (150px), close the row
+3. After partitioning, balance: while last row height > 1.5x target and previous row has >1 item, steal one item
+4. `_finalizeRow`: assigns exact pixel widths; last cell gets the remainder to prevent floating-point overflow
 
-## Implementation Requirements
+### Rendering (`_buildGridCell`)
 
-### Upload Flow
-- Multi-file selection creates one note with multiple attachments (not N notes)
-- Upload dialog shows all selected files as a batch
-- Sequential upload per file, but all attach to the same note
+- Images: `Image.network` with `BoxFit.cover`, shimmer placeholder via `frameBuilder`
+- Videos: thumbnail (or grey fallback) + centered play icon overlay (white circle, brand blue icon)
+- Each cell wrapped in `GestureDetector` + `ClipRect` + `SizedBox.expand`
 
-### Server
-- No schema change needed — notes already support `List<MediaAttachment>?`
-- Upload route needs a `noteId` parameter to attach additional files to an existing note, or a batch upload mode
+### Width Measurement
 
-### Client Rendering
-- Detect multi-attachment media-only notes in `note_item.dart`
-- Mosaic layout widget that computes row arrangement from attachment aspect ratios
-- Tap individual image to open lightbox at that index
-- Timestamp pill overlays the grid (bottom-right of the overall group)
+- **Media-only notes** (no IntrinsicWidth ancestor): uses `LayoutBuilder` to measure available width
+- **Card notes** (IntrinsicWidth ancestor on desktop): caller passes `precomputedWidth` computed from screen dimensions and padding, bypassing `LayoutBuilder`
 
-### Notes
-- No app offers a user toggle between grouped and individual sending — auto-group is standard
-- Note-taking apps (Apple Notes, Google Keep, Notion) do NOT auto-grid; they stack vertically
-- Since Memoka is chat-style, the Telegram album model is the best fit
+## Related Files
+
+| File | Purpose |
+|------|---------|
+| `lib/widgets/note_item.dart` | Grid implementation (`_buildJustifiedMediaGrid`, `_computeRows`, `_buildGridCell`, `_GridCell`) |
+| `lib/widgets/full_screen_image_view.dart` | Lightbox opened on image tap |
+| `lib/utils/file_utils.dart` | `buildMediaUrl`, `buildThumbnailUrl` |

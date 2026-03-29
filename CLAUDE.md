@@ -49,16 +49,16 @@ Serverpod is a backend framework for Dart/Flutter that handles database connecti
 ## Features
 
 - **Channels**: Create, update, delete, pin/unpin, emoji identifiers, drag-to-reorder, archive/restore
-- **Notes**: Create, update, delete with cursor-based pagination, archive/restore
+- **Notes**: Create, update, delete with cursor-based pagination, archive/restore, combine (merge multiple), explode (split on paragraphs/attachments)
 - **Real-time**: WebSocket streaming via MessageCentral for live updates
 - **Link Previews**: Automatic URL detection with OpenGraph/Twitter Card metadata
 - **Media Uploads**: Image/document upload with drag-and-drop, paste, multi-file batch upload, thumbnail generation; any `image/*` format accepted (non-web-safe formats converted to PNG); no compression applied; fire-and-forget async upload with ghost notes, real-time progress, cancel, and retry
-- **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support
+- **Media Display**: Shimmer placeholders with correct dimensions, full-screen image lightbox with gallery navigation, video lightbox with player controls, animated GIF support, justified media grid for multi-image notes (Google Photos style row layout)
 - **Audio Playback**: Inline audio player for audio attachments — HTML Audio API on web, ExoPlayer on Android; scrubber, preview + download buttons
 - **Media Panel**: Right sidebar with 5 tabs (Images/Videos/Documents/Links/Reminders), responsive layout
 - **Archive System**: Archive for soft-deleted notes, channel archiving with restore, configurable retention auto-purge (Never/30/60/90 days)
-- **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk archive action; Escape key cancels
-- **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode
+- **Selection Mode**: Long-press (mobile) or right-click → Select (desktop) to multi-select notes; Navbar transforms to show count + bulk actions (copy, combine, reminder, archive); Escape key cancels
+- **Settings/Archive as detail pages**: Fade-animated (220ms) full-width view with back button; sidebar and media panel hidden in this mode; settings includes inline server URL editing, thumbnail regen with live progress, test notifications (see `docs/Settings.md`)
 - **Offline Mode**: Local-first reads from SQLite cache (Drift), dirty-flag tracking replaces mutation queue, pull-then-push sync on reconnect, navbar sync indicator; persistent on all platforms — native uses file SQLite, web uses WASM SQLite + IndexedDB (see `docs/Sync.md`)
 - **GIF Search**: Klipy API integration for GIF search and send; bottom sheet picker with trending, search, pagination; GIFs downloaded from CDN and uploaded to server as self-hosted media (see `docs/GIF.md`)
 - **Search**: Hybrid FTS + trigram search across all notes; ranked results with highlighted snippets, jump-to-context; untracked `note_search` table pattern to work around Serverpod schema validator (see `docs/Search.md`)
@@ -143,6 +143,8 @@ You MUST run `serverpod generate` from the `memoka_server/` directory to regener
 **reminders** (server-only untracked table): noteId (FK → notes, cascade, UNIQUE), channelId (FK → channels, cascade), scheduledAt, noteContent, fired, createdAt, recurrenceRule, recurrenceEndAt. Created at startup by `ReminderSetup`, not in any `.spy.yaml`. Indexes on scheduledAt (unfired) and fired. See `docs/Reminder.md`.
 
 **Reminder** (non-table): noteId, channelId, scheduledAt, noteContent?, fired, createdAt, recurrenceRule?, recurrenceEndAt?
+
+**ThumbnailRegenProgress** (non-table): total, processed, failed, isRunning
 
 ## Common Commands
 
@@ -281,8 +283,9 @@ Server serves:
 
 - `chat`: Channel and note management with real-time WebSocket updates
   - Channels: create, update, delete, list, pin/unpin, archive/restore
-  - Notes: create, update, delete, list with pagination, archive/restore
+  - Notes: create, update, delete, list with pagination, archive/restore, combine, explode
   - Archive: getArchiveItems, getArchivedChannelNoteCount
+  - Combine/Explode: `combineNotes(channelId, noteIds)` merges notes, `explodeNote(noteId)` splits on `\n\n` + attachments; both transactional with tombstoning, reject notes with reminders/page watches
   - Link previews: automatic URL detection and metadata fetching (see `docs/components/Preview.md`)
   - Real-time streaming: WebSocket events for live updates
 - `sync`: State-based reconciliation sync
@@ -291,6 +294,8 @@ Server serves:
 - `settings`: Application settings management
   - `getSettings()` — returns current AppSettings (archiveRetentionDays)
   - `updateSettings(settings)` — updates AppSettings singleton
+  - `startThumbnailRegen()` — starts background thumbnail regeneration, returns total count
+  - `getRegenProgress()` — returns `ThumbnailRegenProgress` (total, processed, failed, isRunning)
 - `search`: Full-text and trigram search across notes
   - `searchNotes(query, {channelId?, limit})` — hybrid FTS + trigram with optional channel boost, returns ranked `SearchResult` list with snippets
   - `getNotesAroundId(channelId, noteId, {limit})` — loads notes surrounding a target for jump-to-context

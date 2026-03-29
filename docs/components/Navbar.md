@@ -139,8 +139,13 @@ Visible only in Archive detail mode (`isArchive == true`). Positioned on the rig
 Shown when `noteSelectionProvider` is non-empty (user has selected notes). Replaces the other modes entirely.
 
 - **Padding**: `_padding` — horizontal 16px, vertical 8px
-- **Layout**: `[N selected text (Expanded)]` + `[siren reminder button]` + `[4px]` + `[archive button]` + `[4px]` + `[xCircle cancel]`
+- **Layout**: `[N selected text (Expanded)]` + `[copy button]` + `[4px]` + `[combine button (2+ selected)]` + `[4px]` + `[siren reminder button]` + `[4px]` + `[archive button]` + `[4px]` + `[xCircle cancel]`
 - **Count text**: "**N** selected" — the number is bold (`FontWeight.w700`), 16px, `#00171F`
+- **Copy**: `IconButtonStyled(icon: PhosphorIcons.copy())` — copies all selected notes' content to clipboard
+- **Combine**: `IconButtonStyled(icon: PhosphorIcons.arrowsMerge())` — combines selected notes into one (online-only, 2+ notes required)
+  - Concatenates content chronologically, reassigns attachments
+  - Clears selection on success; shows error toast on failure
+  - See `docs/components/Note.md` for full combine semantics
 - **Reminder**: `IconButtonStyled(icon: PhosphorIcons.siren())` — opens date/time picker, creates reminders for all selected notes
   - Shows toast: "Reminder set for N note(s)"
 - **Archive**: `IconButtonStyled(icon: PhosphorIcons.archive())` — archives all selected notes

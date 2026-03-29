@@ -131,14 +131,57 @@ Menu options differ by view:
 1. Copy — copies content to clipboard, shows toast
 2. Edit — populates NoteInput with note content
 3. Archive — soft-deletes, broadcasts WebSocket event
-4. Select — enters selection mode with this note pre-selected
-5. Set Reminder — opens date/time picker, creates reminder on server
+4. Explode — splits note into multiple notes (visible when splittable; see below)
+5. Select — enters selection mode with this note pre-selected
+6. Set Reminder — opens date/time picker, creates reminder on server
 
 **Archive view:**
 1. Copy
 2. Restore — returns note to original channel
 3. Delete — permanently deletes note
 4. Select
+
+---
+
+## Combine / Explode
+
+### Combine (Navbar selection bar)
+
+When 2+ notes are selected, the Navbar shows a merge button (`PhosphorIcons.arrowsMerge()`). Online-only.
+
+- Content is concatenated chronologically (newest first, matching chat display order), separated by double newlines
+- All attachments from source notes are reassigned to the combined note
+- Source notes are tombstoned (`deletedAt` set)
+- Rejects notes with reminders or page watches (server validates)
+- Broadcasts `noteCreated` for the combined note + `noteDeleted` for each source
+- Link preview is fetched asynchronously for the combined note
+
+### Explode (Context menu)
+
+Visible when a note can be split into 2+ pieces (text segments split on `\n\n` + individual attachments). Online-only.
+
+- Each text segment becomes its own note
+- Each attachment becomes its own note (empty content)
+- Original note is tombstoned
+- Rejects notes with reminders or page watches (server validates)
+- Broadcasts `noteCreated` for each new note + `noteDeleted` for the original
+- Link previews fetched asynchronously for text notes
+
+Both operations are transactional — all-or-nothing with a single `incrementGlobalVersion` call.
+
+---
+
+## Justified Media Grid
+
+When a note has 2+ visual media attachments (images/videos), they are rendered in a justified-row grid (Google Photos style) instead of stacked vertically.
+
+- **Algorithm**: Greedy row-filling — items are added to a row until the row height drops to/below `targetRowHeight` (150px). Last row is balanced by stealing from the previous row if too tall (>1.5x target).
+- **Aspect ratios**: Computed from attachment `width`/`height` metadata; defaults to 1.0 if missing
+- **Flex sizing**: Each cell uses `Flexible(flex:)` with width-proportional flex values to avoid floating-point drift
+- **Shimmer**: Image cells show `ShimmerPlaceholder` until loaded
+- **Videos in grid**: Show thumbnail with play button overlay; tap handler is currently a no-op (video lightbox not yet integrated for grid cells)
+- **Non-visual media**: Documents and audio are always rendered as individual `MediaAttachmentWidget`s below the grid
+- **IntrinsicWidth workaround**: Card notes on desktop are wrapped in `IntrinsicWidth` + `ConstrainedBox`. `LayoutBuilder` cannot answer intrinsic-dimension queries, so the grid accepts an optional `precomputedWidth` parameter to bypass `LayoutBuilder` in that context.
 
 ---
 

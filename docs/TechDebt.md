@@ -23,7 +23,8 @@ Tracked items from the 2026-03-24 codebase audit. Priority order: C7 > C1 > M3.
 ### Gaps
 
 **Server — zero test coverage:**
-- `SettingsEndpoint` (getSettings, updateSettings)
+- `SettingsEndpoint` (getSettings, updateSettings, startThumbnailRegen, getRegenProgress)
+- `ChatEndpoint` (combineNotes, explodeNote)
 - `PageWatchEndpoint` (createWatch, deleteWatch, getWatch, acknowledgeChange)
 - `ReminderEndpoint` (createReminder, deleteReminder, updateReminder, getReminder, getReminders, getFiredReminders, getActiveReminders, acknowledgeReminder)
 - `ArchivePurgeService.runPurge`
