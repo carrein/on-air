@@ -545,12 +545,11 @@ class ChatEndpoint extends Endpoint {
     Session session, {
     int limit = 50,
   }) async {
-    // Fetch archived notes (exclude tombstoned)
-    final archivedNotes = await Note.db.find(
+    // Fetch archived notes with attachments (exclude tombstoned)
+    final archivedNotes = await NoteQuery.findWithAttachments(
       session,
-      where: (t) => t.archived.equals(true) & t.deletedAt.equals(null),
-      orderBy: (t) => t.archivedAt,
-      orderDescending: true,
+      whereClause: 'n.archived = true AND n."deletedAt" IS NULL',
+      orderBy: 'n."archivedAt" DESC',
       limit: limit,
     );
 
