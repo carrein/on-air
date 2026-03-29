@@ -22,11 +22,13 @@ import 'package:memoka_server/src/generated/pagewatch/page_watch.dart' as _i8;
 import 'package:memoka_server/src/generated/reminder/reminder.dart' as _i9;
 import 'package:memoka_server/src/generated/search/search_result.dart' as _i10;
 import 'package:memoka_server/src/generated/settings/app_settings.dart' as _i11;
-import 'package:memoka_server/src/generated/sync/sync_pull_response.dart'
+import 'package:memoka_server/src/generated/settings/thumbnail_regen_progress.dart'
     as _i12;
-import 'package:memoka_server/src/generated/sync/sync_push_response.dart'
+import 'package:memoka_server/src/generated/sync/sync_pull_response.dart'
     as _i13;
-import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i14;
+import 'package:memoka_server/src/generated/sync/sync_push_response.dart'
+    as _i14;
+import 'package:memoka_server/src/generated/sync/sync_change.dart' as _i15;
 import 'package:memoka_server/src/generated/protocol.dart';
 import 'package:memoka_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -651,6 +653,72 @@ class _ChatEndpoint {
                   _localCallContext.arguments,
                 )
                 as _i3.Future<int>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i5.Note> combineNotes(
+    _i1.TestSessionBuilder sessionBuilder,
+    int channelId,
+    List<int> noteIds,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'combineNotes',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'combineNotes',
+          parameters: _i1.testObjectToJson({
+            'channelId': channelId,
+            'noteIds': noteIds,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i5.Note>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<List<_i5.Note>> explodeNote(
+    _i1.TestSessionBuilder sessionBuilder,
+    int noteId,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'chat',
+            method: 'explodeNote',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'chat',
+          methodName: 'explodeNote',
+          parameters: _i1.testObjectToJson({'noteId': noteId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<List<_i5.Note>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1321,6 +1389,66 @@ class _SettingsEndpoint {
       }
     });
   }
+
+  _i3.Future<int> startThumbnailRegen(
+    _i1.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'settings',
+            method: 'startThumbnailRegen',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'settings',
+          methodName: 'startThumbnailRegen',
+          parameters: _i1.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<int>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i12.ThumbnailRegenProgress> getRegenProgress(
+    _i1.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'settings',
+            method: 'getRegenProgress',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'settings',
+          methodName: 'getRegenProgress',
+          parameters: _i1.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i12.ThumbnailRegenProgress>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
 }
 
 class _SyncEndpoint {
@@ -1333,7 +1461,7 @@ class _SyncEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i12.SyncPullResponse> syncPull(
+  _i3.Future<_i13.SyncPullResponse> syncPull(
     _i1.TestSessionBuilder sessionBuilder,
     int sinceVersion,
   ) async {
@@ -1356,7 +1484,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i12.SyncPullResponse>);
+                as _i3.Future<_i13.SyncPullResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1364,9 +1492,9 @@ class _SyncEndpoint {
     });
   }
 
-  _i3.Future<_i13.SyncPushResponse> syncPush(
+  _i3.Future<_i14.SyncPushResponse> syncPush(
     _i1.TestSessionBuilder sessionBuilder,
-    List<_i14.SyncChange> changes,
+    List<_i15.SyncChange> changes,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1387,7 +1515,7 @@ class _SyncEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i13.SyncPushResponse>);
+                as _i3.Future<_i14.SyncPushResponse>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

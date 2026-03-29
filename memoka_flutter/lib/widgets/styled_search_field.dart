@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-/// Shared search text field with consistent Memoka styling.
+import 'styled_text_field.dart';
+
+/// Search text field with magnifying glass prefix and optional hover border.
 ///
-/// Accent-colored magnifying glass prefix, bordered outline, optional clear
-/// suffix icon. Used by desktop search bar, mobile search input, and GIF picker.
+/// Used by desktop search bar, mobile search input, and GIF picker.
 class StyledSearchField extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
@@ -34,10 +34,6 @@ class StyledSearchField extends StatefulWidget {
 }
 
 class _StyledSearchFieldState extends State<StyledSearchField> {
-  static const _backgroundColor = Color(0xFFFFFDF6);
-  static const _borderColor = Color(0xFF3450A3);
-  static const _textColor = Color(0xFF00171F);
-
   bool _isHovered = false;
   bool _isFocused = false;
 
@@ -68,8 +64,22 @@ class _StyledSearchFieldState extends State<StyledSearchField> {
 
   @override
   Widget build(BuildContext context) {
-    final showBorder =
-        !widget.hideBorderUntilActive || _isHovered || _isFocused;
+    // When hideBorderUntilActive is false, delegate entirely to StyledTextField
+    // which handles its own animated border.
+    if (!widget.hideBorderUntilActive) {
+      return StyledTextField(
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
+        hintText: widget.hintText,
+        onChanged: widget.onChanged,
+        prefixIcon: _prefixIcon,
+        suffixIcon: widget.suffixIcon,
+      );
+    }
+
+    // hideBorderUntilActive: use custom border that fades in on hover/focus.
+    final showBorder = _isHovered || _isFocused;
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -78,57 +88,32 @@ class _StyledSearchFieldState extends State<StyledSearchField> {
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
           border: Border.all(
-            color: showBorder ? _borderColor : _backgroundColor,
+            color: showBorder
+                ? StyledTextField.borderColor
+                : StyledTextField.backgroundColor,
             width: 1,
           ),
         ),
-        child: TextField(
+        child: StyledTextField(
           controller: widget.controller,
           focusNode: widget.focusNode,
           autofocus: widget.autofocus,
-          style: GoogleFonts.spaceGrotesk(color: _textColor, fontSize: 14),
-          cursorColor: _borderColor,
+          hintText: widget.hintText,
           onChanged: widget.onChanged,
-          mouseCursor: SystemMouseCursors.text,
-          decoration: InputDecoration(
-            hoverColor: Colors.transparent,
-            hintText: widget.hintText,
-            hintStyle: TextStyle(color: _textColor.withValues(alpha: 0.4)),
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(left: 12, right: 4),
-              child: PhosphorIcon(
-                PhosphorIcons.magnifyingGlass(),
-                size: 20,
-                color: _borderColor,
-              ),
-            ),
-            prefixIconConstraints: const BoxConstraints(
-              minWidth: 0,
-              minHeight: 0,
-            ),
-            suffixIcon: widget.suffixIcon,
-            suffixIconConstraints: const BoxConstraints(
-              minWidth: 0,
-              minHeight: 0,
-            ),
-            filled: true,
-            fillColor: _backgroundColor,
-            contentPadding: const EdgeInsets.symmetric(vertical: 10),
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.zero,
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.zero,
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.zero,
-              borderSide: BorderSide.none,
-            ),
-          ),
+          borderless: true,
+          prefixIcon: _prefixIcon,
+          suffixIcon: widget.suffixIcon,
         ),
       ),
     );
   }
+
+  Widget get _prefixIcon => Padding(
+    padding: const EdgeInsets.only(left: 12, right: 4),
+    child: PhosphorIcon(
+      PhosphorIcons.magnifyingGlass(),
+      size: 20,
+      color: StyledTextField.borderColor,
+    ),
+  );
 }

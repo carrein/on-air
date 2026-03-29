@@ -28,6 +28,7 @@ import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
 import '../utils/responsive_utils.dart';
 
+import 'full_screen_image_view.dart';
 import 'link_preview_card.dart';
 import 'media_attachment_widget.dart';
 import 'pending_note_widget.dart' show kFooterHeight, NoteConstraints;
@@ -202,32 +203,256 @@ class NoteItem extends ConsumerWidget {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Justified media grid — replicates UploadDialog row layout
+  // ---------------------------------------------------------------------------
+
+  static bool _isVisualMedia(MediaAttachment a) {
+    final mime = a.mimeType.toLowerCase();
+    return mime.startsWith('image/') || mime.startsWith('video/');
+  }
+
+  /// Builds a justified-row media grid (Google Photos style).
+  /// Each row fills the container width; row height adapts to aspect ratios.
+  ///
+  /// Pass [precomputedWidth] when calling from inside an [IntrinsicWidth]
+  /// ancestor (e.g. card notes on web) — [LayoutBuilder] cannot answer
+  /// intrinsic-dimension queries and will throw in that context.
+  /// Omit it (or pass null) to let [LayoutBuilder] measure the available width
+  /// automatically (safe in [_buildMediaOnlyNote] which is outside
+  /// [IntrinsicWidth]).
+  Widget _buildJustifiedMediaGrid(
+    BuildContext context,
+    List<MediaAttachment> media, {
+    double? precomputedWidth,
+  }) {
+    if (precomputedWidth != null) {
+      return _buildGridContent(context, media, precomputedWidth);
+    }
+    return LayoutBuilder(
+      builder: (_, constraints) =>
+          _buildGridContent(context, media, constraints.maxWidth),
+    );
+  }
+
+  Widget _buildGridContent(
+    BuildContext context,
+    List<MediaAttachment> media,
+    double width,
+  ) {
+    final rows = _computeRows(media, width);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var r = 0; r < rows.length; r++) ...[
+          SizedBox(
+            height: rows[r].first.height,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var c = 0; c < rows[r].length; c++) ...[
+                  Flexible(
+                    flex: (rows[r][c].width * 1000).round().clamp(1, 1 << 20),
+                    child: _buildGridCell(context, rows[r][c]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<List<_GridCell>> _computeRows(
+    List<MediaAttachment> media,
+    double containerWidth,
+  ) {
+    const spacing = 0.0;
+    const targetRowHeight = 150.0;
+
+    double aspectRatio(MediaAttachment a) {
+      if (a.width != null && a.height != null && a.height! > 0) {
+        return a.width! / a.height!;
+      }
+      return 1.0;
+    }
+
+    if (media.isEmpty) return [];
+    if (media.length == 1) {
+      return [
+        _finalizeRow(media, containerWidth, spacing, aspectRatio),
+      ];
+    }
+
+    final partitions = <List<MediaAttachment>>[];
+    var current = <MediaAttachment>[];
+    var sumAr = 0.0;
+
+    for (final m in media) {
+      current.add(m);
+      sumAr += aspectRatio(m);
+      final gaps = (current.length - 1) * spacing;
+      final rowHeight = (containerWidth - gaps) / sumAr;
+      if (rowHeight <= targetRowHeight) {
+        partitions.add(List.of(current));
+        current = [];
+        sumAr = 0;
+      }
+    }
+    if (current.isNotEmpty) partitions.add(current);
+
+    // Balance: steal from previous row if last row is too tall
+    while (partitions.length >= 2) {
+      final last = partitions.last;
+      final prev = partitions[partitions.length - 2];
+      final lastSumAr = last.fold(0.0, (s, a) => s + aspectRatio(a));
+      final lastGaps = (last.length - 1) * spacing;
+      final lastHeight = (containerWidth - lastGaps) / lastSumAr;
+      if (lastHeight > targetRowHeight * 1.5 && prev.length > 1) {
+        last.insert(0, prev.removeLast());
+      } else {
+        break;
+      }
+    }
+
+    return partitions
+        .map(
+          (files) => _finalizeRow(files, containerWidth, spacing, aspectRatio),
+        )
+        .toList();
+  }
+
+  List<_GridCell> _finalizeRow(
+    List<MediaAttachment> files,
+    double containerWidth,
+    double spacing,
+    double Function(MediaAttachment) ar,
+  ) {
+    final sumAr = files.fold(0.0, (s, a) => s + ar(a));
+    final gaps = (files.length - 1) * spacing;
+    final height = (containerWidth - gaps) / sumAr;
+    // Assign widths left-to-right; give the last cell the exact remainder so
+    // floating-point drift never causes the row to overflow its container.
+    double usedWidth = 0;
+    final cells = <_GridCell>[];
+    for (var i = 0; i < files.length; i++) {
+      final isLast = i == files.length - 1;
+      final w = isLast
+          ? (containerWidth - gaps - usedWidth).clamp(0.0, double.infinity)
+          : height * ar(files[i]);
+      cells.add(_GridCell(attachment: files[i], width: w, height: height));
+      if (!isLast) usedWidth += w;
+    }
+    return cells;
+  }
+
+  Widget _buildGridCell(BuildContext context, _GridCell cell) {
+    final a = cell.attachment;
+    final isVideo = a.mimeType.toLowerCase().startsWith('video/');
+    final url = FileUtils.buildMediaUrl(
+      serverUrl,
+      a.filePath,
+      a.contentHash,
+    );
+
+    Widget image;
+    if (isVideo) {
+      final thumbnailUrl = FileUtils.buildThumbnailUrl(serverUrl, a);
+      image = Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox.expand(
+            child: thumbnailUrl != null
+                ? Image.network(thumbnailUrl, fit: BoxFit.cover)
+                : Container(color: Colors.grey[800]),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.75),
+              shape: BoxShape.circle,
+            ),
+            padding: const EdgeInsets.all(6),
+            child: PhosphorIcon(
+              PhosphorIcons.play(),
+              color: const Color(0xFF3450A3),
+              size: 20,
+            ),
+          ),
+        ],
+      );
+    } else {
+      final thumbnailUrl = FileUtils.buildThumbnailUrl(serverUrl, a);
+      image = Image.network(
+        thumbnailUrl ?? url,
+        fit: BoxFit.cover,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) return child;
+          return ShimmerPlaceholder(
+            width: cell.width,
+            height: cell.height,
+          );
+        },
+        errorBuilder: (_, _, _) => Container(color: Colors.grey[800]),
+      );
+    }
+
+    final imageIndex = allImageUrls.indexOf(url);
+    return GestureDetector(
+      onTap: () {
+        if (isVideo) {
+          // Handled by VideoAttachmentWidget's lightbox
+        } else {
+          FullScreenImageView.show(
+            context,
+            imageUrls: allImageUrls.isNotEmpty ? allImageUrls : [url],
+            initialIndex: allImageUrls.isNotEmpty && imageIndex >= 0
+                ? imageIndex
+                : 0,
+          );
+        }
+      },
+      child: ClipRect(child: SizedBox.expand(child: image)),
+    );
+  }
+
   /// Media-only rendering: no card chrome, timestamp pill overlay.
   Widget _buildMediaOnlyNote(
     BuildContext context,
     WidgetRef ref,
   ) {
     final attachments = note.attachments!;
+    final visualMedia = attachments.where(_isVisualMedia).toList();
+    final useGrid = visualMedia.length > 1;
 
-    // Build media widgets
-    final mediaWidgets = <Widget>[];
-    for (var i = 0; i < attachments.length; i++) {
-      if (i > 0) mediaWidgets.add(const SizedBox(height: 4));
-      final attachment = attachments[i];
-      final url = FileUtils.buildMediaUrl(
-        serverUrl,
-        attachment.filePath,
-        attachment.contentHash,
-      );
-      final imageIndex = allImageUrls.indexOf(url);
-      mediaWidgets.add(
-        MediaAttachmentWidget(
-          attachment: attachment,
-          serverUrl: serverUrl,
-          allImageUrls: allImageUrls,
-          initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
-          isMediaNote: true,
-        ),
+    Widget mediaContent;
+    if (useGrid) {
+      mediaContent = _buildJustifiedMediaGrid(context, visualMedia);
+    } else {
+      // Single attachment — keep original rendering
+      final mediaWidgets = <Widget>[];
+      for (var i = 0; i < attachments.length; i++) {
+        if (i > 0) mediaWidgets.add(const SizedBox(height: 4));
+        final attachment = attachments[i];
+        final url = FileUtils.buildMediaUrl(
+          serverUrl,
+          attachment.filePath,
+          attachment.contentHash,
+        );
+        final imageIndex = allImageUrls.indexOf(url);
+        mediaWidgets.add(
+          MediaAttachmentWidget(
+            attachment: attachment,
+            serverUrl: serverUrl,
+            allImageUrls: allImageUrls,
+            initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
+            isMediaNote: true,
+          ),
+        );
+      }
+      mediaContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: mediaWidgets,
       );
     }
 
@@ -239,10 +464,7 @@ class NoteItem extends ConsumerWidget {
           : null,
       child: Stack(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: mediaWidgets,
-          ),
+          mediaContent,
           Positioned(
             bottom: 6,
             right: 6,
@@ -389,21 +611,56 @@ class NoteItem extends ConsumerWidget {
 
     if (note.attachments != null && note.attachments!.isNotEmpty) {
       final attachments = note.attachments!;
-      for (var i = 0; i < attachments.length; i++) {
-        if (parts.isNotEmpty || i > 0) parts.add(const SizedBox(height: 12));
-        final attachment = attachments[i];
-        final url = FileUtils.buildMediaUrl(
-          serverUrl,
-          attachment.filePath,
-          attachment.contentHash,
+      final visualMedia = attachments.where(_isVisualMedia).toList();
+      final nonVisual = attachments.where((a) => !_isVisualMedia(a)).toList();
+
+      // Visual media: grid if multiple, single widget otherwise
+      if (visualMedia.length > 1) {
+        if (parts.isNotEmpty) parts.add(const SizedBox(height: 12));
+        // Compute width explicitly to avoid LayoutBuilder inside IntrinsicWidth
+        // (NoteConstraints wraps card notes in IntrinsicWidth on web/desktop).
+        final isMobile = ResponsiveUtils.isMobile(context);
+        final screenWidth = MediaQuery.of(context).size.width;
+        final noteWidth = isMobile
+            ? screenWidth - 28
+            : (screenWidth - 28).clamp(350.0, 600.0);
+        final cardPadding = isHighlighted ? 11.0 : 12.0;
+        parts.add(
+          _buildJustifiedMediaGrid(
+            context,
+            visualMedia,
+            precomputedWidth: noteWidth - cardPadding * 2,
+          ),
         );
-        final imageIndex = allImageUrls.indexOf(url);
+      } else {
+        for (final attachment in visualMedia) {
+          if (parts.isNotEmpty) parts.add(const SizedBox(height: 12));
+          final url = FileUtils.buildMediaUrl(
+            serverUrl,
+            attachment.filePath,
+            attachment.contentHash,
+          );
+          final imageIndex = allImageUrls.indexOf(url);
+          parts.add(
+            MediaAttachmentWidget(
+              attachment: attachment,
+              serverUrl: serverUrl,
+              allImageUrls: allImageUrls,
+              initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
+            ),
+          );
+        }
+      }
+
+      // Non-visual media: always individual widgets
+      for (final attachment in nonVisual) {
+        if (parts.isNotEmpty) parts.add(const SizedBox(height: 12));
         parts.add(
           MediaAttachmentWidget(
             attachment: attachment,
             serverUrl: serverUrl,
             allImageUrls: allImageUrls,
-            initialImageIndex: imageIndex >= 0 ? imageIndex : 0,
+            initialImageIndex: 0,
           ),
         );
       }
@@ -429,6 +686,12 @@ class NoteItem extends ConsumerWidget {
         Overlay.of(context).context.findRenderObject() as RenderBox;
     final isArchive = channelId == -1;
     final isMediaOnly = !isArchive && isMediaOnlyNote(note);
+    final textSegments = note.content
+        .split('\n\n')
+        .where((s) => s.trim().isNotEmpty)
+        .length;
+    final attachmentCount = note.attachments?.length ?? 0;
+    final isExplodable = !isArchive && (textSegments + attachmentCount) >= 2;
     final hasReminder =
         ref
             .read(channelRemindersProvider(channelId))
@@ -529,6 +792,17 @@ class NoteItem extends ConsumerWidget {
               ],
             ),
           ),
+        if (isExplodable)
+          PopupMenuItem(
+            value: 'explode',
+            child: Row(
+              children: [
+                PhosphorIcon(PhosphorIcons.arrowsSplit(), size: 18),
+                const SizedBox(width: 12),
+                const Text('Explode'),
+              ],
+            ),
+          ),
         if (!isArchive)
           PopupMenuItem(
             value: hasReminder ? 'remove_reminder' : 'reminder',
@@ -574,6 +848,23 @@ class NoteItem extends ConsumerWidget {
         case 'archive':
         case 'delete':
           ref.read(notesProvider(channelId).notifier).deleteNote(note.id!);
+          break;
+        case 'explode':
+          unawaited(
+            ref
+                .read(notesProvider(channelId).notifier)
+                .explodeNote(note.id!)
+                .catchError((e) {
+                  if (context.mounted) {
+                    ToastUtils.show(
+                      context,
+                      'Failed to explode: ${e.toString().split('\n').first}',
+                      type: ToastType.error,
+                    );
+                  }
+                  return <Note>[];
+                }),
+          );
           break;
         case 'restore':
           _restoreNote(context, ref);
@@ -760,6 +1051,18 @@ class NoteItem extends ConsumerWidget {
       }
     }
   }
+}
+
+/// Data class for justified grid cell dimensions.
+class _GridCell {
+  final MediaAttachment attachment;
+  final double width;
+  final double height;
+  const _GridCell({
+    required this.attachment,
+    required this.width,
+    required this.height,
+  });
 }
 
 /// Semi-transparent timestamp pill for media-only notes.

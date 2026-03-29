@@ -13,6 +13,8 @@ chat:
   - restoreChannel:
   - getArchiveItems:
   - getArchivedChannelNoteCount:
+  - combineNotes:
+  - explodeNote:
   - chat:
 health:
   - ping:
@@ -37,6 +39,8 @@ search:
 settings:
   - getSettings:
   - updateSettings:
+  - startThumbnailRegen:
+  - getRegenProgress:
 sync:
   - syncPull:
   - syncPush:

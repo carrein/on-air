@@ -1,0 +1,16 @@
+### Progress snapshot for an in-flight thumbnail regeneration job.
+### Returned by settings.getRegenProgress().
+class: ThumbnailRegenProgress
+
+fields:
+  ### Total number of attachments to process.
+  total: int
+
+  ### Number successfully regenerated so far.
+  processed: int
+
+  ### Number that failed (ffmpeg error or missing source file).
+  failed: int
+
+  ### True while the background job is still running.
+  isRunning: bool

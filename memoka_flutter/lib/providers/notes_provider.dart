@@ -413,4 +413,55 @@ class Notes extends _$Notes {
     _notes = current.where((n) => n.id != id).toList();
     state = AsyncValue.data(_notes);
   }
+
+  /// Combines multiple notes into one. Online-only.
+  /// Returns the combined note or throws on failure.
+  Future<Note> combineNotes(List<int> noteIds) async {
+    final combined = await client.chat.combineNotes(channelId, noteIds);
+
+    // Remove source notes and add combined note to the front.
+    // Also filter out combined.id — the WebSocket noteCreated event may
+    // have already added it during the RPC await.
+    final current = state.value ?? [];
+    _notes = [
+      combined,
+      ...current.where(
+        (n) => n.id != combined.id && !noteIds.contains(n.id),
+      ),
+    ];
+    state = AsyncValue.data(_notes);
+
+    // Update cache — use upsert (not bulk cacheNotes) to avoid UNIQUE
+    // constraint race with reconnect/sync caching the same note.
+    final db = ref.read(appDatabaseProvider);
+    for (final id in noteIds) {
+      await db.deleteCachedNote(id);
+    }
+    await db.upsertNoteFromServer(combined);
+
+    return combined;
+  }
+
+  /// Explodes a note into multiple notes (reverse of combine). Online-only.
+  Future<List<Note>> explodeNote(int noteId) async {
+    final newNotes = await client.chat.explodeNote(noteId);
+
+    // Remove original, add new notes (dedup against WebSocket additions)
+    final current = state.value ?? [];
+    final newIds = newNotes.map((n) => n.id).toSet();
+    _notes = [
+      ...newNotes,
+      ...current.where((n) => n.id != noteId && !newIds.contains(n.id)),
+    ];
+    state = AsyncValue.data(_notes);
+
+    // Update cache
+    final db = ref.read(appDatabaseProvider);
+    await db.deleteCachedNote(noteId);
+    for (final n in newNotes) {
+      await db.upsertNoteFromServer(n);
+    }
+
+    return newNotes;
+  }
 }

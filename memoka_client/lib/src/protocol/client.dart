@@ -20,12 +20,14 @@ import 'package:memoka_client/src/protocol/pagewatch/page_watch.dart' as _i7;
 import 'package:memoka_client/src/protocol/reminder/reminder.dart' as _i8;
 import 'package:memoka_client/src/protocol/search/search_result.dart' as _i9;
 import 'package:memoka_client/src/protocol/settings/app_settings.dart' as _i10;
-import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart'
+import 'package:memoka_client/src/protocol/settings/thumbnail_regen_progress.dart'
     as _i11;
-import 'package:memoka_client/src/protocol/sync/sync_push_response.dart'
+import 'package:memoka_client/src/protocol/sync/sync_pull_response.dart'
     as _i12;
-import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i13;
-import 'protocol.dart' as _i14;
+import 'package:memoka_client/src/protocol/sync/sync_push_response.dart'
+    as _i13;
+import 'package:memoka_client/src/protocol/sync/sync_change.dart' as _i14;
+import 'protocol.dart' as _i15;
 
 /// Endpoint for managing channels and notes with real-time updates.
 /// {@category Endpoint}
@@ -94,8 +96,7 @@ class EndpointChat extends _i1.EndpointRef {
 
   /// Reorders channels within a group (pinned or unpinned).
   /// Accepts an ordered list of channel IDs; assigns position = index + 1.
-  /// Normalises all positions to 1.0, 2.0, 3.0... when any two adjacent
-  /// positions differ by less than epsilon (1e-10).
+  /// Uses a single bulk UPDATE query instead of per-channel findById+updateRow.
   _i2.Future<void> reorderChannels(List<int> channelIds) =>
       caller.callServerEndpoint<void>(
         'chat',
@@ -190,6 +191,32 @@ class EndpointChat extends _i1.EndpointRef {
         'chat',
         'getArchivedChannelNoteCount',
         {'channelId': channelId},
+      );
+
+  /// Combines multiple notes into a single new note.
+  /// Content is concatenated chronologically, attachments are reassigned,
+  /// and source notes are tombstoned. Rejects if any source note has
+  /// a reminder or page watch.
+  _i2.Future<_i4.Note> combineNotes(
+    int channelId,
+    List<int> noteIds,
+  ) => caller.callServerEndpoint<_i4.Note>(
+    'chat',
+    'combineNotes',
+    {
+      'channelId': channelId,
+      'noteIds': noteIds,
+    },
+  );
+
+  /// Explodes a note into multiple notes (reverse of combine).
+  /// Text is split on double newlines; each attachment becomes its own note.
+  /// Original note is tombstoned. Rejects if note has a reminder or page watch.
+  _i2.Future<List<_i4.Note>> explodeNote(int noteId) =>
+      caller.callServerEndpoint<List<_i4.Note>>(
+        'chat',
+        'explodeNote',
+        {'noteId': noteId},
       );
 
   /// Streaming endpoint for real-time updates.
@@ -434,6 +461,26 @@ class EndpointSettings extends _i1.EndpointRef {
         'updateSettings',
         {'settings': settings},
       );
+
+  /// Starts a background thumbnail regeneration job and returns the total
+  /// number of attachments that will be processed.
+  ///
+  /// Returns immediately — progress is tracked server-side and readable via
+  /// [getRegenProgress]. If a job is already running, returns its total count
+  /// without starting a second job.
+  _i2.Future<int> startThumbnailRegen() => caller.callServerEndpoint<int>(
+    'settings',
+    'startThumbnailRegen',
+    {},
+  );
+
+  /// Returns the current state of the thumbnail regeneration job.
+  _i2.Future<_i11.ThumbnailRegenProgress> getRegenProgress() =>
+      caller.callServerEndpoint<_i11.ThumbnailRegenProgress>(
+        'settings',
+        'getRegenProgress',
+        {},
+      );
 }
 
 /// Endpoint for state-based reconciliation sync.
@@ -451,8 +498,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Includes tombstoned entities (deletedAt != null) so clients can remove them.
   /// Pass sinceVersion = 0 for a full sync (first launch / fresh install).
-  _i2.Future<_i11.SyncPullResponse> syncPull(int sinceVersion) =>
-      caller.callServerEndpoint<_i11.SyncPullResponse>(
+  _i2.Future<_i12.SyncPullResponse> syncPull(int sinceVersion) =>
+      caller.callServerEndpoint<_i12.SyncPullResponse>(
         'sync',
         'syncPull',
         {'sinceVersion': sinceVersion},
@@ -462,8 +509,8 @@ class EndpointSync extends _i1.EndpointRef {
   ///
   /// Each change is processed in its own transaction — partial apply is supported.
   /// Returns per-entity results: applied / rejected / already_applied.
-  _i2.Future<_i12.SyncPushResponse> syncPush(List<_i13.SyncChange> changes) =>
-      caller.callServerEndpoint<_i12.SyncPushResponse>(
+  _i2.Future<_i13.SyncPushResponse> syncPush(List<_i14.SyncChange> changes) =>
+      caller.callServerEndpoint<_i13.SyncPushResponse>(
         'sync',
         'syncPush',
         {'changes': changes},
@@ -490,7 +537,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i14.Protocol(),
+         _i15.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

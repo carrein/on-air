@@ -56,7 +56,7 @@ final class ReminderNotifierProvider
   }
 }
 
-String _$reminderNotifierHash() => r'ea0880957df2993a4044c22eed63a885d2f35eb2';
+String _$reminderNotifierHash() => r'e64ea3522a6ba0f967396147375fc8d6fbe64a35';
 
 /// Provides the Reminder state for a specific note.
 /// Returns null when the note has no reminder.

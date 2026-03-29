@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:memoka_client/memoka_client.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/archive_retention_provider.dart';
+import '../providers/connection_provider.dart' as conn;
 import '../providers/current_channel_provider.dart';
 import '../providers/channels_provider.dart';
 import '../providers/editing_note_provider.dart';
@@ -377,6 +378,13 @@ class _NavbarState extends ConsumerState<Navbar> {
             icon: PhosphorIcons.copy(),
             onPressed: () => _copySelected(selection),
           ),
+          if (selection.length >= 2) ...[
+            const SizedBox(width: 4),
+            IconButtonStyled(
+              icon: PhosphorIcons.arrowsMerge(),
+              onPressed: () => _combineSelected(selection),
+            ),
+          ],
           const SizedBox(width: 4),
           IconButtonStyled(
             icon: PhosphorIcons.siren(),
@@ -409,6 +417,38 @@ class _NavbarState extends ConsumerState<Navbar> {
     Clipboard.setData(ClipboardData(text: texts.join('\n')));
     if (mounted) {
       ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
+    }
+  }
+
+  Future<void> _combineSelected(Set<int> selection) async {
+    final channelId = ref.read(currentChannelProvider).value;
+    if (channelId == null) return;
+
+    // Online-only
+    if (ref.read(conn.connectionProvider) != conn.ConnectionState.connected) {
+      if (mounted) {
+        ToastUtils.show(
+          context,
+          'Combine requires an internet connection',
+          type: ToastType.error,
+        );
+      }
+      return;
+    }
+
+    try {
+      await ref
+          .read(notesProvider(channelId).notifier)
+          .combineNotes(selection.toList());
+      ref.read(noteSelectionProvider.notifier).clear();
+    } catch (e) {
+      if (mounted) {
+        ToastUtils.show(
+          context,
+          'Failed to combine: ${e.toString().split('\n').first}',
+          type: ToastType.error,
+        );
+      }
     }
   }
 

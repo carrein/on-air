@@ -373,6 +373,48 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['channelId'],
                   ),
         ),
+        'combineNotes': _i1.MethodConnector(
+          name: 'combineNotes',
+          params: {
+            'channelId': _i1.ParameterDescription(
+              name: 'channelId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'noteIds': _i1.ParameterDescription(
+              name: 'noteIds',
+              type: _i1.getType<List<int>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).combineNotes(
+                session,
+                params['channelId'],
+                params['noteIds'],
+              ),
+        ),
+        'explodeNote': _i1.MethodConnector(
+          name: 'explodeNote',
+          params: {
+            'noteId': _i1.ParameterDescription(
+              name: 'noteId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i2.ChatEndpoint).explodeNote(
+                session,
+                params['noteId'],
+              ),
+        ),
         'chat': _i1.MethodStreamConnector(
           name: 'chat',
           params: {},
@@ -780,6 +822,26 @@ class Endpoints extends _i1.EndpointDispatch {
                     session,
                     params['settings'],
                   ),
+        ),
+        'startThumbnailRegen': _i1.MethodConnector(
+          name: 'startThumbnailRegen',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['settings'] as _i7.SettingsEndpoint)
+                  .startThumbnailRegen(session),
+        ),
+        'getRegenProgress': _i1.MethodConnector(
+          name: 'getRegenProgress',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['settings'] as _i7.SettingsEndpoint)
+                  .getRegenProgress(session),
         ),
       },
     );

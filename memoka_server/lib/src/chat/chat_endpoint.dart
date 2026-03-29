@@ -290,11 +290,16 @@ class ChatEndpoint extends Endpoint {
         return Note.db.updateRow(session, freshNote, transaction: tx);
       });
 
+      // Re-load with attachments so the broadcast includes media
+      final withAttachments = await NoteQuery.findWithAttachments(
+        session,
+        whereClause: 'n.id = ${updated.id}',
+      );
       await ServerConstants.broadcastEvent(
         session,
         ChatEvent(
           type: 'noteLinkPreviewReady',
-          note: updated,
+          note: withAttachments.isNotEmpty ? withAttachments.first : updated,
         ),
       );
     } catch (e, stackTrace) {
@@ -601,6 +606,296 @@ class ChatEndpoint extends Endpoint {
       session,
       where: (t) => t.channelId.equals(channelId) & t.deletedAt.equals(null),
     );
+  }
+
+  /// Combines multiple notes into a single new note.
+  /// Content is concatenated chronologically, attachments are reassigned,
+  /// and source notes are tombstoned. Rejects if any source note has
+  /// a reminder or page watch.
+  Future<Note> combineNotes(
+    Session session,
+    int channelId,
+    List<int> noteIds,
+  ) async {
+    if (noteIds.length < 2) {
+      throw Exception('At least 2 notes are required to combine');
+    }
+
+    // Load all source notes and validate
+    final notes = await Note.db.find(
+      session,
+      where: (t) =>
+          t.id.inSet(noteIds.toSet()) &
+          t.channelId.equals(channelId) &
+          t.archived.equals(false) &
+          t.deletedAt.equals(null),
+    );
+
+    if (notes.length != noteIds.length) {
+      throw Exception(
+        'Some notes were not found or do not belong to this channel',
+      );
+    }
+
+    // Check for reminders
+    final reminderCheck = await session.db.unsafeQuery(
+      'SELECT "noteId" FROM "reminders" '
+      'WHERE "noteId" IN (${noteIds.join(",")}) LIMIT 1',
+    );
+    if (reminderCheck.isNotEmpty) {
+      throw Exception('Cannot combine notes that have reminders');
+    }
+
+    // Check for page watches
+    final watchCheck = await session.db.unsafeQuery(
+      'SELECT "noteId" FROM "page_watches" '
+      'WHERE "noteId" IN (${noteIds.join(",")}) LIMIT 1',
+    );
+    if (watchCheck.isNotEmpty) {
+      throw Exception('Cannot combine notes that have page watches');
+    }
+
+    // Sort newest first (matches chat display order)
+    notes.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    // Concatenate content
+    final combinedContent = notes
+        .map((n) => n.content.trim())
+        .where((c) => c.isNotEmpty)
+        .join('\n\n');
+
+    // Validate combined content length (allow empty if notes have attachments)
+    if (combinedContent.isNotEmpty) {
+      final contentError = Validation.validateNoteContent(combinedContent);
+      if (contentError != null) throw Exception(contentError);
+    }
+
+    final now = DateTime.now();
+    final saved = await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+
+      // Create combined note
+      final note = Note(
+        channelId: channelId,
+        content: combinedContent,
+        version: newVersion,
+      );
+      final savedNote = await Note.db.insertRow(session, note, transaction: tx);
+
+      // Reassign all attachments from source notes to the combined note
+      await session.db.unsafeQuery(
+        'UPDATE "media_attachments" SET "noteId" = ${savedNote.id} '
+        'WHERE "noteId" IN (${noteIds.join(",")})',
+        transaction: tx,
+      );
+
+      // Tombstone source notes
+      await session.db.unsafeQuery(
+        'UPDATE "notes" SET '
+        '"deletedAt" = \'${now.toIso8601String()}\', '
+        '"version" = $newVersion, '
+        '"updatedAt" = \'${now.toIso8601String()}\' '
+        'WHERE "id" IN (${noteIds.join(",")})',
+        transaction: tx,
+      );
+
+      // Update channel's updatedAt + version
+      final channel = await Channel.db.findById(
+        session,
+        channelId,
+        transaction: tx,
+      );
+      if (channel != null) {
+        channel.updatedAt = now;
+        channel.version = newVersion;
+        await Channel.db.updateRow(session, channel, transaction: tx);
+      }
+
+      return savedNote;
+    });
+
+    // Load the combined note with attachments
+    final notesWithAttachments = await NoteQuery.findWithAttachments(
+      session,
+      whereClause: 'n.id = ${saved.id}',
+    );
+    final combined = notesWithAttachments.isNotEmpty
+        ? notesWithAttachments.first
+        : saved;
+
+    // Broadcast noteCreated for the combined note
+    await ServerConstants.broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'noteCreated',
+        note: combined,
+      ),
+    );
+
+    // Broadcast noteDeleted for each source note
+    for (final noteId in noteIds) {
+      await ServerConstants.broadcastEvent(
+        session,
+        ChatEvent(
+          type: 'noteDeleted',
+          noteId: noteId,
+          channelId: channelId,
+        ),
+      );
+    }
+
+    // Fetch link preview asynchronously
+    unawaited(_fetchLinkPreviewAsync(session, combined));
+
+    return combined;
+  }
+
+  /// Explodes a note into multiple notes (reverse of combine).
+  /// Text is split on double newlines; each attachment becomes its own note.
+  /// Original note is tombstoned. Rejects if note has a reminder or page watch.
+  Future<List<Note>> explodeNote(Session session, int noteId) async {
+    // Load note with attachments
+    final notesWithAttachments = await NoteQuery.findWithAttachments(
+      session,
+      whereClause:
+          'n.id = $noteId AND n.archived = false AND n."deletedAt" IS NULL',
+    );
+    if (notesWithAttachments.isEmpty) {
+      throw Exception('Note not found');
+    }
+    final note = notesWithAttachments.first;
+    final channelId = note.channelId;
+
+    // Check for reminders
+    final reminderCheck = await session.db.unsafeQuery(
+      'SELECT "noteId" FROM "reminders" '
+      'WHERE "noteId" = $noteId LIMIT 1',
+    );
+    if (reminderCheck.isNotEmpty) {
+      throw Exception('Cannot explode a note that has a reminder');
+    }
+
+    // Check for page watches
+    final watchCheck = await session.db.unsafeQuery(
+      'SELECT "noteId" FROM "page_watches" '
+      'WHERE "noteId" = $noteId LIMIT 1',
+    );
+    if (watchCheck.isNotEmpty) {
+      throw Exception('Cannot explode a note that has a page watch');
+    }
+
+    // Split text on double newlines
+    final textSegments = note.content
+        .split('\n\n')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+
+    final attachments = note.attachments ?? [];
+
+    // Must produce at least 2 pieces
+    final totalPieces = textSegments.length + attachments.length;
+    if (totalPieces < 2) {
+      throw Exception('Note cannot be exploded (nothing to split)');
+    }
+
+    final now = DateTime.now();
+    final createdNotes = <Note>[];
+
+    await session.db.transaction((tx) async {
+      final newVersion = await incrementGlobalVersion(session, transaction: tx);
+
+      // Create a note for each text segment
+      for (final text in textSegments) {
+        final saved = await Note.db.insertRow(
+          session,
+          Note(
+            channelId: channelId,
+            content: text,
+            version: newVersion,
+          ),
+          transaction: tx,
+        );
+        createdNotes.add(saved);
+      }
+
+      // Create a note for each attachment
+      for (final attachment in attachments) {
+        final saved = await Note.db.insertRow(
+          session,
+          Note(
+            channelId: channelId,
+            content: '',
+            version: newVersion,
+          ),
+          transaction: tx,
+        );
+        // Reassign attachment to its own note
+        await session.db.unsafeQuery(
+          'UPDATE "media_attachments" SET "noteId" = ${saved.id} '
+          'WHERE "id" = ${attachment.id}',
+          transaction: tx,
+        );
+        createdNotes.add(saved);
+      }
+
+      // Tombstone original
+      await session.db.unsafeQuery(
+        'UPDATE "notes" SET '
+        '"deletedAt" = \'${now.toIso8601String()}\', '
+        '"version" = $newVersion, '
+        '"updatedAt" = \'${now.toIso8601String()}\' '
+        'WHERE "id" = $noteId',
+        transaction: tx,
+      );
+
+      // Update channel version
+      final channel = await Channel.db.findById(
+        session,
+        channelId,
+        transaction: tx,
+      );
+      if (channel != null) {
+        channel.updatedAt = now;
+        channel.version = newVersion;
+        await Channel.db.updateRow(session, channel, transaction: tx);
+      }
+    });
+
+    // Reload all created notes with attachments
+    final ids = createdNotes.map((n) => n.id).toList();
+    final loaded = await NoteQuery.findWithAttachments(
+      session,
+      whereClause: 'n.id IN (${ids.join(",")})',
+      orderBy: 'n.id ASC',
+    );
+
+    // Broadcast noteCreated for each new note
+    for (final n in loaded) {
+      await ServerConstants.broadcastEvent(
+        session,
+        ChatEvent(type: 'noteCreated', note: n),
+      );
+    }
+
+    // Broadcast noteDeleted for the original
+    await ServerConstants.broadcastEvent(
+      session,
+      ChatEvent(
+        type: 'noteDeleted',
+        noteId: noteId,
+        channelId: channelId,
+      ),
+    );
+
+    // Fetch link previews asynchronously for text notes
+    for (final n in loaded) {
+      if (n.content.isNotEmpty) {
+        unawaited(_fetchLinkPreviewAsync(session, n));
+      }
+    }
+
+    return loaded;
   }
 
   /// Streaming endpoint for real-time updates.
