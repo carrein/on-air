@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:serverpod/serverpod.dart';
 
 import 'ffmpeg_utils.dart';
+import 'hash_utils.dart';
 
 /// In-process singleton tracking the state of one thumbnail regen job.
 ///
@@ -160,11 +161,17 @@ class ThumbnailRegenService {
       }
 
       final newThumbRelative = path.relative(thumbFilePath, from: channelDir);
+      final newHash = await computeFileHash(thumbFilePath);
 
       if (existingThumbPath == null) {
         final escaped = newThumbRelative.replaceAll("'", "''");
         await session.db.unsafeQuery(
-          'UPDATE media_attachments SET "thumbnailPath" = \'$escaped\' WHERE id = $id',
+          'UPDATE media_attachments SET "thumbnailPath" = \'$escaped\', '
+          '"contentHash" = \'$newHash\' WHERE id = $id',
+        );
+      } else {
+        await session.db.unsafeQuery(
+          'UPDATE media_attachments SET "contentHash" = \'$newHash\' WHERE id = $id',
         );
       }
 
