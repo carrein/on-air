@@ -270,6 +270,7 @@ class NoteItem extends ConsumerWidget {
   ) {
     const spacing = 0.0;
     const targetRowHeight = 150.0;
+    const maxItemsPerRow = 3;
 
     double aspectRatio(MediaAttachment a) {
       if (a.width != null && a.height != null && a.height! > 0) {
@@ -294,7 +295,7 @@ class NoteItem extends ConsumerWidget {
       sumAr += aspectRatio(m);
       final gaps = (current.length - 1) * spacing;
       final rowHeight = (containerWidth - gaps) / sumAr;
-      if (rowHeight <= targetRowHeight) {
+      if (rowHeight <= targetRowHeight || current.length >= maxItemsPerRow) {
         partitions.add(List.of(current));
         current = [];
         sumAr = 0;
@@ -309,7 +310,9 @@ class NoteItem extends ConsumerWidget {
       final lastSumAr = last.fold(0.0, (s, a) => s + aspectRatio(a));
       final lastGaps = (last.length - 1) * spacing;
       final lastHeight = (containerWidth - lastGaps) / lastSumAr;
-      if (lastHeight > targetRowHeight * 1.5 && prev.length > 1) {
+      if (lastHeight > targetRowHeight * 1.5 &&
+          prev.length > 1 &&
+          last.length < maxItemsPerRow) {
         last.insert(0, prev.removeLast());
       } else {
         break;

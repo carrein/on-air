@@ -248,6 +248,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
   ) {
     const spacing = 0.0;
     const targetRowHeight = 220.0;
+    const maxItemsPerRow = 3;
 
     if (media.isEmpty) return [];
     if (media.length == 1) {
@@ -266,7 +267,7 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
       final gaps = (currentRow.length - 1) * spacing;
       final rowHeight = (containerWidth - gaps) / sumAr;
 
-      if (rowHeight <= targetRowHeight) {
+      if (rowHeight <= targetRowHeight || currentRow.length >= maxItemsPerRow) {
         rowPartitions.add(List.of(currentRow));
         currentRow = [];
         sumAr = 0;
@@ -287,7 +288,9 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
       final lastGaps = (lastRow.length - 1) * spacing;
       final lastHeight = (containerWidth - lastGaps) / lastSumAr;
 
-      if (lastHeight > targetRowHeight * 1.5 && prevRow.length > 1) {
+      if (lastHeight > targetRowHeight * 1.5 &&
+          prevRow.length > 1 &&
+          lastRow.length < maxItemsPerRow) {
         final stolen = prevRow.removeLast();
         lastRow.insert(0, stolen);
       } else {
