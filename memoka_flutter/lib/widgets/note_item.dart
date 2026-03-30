@@ -26,6 +26,7 @@ import '../utils/url_utils.dart';
 import '../utils/image_clipboard.dart';
 import '../utils/toast_utils.dart';
 import '../utils/file_utils.dart';
+import '../utils/grid_layout_utils.dart';
 import '../utils/responsive_utils.dart';
 
 import 'full_screen_image_view.dart';
@@ -204,7 +205,7 @@ class NoteItem extends ConsumerWidget {
   }
 
   // ---------------------------------------------------------------------------
-  // Justified media grid — replicates UploadDialog row layout
+  // Justified media grid — dynamic row layout, closest-to-square partitioning
   // ---------------------------------------------------------------------------
 
   static bool _isVisualMedia(MediaAttachment a) {
@@ -212,15 +213,18 @@ class NoteItem extends ConsumerWidget {
     return mime.startsWith('image/') || mime.startsWith('video/');
   }
 
-  /// Builds a justified-row media grid (Google Photos style).
-  /// Each row fills the container width; row height adapts to aspect ratios.
+  static double _aspectRatio(MediaAttachment a) {
+    if (a.width != null && a.height != null && a.height! > 0) {
+      return a.width! / a.height!;
+    }
+    return 1.0;
+  }
+
+  /// Builds a justified-row media grid.
   ///
   /// Pass [precomputedWidth] when calling from inside an [IntrinsicWidth]
   /// ancestor (e.g. card notes on web) — [LayoutBuilder] cannot answer
   /// intrinsic-dimension queries and will throw in that context.
-  /// Omit it (or pass null) to let [LayoutBuilder] measure the available width
-  /// automatically (safe in [_buildMediaOnlyNote] which is outside
-  /// [IntrinsicWidth]).
   Widget _buildJustifiedMediaGrid(
     BuildContext context,
     List<MediaAttachment> media, {
@@ -240,7 +244,10 @@ class NoteItem extends ConsumerWidget {
     List<MediaAttachment> media,
     double width,
   ) {
-    final rows = _computeRows(media, width);
+    final ars = media.map(_aspectRatio).toList();
+    final layout = computeLayout(ars, maxWidth: width);
+    final rows = finalizeRows(ars, layout.rowCounts, width);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -250,10 +257,17 @@ class NoteItem extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (var c = 0; c < rows[r].length; c++) ...[
+                for (final cell in rows[r]) ...[
                   Flexible(
-                    flex: (rows[r][c].width * 1000).round().clamp(1, 1 << 20),
-                    child: _buildGridCell(context, rows[r][c]),
+                    flex: (cell.width * 1000).round().clamp(1, 1 << 20),
+                    child: _buildGridCell(
+                      context,
+                      _GridCell(
+                        attachment: media[cell.itemIndex],
+                        width: cell.width,
+                        height: cell.height,
+                      ),
+                    ),
                   ),
                 ],
               ],
@@ -262,92 +276,6 @@ class NoteItem extends ConsumerWidget {
         ],
       ],
     );
-  }
-
-  List<List<_GridCell>> _computeRows(
-    List<MediaAttachment> media,
-    double containerWidth,
-  ) {
-    const spacing = 0.0;
-    const targetRowHeight = 150.0;
-    const maxItemsPerRow = 3;
-
-    double aspectRatio(MediaAttachment a) {
-      if (a.width != null && a.height != null && a.height! > 0) {
-        return a.width! / a.height!;
-      }
-      return 1.0;
-    }
-
-    if (media.isEmpty) return [];
-    if (media.length == 1) {
-      return [
-        _finalizeRow(media, containerWidth, spacing, aspectRatio),
-      ];
-    }
-
-    final partitions = <List<MediaAttachment>>[];
-    var current = <MediaAttachment>[];
-    var sumAr = 0.0;
-
-    for (final m in media) {
-      current.add(m);
-      sumAr += aspectRatio(m);
-      final gaps = (current.length - 1) * spacing;
-      final rowHeight = (containerWidth - gaps) / sumAr;
-      if (rowHeight <= targetRowHeight || current.length >= maxItemsPerRow) {
-        partitions.add(List.of(current));
-        current = [];
-        sumAr = 0;
-      }
-    }
-    if (current.isNotEmpty) partitions.add(current);
-
-    // Balance: steal from previous row if last row is too tall
-    while (partitions.length >= 2) {
-      final last = partitions.last;
-      final prev = partitions[partitions.length - 2];
-      final lastSumAr = last.fold(0.0, (s, a) => s + aspectRatio(a));
-      final lastGaps = (last.length - 1) * spacing;
-      final lastHeight = (containerWidth - lastGaps) / lastSumAr;
-      if (lastHeight > targetRowHeight * 1.5 &&
-          prev.length > 1 &&
-          last.length < maxItemsPerRow) {
-        last.insert(0, prev.removeLast());
-      } else {
-        break;
-      }
-    }
-
-    return partitions
-        .map(
-          (files) => _finalizeRow(files, containerWidth, spacing, aspectRatio),
-        )
-        .toList();
-  }
-
-  List<_GridCell> _finalizeRow(
-    List<MediaAttachment> files,
-    double containerWidth,
-    double spacing,
-    double Function(MediaAttachment) ar,
-  ) {
-    final sumAr = files.fold(0.0, (s, a) => s + ar(a));
-    final gaps = (files.length - 1) * spacing;
-    final height = (containerWidth - gaps) / sumAr;
-    // Assign widths left-to-right; give the last cell the exact remainder so
-    // floating-point drift never causes the row to overflow its container.
-    double usedWidth = 0;
-    final cells = <_GridCell>[];
-    for (var i = 0; i < files.length; i++) {
-      final isLast = i == files.length - 1;
-      final w = isLast
-          ? (containerWidth - gaps - usedWidth).clamp(0.0, double.infinity)
-          : height * ar(files[i]);
-      cells.add(_GridCell(attachment: files[i], width: w, height: height));
-      if (!isLast) usedWidth += w;
-    }
-    return cells;
   }
 
   Widget _buildGridCell(BuildContext context, _GridCell cell) {
@@ -427,10 +355,42 @@ class NoteItem extends ConsumerWidget {
     final attachments = note.attachments!;
     final visualMedia = attachments.where(_isVisualMedia).toList();
     final useGrid = visualMedia.length > 1;
+    final isMobile = ResponsiveUtils.isMobile(context);
 
     Widget mediaContent;
     if (useGrid) {
-      mediaContent = _buildJustifiedMediaGrid(context, visualMedia);
+      if (isMobile) {
+        // Mobile: full available width as max, note shrinks dynamically.
+        final screenWidth = MediaQuery.of(context).size.width;
+        final maxW = screenWidth - 28;
+        final ars = visualMedia.map(_aspectRatio).toList();
+        final layout = computeLayout(ars, maxWidth: maxW);
+        mediaContent = SizedBox(
+          width: layout.width,
+          child: _buildJustifiedMediaGrid(
+            context,
+            visualMedia,
+            precomputedWidth: layout.width,
+          ),
+        );
+      } else {
+        // Desktop: use actual available width (no 600px cap) so large albums
+        // can spread out. LayoutBuilder is safe here (no IntrinsicWidth).
+        mediaContent = LayoutBuilder(
+          builder: (_, constraints) {
+            final ars = visualMedia.map(_aspectRatio).toList();
+            final layout = computeLayout(ars, maxWidth: constraints.maxWidth);
+            return SizedBox(
+              width: layout.width,
+              child: _buildJustifiedMediaGrid(
+                context,
+                visualMedia,
+                precomputedWidth: layout.width,
+              ),
+            );
+          },
+        );
+      }
     } else {
       // Single attachment — keep original rendering
       final mediaWidgets = <Widget>[];
@@ -485,7 +445,7 @@ class NoteItem extends ConsumerWidget {
       },
       child: GestureDetector(
         onLongPress: () {
-          if (ResponsiveUtils.isMobile(context)) {
+          if (isMobile) {
             HapticFeedback.mediumImpact();
             ref.read(noteSelectionProvider.notifier).select(note.id!);
           } else {

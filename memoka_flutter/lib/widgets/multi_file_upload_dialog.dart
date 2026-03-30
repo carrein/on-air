@@ -11,6 +11,7 @@ import '../models/upload_file_data.dart';
 import '../utils/video_thumbnail_web.dart'
     if (dart.library.io) '../utils/video_thumbnail_native.dart'
     as vt;
+import '../utils/grid_layout_utils.dart';
 import 'app_text_button.dart';
 import 'icon_button_styled.dart';
 import 'app_spinner.dart';
@@ -246,75 +247,25 @@ class _MultiFileUploadDialogState extends State<MultiFileUploadDialog> {
     List<UploadFileData> media,
     double containerWidth,
   ) {
-    const spacing = 0.0;
-    const targetRowHeight = 220.0;
-    const maxItemsPerRow = 3;
-
     if (media.isEmpty) return [];
-    if (media.length == 1) {
-      return [_finalizeRow(media, containerWidth, spacing)];
-    }
 
-    final rowPartitions = <List<UploadFileData>>[];
-    var currentRow = <UploadFileData>[];
-    var sumAr = 0.0;
+    final ars = media.map((f) => _aspectRatios[f] ?? 1.0).toList();
+    final layout = computeLayout(ars, maxWidth: containerWidth);
+    final cellRows = finalizeRows(ars, layout.rowCounts, containerWidth);
 
-    for (final img in media) {
-      final ar = _aspectRatios[img] ?? 1.0;
-      currentRow.add(img);
-      sumAr += ar;
-
-      final gaps = (currentRow.length - 1) * spacing;
-      final rowHeight = (containerWidth - gaps) / sumAr;
-
-      if (rowHeight <= targetRowHeight || currentRow.length >= maxItemsPerRow) {
-        rowPartitions.add(List.of(currentRow));
-        currentRow = [];
-        sumAr = 0;
-      }
-    }
-    if (currentRow.isNotEmpty) {
-      rowPartitions.add(currentRow);
-    }
-
-    while (rowPartitions.length >= 2) {
-      final lastRow = rowPartitions.last;
-      final prevRow = rowPartitions[rowPartitions.length - 2];
-
-      final lastSumAr = lastRow.fold(
-        0.0,
-        (s, f) => s + (_aspectRatios[f] ?? 1.0),
-      );
-      final lastGaps = (lastRow.length - 1) * spacing;
-      final lastHeight = (containerWidth - lastGaps) / lastSumAr;
-
-      if (lastHeight > targetRowHeight * 1.5 &&
-          prevRow.length > 1 &&
-          lastRow.length < maxItemsPerRow) {
-        final stolen = prevRow.removeLast();
-        lastRow.insert(0, stolen);
-      } else {
-        break;
-      }
-    }
-
-    return rowPartitions
-        .map((files) => _finalizeRow(files, containerWidth, spacing))
+    return cellRows
+        .map(
+          (row) => row
+              .map(
+                (cell) => _RowItem(
+                  file: media[cell.itemIndex],
+                  width: cell.width,
+                  height: cell.height,
+                ),
+              )
+              .toList(),
+        )
         .toList();
-  }
-
-  List<_RowItem> _finalizeRow(
-    List<UploadFileData> files,
-    double containerWidth,
-    double spacing,
-  ) {
-    final sumAr = files.fold(0.0, (sum, f) => sum + (_aspectRatios[f] ?? 1.0));
-    final gaps = (files.length - 1) * spacing;
-    final height = (containerWidth - gaps) / sumAr;
-    return files.map((f) {
-      final ar = _aspectRatios[f] ?? 1.0;
-      return _RowItem(file: f, width: height * ar, height: height);
-    }).toList();
   }
 
   // ---------------------------------------------------------------------------
