@@ -1,16 +1,16 @@
 # <img src="logo.png" width="28"> memoka
 
-![memoka](memoka.png)
-
 memoka is a stream of consciousness note-taking application.
+
+![memoka](memoka.png)
 
 > This application is built with the assistance of AI generated code as part of an experiment. You can read more about this on [carrein-blog](https://catallenya.com).
 
-## Overview
+# Overview
 
 memoka aims to replicate Telegram's [Saved Message](https://telegram.org/blog/new-saved-messages-and-9-more) experience. Saved Message is a personal space for every Telegram user, making it useful for making notes. memoka copies and augments this functionality with new features.
 
-## Features
+# Features
 
 - Live notes through WebSocket streaming.
 - Channel based notes organization.
@@ -24,7 +24,7 @@ memoka aims to replicate Telegram's [Saved Message](https://telegram.org/blog/ne
 - Cross-platform (web, Android) support.
 - Markdown formatting.
 
-## Documentation
+# Documentation
 
 - [Project Overview](docs/Overview.md)
 - [Channel Management](docs/Channel.md)
@@ -34,16 +34,16 @@ memoka aims to replicate Telegram's [Saved Message](https://telegram.org/blog/ne
 - [Deployment Guide](docs/Deployment.md)
 - **[Security Documentation](docs/Security.md)** - Read before deployment
 
-## Quick Start
+# Quick Start
 
-### Prerequisites
+## Prerequisites
 
 - Dart SDK 3.10+
 - Flutter 3.41+
 - Docker & Docker Compose
 - PostgreSQL client (optional, for manual DB access)
 
-### Development Setup
+## Development Setup
 
 1. **Start database services**:
 
@@ -92,7 +92,7 @@ memoka aims to replicate Telegram's [Saved Message](https://telegram.org/blog/ne
    flutter run -d chrome
    ```
 
-## Security
+# Security
 
 This application has NO authentication by design (single-user environment).
 
@@ -105,7 +105,7 @@ This application has NO authentication by design (single-user environment).
 5. Enable HTTPS
 6. Set up firewall rules
 
-## Architecture
+# Architecture
 
 Built with [Serverpod](https://serverpod.dev) v3.3.1:
 
@@ -123,6 +123,6 @@ Key technologies:
 
 See [CLAUDE.md](CLAUDE.md) for detailed architecture and development workflow.
 
-## Deployment
+# Deployment
 
 See [docs/Deployment.md](docs/Deployment.md) for the full deployment guide, including Docker setup, GitHub Actions CI/CD, and hosting configuration.
