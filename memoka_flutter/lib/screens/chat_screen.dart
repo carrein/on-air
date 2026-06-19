@@ -149,6 +149,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (ModalRoute.of(context)?.isCurrent == false) {
         Navigator.of(context).pop();
       }
+      ref.read(noteSelectionProvider.notifier).clear();
       ref.read(globalSearchProvider.notifier).activate();
       return true;
     }
@@ -160,6 +161,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (ref.read(globalSearchProvider).isActive) {
         ref.read(globalSearchProvider.notifier).deactivate();
       }
+      ref.read(noteSelectionProvider.notifier).clear();
       ref.read(inputFocusRequestProvider.notifier).request();
       return true;
     }
@@ -206,6 +208,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   /// Builds the same pinned-then-unpinned ordering that [ChannelList] renders
   /// so arrow keys / swipe gestures match what the user sees.
   void _cycleChannel(int delta) {
+    ref.read(noteSelectionProvider.notifier).clear();
     final channelsAsync = ref.read(channelsProvider);
     final currentAsync = ref.read(currentChannelProvider);
 
@@ -352,13 +355,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       return Expanded(child: inner);
     }
 
+    final selection = ref.watch(noteSelectionProvider);
+    final isInSelection = selection.isNotEmpty;
     final isInDetailOrSearch = isInDetailMode || isMobileSearch;
 
     return PopScope(
-      canPop: !isInDetailOrSearch,
+      canPop: !isInDetailOrSearch && !isInSelection,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (isMobileSearch) {
+        if (isInSelection) {
+          ref.read(noteSelectionProvider.notifier).clear();
+        } else if (isMobileSearch) {
           ref.read(globalSearchProvider.notifier).deactivate();
         } else if (isShowingSettings) {
           ref.read(settingsVisibilityProvider.notifier).hide();

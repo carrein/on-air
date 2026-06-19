@@ -806,6 +806,7 @@ class NoteItem extends ConsumerWidget {
           _copyImageToClipboard(context).ignore();
           break;
         case 'edit':
+          ref.read(noteSelectionProvider.notifier).clear();
           ref.read(editingNoteProvider.notifier).startEditing(note.id!);
           break;
         case 'archive':

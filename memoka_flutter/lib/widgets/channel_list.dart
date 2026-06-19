@@ -5,6 +5,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/channels_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
+import '../providers/note_selection_provider.dart';
 import '../providers/notes_provider.dart';
 import '../providers/settings_view_provider.dart';
 import '../utils/icon_utils.dart';
@@ -513,8 +514,9 @@ class _ChannelListState extends ConsumerState<ChannelList> {
   }
 
   void _switchChannel(WidgetRef ref, int channelId) {
-    // Discard any editing state when switching channels
+    // Discard any editing or selection state when switching channels
     ref.read(editingNoteProvider.notifier).cancelEditing();
+    ref.read(noteSelectionProvider.notifier).clear();
     // Hide settings if showing
     ref.read(settingsVisibilityProvider.notifier).hide();
     // Direct tap — no slide animation

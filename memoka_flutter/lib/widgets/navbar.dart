@@ -415,6 +415,7 @@ class _NavbarState extends ConsumerState<Navbar> {
         .toList();
     if (texts.isEmpty) return;
     Clipboard.setData(ClipboardData(text: texts.join('\n')));
+    ref.read(noteSelectionProvider.notifier).clear();
     if (mounted) {
       ToastUtils.show(context, 'Copied to clipboard', type: ToastType.success);
     }
@@ -705,10 +706,12 @@ class _NavbarState extends ConsumerState<Navbar> {
             .read(currentChannelProvider)
             .value;
         ref.read(editingNoteProvider.notifier).cancelEditing();
+        ref.read(noteSelectionProvider.notifier).clear();
         ref.read(settingsVisibilityProvider.notifier).hide();
         ref.read(currentChannelProvider.notifier).switchChannel(-1);
         break;
       case 'settings':
+        ref.read(noteSelectionProvider.notifier).clear();
         ref.read(settingsVisibilityProvider.notifier).show();
         break;
     }

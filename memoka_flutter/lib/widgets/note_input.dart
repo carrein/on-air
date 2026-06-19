@@ -10,6 +10,7 @@ import '../providers/notes_provider.dart';
 import '../providers/current_channel_provider.dart';
 import '../providers/editing_note_provider.dart';
 import '../providers/input_focus_provider.dart';
+import '../providers/note_selection_provider.dart';
 import '../providers/pending_uploads_provider.dart';
 import '../services/klipy_service.dart';
 import '../utils/toast_utils.dart';
@@ -59,6 +60,13 @@ class _NoteInputState extends ConsumerState<NoteInput>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus) {
+      ref.read(noteSelectionProvider.notifier).clear();
+    }
   }
 
   @override
@@ -530,6 +538,7 @@ class _NoteInputState extends ConsumerState<NoteInput>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _focusNode.removeListener(_onFocusChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
