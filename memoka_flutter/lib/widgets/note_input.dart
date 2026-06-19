@@ -180,6 +180,7 @@ class _NoteInputState extends ConsumerState<NoteInput>
                       minLines: 1,
                       maxLines: 8,
                       keyboardType: TextInputType.multiline,
+                      inputFormatters: [_ListContinuationFormatter()],
                       style: const TextStyle(color: Color(0xFF00171F)),
                       cursorColor: _iconColor,
                       decoration: InputDecoration(
@@ -547,4 +548,63 @@ class _NoteInputState extends ConsumerState<NoteInput>
 
 class _SubmitIntent extends Intent {
   const _SubmitIntent();
+}
+
+class _ListContinuationFormatter extends TextInputFormatter {
+  static final _prefixPattern = RegExp(r'^(\d+\. |- \[[xX ]\] |- )');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Only act on single-character newline insertion.
+    if (newValue.text.length != oldValue.text.length + 1) return newValue;
+    if (!newValue.selection.isValid || !newValue.selection.isCollapsed) {
+      return newValue;
+    }
+
+    final insertPos = newValue.selection.baseOffset - 1;
+    if (insertPos < 0 || newValue.text[insertPos] != '\n') return newValue;
+
+    final text = newValue.text;
+    final lineStart = text.lastIndexOf('\n', insertPos - 1) + 1;
+    final currentLine = text.substring(lineStart, insertPos);
+
+    final match = _prefixPattern.firstMatch(currentLine);
+    if (match == null) return newValue;
+
+    final prefix = match.group(0)!;
+    final content = currentLine.substring(prefix.length);
+
+    // Empty list item — remove prefix and the newline.
+    if (content.trim().isEmpty) {
+      return TextEditingValue(
+        text: text.substring(0, lineStart) + text.substring(insertPos + 1),
+        selection: TextSelection.collapsed(offset: lineStart),
+      );
+    }
+
+    // Determine continuation prefix.
+    String nextPrefix;
+    final numMatch = RegExp(r'^(\d+)\. $').firstMatch(prefix);
+    if (numMatch != null) {
+      nextPrefix = '${int.parse(numMatch.group(1)!) + 1}. ';
+    } else if (prefix.startsWith('- [')) {
+      nextPrefix = '- [ ] ';
+    } else {
+      nextPrefix = '- ';
+    }
+
+    final result =
+        '${text.substring(0, insertPos + 1)}'
+        '$nextPrefix'
+        '${text.substring(insertPos + 1)}';
+    return TextEditingValue(
+      text: result,
+      selection: TextSelection.collapsed(
+        offset: insertPos + 1 + nextPrefix.length,
+      ),
+    );
+  }
 }
